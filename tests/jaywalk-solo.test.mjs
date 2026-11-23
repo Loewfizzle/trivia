@@ -214,7 +214,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
   assert.equal(hitVehicle(createCourse('x'), { y: 0, x: 4500, end: 10 }), '', 'not a road: nothing');
   // night.js draws by the SAME pick
   const n = read('js/games/jaywalk/night.js');
-  assert.match(n, /import \{ hsh, strSeed, vehicleAt \} from '\.\/causes\.js';/); assert.match(n, /const what = vehicleAt\(course, i, j\)/);
+  assert.match(n, /import \{ hsh, strSeed, vehicleAt, plainAt \} from '\.\/causes\.js';/); assert.match(n, /let what = vehicleAt\(course, i, j\)/);
   const v = read('js/games/jaywalk/victory.js');
   assert.match(v, /const seed = solo \? seedOf\(code, game\.matchId, r\.go\) : game\.seed[;,]/, 'the course: a solo run\'s from its own GO, a match\'s the game\'s');
   assert.match(v, /const vehicle = course \? hitVehicle\(course, \{ y: r\.y, x: r\.px, end: r\.e \}\) : '';/, 'the end screen reads it back from the result');

@@ -14,16 +14,19 @@ import { shade } from './arrival.js';
 import { LINE_HEX, friendFade } from './lines.js';
 import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
-import { hsh, strSeed, vehicleAt } from './causes.js';
+import { hsh, strSeed, vehicleAt, plainAt } from './causes.js';
+import { VARIETY, createVariety } from './variety.js';   // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot, loaded per area ahead of it)
 import { GRADE, gradeOf, lightsOf } from './daylook.js';   // (VARIETY A — THE TIMES OF DAY: the grade + the lights by time — PURE)   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
-const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint: pink · cyan · violet · coral · blue)
+const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7ff, 0xb8264a, 0x8a96a6];   // (a car's body tint: pink · cyan · violet · coral · blue — VARIETY B1 + pearl · tangerine · jade · lilac · garnet · steel)
 /** two colours a phone could confuse (the go-live review: a cyan kid vanished against two cyan vans) */
 const nearHex = (a, b) => Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255)) < 150;
 /** car `k`'s tint for a viewer whose kid wears `kid`: its own — or the next in the palette that is not near the kid's */
 export const carTint = (k, kid) => { for (let q = 0; q < NEON.length; q++) { const t = NEON[(k + q) % NEON.length]; if (!nearHex(t, kid)) return t; } return NEON[k]; };
-const TAXI_HEX = 0xffc81a;   // (H4 — THE TAXI: cab yellow, never a neon tint)
+const TAXI_HEX = 0xf6b100;   // (H4 — THE TAXI: cab yellow, never a neon tint · VARIETY B1: a deeper taxi yellow — never read as a small yellow car)
+/** VARIETY B1 — the variety vehicles' lamps by slot: [half the lamps' spread, their height] · the tail bar's width */
+const V_LAMPS = [null, [0.225, 0.2], [0.26, 0.24], [0.25, 0.3]], V_VW = [0, 0.7, 0.78, 0.9];
 const DPR_AT = [1.5, 2, 3];
 const LAMPS = Object.freeze({ 'car-sedan': [0.225, 0.2], 'car-hatchback': [0.225, 0.2], 'car-taxi': [0.225, 0.2], 'car-van': [0.26, 0.24], truck: [0.25, 0.3], train: [0.2, 0.45] });
 const HEAD_REACH = 1.35, TAIL_LEN = 1.2;   // (TAIL_LEN — H5C: the tail pool, from under the bumper to where it has faded out)
@@ -186,6 +189,29 @@ export function createNight(host, o = {}) {
     needWarm = true;   // (H4B — the new kinds' programs + buffers are made in the NEXT frame, not when a car first drives in)
     return true;
   }).catch(() => false);
+  // VARIETY B1 — THE AREA TRAFFIC (variety.js): each area's models fetched a stretch AHEAD of it, parsed one a frame, freed once passed. ONE
+  // material for them all (the cars' own program — a model landing mid-run compiles nothing); until a model is in, its slot draws the plain one
+  let vMat = null;
+  const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
+  const VL = createVariety({
+    parseGlb,
+    add(id, g) {
+      if (dead) { g.dispose(); return; }
+      if (!vMat) { vMat = paintMaterial(glossy(0.28, 1.1), { instanced: true }); carMats.push(vMat); lookGL(); }
+      const b = g.boundingBox; BOX[`v-${id}`] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2 };
+      KM[`v-${id}`] = kind(g, vMat, 24, { aux: ['aLit', 1] }); g.dispose();   // (kind() keeps its own clone)
+    },
+    drop: id => unkind(`v-${id}`),
+  });
+  // VARIETY B1 — THE TAXI, UNMISTAKABLE: a checker band along both its sides (black + white squares — the posts' box, its own kind) + a roof
+  // sign that reads TAXI (lit at night — the glow layer; painted by day)
+  const taxiCv = document.createElement('canvas'); taxiCv.width = 128; taxiCv.height = 48;
+  { const c = ctx2d(taxiCv); if (c) { c.fillStyle = '#ffd23a'; c.beginPath(); if (c.roundRect) c.roundRect(2, 2, 124, 44, 9); else c.rect(2, 2, 124, 44); c.fill(); c.fillStyle = '#16120a'; c.font = '900 34px "Orbitron", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('TAXI', 64, 26); } }
+  const taxiTex = new THREE.CanvasTexture(taxiCv); taxiTex.colorSpace = THREE.SRGBColorSpace;
+  const taxiSignMat = new THREE.MeshBasicMaterial({ map: taxiTex, transparent: true, toneMapped: false });
+  K.taxiSign = kind(new THREE.PlaneGeometry(1, 1), taxiSignMat, 24, { solid: false, cast: false, order: 2 });
+  K.taxiSign.mesh.layers.enable(1);   // (at night it blooms: a lit sign)
+  K.checker = kind(unit, fogUp(new THREE.MeshLambertMaterial({ color: 0xffffff })), 200, { cast: false });
 
   // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models …
   let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null;
@@ -481,6 +507,7 @@ export function createNight(host, o = {}) {
   fitNow(true); fitAsk = 0;   // (the new canvas: sized at once — nothing drawn on it yet)
 
   let courseRef = null, vseed = 0;
+  let vwKey = -1;   // (VARIETY B1 — the areas near the camera: asked again only when they change)
   const decor = new Map();
   function decorOf(i, L) {
     let d = decor.get(i);
@@ -646,12 +673,48 @@ export function createNight(host, o = {}) {
   // fainter by `cars` (sunrise: half — small, crisp, no beams); the night draws K.flat / K.bill as always
   const lfDay = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1) => K.flat.put(x, y, z, sx, sy, sz, ry, hex, k, a0, (a1 == null ? 1 : a1) * TL.beams * 0.75);
   const lbDay = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1) => { const q = 0.5 + 0.5 * TL.cars; K.bill.put(x, y, z, sx * q, sy * q, sz, ry, hex, k, a0, (a1 == null ? 1 : a1) * TL.cars * 0.8); };
+  /** VARIETY B1 — a variety vehicle in its slot: EXACTLY the slot's length (the rule's — never shorter or longer than what hits you), its own
+   *  width + height; the plain cars' lights; an emergency vehicle's light bar FLASHES red / blue at night (bloom), unlit by day */
+  function drawVariety(V, q, B, L, left, len, z, tint, dim, on, i, j) {
+    const LF = vLF, LB = vLB;
+    const bodyL = V.slot === 3 ? len - 0.1 : V.slot === 2 ? 1.9 : 0.96, sz = bodyL / B.l, sx = V.w / B.w, sy = V.h / B.h, ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+    const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), cx = X(left + len / 2);
+    q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, V.slot === 3 && day ? dim * 0.9 : dim);
+    K.shadow.put(cx, 0.03, z, len * 1.12, V.slot === 3 ? 1.05 : V.slot === 2 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * dim);
+    if (!on) return;
+    const [hw, hy] = V_LAMPS[V.slot], a1 = dim, back = L.dir > 0 ? 0 : Math.PI, rearX = nose - L.dir * bodyL, vw = V_VW[V.slot];
+    if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }
+    LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, vw * 1.15, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
+    LF(X(rearX - L.dir * 0.1), 0.041, z, 0.6, 1, vw * 0.9, 0, 0xff5a34, 1, 0, 0.3 * a1);
+    tailBar(X(rearX - L.dir * 0.03), hy + 0.06, z, vw, a1);
+    for (const e of [-hw, hw]) {
+      LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);
+      K.bill.put(X(nose), hy, z + e, day ? 0.13 + 0.07 * TL.cars : 0.2, day ? 0.13 + 0.07 * TL.cars : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 + 0.3 * TL.cars : 0.8) * a1);
+    }
+    if (V.light && (!day || TL.cars > 0.6)) {   // THE LIGHT BAR: red on one side, blue on the other — alternating ~2.6 times a second (steady with reduce motion)
+      const bxl = X(nose - L.dir * bodyL * V.bar[0]), by = V.h * V.bar[1] + 0.04, ph = hsh(vseed ^ (i * 977), j + 3), f = reduce ? 0.5 : (clock / 190 + ph * 4) % 2 < 1 ? 1 : 0;
+      for (const [dz, hex, on1] of [[-0.13, 0xff2236, f], [0.13, 0x2f6bff, 1 - f]]) {
+        K.bill.put(bxl, by, z + dz, 0.2, 0.2, 1, 0, hex, 1, 5, (0.35 + 0.65 * on1) * a1);
+        if (on1 || reduce) LB(bxl, by, z + dz, 0.95, 0.75, 1, 0, hex, 1, 0, (reduce ? 0.3 : 0.6) * a1);
+        if (on1 && !reduce) LF(bxl, 0.045, z + dz * 3, 1.6, 1, 1.3, 0, hex, 1, 0, 0.16 * a1);   // (its colour on the road round it)
+      }
+    }
+  }
+  /** VARIETY B1 — THE TAXI's checker band (both sides, along the shoulder) + its roof sign (TAXI — lit at night, painted by day) */
+  let vLF = NOP, vLB = NOP;   // (this frame's light puts — draw() sets them)
+  function taxiDress(bx, z, bodyL, h, dim, on) {
+    const n = 6, sq = bodyL * 0.62 / n, x0 = bx - sq * (n - 1) / 2;
+    for (const side of [-1, 1]) for (let k = 0; k < n; k++) K.checker.put(x0 + k * sq, h * 0.6, z + side * 0.352, sq, 0.055, 0.012, 0, (k + (side > 0 ? 0 : 1)) % 2 ? 0x15151a : 0xf4f4f0, dim * (day ? 1 : 0.85));
+    const lit = on && (!day || TL.cars > 0.6);
+    K.taxiSign.put(bx, h + 0.15, z, 0.56, 0.21, 1, 0, 0xffffff, lit ? 2.1 : dim * (day ? 1 : 0.55), 1, 1, -0.95);
+  }
   function draw(run, course, a, dt, o = null) {
     if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }   // (a resize asked since the last frame: done HERE, before this frame renders)
     if (resting === 1) return;   // (rest(): its still is up)
     if (resting) resting--;
     clock += dt;
     const LF = !day ? K.flat.put : TL.beams > 0.01 ? lfDay : NOP, LB = !day ? K.bill.put : TL.cars > 0.01 ? lbDay : NOP, EK = day ? 0.8 : 0.5, fogK = day ? 2.4 : -0.96;   // (VARIETY A — by day what glows follows the time: daylook.js#lightsOf)
+    vLF = LF; vLB = LB;
     const areaOn = !day || TL.lamps > 0.5;
     if (SP) fogCheck();   // (THE FOG CHECK: the winter models land after the start — the fog follows the snow that shows)
     if (SP && (run.t === 0 || run.st === 'out' || run.st === 'taken')) SP.quiet();   // (J4 — the pack's kinds + shaders brought in at a quiet frame, never mid-run)
@@ -767,6 +830,7 @@ export function createNight(host, o = {}) {
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
+    { const c0 = Math.floor(camY), a0 = area(c0 - 12).index, a1 = area(c0 + 20).index, a2 = area(c0 + 52).index, vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } VL.pump(); }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
     if (capT) flyGet();
@@ -813,13 +877,18 @@ export function createNight(host, o = {}) {
             if (left > COLS + 9 || left + len < -9) continue;
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : EK + 0.05);
             if (car) {
-              const what = vehicleAt(course, i, j), taxi = what === 'taxi', nk = Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length), tint = taxi ? TAXI_HEX : carTint(nk, kidHex);   // (never a car in YOUR kid's colour — a VIEW: the rules know no colour)
+              let what = vehicleAt(course, i, j);
+              const V = VARIETY[what], vq = V ? KM[`v-${what}`] : null;
+              if (V && !vq) what = plainAt(course, i, j);   // (VARIETY B1: its area's model freed / not in — the plain vehicle)
+              const taxi = what === 'taxi', nk = Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length), tint = taxi ? TAXI_HEX : carTint(nk, kidHex);   // (never a car in YOUR kid's colour — a VIEW: the rules know no colour)
+              if (vq) { drawVariety(V, vq, BOX[`v-${what}`], L, left, len, z, tint, dim, on, i, j); continue; }
               const name = what === 'truck' ? 'car-van' : `car-${what}`, q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
               const truck = what === 'truck', tz = (len - 0.1) / TRUCK.len;   // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
               if (truck) K.trucks.put(cx, 0, z, 0.94, 0.9, tz, ry, tint, 1, day ? dim * 0.8 : dim);   // (by day a touch under: its white box blew out to a flat slab — now its side reads under its top)
               else if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
+              if (taxi && B) taxiDress(bx, z, bodyL, B.h * sy, dim, on);
               K.shadow.put(cx, 0.03, z, len * 1.12, truck ? 1.05 : len > 1.5 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * lt);
               if (on) {
                 const [hw, hy] = LAMPS[truck ? 'truck' : name], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
@@ -1176,7 +1245,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ sunMap: !!SHD, sunF, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, sunF, variety: VL.info(), binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1184,7 +1253,7 @@ export function createNight(host, o = {}) {
     /** VARIETY A — THE TIME OF DAY (daylook.js#resolveTod) · what it shows now · the fog check's amount */
     setTod, tod: () => (TD ? { ...TD, grade: !!GR, sun: sunReal, fogDark } : null), fogDark: () => fogDark,
     destroy() {
-      dead = true; ro.disconnect();
+      dead = true; ro.disconnect(); VL.destroy(); taxiTex.dispose(); taxiCv.width = 0;
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
       curtain.material.dispose(); lip.geometry.dispose(); lip.material.dispose(); lipTex.dispose(); if (FL) FL.destroy();

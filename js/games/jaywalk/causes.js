@@ -1,7 +1,8 @@
 // JAYWALK — HOW YOU WENT OUT (H3 — docs/jaywalk.md "THE END SCREEN"): the end screen names it in big neon words — one line per cause +
 // The long notes: docs/games/jaywalk-notes.md
 import { FP, KID_HALF } from './tuning.js';
-import { moverLeft } from './course.js';
+import { moverLeft, area } from './course.js';
+import { VARIETY_IDS, VARIETY_LINES, varietyAt, varietyKnown } from './variety.js';   // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot — cosmetic)
 
 /** the view's own small hash (never the rules' rng — nothing here changes a run) */
 export const hsh = (a, b) => { let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((b | 0) + 0x7f4a7c15, 0xc2b2ae35); x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; return (x >>> 0) / 4294967296; };
@@ -9,7 +10,7 @@ export const strSeed = s => { let h = 2166136261; for (let i = 0; i < s.length; 
 
 export const CAR_KINDS = Object.freeze(['sedan', 'hatchback', 'taxi']);
 /** every vehicle a road lane can carry — each has its model (night.js) and its line (CAUSE_LINES) */
-export const VEHICLES = Object.freeze(['sedan', 'hatchback', 'taxi', 'van', 'truck']);
+export const VEHICLES = Object.freeze(['sedan', 'hatchback', 'taxi', 'van', 'truck', ...VARIETY_IDS]);
 const SEEDS = new WeakMap();
 const seedNum = course => { let v = SEEDS.get(course); if (v === undefined) { v = strSeed(String(course.seed)); SEEDS.set(course, v); } return v; };
 /**
@@ -17,11 +18,19 @@ const seedNum = course => { let v = SEEDS.get(course); if (v === undefined) { v 
  * a taxi (from the course's seed + the lane + its place in the lane), 2 cells = the van, 3 = THE BOX TRUCK. '' = not a car.
  * The night look draws by it; the end screen's line names it.
  */
-export function vehicleAt(course, lane, j) {
+export function plainAt(course, lane, j) {
   const L = course.lane(lane), it = L && L.type === 'road' && L.items ? L.items[j] : null;
   if (!it) return '';
   const cells = it.len / FP;
   return cells > 2.5 ? 'truck' : cells >= 1.5 ? 'van' : CAR_KINDS[Math.floor(hsh(seedNum(course) ^ (lane * 7919), j * 13 + 1) * 3)];
+}
+/** VARIETY B1 — THE AREA TRAFFIC: the slot's AREA model (variety.js — the course's seed, its own draw) once that model has come in on this page
+ *  (a slow network: the plain vehicle is drawn, and named) — else the plain one (plainAt). The same answer the night look draws by. */
+export function vehicleAt(course, lane, j) {
+  const base = plainAt(course, lane, j);
+  if (!base) return '';
+  const v = varietyAt(area(lane).index, base === 'truck' ? 3 : base === 'van' ? 2 : 1, hsh(seedNum(course) ^ (lane * 6151), j * 17 + 3));
+  return v && varietyKnown(v) ? v : base;
 }
 
 /** the vehicle that hit a kid who went out by a car: { y: the lane, x: their centre (FP), end: the tick } on this course → its kind.
@@ -48,6 +57,7 @@ export const CAUSE_LINES = Object.freeze({
   'car:taxi': 'FLATTENED BY A TAXI',
   'car:van': 'RUN DOWN BY A VAN',
   'car:truck': 'FLATTENED BY A BOX TRUCK',
+  ...Object.fromEntries(Object.entries(VARIETY_LINES).map(([k, v]) => [`car:${k}`, v])),
   water: 'SWEPT AWAY',
   edge: 'CARRIED OFF BY A LOG',
   train: 'HIT BY THE 6:15',

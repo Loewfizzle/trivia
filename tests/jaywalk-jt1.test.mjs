@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, statSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seasonOf, seasonAt, packDay, modelsDay, labSeason, labClock, SEASON } from '../js/games/jaywalk/season.js';
+import { seasonOf, seasonAt, packDay, modelsDay, labSeason, labClock, SEASON, PACKS, PACK_CORE } from '../js/games/jaywalk/season.js';
 import { seasonWindow, dayKeyIn } from '../js/games/jaywalk/season-gate.js';
 import { seasonSoundsOf, SOUNDS } from '../js/games/jaywalk/sounds.js';
 import { finaleOf, FW } from '../js/games/jaywalk/fireworks.js';
@@ -21,7 +21,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = f => readFileSync(join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
 const days = (from, n) => { const t0 = Date.UTC(...from.split('-').map((v, i) => (i === 1 ? v - 1 : +v))); return Array.from({ length: n }, (_, k) => new Date(t0 + k * 864e5).toISOString().slice(0, 10)); };
-const PACK = ['js/games/jaywalk/season.js', 'js/games/jaywalk/seasonal.js', 'js/games/jaywalk/seasonal-fx.js', 'js/games/jaywalk/fireworks.js'];
+const PACK = ['js/games/jaywalk/season.js', 'js/games/jaywalk/seasonal.js', 'js/games/jaywalk/seasonal-fx.js', 'js/games/jaywalk/fireworks.js', 'js/games/jaywalk/sky-snow.js'];
 
 /** every file a module reaches through its relative imports (static + dynamic) */
 function graph(entry, dynamic = true) {
@@ -47,11 +47,13 @@ test('JT1 ROOM FIRST: the season clock, the pack\'s code + the fireworks are NEV
   assert.doesNotMatch(strip(read('js/games/jaywalk/night-fx.js')), /snowOn\(vec3 c[^)]*\) \{\s*if|createSnow|SNOW_V2|jwSnowUp/, 'J4\'s snow GLSL + the falling snow left night-fx.js (the pack\'s seasonal-fx.js)');
   assert.doesNotMatch(strip(read('js/games/jaywalk/models.js')), /loadWinter|WINTER_MODELS/, 'the winter loader left models.js');
   assert.doesNotMatch(strip(read('js/games/jaywalk/view.js')), /from '\.\/season\.js'/, 'the view knows only the gate');
-  // THE PACK's own size: its code + the winter models ≤ 150 KB (the owner's cap)
-  // (VARIETY A: + the autumn models — the leaf pile)
-  const code = PACK.reduce((a, f) => a + statSync(join(ROOT, f)).size, 0);
-  const models = ['winter', 'autumn'].map(d => join(ROOT, 'assets/jaywalk', d)).reduce((t, dir) => t + readdirSync(dir).filter(f => f.endsWith('.glb')).reduce((a, f) => a + statSync(join(dir, f)).size, 0), 0);
-  assert.ok(code + models <= 150 * 1024, `THE SEASONAL PACK ${((code + models) / 1024).toFixed(1)} KB (code ${(code / 1024).toFixed(1)} + models ${(models / 1024).toFixed(1)}) ≤ 150 KB`);
+  // THE PACK's own size — VARIETY B1: ONE PACK PER SEASON (season.js#PACKS), each its core + its own code + its own models ≤ its own cap
+  for (const [id, P] of Object.entries(PACKS).filter(e => e[1].live)) {
+    const code = [...PACK_CORE, ...P.code].reduce((a, f) => a + statSync(join(ROOT, 'js/games/jaywalk', f)).size, 0);
+    const dir = join(ROOT, 'assets/jaywalk', P.dir), models = P.models.reduce((a, m) => a + statSync(join(dir, `${m}.glb`)).size, 0);
+    assert.deepEqual(readdirSync(dir).filter(f => f.endsWith('.glb')).map(f => f.slice(0, -4)).sort(), [...P.models].sort(), `the ${id} folder holds exactly its pack's models`);
+    assert.ok(code + models <= P.cap * 1024, `THE ${id.toUpperCase()} PACK ${((code + models) / 1024).toFixed(1)} KB (code ${(code / 1024).toFixed(1)} + models ${(models / 1024).toFixed(1)}) ≤ ${P.cap} KB`);
+  }
 });
 
 test('JT1 THE GATE agrees with THE SEASON CLOCK on every day (Oct 20 → the last day of February): the pack is fetched exactly when the clock has a season', () => {

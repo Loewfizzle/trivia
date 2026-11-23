@@ -90,6 +90,21 @@ export const packDay = s => !!s && (s.winter > 0 || s.christmas > 0 || s.autumn 
 /** the pack's winter MODELS are wanted (Dec 1 → Mar 1 — autumn, the hats + the fireworks are built in code) */
 export const modelsDay = s => !!s && (s.winter > 0 || s.christmas > 0);
 /**
+ * VARIETY B1 — ONE PACK PER SEASON (the owner, Nov 22): each season's pack = THE CORE (the pack's shared code: this clock, seasonal.js +
+ * seasonal-fx.js — the hooks, the fall, the ground's season GLSL) + ITS OWN code + ITS OWN models, each under its OWN cap (150 KB). A phone
+ * fetches only the day's pack: an autumn day never asks for a winter file (the winter models, the skyline snow, the fireworks) and a winter day
+ * never for the leaf pile. Spring + Halloween: the structure is ready (live: false — nothing of theirs exists yet).
+ */
+export const PACK_CORE = Object.freeze(['season.js', 'seasonal.js', 'seasonal-fx.js']);
+export const PACKS = Object.freeze({
+  autumn: Object.freeze({ live: true, cap: 150, dir: 'autumn', models: ['leaf-pile'], code: [] }),
+  winter: Object.freeze({ live: true, cap: 150, dir: 'winter', models: ['snow-pine', 'xmas-tree', 'snowman'], code: ['sky-snow.js', 'fireworks.js'] }),
+  spring: Object.freeze({ live: false, cap: 150, dir: 'spring', models: [], code: [] }),
+  halloween: Object.freeze({ live: false, cap: 150, dir: 'halloween', models: [], code: [] }),
+});
+/** the day's pack: 'winter' (the snow, Christmas, the hats, New Year's) · 'autumn' · '' (none) */
+export const packOf = s => (!s ? '' : s.winter > 0 || s.christmas > 0 || !!s.hat || !!s.fireworks ? 'winter' : s.autumn > 0 ? 'autumn' : '');
+/**
  * the lab's switches over the clock (J4 — `&date=YYYY-MM-DD` · `&snow=none|light|heavy` · `&wet=1`): `q` = the page's URLSearchParams.
  * → { season, forced (a date asked), wet (the reflections on) }. The live game never calls this.
  */

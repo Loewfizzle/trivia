@@ -115,9 +115,9 @@ test('THE BOARD\'s AVERAGE — a COUNTED solo run (the server\'s replay, sv) add
 });
 
 // ---- GROUP 0 — ROOM
-test('ROOM — JAYWALK\'s own preload graph stays under 520 KB (VARIETY A: 480 → 520 for THE TIMES OF DAY + THE DAY LOOK — the game line is 610; 515 before JT2 — the notes moved to docs/games/jaywalk-notes.md)', () => {
+test('ROOM — JAYWALK\'s own preload graph stays under 530 KB (VARIETY A: 480 → 520 for THE TIMES OF DAY + THE DAY LOOK · VARIETY B1: 520 → 530 for THE AREA TRAFFIC table + loader, its models never in it — the game line is 610; 515 before JT2 — the notes moved to docs/games/jaywalk-notes.md)', () => {
   const kb = PRELOAD.jaywalk.reduce((a, f) => a + statSync(f).size, 0) / 1024;
-  assert.ok(kb < 520, `${kb.toFixed(1)} KB`);
+  assert.ok(kb < 530, `${kb.toFixed(1)} KB`);
   assert.match(readFileSync('docs/games/jaywalk-notes.md', 'utf8'), /^# JAYWALK — THE NOTES/);
 });
 

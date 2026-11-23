@@ -663,9 +663,121 @@ def autumn():
     print(f'  autumn/leaf-pile {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {t} tris · {round(hi[0] - lo[0], 3)} × {round(hi[1] - lo[1], 3)} × {round(hi[2] - lo[2], 3)}')
 
 
+# ---- VARIETY B1 — THE AREA TRAFFIC (variety\ + variety\round2\ + variety\long\ — docs/jaywalk.md "VARIETY B1"): 15 vehicles, re-packed as the 12
+#  (ONE mesh, vertex colours, KHR_mesh_quantization): Kenney's Car Kit (its colormap read from the untouched zip — the GLBs only point at it),
+#  the Poly Pizza / Quaternius / Teh_Bucket files (their materials' flat colours), Polyfork's (their vertex colours) — every node's TRS / matrix
+#  applied; each turned to face +z (as Kenney's cars), centred, its wheels on y = 0. `paint` = the body takes the scene's tint (the plain
+#  cars' palette) — the emergency + work vehicles keep their own colours. `recolor` = a material's colour (sRGB hex) set here (the school
+#  bus ships 0.64 grey on every material — its yellow is given here; the tanker's olive + oxblood → a red cab + a steel tank). → assets/jaywalk/
+#  variety/<id>.glb + CREDITS.md + the licences. Fetched PER AREA, ahead of it (variety.js) — never the start bundle.
+KENNEY_CAR = 'Kenney (kenney.nl) — Car Kit 3.1 — CC0 1.0'
+VARIETY_SRC = [
+    # id, file (under variety\), turn (° about y → the front to +z), paint, recolor {material: hex}, copyright, credit line
+    ('police', 'police.glb', 0, False, {}, KENNEY_CAR, '"police" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('suv', 'suv.glb', 0, True, {}, KENNEY_CAR, '"suv" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('sports', 'sedan-sports.glb', 0, True, {}, KENNEY_CAR, '"sedan-sports" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('ambulance', 'ambulance.glb', 0, False, {}, KENNEY_CAR, '"ambulance" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('firetruck', 'firetruck.glb', 0, False, {}, KENNEY_CAR, '"firetruck" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('delivery', 'delivery.glb', 0, True, {}, KENNEY_CAR, '"delivery" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('garbage', 'garbage-truck.glb', 0, False, {}, KENNEY_CAR, '"garbage-truck" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
+    ('citybus', 'round2/city-bus.glb', 0, False, {'FFFFFF': 0xe4e9ef}, '"Bus" by jeremy (https://poly.pizza/m/bsvS0E1eo4R) — CC BY 3.0', '"Bus" by jeremy — https://poly.pizza/m/bsvS0E1eo4R (CC BY 3.0)'),
+    ('schoolbus', 'round2/school-bus.glb', 90, False, {'Yellow': 0xf6b40e, 'Windows': 0x27313d, 'Details': 0x22252b, 'Bumper': 0x34373d, 'Lights': 0xfff2c4, 'Wheel': 0x1e1f22},
+     '"SchoolBus" from Quaternius Public Transport Pack (quaternius.com) — CC0 1.0', '"SchoolBus" — Quaternius Public Transport Pack (quaternius.com), CC0 1.0'),
+    ('tanker', 'round2/fuel-tanker.glb', 90, False, {'Material.001': 0xc8352b, 'Material': 0xc9cfd6},
+     '"Truck Tank" by KolosStudios (https://poly.pizza/m/64ayx6pW3O) — CC BY 3.0', '"Truck Tank" by KolosStudios — https://poly.pizza/m/64ayx6pW3O (CC BY 3.0)'),
+    ('dump', 'round2/dump-truck.glb', 0, False, {}, '"Dump truck" by jeremy (https://poly.pizza/m/1BpGYg14QGD) — CC BY 3.0', '"Dump truck" by jeremy — https://poly.pizza/m/1BpGYg14QGD (CC BY 3.0)'),
+    ('forklift', 'round2/forklift.glb', 0, False, {}, '"Forklift" by KolosStudios (https://poly.pizza/m/DTQBuenKJY) — CC BY 3.0', '"Forklift" by KolosStudios — https://poly.pizza/m/DTQBuenKJY (CC BY 3.0)'),
+    ('tug', 'round2/airport-tug.glb', 0, False, {}, '"Pushback Tug" by Polyfork (https://polyfork.dev/asset/pushback-tug-8eab46) — CC BY 4.0', '"Pushback Tug" by Polyfork — https://polyfork.dev/asset/pushback-tug-8eab46 (CC BY 4.0)'),
+    ('semi', 'long/semi-trailer.glb', 90, False, {}, '"18 Wheeler" by Teh_Bucket (https://opengameart.org/content/semi-trailer-truck-lowpoly) — CC0 1.0', '"18 Wheeler" by Teh_Bucket — https://opengameart.org/content/semi-trailer-truck-lowpoly (CC0 1.0)'),
+    ('bendy', 'long/articulated-bus.glb', 0, False, {}, 'Articulated Transit Bus by Polyfork (https://polyfork.dev/asset/articulated-transit-bus-6be725) — CC BY 4.0', 'Articulated Transit Bus by Polyfork — https://polyfork.dev/asset/articulated-transit-bus-6be725 (CC BY 4.0)'),
+]
+
+
+def read_acc(j, bn, i):
+    """an accessor → a list of float tuples (normalized ints → 0 … 1 / −1 … 1)"""
+    a = j['accessors'][i]; bv = j['bufferViews'][a['bufferView']]
+    n, f = N[a['type']], FMT[a['componentType']]
+    size = struct.calcsize(f) * n; stride = bv.get('byteStride', size); o = bv.get('byteOffset', 0) + a.get('byteOffset', 0)
+    d = {5120: 127.0, 5121: 255.0, 5122: 32767.0, 5123: 65535.0}.get(a['componentType']) if a.get('normalized') else None
+    out = []
+    for k in range(a['count']):
+        v = struct.unpack_from('<' + f * n, bn, o + k * stride)
+        out.append(tuple(max(-1.0, x / d) for x in v) if d else v)
+    return out
+
+
+def m4_trs(n):
+    if 'matrix' in n: m = n['matrix']; return [[m[c * 4 + r] for c in range(4)] for r in range(4)]   # (glTF: column-major)
+    t, r, s = n.get('translation', [0, 0, 0]), n.get('rotation', [0, 0, 0, 1]), n.get('scale', [1, 1, 1])
+    x, y, z, w = r
+    R = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)], [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)], [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+    return [[R[i][0] * s[0], R[i][1] * s[1], R[i][2] * s[2], t[i]] for i in range(3)] + [[0, 0, 0, 1]]
+
+
+def flatten_any(j, bn, img, recolor):
+    """every primitive in the scene's space → pos, nor, sRGB colour bytes, idx. A vertex's colour = the material's base colour × its COLOR_0
+    × its texture (sampled at its UV) — the glTF rule, in linear light, then the sRGB byte"""
+    px = img.load() if img else None
+    pos, nor, col, idx = [], [], [], []
+    def lin(c8): c = c8 / 255; return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    def walk(ni, M):
+        n = j['nodes'][ni]; W = m_mul(M, m4_trs(n))
+        if 'mesh' in n:
+            for p in j['meshes'][n['mesh']]['primitives']:
+                assert p.get('mode', 4) == 4
+                a = p['attributes']; mat = j['materials'][p['material']] if 'material' in p else {}
+                pbr = mat.get('pbrMetallicRoughness', {}); base = list(pbr.get('baseColorFactor', [1, 1, 1, 1]))[:3]
+                if mat.get('name') in recolor: h = recolor[mat['name']]; base = [lin((h >> 16) & 255), lin((h >> 8) & 255), lin(h & 255)]
+                tex = px if 'baseColorTexture' in pbr and px else None
+                P, Nn = read_acc(j, bn, a['POSITION']), read_acc(j, bn, a['NORMAL'])
+                C = read_acc(j, bn, a['COLOR_0']) if 'COLOR_0' in a else None
+                UV = read_acc(j, bn, a['TEXCOORD_0']) if tex and 'TEXCOORD_0' in a else None
+                b0 = len(pos)
+                for k in range(len(P)):
+                    q = P[k]; pos.append(tuple(W[i][0] * q[0] + W[i][1] * q[1] + W[i][2] * q[2] + W[i][3] for i in range(3)))
+                    v = Nn[k]; nn = [W[i][0] * v[0] + W[i][1] * v[1] + W[i][2] * v[2] for i in range(3)]; ln = (nn[0] ** 2 + nn[1] ** 2 + nn[2] ** 2) ** 0.5 or 1
+                    nor.append(tuple(x / ln for x in nn))
+                    c = list(base)
+                    if C: c = [c[i] * C[k][i] for i in range(3)]
+                    if UV: Wd, Hd = img.size; s = px[min(Wd - 1, max(0, int(UV[k][0] * Wd))), min(Hd - 1, max(0, int(UV[k][1] * Hd)))]; c = [c[i] * lin(s[i]) for i in range(3)]
+                    col.append(tuple(srgb8(x) for x in c))
+                idx.extend(b0 + x[0] for x in read_acc(j, bn, p['indices'])) if 'indices' in p else idx.extend(range(b0, len(pos)))
+        for c in n.get('children', []): walk(c, W)
+    for ni in j['scenes'][j.get('scene', 0)]['nodes']: walk(ni, [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    return pos, nor, col, idx
+
+
+def variety():
+    import zipfile
+    V = os.path.join(SRC, 'variety'); OUT_V = os.path.join(ROOT, 'assets', 'jaywalk', 'variety'); os.makedirs(OUT_V, exist_ok=True)
+    zf = zipfile.ZipFile(os.path.join(V, 'original', 'kenney_car-kit.zip'))
+    cm = next(n for n in zf.namelist() if n.replace('\\', '/').endswith('GLB format/Textures/colormap.png'))
+    kenney_map = Image.open(io.BytesIO(zf.read(cm))).convert('RGBA')
+    md = ['# JAYWALK — THE AREA TRAFFIC (VARIETY B1)', '', 'Re-packed by `scripts/build-jaywalk-assets.py --only=variety` (one mesh, vertex colours, quantized; turned to face +z, centred) — fetched per area by the game (`js/games/jaywalk/variety.js`). The CC BY credits are REQUIRED wherever these ship (the game\'s ☰ → Credits carries them).', '']
+    total = 0
+    for vid, f, turn, paint, recolor, cr, line in VARIETY_SRC:
+        src = os.path.join(V, f.replace('/', os.sep)); j, bn = read_glb(src)
+        img = kenney_map if any('baseColorTexture' in m.get('pbrMetallicRoughness', {}) for m in j.get('materials', [])) else None
+        pos, nor, col, idx = flatten_any(j, bn, img, recolor)
+        t = math.radians(turn); c, s = math.cos(t), math.sin(t)
+        rot = lambda v: (v[0] * c + v[2] * s, v[1], -v[0] * s + v[2] * c)
+        pos = [rot(p) for p in pos]; nor = [rot(n) for n in nor]
+        lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+        cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        pos = [(p[0] - cx, p[1] - lo[1], p[2] - cz) for p in pos]
+        pm = paint_mask(pos, col, idx)[0] if paint else None
+        v, tr, size = write_glb(os.path.join(OUT_V, vid + '.glb'), vid, pos, nor, col, pm, idx, copyright=cr)
+        total += size
+        print(f'  variety/{vid:10s} {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {tr} tris · L {hi[2] - lo[2]:.2f} × W {hi[0] - lo[0]:.2f} × H {hi[1] - lo[1]:.2f}' + (f' · paint on {sum(pm)} verts' if pm else ''))
+        md.append(f'- `{vid}.glb` — {line}')
+    md += ['', 'Licences: Kenney + Quaternius + Teh_Bucket — CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/) · jeremy + KolosStudios — CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) · Polyfork — CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes to every file: merged into one mesh, colours baked into vertex colours (the school bus + the tanker recoloured), turned, centred, quantized.', '']
+    open(os.path.join(OUT_V, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
+    shutil.copyfile(os.path.join(V, 'original', 'License-kenney-car-kit.txt'), os.path.join(OUT_V, 'LICENSE-kenney-car-kit.txt'))
+    print(f'  variety: {len(VARIETY_SRC)} models, {total} B')
+
 if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter), ('autumn', autumn)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter), ('autumn', autumn), ('variety', variety)):
         if not ONLY or name in ONLY: fn()

@@ -110,6 +110,84 @@ export async function looksVB1({ open, up, ok, sleep, waitFor, out, what = '', b
       errs.push(...o.errs); await o.close();
     }
   }
+  // GROUP 3 — THE AREA TRAFFIC: every area, day + night (the kid on a calm lane inside it, the world frozen once its models are in) + close-ups:
+  // the emergency light bars + the taxis at night, the long vehicles by day
+  if (all || what === 'traffic' || what.startsWith('traffic:')) {
+    const AREAS = [['opening', -1], ['docks', 0], ['fish', 1], ['yard', 2], ['bridge', 3], ['downtown', 4], ['canal', 5], ['lighthouse', 6], ['airfield', 7]];
+    const only = what.startsWith('traffic:') ? what.slice(8).split('+') : null;
+    const files = [], labels = [], seen = {};
+    const lane0 = ar => (ar < 0 ? 8 : 50 * (ar + 1) + 10);
+    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) {
+      for (const look of ['day', 'night']) {
+        const o = await pg(`&tod=${look === 'day' ? 'noon' : 'night'}&weather=clear&date=2026-07-15`);
+        const L0 = await o.p.evaluate(l => { const J = window.__jwLab; for (let i = l; i < l + 30; i++) if (J.lane(i).type === 'grass' && J.lane(i + 1).type === 'road') return i; return l; }, lane0(ar));
+        await o.p.evaluate((l, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); J.setT(2400); J.freeze(true); }, L0, look);
+        const inn = await waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
+        await sleep(1500);
+        const r = await o.p.evaluate(l => { const J = window.__jwLab, n = {}; for (let i = l - 4; i < l + 18; i++) for (const it of J.items(i).items || []) if (it.what && it.what !== 'log') n[it.what] = (n[it.what] || 0) + 1; return { n, v: J.view.info().variety, calls: J.view.info().calls }; }, L0);
+        seen[`${name}-${look}`] = r;
+        const plain = ['sedan', 'hatchback', 'taxi', 'van', 'truck'].reduce((a, k) => a + (r.n[k] || 0), 0), all2 = Object.values(r.n).reduce((a, b) => a + b, 0);
+        ok(inn, `TRAFFIC ${name} ${look}: the area's models in (${r.v.held.join(' · ')})`);
+        ok(all2 === 0 || plain / all2 >= 0.5, `TRAFFIC ${name} ${look}: plain vehicles are the majority (${plain} of ${all2} in view: ${JSON.stringify(r.n)})`);
+        files.push(await shotTo(o, `traffic/${name}-${look}-390.png`)); labels.push(`${name.toUpperCase()} · ${look}`);
+        errs.push(...o.errs); await o.close();
+      }
+    }
+    await compose(files, labels, `traffic/areas-390${only ? '-' + only.join('-') : ''}.png`, 6, 220);
+    // the close-ups: find the vehicle on screen (its lane + the moment), the kid two lanes below, the world frozen → a crop round it
+    const close = async (id, ar, look, tag) => {
+      const o = await pg(`&tod=${look === 'day' ? 'noon' : 'night'}&weather=clear&date=2026-07-15`);
+      await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'look3'); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); }, lane0(ar));
+      await waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
+      const at = await o.p.evaluate((idd, l0) => {
+        const J = window.__jwLab;
+        for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + 38; i++) { if (J.lane(i - 2).type !== 'grass') continue; const it = (J.items(i).items || []).find(q => q.what === idd && q.left > 1.2 && q.left + q.len < 7.8); if (it) return { lane: i, t, c: it.left + it.len / 2, len: it.len }; } }
+        return null;
+      }, id, lane0(ar));
+      if (!at) { ok(false, `CLOSE ${tag}: a ${id} found on screen`); await o.close(); return null; }
+      await o.p.evaluate((a, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.setLook(lk); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look);
+      await sleep(1600);
+      const [sx, sy] = await o.p.evaluate(a => window.__jwLab.project(a.c, a.lane + 0.5), at);
+      const cw = Math.min(390, 120 + at.len * 60), ch = 150, clip = { x: Math.max(0, Math.min(390 - cw, Math.round(sx * 390 - cw / 2))), y: Math.max(0, Math.min(844 - ch, Math.round(sy * 844 - ch * 0.6))), width: cw, height: ch };
+      const f = await shotTo(o, `traffic/close-${tag}-390.png`, clip);
+      const line = await o.p.evaluate(a => { const J = window.__jwLab; return J.items(a.lane).items.find(q => Math.abs(q.left + q.len / 2 - a.c) < 0.01).what; }, at);
+      ok(line === id, `CLOSE ${tag}: the ${id} drawn (lane ${at.lane}, ${at.len} cells)`);
+      errs.push(...o.errs); await o.close();
+      return f;
+    };
+    if (!only) {
+      const cf = [], cl = [];
+      for (const [id, ar, look, tag] of [['police', 4, 'night', 'police-night'], ['ambulance', 5, 'night', 'ambulance-night'], ['firetruck', 7, 'night', 'firetruck-night'], ['taxi', 4, 'night', 'taxi-night'], ['taxi', 4, 'day', 'taxi-day'], ['police', 4, 'day', 'police-day'], ['semi', 0, 'day', 'semi-day'], ['bendy', 4, 'day', 'bendy-day'], ['schoolbus', 5, 'day', 'schoolbus-day'], ['semi', 2, 'night', 'semi-night'], ['citybus', 3, 'day', 'citybus-day'], ['tug', 7, 'day', 'tug-day'], ['forklift', 0, 'day', 'forklift-day'], ['dump', 2, 'day', 'dump-day'], ['tanker', 3, 'day', 'tanker-day'], ['garbage', 1, 'day', 'garbage-day'], ['delivery', 7, 'day', 'delivery-day'], ['suv', 6, 'day', 'suv-day'], ['sports', 4, 'day', 'sports-day']]) { const f = await close(id, ar, look, tag); if (f) { cf.push(f); cl.push(tag.toUpperCase()); } }
+      await compose(cf, cl, 'traffic/close-sheet.png', 4, 300, 150 / 300);
+    }
+  }
+  // GROUP 4 — THE MEASURE: every area (its traffic in), night + noon (+ Dec 24 heavy snow noon), tiers 2 · 1 · 0, 8 kids (the kid + 7 ghosts), the
+  // world running 7 s at 4× CPU: the WORST frame's draw calls (≤ 96 tier 2 · ≤ 64 tiers 1 + 0, daylook.js#CALLS_MAX) + the median fps
+  if (what === 'perf' || what.startsWith('perf:')) {
+    const { CALLS_MAX } = await import('../../../js/games/jaywalk/daylook.js');
+    const AREAS = [['opening', -1], ['docks', 0], ['fish', 1], ['yard', 2], ['bridge', 3], ['downtown', 4], ['canal', 5], ['lighthouse', 6], ['airfield', 7]];
+    const only = what.startsWith('perf:') ? what.slice(5).split('+') : null;
+    const rows = [];
+    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) for (const [look, q] of [['night', '&tod=night&date=2026-07-15'], ['noon', '&tod=noon&weather=clear&date=2026-07-15'], ...(name === 'downtown' ? [['noon-snow', '&tod=noon&weather=clear&date=2026-12-24&snow=heavy'], ['night-snow', '&tod=night&date=2026-12-24&snow=heavy']] : [])]) for (const tier of [2, 1, 0]) {
+      const o = await pg(q, { tier });
+      if (/snow=/.test(q)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      const L0 = ar < 0 ? 6 : 50 * (ar + 1) + 6;
+      await o.p.evaluate((l, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500, safe: true }); J.ghosts(7); }, L0, look.startsWith('night') ? 'night' : 'day');
+      await waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
+      await sleep(1200);
+      const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await o.p.evaluate(() => { const J = window.__jwLab; J.clearFrames(); window.__mc = 0; window.__go = true; const f = () => { if (!window.__go) return; const c = J.view.info().calls; if (c > window.__mc) window.__mc = c; if (J.state().st === 'out') { J.restart('solo', 'look3'); } requestAnimationFrame(f); }; requestAnimationFrame(f); });
+      await sleep(7000);
+      const r = await o.p.evaluate(() => { window.__go = false; const fr = window.__jwLab.frames().slice(10).sort((a, b) => a - b); return { calls: window.__mc, med: fr.length ? 1000 / fr[Math.floor(fr.length / 2)] : 0, worst: fr.length ? fr[fr.length - 1] : 0, n: fr.length }; });
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      rows.push({ name, look, tier, ...r });
+      console.log(`     PERF ${name} ${look} tier ${tier}: worst ${r.calls} calls (≤ ${CALLS_MAX[tier]}) · median ${r.med.toFixed(1)} fps · worst frame ${r.worst.toFixed(1)} ms (${r.n} frames)`);
+      ok(r.calls <= CALLS_MAX[tier], `PERF ${name} ${look} tier ${tier}: ${r.calls} draw calls ≤ ${CALLS_MAX[tier]}`);
+      ok(r.med >= 58, `PERF ${name} ${look} tier ${tier}: median ${r.med.toFixed(1)} fps at 4× CPU`);
+      errs.push(...o.errs); await o.close();
+    }
+    if (out) { mkdirSync(join(out, 'perf'), { recursive: true }); (await import('node:fs')).writeFileSync(join(out, 'perf', `perf${only ? '-' + only.join('-') : ''}.json`), JSON.stringify(rows, null, 1)); }
+  }
   // 1.1 — THE SHADOW POPS: 30 s of hopping (the bot) at noon, tier 2, a tier change forced at 10 s (→ 1) and 18 s (→ 2); every frame's
   // shadow strength recorded in the page — it may move at most 1 s's worth a second (the fade), never a jump; a frame strip every 2 s
   if (all || what === 'shadows') {

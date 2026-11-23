@@ -13,7 +13,6 @@ import * as THREE from 'three';
 import { seasonOf, modelsDay, packDay } from './season.js';
 import { SEA_GLSL, seaPatch, createFall } from './seasonal-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { createSkySnow } from './sky-snow.js';   // (VARIETY B1 — THE SKYLINE SNOW: the snow goes on over the painted band)
 
 // ---- J4 — WINTER (moved from night.js VERBATIM): the sizes of the pack's models on the lane (native metres → cells)
 const WIN_S = Object.freeze({ pine: 0.62, xmas: 0.6, snowman: 0.62 });   // (the CANDY CANE was DROPPED — the draw-call order: DOWNTOWN's Christmas Eve night runway measured 65 with it, 63 without)
@@ -69,7 +68,14 @@ export function createSeasonal(A) {
   Object.assign(A.ground.uniforms, { uSnow: U.snow, uAut: U.aut, uLN: LIGHTS.n, uL: { value: LIGHTS.pos }, uLC: { value: LIGHTS.col } });
   const LQ = { n: 0, x: new Float32Array(16), z: new Float32Array(16), k: new Float32Array(16), c: new Int32Array(16), p: new Float32Array(16) };
   let lkx = 0, lkz = 0;
-  const skyEl = A.sky() && A.sky().parentElement, SKS = skyEl ? createSkySnow(skyEl) : null;
+  // VARIETY B1 — THE SKYLINE SNOW (sky-snow.js — the WINTER pack's own code: fetched on a snow day only, never on an autumn day)
+  let SKS = null, sksP = null;
+  const skySnow = (f, d) => {
+    if (SKS) { SKS.set(f, d); return; }
+    if (sksP || f === 'none' || !f) return;
+    const el = A.sky() && A.sky().parentElement;
+    if (el) sksP = lazyImport(import('./sky-snow.js'), './sky-snow.js').then(M => { if (A.dead()) return; SKS = M.createSkySnow(el); SKS.set(SZ.snowfall, !!(F && F.day)); if (resting) SKS.rest(true); }, () => { sksP = null; });
+  };
   /** a light this frame — kept if it is among the 16 that matter most (the lanes ahead of the kid; far behind the camera never) */
   function glow(x, z, hex, k) {
     const pr = Math.abs(z - lkz) + 0.35 * Math.abs(x - lkx) + (z > lkz + 3 ? 6 : 0);
@@ -250,7 +256,7 @@ export function createSeasonal(A) {
       if (SZ.autumn > 0) { loadPile(); pileKind(); }
       hatsTo(o.hat === false ? '' : SZ.hat);
       if (FW) FW.on(SZ.fireworks);
-      if (SKS && !SZ.any) SKS.set('none', false);
+      if (!SZ.any) skySnow('none', false);
       if (!SZ.any) { fall.show(0); LIGHTS.n.value = 0; U.snow.value = 0; U.aut.value = 0; }   // (no season this run: nothing of the pack's is left on — the scene stops calling it)
       else quiet();   // (a run's START is a quiet moment: what is in comes in now)
       return SZ;
@@ -266,7 +272,7 @@ export function createSeasonal(A) {
       const WIN = SZ.winter > 0 && !!KM['w-pine'];
       U.snow.value = WIN && shaders ? SZ.winter : 0;   // (every frame: another scene's teardown never zeroes this one's snow)
       U.aut.value = shaders ? SZ.autumn : 0;
-      if (SKS) SKS.set(SZ.snowfall, f.day);   // (VARIETY B1 — THE SKYLINE SNOW at the run's strength, the look's colour)
+      skySnow(SZ.snowfall, f.day);   // (VARIETY B1 — THE SKYLINE SNOW at the run's strength, the look's colour)
       f.WIN = WIN; f.XM = WIN ? SZ.christmas : 0; xtN = 0; pilesN = 0; LQ.n = 0; lkx = f.px; lkz = f.pz;
     },
     /** a round tree at (x, zz) — winter's swap: a SNOW PINE or a lit CHRISTMAS TREE (true = drawn here; false = the round tree, as before —

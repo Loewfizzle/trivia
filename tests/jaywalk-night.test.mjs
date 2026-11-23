@@ -255,7 +255,7 @@ test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), T
   assert.ok(tr > 220 && tg > 160 && tg < tr && tb < 90, `cab yellow (#${taxi[1]})`);
   assert.match(n, /taxi = what === 'taxi', nk = Math\.floor\(hsh\(vseed \^ \(i \* 104729\), j \* 31 \+ 7\) \* NEON\.length\), tint = taxi \? TAXI_HEX : carTint\(nk, kidHex\);/, 'the taxi keeps its yellow; every other car its neon tint — never YOUR kid\'s colour (the go-live review)');
   { // (the rule itself, as night.js writes it — every player colour the site offers, every car slot)
-    const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff]; assert.match(n, /const NEON = \[0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff\];/);
+    const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7ff, 0xb8264a, 0x8a96a6]; assert.match(n, /const NEON = \[0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7ff, 0xb8264a, 0x8a96a6\];/);   // (VARIETY B1: + pearl · tangerine · jade · lilac · garnet · steel)
     const nearHex = (a, b) => Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255)) < 150;
     const carTint = (k, kid) => { for (let q = 0; q < NEON.length; q++) { const t = NEON[(k + q) % NEON.length]; if (!nearHex(t, kid)) return t; } return NEON[k]; };
     assert.match(n, /export const carTint = \(k, kid\) => \{ for \(let q = 0; q < NEON\.length; q\+\+\) \{ const t = NEON\[\(k \+ q\) % NEON\.length\]; if \(!nearHex\(t, kid\)\) return t; \} return NEON\[k\]; \};/);

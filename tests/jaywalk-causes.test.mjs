@@ -31,8 +31,8 @@ function onHim(course, r) {
 }
 
 test('ONE SOURCE OF TRUTH: vehicleAt(course, lane, j) — every vehicle has its line, there is NO generic car line, a size is always its model', () => {
-  assert.deepEqual([...VEHICLES], ['sedan', 'hatchback', 'taxi', 'van', 'truck']);
-  for (const v of VEHICLES) assert.match(CAUSE_LINES[`car:${v}`] || '', new RegExp(`BY ${NAMES[v]}$`), `the ${v}'s line names it`);
+  assert.deepEqual([...VEHICLES].slice(0, 5), ['sedan', 'hatchback', 'taxi', 'van', 'truck']);   // (VARIETY B1: + the area traffic — its own lines, tests/jaywalk-variety-b1.test.mjs)
+  for (const v of VEHICLES.slice(0, 5)) assert.match(CAUSE_LINES[`car:${v}`] || '', new RegExp(`BY ${NAMES[v]}$`), `the ${v}'s line names it`);
   assert.equal(CAUSE_LINES.car, undefined, 'no generic car line in the table');
   assert.ok(!Object.values(CAUSE_LINES).some(l => /\bA CAR\b/.test(l)), 'no line says "a car"');
   assert.equal(CAUSE_LINES.train, 'HIT BY THE 6:15', 'the train is THE 6:15');
@@ -78,7 +78,7 @@ test('FOR EVERY VEHICLE KIND: a run hit by it → the end line names THAT vehicl
       seen[hit.kind] = (seen[hit.kind] || 0) + 1;
     }
   }
-  assert.deepEqual(Object.keys(seen).sort(), [...VEHICLES].sort(), `every vehicle kind has hit a kid and been named (${JSON.stringify(seen)})`);
+  assert.deepEqual(Object.keys(seen).sort(), [...VEHICLES].slice(0, 5).sort(), `every plain vehicle kind (no area model in on this page) has hit a kid and been named (${JSON.stringify(seen)})`);
 });
 
 test('THE BOX TRUCK (the owner\'s case) + THE TRAIN: hit by a truck → "FLATTENED BY A BOX TRUCK", never "a car"; hit by the train → "HIT BY THE 6:15"', () => {
@@ -123,8 +123,8 @@ test('A NEAR THING STILL NAMES A VEHICLE: hitVehicle never comes back empty on a
 test('THE SOURCES: the drawing, the game\'s views, the podium + THE LAB all read causes.js — no second picker, no generic line anywhere', () => {
   const night = code('js/games/jaywalk/night.js'), lab = code('js/games/jaywalk/lab.js'), view = code('js/games/jaywalk/view.js'), vic = code('js/games/jaywalk/victory.js');
   // THE DRAWING: which model a car is = vehicleAt — nothing else in the view picks a kind
-  assert.match(night, /import \{ hsh, strSeed, vehicleAt \} from '\.\/causes\.js';/);
-  assert.match(night, /const what = vehicleAt\(course, i, j\)/, 'night.js draws the model vehicleAt names');
+  assert.match(night, /import \{ hsh, strSeed, vehicleAt, plainAt \} from '\.\/causes\.js';/);
+  assert.match(night, /let what = vehicleAt\(course, i, j\);/, 'night.js draws the model vehicleAt names');   /* (VARIETY B1: an area model not in → plainAt, which vehicleAt then names too) */
   assert.doesNotMatch(night, /CAR_KINDS|vehicleOf/, 'no picker of its own');
   assert.match(night, /const name = what === 'truck' \? 'car-van' : `car-\$\{what\}`/, 'the model drawn IS the kind (car-sedan · car-hatchback · car-taxi · car-van; the truck its own mesh)');
   // THE LAB: the same table, the same function — its own CAUSE words are gone

@@ -439,8 +439,11 @@ try {
       const press = async (i, ms = 110) => { await P.ev(`window.__pad.buttons[${i}] = { pressed: true, value: 1 }`); await sleep(ms); await P.ev(`window.__pad.buttons[${i}] = { pressed: false, value: 0 }`); await sleep(140); };
       const stick = async (x, y) => { await P.ev(`window.__pad.axes = [${x}, ${y}, 0, 0]`); await sleep(160); await P.ev('window.__pad.axes = [0, 0, 0, 0]'); await sleep(160); };
       const m0 = await P.ev(`${S}.game.matchId`);
+      // (VARIETY B1 — the flake: a fixed 3 s ran out once on a loaded winter run while the kit's lazy chunk came in. Now a WATCH records the
+      //  line the moment it shows — the wait is for that state, however long the chunk takes; the line itself still lasts ~2 s)
+      await P.ev(`(() => { window.__padSeen = false; const seen = () => { const e = document.querySelector('.jw-pad'); if (e && e.classList.contains('is-on') && e.textContent === '🎮 CONNECTED') window.__padSeen = true; }; new MutationObserver(seen).observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true }); seen(); })()`);
       await press(0);   // (Safari shows a pad only after a press: this one CONNECTS it)
-      ok(await P.waitFor("(() => { const e = document.querySelector('.jw-pad'); return !!e && e.classList.contains('is-on') && e.textContent === '🎮 CONNECTED'; })()", 3000), 'THE CONTROLLER: its first press → "🎮 CONNECTED" (the quiet line, ~2 s) — and nothing else');
+      ok(await P.waitFor('window.__padSeen === true', 20000), 'THE CONTROLLER: its first press → "🎮 CONNECTED" (the quiet line, ~2 s) — and nothing else');
       await P.shot('jt2-pad-connected-390.png');
       ok(await P.ev(`${S}.game.phase === 'final' && ${S}.game.matchId === '${m0}'`), '… the connecting press did not press PLAY AGAIN');
       await sleep(400); await press(0);
