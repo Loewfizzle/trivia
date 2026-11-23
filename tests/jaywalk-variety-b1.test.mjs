@@ -101,7 +101,7 @@ const graph = entry => {
 test('B1 — THE AREA TRAFFIC: every vehicle\'s slot + its line; the long ones in the 3-cell slot (the school bus in the box truck\'s); emergency bars on police · ambulance · fire truck', async () => {
   const V = await import('../js/games/jaywalk/variety.js');
   assert.deepEqual(V.VARIETY_IDS.filter(id => V.VARIETY[id].slot === 3).sort(), ['bendy', 'schoolbus', 'semi']);
-  assert.deepEqual(V.VARIETY_IDS.filter(id => V.VARIETY[id].light).sort(), ['ambulance', 'firetruck', 'police']);
+  assert.deepEqual(V.VARIETY_IDS.filter(id => V.VARIETY[id].light && V.VARIETY[id].light !== 'beacon').sort(), ['ambulance', 'firetruck', 'police']);   // (VARIETY B2: the winter trucks' amber beacons are their own — tests/jaywalk-variety-b2.test.mjs)
   const { CAUSE_LINES, VEHICLES, causeLine } = await import('../js/games/jaywalk/causes.js');
   for (const id of V.VARIETY_IDS) {
     const l = CAUSE_LINES[`car:${id}`];

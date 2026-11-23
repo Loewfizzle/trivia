@@ -43,6 +43,7 @@ export function preload() {
   lazyImport(import('./sfx.js'), './sfx.js').then(S => S.fetchSounds()).catch(() => {});
   lazyImport(import('./models.js'), './models.js').then(M => M.warmModels && M.warmModels()).catch(() => {});
   lazyImport(import('./variety.js'), './variety.js').then(M => M.warmVariety && M.warmVariety()).catch(() => {});   // (VARIETY B1 — the opening's area traffic)
+  lazyImport(import('./props.js'), './props.js').then(M => M.warmProps && M.warmProps()).catch(() => {});   // (VARIETY B2 — the opening's trees + edge pieces: the module + its files)
 }
 /** PLAY AGAIN after a solo run — the console's INSTANT AGAIN (games/kit/again.js): the next solo run as a match of its own, no walk inside */
 export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });

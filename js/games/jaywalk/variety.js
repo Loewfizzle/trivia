@@ -22,6 +22,10 @@ export const VARIETY = Object.freeze({
   schoolbus: { slot: 3, w: 0.9, h: 0.95 },
   semi: { slot: 3, w: 0.9, h: 1.05, dayK: 0.8 },
   bendy: { slot: 3, w: 0.88, h: 0.95 },
+  // VARIETY B2 — THE WINTER TRUCKS (winter runs only — setWinterTraffic): built from the dump / delivery truck + parts in code; an AMBER
+  // beacon (flashing at night, unlit by day) + one shared spray (`spray`: the plow's snow off its blade · the salt fanned from the spinner)
+  plow: { slot: 2, w: 0.92, h: 0.82, light: 'beacon', bar: [0.319, 1.0], spray: 'snow' },
+  salt: { slot: 2, w: 0.8, h: 0.92, dayK: 0.88, light: 'beacon', bar: [0.154, 0.778], spray: 'salt' },
 });
 export const VARIETY_IDS = Object.freeze(Object.keys(VARIETY));
 /** the end line of each (causes.js#CAUSE_LINES — 'car:<id>') */
@@ -30,6 +34,7 @@ export const VARIETY_LINES = Object.freeze({
   ambulance: 'HIT BY AN AMBULANCE', firetruck: 'RUN DOWN BY A FIRE TRUCK', delivery: 'HIT BY A DELIVERY TRUCK', garbage: 'TRASHED BY A GARBAGE TRUCK',
   citybus: 'FLATTENED BY A CITY BUS', tanker: 'FLATTENED BY A FUEL TANKER', dump: 'FLATTENED BY A DUMP TRUCK', tug: 'RUN OVER BY AN AIRPORT TUG',
   schoolbus: 'FLATTENED BY A SCHOOL BUS', semi: 'FLATTENED BY A SEMI', bendy: 'FLATTENED BY A BENDY BUS',
+  plow: 'PLOWED BY A SNOWPLOW', salt: 'SALTED BY A SALT TRUCK',
 });
 /** THE AREA SETS — by the area's index (tuning.js#LANDMARKS: 0 THE DOCKS · 1 THE FISH MARKET · 2 THE RAIL YARD · 3 THE BRIDGE · 4 DOWNTOWN ·
  *  5 THE CANAL · 6 THE LIGHTHOUSE · 7 THE AIRFIELD; −1 = the opening, DOWNTOWN's set) → per slot [id, share of that slot's vehicles]. A 1-cell
@@ -47,8 +52,16 @@ export const AREA_SETS = Object.freeze({
 });
 /** the ids an area draws */
 export const areaIds = ar => { const S = AREA_SETS[ar] || {}; return [...new Set(Object.values(S).flat().map(e => e[0]))]; };
-/** PURE: area `ar`, slot `slot` (1 · 2 · 3 cells), a 0 … 1 draw `u` (the course seed's hash) → the variety id, or '' (a plain vehicle) */
+/** VARIETY B2 — THE WINTER TRUCKS: on a winter run (the run's own day — night.js#setSeason, Dec 1 → Mar 1) the van slot's top tenth of
+ *  draws (always a PLAIN van in every set: no set reaches 0.9) is a snowplow (0.90 …) or a salt truck (0.95 …); every phone on the run's day */
+let WINTER = false;
+export const setWinterTraffic = on => { WINTER = !!on; };
+export const winterTraffic = () => WINTER;
+/** what an area wants loaded (+ the winter trucks on a winter run) */
+export const areaWants = ar => (WINTER ? [...areaIds(ar), 'plow', 'salt'] : areaIds(ar));
+/** PURE (+ the run's winter): area `ar`, slot `slot` (1 · 2 · 3 cells), a 0 … 1 draw `u` (the course seed's hash) → the variety id, or '' (a plain vehicle) */
 export function varietyAt(ar, slot, u) {
+  if (WINTER && slot === 2 && u >= 0.9) return u < 0.95 ? 'plow' : 'salt';
   const L = (AREA_SETS[ar] || {})[slot];
   if (!L) return '';
   let c = 0;
@@ -78,7 +91,7 @@ export const PUMP = Object.freeze({ budget: 7, starve: 24 });
  * busy (PUMP); a file that fails is asked again 5 s later (never a stall: the slot draws its plain vehicle meanwhile). The steps' cost is kept
  * (info: `worst` ms). `ids` (an area → its model ids) · `url` · `known` let B2's trees + edge pieces share this loader. → { want, pump, info, destroy }
  */
-export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaIds, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
+export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaWants, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
   const held = new Map(), queue = [];   // id → 'loading' | 'in' · the fetched buffers waiting for a frame
   let wanted = new Set(), dead = false, retryAt = 0, staged = null, starve = 0, worst = 0;
   const drops = [];   // (B2: the models no longer wanted — freed ONE a step too: an area passed never frees six kinds in one frame)
@@ -97,23 +110,24 @@ export function createVariety({ parseGlb, add, drop, now = () => performance.now
       for (const id of wanted) if (!held.has(id)) fetchOne(id);
       for (const [id, st] of [...held]) if (!wanted.has(id)) { held.delete(id); if (st === 'in') drops.push(id); }
     },
-    /** busy = this frame's work so far (ms) — Infinity when the kid has just hopped: no step this frame */
+    /** busy = this frame's work so far (ms) — Infinity when the kid has just hopped: no step this frame. → a step taken? */
     pump(busy = 0) {
-      if (dead || (!staged && !queue.length && !drops.length)) { starve = 0; return; }
-      if (busy > PUMP.budget && ++starve < PUMP.starve) return;
+      if (dead || (!staged && !queue.length && !drops.length)) { starve = 0; return false; }
+      if (busy > PUMP.budget && ++starve < PUMP.starve) return false;
       starve = 0;
       const t0 = now();
       if (drops.length) drop(drops.shift());
       else if (staged) {
         const [id, g] = staged; staged = null;
-        if (!wanted.has(id)) { held.delete(id); g.dispose(); return; }
+        if (!wanted.has(id)) { held.delete(id); g.dispose(); return true; }
         try { add(id, g); held.set(id, 'in'); known.add(id); } catch { held.delete(id); }
       } else {
         const [id, b] = queue.shift();
-        if (!wanted.has(id)) { held.delete(id); return; }
+        if (!wanted.has(id)) { held.delete(id); return true; }
         try { staged = [id, parseGlb(b)]; } catch { held.delete(id); }
       }
       worst = Math.max(worst, now() - t0);
+      return true;
     },
     info: () => ({ held: [...held].filter(e => e[1] === 'in').map(e => e[0]).sort(), loading: [...held].filter(e => e[1] === 'loading').length, queued: queue.length, staged: staged ? 1 : 0, drops: drops.length, worst: Math.round(worst * 10) / 10 }),
     destroy() { dead = true; queue.length = 0; if (staged) { staged[1].dispose(); staged = null; } },

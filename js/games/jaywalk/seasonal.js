@@ -277,14 +277,15 @@ export function createSeasonal(A) {
     },
     /** a round tree at (x, zz) — winter's swap: a SNOW PINE or a lit CHRISTMAS TREE (true = drawn here; false = the round tree, as before —
      *  autumn turns it in its own shader) */
-    tree(x, zz, s, q, i, dim, on, lt) {
+    tree(x, zz, s, q, i, dim, on, lt, tk = '') {
       if (!F.WIN) return false;
       if (hsh(F.vseed ^ (i * 313), q.c * 7 + 5) < F.XM * 0.5) {   // J4 — A CHRISTMAS TREE (its presents baked in) + its lights
         const ws = WIN_S.xmas * (0.88 + q.s * 0.14), ry = q.ry * 0.5, ph = hsh(F.vseed ^ i, q.c + 90) * 40;
         KM['w-xmas'].put(x, 0, zz, ws, ws, ws, ry, 0xffffff, dim);
         if (xtN < XT_MAX) { const o = xtN++ * 6; XT[o] = x; XT[o + 1] = zz; XT[o + 2] = ws; XT[o + 3] = ry; XT[o + 4] = ph; XT[o + 5] = Math.min(1, dim); }   // (its lights: put LAST — the review: never one gameplay light lost to them)
         if (on) { F.LF(x, 0.035, zz, 1.7, 1, 1.5, 0, XMAS_HEX[(ph | 0) % 5], 1, 0, 0.16 * lt); if (F.lights) glow(x, zz, XMAS_HEX[(ph | 0) % 5], 0.5); }
-      } else { const ws = WIN_S.pine * s; KM['w-pine'].put(x, 0, zz, ws, ws, ws, q.ry * 3, 0xffffff, dim); }   // J4 — a SNOW PINE
+      } else if (!tk || tk === 'palm') { const ws = WIN_S.pine * s; KM['w-pine'].put(x, 0, zz, ws, ws, ws, q.ry * 3, 0xffffff, dim); }   // J4 — a SNOW PINE (B2: for today's round tree + a palm)
+      else return false;   // (B2 — an area tree model (thin · oak · tall · a shrub): itself, its tops snow-dusted by its material)
       return true;
     },
     /** a planter — J4: some → SNOWMEN (more as the snow deepens) (true = drawn here) */

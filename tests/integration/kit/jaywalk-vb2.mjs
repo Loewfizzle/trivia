@@ -32,16 +32,16 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
   };
   const varietyIn = o => waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
   // a close-up: the vehicle `id` found on screen in area `ar` (its lane + the moment), the kid two lanes below, the world frozen → a crop round it
-  const close = async (id, ar, q, look, file) => {
+  const close = async (id, ar, q, look, file, span = 40) => {
     const o = await pg(q);
     if (/snow=/.test(q)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
     await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'look3'); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); }, lane0(ar));
     await varietyIn(o);
-    const at = await o.p.evaluate((idd, l0) => {
+    const at = await o.p.evaluate((idd, l0, sp) => {
       const J = window.__jwLab;
-      for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + 40; i++) { const I = J.items(i); for (const it of I.items || []) { if (it.what !== idd) continue; for (const k of [-1, 0, 1]) { const lf = it.left + k * (I.per || 0); if (lf > 1.2 && lf + it.len < 7.8) return { lane: i, t, c: lf + it.len / 2, len: it.len, left: it.left }; } } } }
+      for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + sp; i++) { const I = J.items(i); for (const it of I.items || []) { if (it.what !== idd) continue; for (const k of [-1, 0, 1]) { const lf = it.left + k * (I.per || 0); if (lf > 1.2 && lf + it.len < 7.8) return { lane: i, t, c: lf + it.len / 2, len: it.len, left: it.left }; } } } }
       return null;
-    }, id, lane0(ar));
+    }, id, lane0(ar), span);
     if (!at) { ok(false, `CLOSE ${file}: a ${id} found on screen`); await o.close(); return null; }
     await o.p.evaluate((a, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look);
     await varietyIn(o);
@@ -115,5 +115,42 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
     }
     if (out) { mkdirSync(join(out, 'taps'), { recursive: true }); writeFileSync(join(out, 'taps', `taps-${tag}.json`), JSON.stringify(rows, null, 1)); }
     return rows;
+  }
+
+  // GROUP 2 + 3 — THE AREA TREES + THE EDGE DECORATION: every area (the kid on a ground lane inside it, the camera following to one side so the
+  // edge column shows), summer day + night, autumn day, winter day (Jan 20, the snow lying, none falling) — the world frozen once its pieces are in
+  if (all || what === 'trees' || what === 'edge' || what.startsWith('trees:')) {
+    const only = what.startsWith('trees:') ? what.slice(6).split('+') : null;
+    const LOOKS = [['summer-day', '&tod=noon&weather=clear&date=2026-07-15', 'day'], ['summer-night', '&tod=night&date=2026-07-15', 'night'], ['autumn-day', '&tod=noon&weather=clear&date=2026-11-10', 'day'], ['winter-day', '&tod=noon&weather=clear&date=2027-01-20&snow=none', 'day'], ['winter-night', '&tod=night&date=2027-01-20&snow=none', 'night']];
+    const files = [], labels = [];
+    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) for (const [lk, q, look] of LOOKS) {
+      const o = await pg(q);
+      if (lk.startsWith('winter')) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await waitFor(o.p, '!!window.__jwLab.view.info().props', 20000);
+      // the lane whose next 9 lanes hold the most trees (or edge pieces) — the kid 2 lanes below it, the camera to that side
+      const [L0, side] = await o.p.evaluate((l0, edge) => { const J = window.__jwLab, V = J.view; J.warp(l0 + 20, { x: 4500 }); let best = [l0, 0, -1];
+        for (let l = l0; l < l0 + 36; l++) for (const sd of [0, 1]) { let n = 0; for (let i = l + 1; i < l + 10; i++) for (const q of V.decorAt(i)) { const okSide = sd ? q.c >= 7 : q.c <= 1; if (okSide && (edge ? q.deco : (q.k === 'tree' || q.tk))) n++; } if (n > best[2]) best = [l, sd, n]; }
+        return [best[0], best[1]]; }, lane0(ar) - 6, what === 'edge');
+      await o.p.evaluate((l, lk2, side) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk2); J.setCamera(8, 'straight', true); J.warp(l, { x: side ? 8500 : 500 }); J.setT(2400); J.freeze(true); }, L0, look, side);
+      await waitFor(o.p, `(() => { const i = window.__jwLab.view.info(), v = i.props; return v && v.loading === 0 && v.queued === 0 && !v.staged && i.variety.loading === 0 && i.variety.queued === 0; })()`, 30000);
+      await sleep(1800);
+      files.push(await shotTo(o, `${what === 'edge' ? 'edge' : 'trees'}/${name}-${lk}-390.png`)); labels.push(`${name.toUpperCase()} · ${lk}`);
+      errs.push(...o.errs); await o.close();
+    }
+    await compose(files, labels, `${what === 'edge' ? 'edge' : 'trees'}/sheet${only ? '-' + only.join('-') : ''}-390.png`, LOOKS.length, 220);
+  }
+
+  // GROUP 4 — THE WINTER TRUCKS: the snowplow + the salt truck close, day + night × light + heavy snow (a winter day), + the same run in summer
+  // has none (the season gate)
+  if (all || what === 'plows') {
+    const files = [], labels = [];
+    for (const id of ['plow', 'salt']) for (const [tn, q, look] of [['day-light', '&tod=noon&weather=clear&date=2027-01-20&snow=light', 'day'], ['day-heavy', '&tod=noon&weather=clear&date=2026-12-24&snow=heavy', 'day'], ['night-light', '&tod=night&date=2027-01-20&snow=light', 'night'], ['night-heavy', '&tod=night&date=2026-12-24&snow=heavy', 'night']]) {
+      files.push(await close(id, 4, q, look, `plows/${id}-${tn}-390.png`, 140)); labels.push(`${id.toUpperCase()} · ${tn}`);
+    }
+    await compose(files, labels, 'plows/sheet-390.png', 4, 300, 150 / 300);
+    const o = await pg('&tod=noon&weather=clear&date=2026-07-15');
+    const n = await o.p.evaluate(() => { const J = window.__jwLab; let c = 0; for (let i = 250; i < 300; i++) for (const it of J.items(i).items || []) if (it.what === 'plow' || it.what === 'salt') c++; return c; });
+    ok(n === 0, `PLOWS: none on a summer run (${n})`);
+    errs.push(...o.errs); await o.close();
   }
 }

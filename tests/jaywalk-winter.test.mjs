@@ -70,7 +70,7 @@ test('THE SWAPS: winter only changes WHICH model stands where decorOf / the cour
   assert.match(p, /KM\['w-xmas'\]\.put\(x, 0, zz, ws, ws, ws, ry,/, 'the Christmas tree stands where the tree stood');
   assert.match(p, /KM\['w-pine'\]\.put\(x, 0, zz, ws, ws, ws, q\.ry \* 3,/, 'the snow pine where the tree stood');
   assert.match(p, /if \(wk\) \{ const ws = [^}]+; KM\[wk\]\.put\(x, 0, zz, ws, ws, ws,/, 'the snowman where the planter stood');
-  assert.match(n, /if \(!SE \|\| !SE\.tree\(x, zz, s, q, i, dim, on, lt\)\) K\.trees\.put\(x, 0, zz,/, 'without the season: the round tree as before');
+  assert.match(n, /if \(!SE \|\| !SE\.tree\(x, zz, s, q, i, dim, on, lt, q\.tk \|\| ''\)\) \{ if \(!q\.tk \|\| !PR \|\| !PR\.tree\(q\.tk, x, zz, s, q\.ry \* 3, dim\)\) K\.trees\.put\(x, 0, zz,/, 'without the season: the area tree model (VARIETY B2 — props.js) or the round tree as before');
   assert.match(n, /if \(!SE \|\| !SE\.planter\(x, zz, q, i, dim\)\) \{ const s = PROP_S\[q\.k\]; KM\[q\.k\]\.put\(x, 0, zz,/, '… and the planter');
   // winter REPLACES (one or the other — never a model added on top) and the decor plan itself never reads the season
   const dec = n.slice(n.indexOf('function decorOf('), n.indexOf('const PROP_S'));

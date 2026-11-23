@@ -17,5 +17,7 @@ Re-packed by `scripts/build-jaywalk-assets.py --only=variety` (one mesh, vertex 
 - `tug.glb` — "Pushback Tug" by Polyfork — https://polyfork.dev/asset/pushback-tug-8eab46 (CC BY 4.0)
 - `semi.glb` — "18 Wheeler" by Teh_Bucket — https://opengameart.org/content/semi-trailer-truck-lowpoly (CC0 1.0)
 - `bendy.glb` — Articulated Transit Bus by Polyfork — https://polyfork.dev/asset/articulated-transit-bus-6be725 (CC BY 4.0)
+- `plow.glb` — THE SNOWPLOW (VARIETY B2) — the dump truck below + a blade + a roof beacon built in code ("Dump truck" by jeremy — https://poly.pizza/m/1BpGYg14QGD (CC BY 3.0))
+- `salt.glb` — THE SALT TRUCK (VARIETY B2) — the delivery truck below + a hopper, a rear spinner + a roof beacon built in code ("delivery" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0)
 
 Licences: Kenney + Quaternius + Teh_Bucket — CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/) · jeremy + KolosStudios — CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) · Polyfork — CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes to every file: merged into one mesh, colours baked into vertex colours (the school bus + the tanker recoloured), turned, centred, quantized.

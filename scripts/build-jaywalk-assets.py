@@ -868,6 +868,67 @@ def flatten_one(j, bn, px, img, recolor, n, W, lin):
     return pos, nor, col
 
 
+# ---- VARIETY B2 — THE WINTER TRUCKS (no free model exists — Grok's winter-trucks report): built from the re-packed dump / delivery truck (the
+#  model's own frame: centred, wheels on y = 0, its nose at +z) + parts in code. → its arrays + the beacon's place as VARIETY's `bar` [from the
+#  nose 0 … 1 along the body, its height as a share of the model's]
+def box_part(c, size, color, ry=0.0):
+    hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2; cs, sn = math.cos(ry), math.sin(ry)
+    rot = lambda v: (v[0] * cs + v[2] * sn, v[1], -v[0] * sn + v[2] * cs)
+    P, Nn, C, I = [], [], [], []
+    for ax in range(3):
+        for sg in (-1, 1):
+            n = [0, 0, 0]; n[ax] = sg; u = [(ax + 1) % 3, (ax + 2) % 3]
+            q = []
+            for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                v = [0, 0, 0]; v[ax] = sg * (hx, hy, hz)[ax]; v[u[0]] = a * (hx, hy, hz)[u[0]]; v[u[1]] = b * (hx, hy, hz)[u[1]]
+                r = rot(v); q.append(len(P)); P.append((r[0] + c[0], r[1] + c[1], r[2] + c[2])); Nn.append(rot(n)); C.append(color)
+            I += [q[0], q[1], q[2], q[0], q[2], q[3]] if sg > 0 else [q[0], q[2], q[1], q[0], q[3], q[2]]
+    # (each face toward its normal)
+    for t in range(0, len(I), 3):
+        a, b, cc = (P[i] for i in I[t:t + 3]); e1 = [b[k] - a[k] for k in range(3)]; e2 = [cc[k] - a[k] for k in range(3)]
+        fn = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]); nn = Nn[I[t]]
+        if sum(fn[k] * nn[k] for k in range(3)) < 0: I[t + 1], I[t + 2] = I[t + 2], I[t + 1]
+    return P, Nn, C, I
+
+def cyl_part(c, r, h, color, seg=10):
+    P, Nn, C, I = [], [], [], []
+    for side in (1, -1):
+        cc = len(P); P.append((c[0], c[1] + side * h / 2, c[2])); Nn.append((0, side, 0)); C.append(color)
+        ring = []
+        for k in range(seg):
+            a = 2 * math.pi * k / seg; ring.append(len(P)); P.append((c[0] + r * math.cos(a), c[1] + side * h / 2, c[2] + r * math.sin(a))); Nn.append((0, side, 0)); C.append(color)
+        for k in range(seg):
+            a, b = ring[k], ring[(k + 1) % seg]; I += [cc, b, a] if side > 0 else [cc, a, b]
+    return P, Nn, C, I
+
+def winter_truck(wid, pos, nor, col, idx):
+    lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+    L, W, H = hi[2] - lo[2], hi[0] - lo[0], hi[1] - lo[1]
+    cab = max(p[1] for p in pos if p[2] > hi[2] - 0.28 * L)   # (the cab's roof: the front quarter's top)
+    parts = []
+    ORANGE, DARK, AMBER = (255, 138, 26), (40, 40, 46), (255, 170, 30)
+    if wid == 'plow':
+        zb = hi[2] + 0.07 * L
+        parts += [box_part((0, 0.25 * H, zb), (W * 1.22, 0.44 * H, 0.08 * L), ORANGE, 0.32),
+                  box_part((0, 0.05 * H, zb + 0.01 * L), (W * 1.22, 0.07 * H, 0.06 * L), DARK, 0.32),
+                  box_part((-0.22 * W, 0.18 * H, hi[2] + 0.03 * L), (0.07 * W, 0.07 * H, 0.08 * L), DARK),
+                  box_part((0.22 * W, 0.18 * H, hi[2] + 0.03 * L), (0.07 * W, 0.07 * H, 0.08 * L), DARK)]
+    else:
+        parts += [box_part((0, hi[1] + 0.09 * H, lo[2] + 0.27 * L), (0.82 * W, 0.18 * H, 0.44 * L), ORANGE),
+                  box_part((0, hi[1] + 0.005 * H, lo[2] + 0.27 * L), (0.62 * W, 0.04 * H, 0.38 * L), DARK),
+                  cyl_part((0, 0.16 * H, lo[2] - 0.035 * L), 0.16 * W, 0.03 * H, DARK),
+                  box_part((0, 0.2 * H, lo[2] - 0.02 * L), (0.06 * W, 0.1 * H, 0.06 * L), DARK)]
+    bz, by = hi[2] - 0.17 * L, cab + 0.035 * H
+    parts.append(box_part((0, by, bz), (0.16 * W, 0.07 * H, 0.09 * L), AMBER))
+    P, Nn, C, I = list(pos), list(nor), list(col), list(idx)
+    for pp, nn, cc, ii in parts:
+        b0 = len(P); P += pp; Nn += nn; C += cc; I += [b0 + i for i in ii]
+    lo2 = [min(p[k] for p in P) for k in range(3)]; hi2 = [max(p[k] for p in P) for k in range(3)]
+    cx, cz = (lo2[0] + hi2[0]) / 2, (lo2[2] + hi2[2]) / 2
+    P = [(p[0] - cx, p[1] - lo2[1], p[2] - cz) for p in P]
+    bar = [round((hi2[2] - bz) / (hi2[2] - lo2[2]), 3), round((by + 0.035 * H - lo2[1]) / (hi2[1] - lo2[1]), 3)]
+    return P, Nn, C, I, bar
+
 def variety():
     import zipfile
     V = os.path.join(SRC, 'variety'); OUT_V = os.path.join(ROOT, 'assets', 'jaywalk', 'variety'); os.makedirs(OUT_V, exist_ok=True)
@@ -876,6 +937,7 @@ def variety():
     kenney_map = Image.open(io.BytesIO(zf.read(cm))).convert('RGBA')
     md = ['# JAYWALK — THE AREA TRAFFIC (VARIETY B1)', '', 'Re-packed by `scripts/build-jaywalk-assets.py --only=variety` (one mesh, vertex colours, quantized; turned to face +z, centred) — fetched per area by the game (`js/games/jaywalk/variety.js`). The CC BY credits are REQUIRED wherever these ship (the game\'s ☰ → Credits carries them).', '']
     total = 0
+    winter_base = {}
     for vid, f, turn, paint, recolor, cr, line in VARIETY_SRC:
         src = os.path.join(V, f.replace('/', os.sep)); j, bn = read_glb(src)
         img = kenney_map if any('baseColorTexture' in m.get('pbrMetallicRoughness', {}) for m in j.get('materials', [])) else None
@@ -890,19 +952,109 @@ def variety():
         lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
         cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
         pos = [(p[0] - cx, p[1] - lo[1], p[2] - cz) for p in pos]
+        if vid in ('dump', 'delivery'): winter_base[vid] = (list(pos), list(nor), list(col), list(idx), cr, line)
         pm = paint_mask(pos, col, idx)[0] if paint else None
         v, tr, size = write_glb(os.path.join(OUT_V, vid + '.glb'), vid, pos, nor, col, pm, idx, copyright=cr)
         total += size
         print(f'  variety/{vid:10s} {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {tr} tris · L {hi[2] - lo[2]:.2f} × W {hi[0] - lo[0]:.2f} × H {hi[1] - lo[1]:.2f}' + (f' · paint on {sum(pm)} verts' if pm else ''))
         md.append(f'- `{vid}.glb` — {line}')
+    for wid, base, line in (('plow', 'dump', 'THE SNOWPLOW (VARIETY B2) — the dump truck below + a blade + a roof beacon built in code'), ('salt', 'delivery', 'THE SALT TRUCK (VARIETY B2) — the delivery truck below + a hopper, a rear spinner + a roof beacon built in code')):
+        pos, nor, col, idx, cr, bl = winter_base[base]
+        pos, nor, col, idx, bar = winter_truck(wid, pos, nor, col, idx)
+        v, tr, size = write_glb(os.path.join(OUT_V, wid + '.glb'), wid, pos, nor, col, None, idx, copyright=cr + ' · additions: NEON SPEAKEASY (CC0)')
+        total += size
+        print(f'  variety/{wid:10s} (from {base}) → {size:6d} B · {v} verts · {tr} tris · the beacon at bar {bar}')
+        md.append(f'- `{wid}.glb` — {line} ({bl})')
     md += ['', 'Licences: Kenney + Quaternius + Teh_Bucket — CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/) · jeremy + KolosStudios — CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) · Polyfork — CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes to every file: merged into one mesh, colours baked into vertex colours (the school bus + the tanker recoloured), turned, centred, quantized.', '']
     open(os.path.join(OUT_V, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
     shutil.copyfile(os.path.join(V, 'original', 'License-kenney-car-kit.txt'), os.path.join(OUT_V, 'LICENSE-kenney-car-kit.txt'))
     print(f'  variety: {len(VARIETY_SRC)} models, {total} B')
 
+
+# ---- VARIETY B2 — AREA TREES (variety\tree-high.glb — Kenney Mini Forest · variety\round2\tree_{thin,oak,palmDetailedTall}.glb — Kenney Nature
+#  Kit, all CC0) + EDGE DECORATION (variety\edge\ — Kenney kits CC0, the bus stop CC BY 3.0, the mailbox CC0): re-packed as the 12 (one mesh, vertex
+#  colours, quantized, the hidden insides out), centred on their foot. THE TREES are normalised to a height of 1 (the scene sizes them); the
+#  palm's crown narrowed to one cell (its fronds spanned 1.5); the leaf greens set to the game's (the Nature Kit's teal read cold) — the
+#  canopy stays green-dominant (THE SEASONAL PACK's autumn turns it). → assets/jaywalk/trees/ + assets/jaywalk/edge/ (+ CREDITS.md) — fetched
+#  PER AREA by the game (js/games/jaywalk/props.js), never the start bundle.
+def kit_map(zpath):
+    import zipfile
+    zf = zipfile.ZipFile(zpath)
+    cm = next(n for n in zf.namelist() if n.replace('\\', '/').endswith('GLB format/Textures/colormap.png'))
+    return Image.open(io.BytesIO(zf.read(cm))).convert('RGBA')
+
+def embedded_img(j, bn):
+    if not j.get('images'): return None
+    im = j['images'][0]; bv = j['bufferViews'][im['bufferView']]; o = bv.get('byteOffset', 0)
+    return Image.open(io.BytesIO(bn[o:o + bv['byteLength']])).convert('RGBA')
+
+def pack_one(src, out, name, cr, img=None, recolor={}, squash=None, norm_h=None, turn=0):
+    j, bn = read_glb(src)
+    if img is None: img = embedded_img(j, bn)
+    pos, nor, col, idx = flatten_any(j, bn, img, recolor)
+    if squash:   # (x/z scaled about the trunk above a height: a crown narrowed) — normals left (a flat-shaded crown reads the same)
+        y0, k = squash; lo = min(p[1] for p in pos)
+        cx = sum(p[0] for p in pos) / len(pos); cz = sum(p[2] for p in pos) / len(pos)
+        pos = [((p[0] - cx) * (k if p[1] - lo > y0 else 1) + cx, p[1], (p[2] - cz) * (k if p[1] - lo > y0 else 1) + cz) for p in pos]
+    if turn:
+        t = math.radians(turn); c, s_ = math.cos(t), math.sin(t); rot = lambda v: (v[0] * c + v[2] * s_, v[1], -v[0] * s_ + v[2] * c)
+        pos = [rot(p) for p in pos]; nor = [rot(n) for n in nor]
+    lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+    cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+    sc = (norm_h / (hi[1] - lo[1])) if norm_h else 1
+    pos = [((p[0] - cx) * sc, (p[1] - lo[1]) * sc, (p[2] - cz) * sc) for p in pos]
+    n0 = len(idx) // 3; idx = seen_only(pos, drop_down(pos, nor, idx))
+    used = sorted(set(idx)); rm = {o: k for k, o in enumerate(used)}
+    pos = [pos[i] for i in used]; nor = [nor[i] for i in used]; col = [col[i] for i in used]; idx = [rm[i] for i in idx]
+    v, t, size = write_glb(os.path.join(out, name + '.glb'), name, pos, nor, col, None, idx, copyright=cr)
+    lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+    print(f'  {os.path.basename(out)}/{name:10s} {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {n0} → {t} tris · W {hi[0] - lo[0]:.2f} × D {hi[2] - lo[2]:.2f} × H {hi[1] - lo[1]:.2f}')
+    return size
+
+TREE_GREEN = {'thin': 0x5bb04c, 'oak': 0x2f8f44, 'palm': 0x5aae3a}
+def trees():
+    V = os.path.join(SRC, 'variety'); OUT_T = os.path.join(ROOT, 'assets', 'jaywalk', 'trees'); os.makedirs(OUT_T, exist_ok=True)
+    NK = 'Kenney (kenney.nl) — Nature Kit 2.1 — CC0 1.0'
+    bark = 0x8a5a36
+    total = 0
+    total += pack_one(os.path.join(V, 'round2', 'tree_thin.glb'), OUT_T, 'thin', NK, recolor={'leafsGreen': TREE_GREEN['thin'], 'woodBark': bark}, norm_h=1)
+    total += pack_one(os.path.join(V, 'round2', 'tree_oak.glb'), OUT_T, 'oak', NK, recolor={'leafsGreen': TREE_GREEN['oak'], 'woodBark': bark}, norm_h=1)
+    total += pack_one(os.path.join(V, 'round2', 'tree_palmDetailedTall.glb'), OUT_T, 'palm', NK, recolor={'leafsGreen': TREE_GREEN['palm'], 'woodBark': 0x9a7048}, squash=(0.55, 0.62), norm_h=1)
+    total += pack_one(os.path.join(V, 'tree-high.glb'), OUT_T, 'tall', 'Kenney (kenney.nl) — Mini Forest 1.0 — CC0 1.0', img=kit_map(os.path.join(V, 'original', 'kenney_mini-forest_1.0.zip')), norm_h=1)
+    open(os.path.join(OUT_T, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write(
+        '# JAYWALK — THE AREA TREES (VARIETY B2)\n\nRe-packed by `scripts/build-jaywalk-assets.py --only=trees` (one mesh, vertex colours, quantized, normalised to a height of 1; the leaf greens set; the palm\'s crown narrowed) — fetched per area by the game (`js/games/jaywalk/props.js`).\n\n'
+        '- `thin.glb` — "tree_thin" from Kenney Nature Kit 2.1 (kenney.nl), CC0 1.0\n- `oak.glb` — "tree_oak" from Kenney Nature Kit 2.1 (kenney.nl), CC0 1.0\n'
+        '- `palm.glb` — "tree_palmDetailedTall" from Kenney Nature Kit 2.1 (kenney.nl), CC0 1.0\n- `tall.glb` — "tree-high" from Kenney Mini Forest 1.0 (kenney.nl), CC0 1.0\n\nLicence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).\n')
+    print(f'  trees: {total} B')
+
+EDGE_SRC = [
+    # id, file, kit zip (its colormap) or None, recolor, turn, copyright, credit line
+    ('bench', 'bench.glb', 'kenney-mini-skate.zip', {}, 0, 'Kenney (kenney.nl) — Mini Skate 2.0 — CC0 1.0', '"bench" from Kenney Mini Skate 2.0 (kenney.nl), CC0 1.0'),
+    ('busstop', 'bus-stop.glb', None, {}, 0, '"Bus Stop" by Zsky (https://poly.pizza/m/OWczicNWhO) — CC BY 3.0', '"Bus Stop" by Zsky — https://poly.pizza/m/OWczicNWhO (CC BY 3.0)'),
+    ('sign', 'street-sign.glb', 'kenney_city-kit-roads.zip', {}, 0, 'Kenney (kenney.nl) — City Kit (Roads) 2.2 — CC0 1.0', '"road-sign-street" from Kenney City Kit (Roads) 2.2 (kenney.nl), CC0 1.0'),
+    ('trashcan', 'trashcan.glb', None, {}, 0, 'Kenney (kenney.nl) — Furniture Kit 1.0 — CC0 1.0', '"trashcan" from Kenney Furniture Kit 1.0 (kenney.nl), CC0 1.0'),
+    ('mailbox', 'mailbox.glb', None, {}, 0, '"Mailbox" by CreativeTrio (https://poly.pizza/m/2olZ0G8iur) — CC0 1.0', '"Mailbox" by CreativeTrio — https://poly.pizza/m/2olZ0G8iur (CC0 1.0)'),
+    ('barrel', 'barrel.glb', 'kenney_pirate-kit_2.1.zip', {}, 0, 'Kenney (kenney.nl) — Pirate Kit 2.1 — CC0 1.0', '"barrel" from Kenney Pirate Kit 2.1 (kenney.nl), CC0 1.0'),
+    ('buoy', 'buoy-flag.glb', 'kenney_watercraft-kit.zip', {}, 0, 'Kenney (kenney.nl) — Watercraft Kit 2.1 — CC0 1.0', '"buoy-flag" from Kenney Watercraft Kit 2.1 (kenney.nl), CC0 1.0'),
+    ('rocks', 'rocks-low.glb', 'kenney_mini-forest_1.0.zip', {}, 0, 'Kenney (kenney.nl) — Mini Forest 1.0 — CC0 1.0', '"rocks-low" from Kenney Mini Forest 1.0 (kenney.nl), CC0 1.0'),
+    ('fence', 'fence.glb', 'kenney_city-kit-suburban.zip', {}, 0, 'Kenney (kenney.nl) — City Kit (Suburban) 2.0 — CC0 1.0', '"fence" from Kenney City Kit (Suburban) 2.0 (kenney.nl), CC0 1.0'),
+    ('rowboat', 'boat-row-small.glb', 'kenney_watercraft-kit.zip', {}, 0, 'Kenney (kenney.nl) — Watercraft Kit 2.1 — CC0 1.0', '"boat-row-small" from Kenney Watercraft Kit 2.1 (kenney.nl), CC0 1.0'),
+]
+def edge():
+    E = os.path.join(SRC, 'variety', 'edge'); OUT_E = os.path.join(ROOT, 'assets', 'jaywalk', 'edge'); os.makedirs(OUT_E, exist_ok=True)
+    md = ['# JAYWALK — THE EDGE DECORATION (VARIETY B2)', '', 'Re-packed by `scripts/build-jaywalk-assets.py --only=edge` (one mesh, vertex colours, quantized, centred on its foot, the hidden insides out) — fetched per area by the game (`js/games/jaywalk/props.js`). The CC BY credit is REQUIRED wherever it ships (the game\'s ☰ → Credits carries it).', '']
+    total = 0
+    for eid, f, z, recolor, turn, cr, line in EDGE_SRC:
+        img = kit_map(os.path.join(E, 'original', z)) if z else None
+        total += pack_one(os.path.join(E, f), OUT_E, eid, cr, img=img, recolor=recolor, turn=turn, norm_h=1)
+        md.append(f'- `{eid}.glb` — {line}')
+    md += ['', 'Licences: Kenney + CreativeTrio — CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/) · Zsky — CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Changes: merged into one mesh, colours baked into vertex colours, centred, normalised to a height of 1, quantized, hidden faces removed.', '']
+    open(os.path.join(OUT_E, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
+    print(f'  edge: {len(EDGE_SRC)} models, {total} B')
+
 if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter), ('autumn', autumn), ('variety', variety)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter), ('autumn', autumn), ('variety', variety), ('trees', trees), ('edge', edge)):
         if not ONLY or name in ONLY: fn()

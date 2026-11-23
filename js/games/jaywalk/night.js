@@ -15,7 +15,7 @@ import { LINE_HEX, friendFade } from './lines.js';
 import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
 import { hsh, strSeed, vehicleAt, plainAt } from './causes.js';
-import { VARIETY, createVariety } from './variety.js';   // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot, loaded per area ahead of it)
+import { VARIETY, createVariety, setWinterTraffic } from './variety.js';   // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot, loaded per area ahead of it)
 import { GRADE, gradeOf, lightsOf } from './daylook.js';   // (VARIETY A — THE TIMES OF DAY: the grade + the lights by time — PURE)   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
@@ -192,7 +192,8 @@ export function createNight(host, o = {}) {
   // VARIETY B1 — THE AREA TRAFFIC (variety.js): each area's models fetched a stretch AHEAD of it, parsed one a frame, freed once passed. ONE
   // material for them all (the cars' own program — a model landing mid-run compiles nothing); until a model is in, its slot draws the plain one
   let vMat = null;
-  const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
+  const unkindQ = q => { const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
+  const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; unkindQ(q); };
   const VL = createVariety({
     parseGlb,
     add(id, g) {
@@ -214,7 +215,7 @@ export function createNight(host, o = {}) {
   K.checker = kind(unit, fogUp(new THREE.MeshLambertMaterial({ color: 0xffffff })), 200, { cast: false });
 
   // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models …
-  let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null;
+  let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null, winterT = false;
   const SPAPI = {
     scene, kind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
     lambert: () => lambert(), ground: null, part: (...a) => part(...a),
@@ -234,6 +235,7 @@ export function createNight(host, o = {}) {
     const want = !!day && (seasonWindow(day) || o.force || wetOn || !!o.snow);
     if (want && !SP) prepSeason(day, { force: true });
     SZ = SP ? SP.apply(want ? day : '', o) : { ...NO_SEASON, day: day || '' };   // (a scene kept over PLAY AGAIN on another day: the pack takes its season back off)
+    { const wt = SZ.winter > 0; if (wt !== winterT) { winterT = wt; setWinterTraffic(wt); vwKey = -1; } }   // (B2 — THE WINTER TRUCKS: a winter run's van slots — variety.js)
     fogCheck();
     return SZ;
   }
@@ -338,6 +340,9 @@ export function createNight(host, o = {}) {
   tintOf(o.kidColor || '#ff3fb4');
   let FL = null, flyAsk = null;
   let SH = null, shopAsk = null;
+  // VARIETY B2 — THE AREA TREES + THE EDGE DECORATION (props.js — lazy: until it is in, today's round tree draws); its own per-area loader
+  let PR = null, prAsk = null;
+  const prGet = () => { if (!prAsk) prAsk = lazyImport(import('./props.js'), './props.js').then(M => { if (dead) return; PR = M.createProps({ kind, lambert, parseGlb, unkind: unkindQ, K, clock: () => clock }); decor.clear(); vwKey = -1; needWarm = true; }).catch(() => { prAsk = null; }); };
   const shopGet = () => { if (!shopAsk) shopAsk = lazyImport(import('./shops.js'), './shops.js').then(M => { if (!dead) SH = M.createShops({ kind, K, rewarm() { needWarm = true; } }); }).catch(NOP); };
   const flyGet = () => { if (!flyAsk) flyAsk = lazyImport(import('./flyers.js'), './flyers.js').then(M => { if (!dead) FL = M.createFlyers({ renderer, scene, cam, host, K, hazeAt, reduce, rewarm() { needWarm = true; } }); }).catch(NOP); };
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));
@@ -532,6 +537,7 @@ export function createNight(host, o = {}) {
       const n = 3 + Math.floor(hsh(vseed ^ i, 9) * 4);
       for (let t = 0; t < n; t++) { const x = hsh(vseed ^ (i * 53), t * 7 + 1) * 12 - 1.5, c = Math.floor(x); if (c < 0 || c >= COLS || !L.obs[c]) d.tufts.push([x, 0.12 + hsh(vseed ^ (i * 59), t) * 0.76, 0.8 + hsh(vseed ^ i, t + 40) * 0.6]); }
     }
+    if (PR) PR.dress(d, i, L, area(i).index, (a, b) => hsh(vseed ^ (i * (733 + b * 59)), a));   // (B2 — which tree model a tree cell draws + the edge decoration: props.js#dress)
     decor.set(i, d);
     if (decor.size > 160) decor.delete(decor.keys().next().value);
     return d;
@@ -559,7 +565,7 @@ export function createNight(host, o = {}) {
    *  the one after Kenney's models land. */
   function warm() {
     const put = [];
-    for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
+    for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
     const seaBack = SP ? SP.warmIn() : null;   // (J4 — the falling snow's program too: THE SEASONAL PACK's)
     for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }   // (J2: the jets are ONE instanced mesh — warmed with one in it)
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
@@ -570,7 +576,7 @@ export function createNight(host, o = {}) {
     }
     for (const [m, v, y, c] of put) { m.visible = v; m.position.y = y; if (m.isInstancedMesh) m.count = c; }
     if (seaBack) seaBack();
-    for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
+    for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.done(); }
     warmed++;
   }
 
@@ -676,12 +682,24 @@ export function createNight(host, o = {}) {
   const lbDay = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1) => { const q = 0.5 + 0.5 * TL.cars; K.bill.put(x, y, z, sx * q, sy * q, sz, ry, hex, k, a0, (a1 == null ? 1 : a1) * TL.cars * 0.8); };
   /** VARIETY B1 — a variety vehicle in its slot: EXACTLY the slot's length (the rule's — never shorter or longer than what hits you), its own
    *  width + height; the plain cars' lights; an emergency vehicle's light bar FLASHES red / blue at night (bloom), unlit by day */
+  /** B2 — THE WINTER TRUCKS' SPRAY (one shared particle — the glow billboards: no draw of their own, no state, no garbage): the plow's snow
+   *  kicked off its blade toward the curb; the salt fanned out behind the spinner. Small, see-through, short-lived — never hiding a car */
+  function spray(kind, nose, rear, dir, z, dim, ph) {
+    const snow = kind === 'snow', n = snow ? 7 : 6;
+    for (let k = 0; k < n; k++) {
+      const f = (clock / (snow ? 620 : 520) + k / n + ph) % 1, e = 1 - f;
+      const x = snow ? X(nose + dir * (0.05 + 0.25 * f)) : X(rear - dir * (0.05 + 0.45 * f)), zz = snow ? z + 0.3 + 0.62 * f : z + (k % 2 ? 1 : -1) * (0.1 + 0.5 * f), y = snow ? 0.14 + 0.55 * f * e * 2 : 0.1 + 0.18 * f * e;
+      const sz = (snow ? 0.13 : 0.08) * (0.6 + 0.6 * e);
+      K.bill.put(x, y, zz, sz, sz, 1, 0, snow ? 0xf4f8ff : 0xe6e0d4, 1, 0, (day ? 0.55 : 0.32) * e * dim);
+    }
+  }
   function drawVariety(V, q, B, L, left, len, z, tint, dim, on, i, j) {
     const LF = vLF, LB = vLB;
     const bodyL = V.slot === 3 ? len - 0.1 : V.slot === 2 ? 1.9 : 0.96, sz = bodyL / B.l, sx = V.w / B.w, sy = V.h / B.h, ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
     const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), cx = X(left + len / 2);
     q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, day && V.dayK ? dim * V.dayK : dim);
     K.shadow.put(cx, 0.03, z, len * 1.12, V.slot === 3 ? 1.05 : V.slot === 2 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * dim);
+    if (V.spray && !reduce) spray(V.spray, nose, nose - L.dir * bodyL, L.dir, z, dim, hsh(vseed ^ (i * 977), j + 5));   // (B2 — THE WINTER TRUCKS' spray)
     if (!on) return;
     const [hw, hy] = V_LAMPS[V.slot], a1 = dim, back = L.dir > 0 ? 0 : Math.PI, rearX = nose - L.dir * bodyL, vw = V_VW[V.slot];
     if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }
@@ -691,6 +709,14 @@ export function createNight(host, o = {}) {
     for (const e of [-hw, hw]) {
       LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);
       K.bill.put(X(nose), hy, z + e, day ? 0.13 + 0.07 * TL.cars : 0.2, day ? 0.13 + 0.07 * TL.cars : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 + 0.3 * TL.cars : 0.8) * a1);
+    }
+    if (V.light === 'beacon') {   // B2 — THE WINTER TRUCKS' AMBER BEACON: a rotating flash (~1.4 a second) + its glow + its colour on the road — at night only (steady with reduce motion)
+      if (day && TL.cars <= 0.6) return;
+      const bxl = X(nose - L.dir * bodyL * V.bar[0]), by = V.h * V.bar[1] + 0.03, ph = hsh(vseed ^ (i * 977), j + 3), f = reduce ? 0.6 : Math.max(0, Math.cos((clock / 700 + ph) * Math.PI * 2)) ** 3;
+      K.bill.put(bxl, by, z, 0.27, 0.27, 1, 0, 0xffb02a, 1, 5, (0.45 + 0.55 * f) * a1);
+      LB(bxl, by, z, 1.5, 1.15, 1, 0, 0xffa020, 1, 0, (reduce ? 0.35 : 0.8 * f) * a1);
+      if (!reduce && f > 0.05) LF(bxl, 0.045, z, 2.2, 1, 1.8, 0, 0xffa020, 1, 0, 0.18 * f * a1);
+      return;
     }
     if (V.light && (!day || TL.cars > 0.6)) {   // THE LIGHT BAR: red on one side, blue on the other — alternating ~2.6 times a second (steady with reduce motion)
       const bxl = X(nose - L.dir * bodyL * V.bar[0]), by = V.h * V.bar[1] + 0.04, ph = hsh(vseed ^ (i * 977), j + 3), f = reduce ? 0.5 : (clock / 190 + ph * 4) % 2 < 1 ? 1 : 0;
@@ -832,9 +858,10 @@ export function createNight(host, o = {}) {
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
-    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
+    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due() || (PR && PR.due())) { vwKey = vk; const near = [...new Set([a0, a1, a2])]; VL.want(near); if (PR) PR.want(near); } if (!prAsk) prGet(); }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
+    if (PR) for (const q of PR.kinds()) q.reset();
     if (capT) flyGet();
     if (FL) FL.begin({ t, clock, dt, day, w, h, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
@@ -850,11 +877,12 @@ export function createNight(host, o = {}) {
         for (const q of D.obs) {
           if (q.edge && (q.c < 0 ? sgL : sgR)) continue;   // (a signature piece stands on this side of the lane)
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? EK : 1);
+          if (q.deco === 2) { if (PR) PR.deco(q, x, zz, dim, lt); continue; }   // (B2 — an edge piece: props.js)
           if (q.big) { if (q.k === 'shop' && !SH) shopGet(); drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && areaOn, day, ek: EK, SH: SH && SH.put }); }
           else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, q.k === 'drum' ? DRUM_HEX[Math.floor(q.s * 2.999)] : 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
-          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) {
+          else if (q.k === 'tree' || q.tk || (q.k !== 'barricade' && !KM[q.k])) {
             const s = 0.72 + q.s * 0.3;
-            if (!SE || !SE.tree(x, zz, s, q, i, dim, on, lt)) K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim);   // (J4 — winter swaps it: a snow pine · a lit Christmas tree — seasonal.js)
+            if (!SE || !SE.tree(x, zz, s, q, i, dim, on, lt, q.tk || '')) { if (!q.tk || !PR || !PR.tree(q.tk, x, zz, s, q.ry * 3, dim)) K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); }   // (B2 — the area's tree model: props.js; not in yet = today's round tree)   // (J4 — winter swaps it: a snow pine · a lit Christmas tree — seasonal.js)
             K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1.6, 1.0 * s, 0, 0, 1, 0, 0.5 * lt);
           }
           else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
@@ -1143,6 +1171,7 @@ export function createNight(host, o = {}) {
     ground.uniforms.uWet.value = !day && wetOn && tier === 2 && SE ? SZ.wet : 0;
     for (const q of Object.values(K)) q.done();
     for (const q of Object.values(KM)) q.done();
+    if (PR) for (const q of PR.kinds()) q.done();
     ground.uniforms.uTime.value = reduce ? 0 : clock / 1000;
     renderer.info.reset();
     // (VARIETY B1 — THE SHADOW POPS: the depth pass's shadow FADES (1 s) into the cheap blob when the tier steps down, and back — never a snap;
@@ -1162,7 +1191,7 @@ export function createNight(host, o = {}) {
       g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
     }
     // VARIETY B2 — THE TAPS: ONE loading step a frame (a parse OR a kind made), at the END — none in a busy frame or the one a hop starts in
-    VL.pump(run.st === 'hop' && run.k < 2 ? Infinity : performance.now() - fT0);
+    { const busy = run.st === 'hop' && run.k < 2 ? Infinity : performance.now() - fT0; if (!VL.pump(busy) && PR) PR.pump(busy); }
   }
   // VARIETY A — THE SUN's SHADOWS (tier 2 only, a DAY look with sun): ONE depth pass of the casters (their own layer — the kid + the rivals
   // keep their contact shadows: the depth pass knows nothing of their skinning) from the sun, up the course from the camera; the ground reads it
@@ -1249,7 +1278,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ sunMap: !!SHD, sunF, variety: VL.info(), binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, sunF, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1257,6 +1286,8 @@ export function createNight(host, o = {}) {
     /** VARIETY A — THE TIME OF DAY (daylook.js#resolveTod) · what it shows now · the fog check's amount */
     /** (the lab's tap measure — VARIETY B2) every area model let go + the near areas wanted again: an area's arrival, the kid in place */
     varietyAgain() { VL.want([]); vwKey = -1; },
+    /** (the lab's look checks — B2) lane i's dressing: [{ c, k, tk, deco }] */
+    decorAt(i) { const L = courseRef ? courseRef.lane(i) : null; return L && L.type === 'grass' ? decorOf(i, L).obs.map(q => ({ c: q.c, k: q.k, tk: q.tk || '', deco: q.deco || 0 })) : []; },
     setTod, tod: () => (TD ? { ...TD, grade: !!GR, sun: sunReal, fogDark } : null), fogDark: () => fogDark,
     destroy() {
       dead = true; ro.disconnect(); VL.destroy(); taxiTex.dispose(); taxiCv.width = 0;
