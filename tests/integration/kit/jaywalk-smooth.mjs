@@ -40,7 +40,7 @@ const installTimers = () => {
 };
 const q = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * p))] : 0; };
 
-export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = '', errs = [], tag = 'after', abBase = null }) {
+export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = '', b, errs = [], tag = 'after', abBase = null }) {
   const all = !what;
   if (all || what === 'hud') {
     for (const [w, hh] of [[390, 844], [402, 874], [430, 932], [1440, 900]]) {
@@ -90,6 +90,28 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     }
   }
 
+  // same — GROUP 3's proof: frozen frames, this pass against &smooth=0 (the same seed, tick, camera, reduce motion so the shaders' clocks stand
+  // still): every pixel compared, 390 @3 — six ticks in a row on a moving car, every look, tier 2 + 1, four areas
+  if (what === 'same' || what.startsWith('same:')) {
+    const looks = what.startsWith('same:') ? what.slice(5).split('+') : ['noon', 'golden', 'night', 'snow'], LANES = [['downtown', 252], ['docks', 60], ['canal', 310], ['airfield', 410]];
+    const cmpCtx = await b.createBrowserContext(), cmp = await cmpCtx.newPage();
+    const diff = (A, B) => cmp.evaluate(async (a, c) => { const load = async u => { const i = new Image(); i.src = u; await i.decode(); const v = new OffscreenCanvas(i.width, i.height), x = v.getContext('2d', { willReadFrequently: true }); x.drawImage(i, 0, 0); return x.getImageData(0, 0, i.width, i.height).data; }; const P = await load(a), Q = await load(c); let n = 0, big = 0; for (let k = 0; k < P.length; k += 4) { const d = Math.max(Math.abs(P[k] - Q[k]), Math.abs(P[k + 1] - Q[k + 1]), Math.abs(P[k + 2] - Q[k + 2])); if (d > 2) n++; if (d > big) big = d; } return { pct: 100 * n / (P.length / 4), big }; }, `data:image/png;base64,${A}`, `data:image/png;base64,${B}`);
+    const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth ? '' : '&smooth=0'}`, { reduce: true }); await up(o.p); if (/snow=/.test(sq)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
+    const grab = async (o, t) => { await o.p.evaluate(tt => { const J = window.__jwLab; J.freeze(false); J.setT(tt); J.freeze(true); }, t); await sleep(1250); return o.p.screenshot({ encoding: 'base64' }); };
+    let worst = 0, count = 0;
+    for (const lk of looks) for (const tier of [2, 1]) for (const [an, lane] of tier === 2 ? LANES : LANES.slice(0, 1)) {
+      const A = await frozen(SCENES[lk], tier, true, lane), B = await frozen(SCENES[lk], tier, false, lane);
+      const ticks = tier === 2 && an === 'downtown' ? [2400, 2401, 2402, 2403, 2404, 2405] : [2400, 3100];
+      let w = 0, big = 0;
+      for (const t of ticks) { const a = await grab(A, t), c = await grab(B, t), d = await diff(a, c); count++; if (d.pct > w) w = d.pct; if (d.big > big) big = d.big; if (out && t === ticks[0]) { const f = join(out, 'same', `${lk}-t${tier}-${an}.png`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(a, 'base64')); } }
+      if (w > worst) worst = w;
+      ok(w < 0.01, `THE SAME PICTURE ${lk} tier ${tier} ${an}: ${ticks.length} frozen frames, at most ${w.toFixed(4)} % of pixels differ (largest difference ${big} / 255)`);
+      errs.push(...A.errs, ...B.errs); await A.close(); await B.close();
+    }
+    await cmpCtx.close();
+    console.log(`     THE SAME PICTURE: ${count} frames compared, worst ${worst.toFixed(4)} %`);
+  }
+
   // casters — what the sun's depth pass actually draws: every instanced draw into the map (triangles a model × instances), biggest first
   if (what === 'casters') {
     for (const [name, sq] of [['noon', SCENES.noon], ['snow', SCENES.snow]]) {
@@ -99,6 +121,7 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
       await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.ghosts(7); J.warp(J.find('grass', 252)); });
       await waitFor(o.p, '(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && !v.staged; })()', 30000);
       await sleep(1500);
+      console.log('     VIEW', JSON.stringify(await o.p.evaluate(() => { const J = window.__jwLab, i = J.view.info(), y = J.state().y, L = []; for (let k = 4; k <= 30; k += 2) L.push([k, +J.project(4.5, y + k)[1].toFixed(3)]); return { y, sunCut: i.sunCut, fog: i.fog, foot: i.foot, zoom: i.zoom, lanes: L }; })));
       const r = await o.p.evaluate(() => new Promise(res => {
         const gl = document.querySelector('canvas.jw-canvas').getContext('webgl2'), bind = gl.bindFramebuffer.bind(gl), draw = gl.drawElementsInstanced.bind(gl);
         let inRt = false, L = [], main = 0;
@@ -128,6 +151,14 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
       await sleep(6000);
       const r = await o.p.evaluate(() => { const T = window.__gt; T.on = false; const J = window.__jwLab, i = J.view.info(); return { main: T.done.main, rt: T.done.rt, js: T.js, cost: J.cost(), frames: J.frames(), calls: i.calls, tris: i.tris, sun: i.sunMap }; });
       const n = r.frames.length, row = { name, tier, tag, n, sun: r.sun, calls: r.calls, tris: r.tris, gpuMain: q(r.main, 0.5), gpuMainP95: q(r.main, 0.95), gpuRt: q(r.rt, 0.5), gpuRtP95: q(r.rt, 0.95), rtPerFrame: r.rt.length / Math.max(1, r.main.length), sunJs: q(r.js, 0.5), work: q(r.cost, 0.5), workP95: q(r.cost, 0.95) };
+      // (what the ground's four sun-map samples cost: the same scene with the ground not reading the map)
+      if (tier === 2 && name !== 'night' && await o.p.evaluate(() => !!window.__jwLab.view.sunSampleOff)) {
+        await o.p.evaluate(() => { const T = window.__gt; T.done.main.length = 0; T.on = true; window.__jwLab.view.sunSampleOff(true); });
+        await sleep(4000);
+        const m = await o.p.evaluate(() => { const T = window.__gt; T.on = false; window.__jwLab.view.sunSampleOff(false); return T.done.main; });
+        row.gpuMainNoSample = q(m, 0.5);
+        console.log(`     … ${name}: the main pass without the ground's sun samples ${row.gpuMainNoSample.toFixed(2)} ms (with: ${row.gpuMain.toFixed(2)})`);
+      }
       rows.push(row);
       console.log(`     GPU ${tag} ${name.padEnd(6)} t${tier}: main ${row.gpuMain.toFixed(2)} (p95 ${row.gpuMainP95.toFixed(2)}) · target passes ${row.gpuRt.toFixed(2)} (p95 ${row.gpuRtP95.toFixed(2)}, ${row.rtPerFrame.toFixed(1)} a frame) ms · their JS ${row.sunJs.toFixed(2)} · frame work ${row.work.toFixed(2)} (p95 ${row.workP95.toFixed(2)}) · ${row.calls} calls ${row.tris} tris`);
       errs.push(...o.errs); await o.close();

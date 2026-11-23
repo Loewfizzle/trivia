@@ -57,13 +57,14 @@ const ease = t => t * t * (3 - 2 * t);
 /** J4 — WINTER · JT1 — SEASONS (docs/jaywalk.md "JT1 — SEASONS"): a VIEW — every seasonal layer is THE SEASONAL PACK's (seasonal.js, fetched … */
 const NO_SEASON = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none', wet: 0, autumn: 0, hat: '', fireworks: '', any: false });
 /** VARIETY A — THE SUN's SHADOWS (tier 2, a DAY look with sun): the casters' layer + the depth pass's map (1024 across × 2048 up the course) */
-const SUN_LAYER = 5, SUN_MAP = [1024, 2048];
+const SUN_LAYER = 5, SUN_MAP = [1024, 2048], NO_DEPTH = [36096];   // (gl.DEPTH_ATTACHMENT)
 /** VARIETY A — THE FOG CHECK: the fog bank's DARK palette (where white fog would vanish — white over snow by day) [ground, top, under, curtain] */
 const FOG_DARK = Object.freeze({ ground: [0.25, 0.27, 0.30], top: 0x4b5058, under: 0x2c3038, curtain: 0x353a42, wisp: 0x5a6068 });
 
 export function createNight(host, o = {}) {
   // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never …
   const RWN = o.rwNight === true;
+  const SMOOTH = o.smooth !== false;   // (SMOOTH — the lab's `&smooth=0` = this pass's savings off, for the owner's A/B)
   setWinterTraffic(false);   // (B2: a new scene starts with no winter trucks — its run's season turns them on)
   const reduce = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -88,7 +89,9 @@ export function createNight(host, o = {}) {
   try { env = neonEnv(renderer); scene.environment = env; } catch { /* no gloss: fine */ }
 
   const P = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion(), E = new THREE.Euler(), M = new THREE.Matrix4(), C = new THREE.Color(), C2 = new THREE.Color();
-  const made = [];
+  const made = [], casters = new Set();
+  // SMOOTH — THE SUN'S CUT: a shadow falls AWAY from the camera (SUN.z < 0), so a caster wholly past the last ground the fog leaves visible can't land on anything seen
+  let sunCut = -Infinity, shOff = false;
   /** an instanced kind. put(x, y, z, sx, sy, sz, ry, hex, k): place + size + turn + colour (× k) */
   function kind(geo, mat, n, { aux = null, raw = false, order = 0, bloom = false, solid = !bloom && !mat.transparent, cast = solid && !mat.isShaderMaterial } = {}) {
     const g = aux ? geo.clone() : geo, m = new THREE.InstancedMesh(g, mat, n);
@@ -102,12 +105,17 @@ export function createNight(host, o = {}) {
     if (cast) m.layers.enable(SUN_LAYER);
     scene.add(m); made.push({ m, g });
     const col = m.instanceColor.array;
-    let i = 0;
-    return {
+    let i = 0, sn = 0, vis = true, reach = 0;
+    if (cast) { if (!g.boundingSphere) g.computeBoundingSphere(); reach = g.boundingSphere.center.length() + g.boundingSphere.radius; }
+    const q = {
       mesh: m,
-      reset() { i = 0; },
+      reset() { i = 0; sn = 0; },
+      /** (the sun's pass only) draw just the instances up to the last one that can reach the view: the lanes are laid near → far */
+      sunCap() { vis = m.visible; m.count = sn; m.visible = vis && sn > 0; },
+      sunBack() { m.count = i; m.visible = vis; },
       put(x, y, z, sx, sy, sz, ry, hex, k = 1, a0 = 1, a1 = 1, rx = 0, rz = 0, a2 = 0, a3 = 0) {
         if (i >= n) return;
+        if (cast && z + reach * Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) >= sunCut) sn = i + 1;
         P.set(x, y, z); S.set(sx, sy, sz);
         if (rx || rz) Q.setFromEuler(E.set(rx, ry, rz, 'YXZ')); else if (ry) Q.setFromAxisAngle(UP, ry); else Q.identity();
         M.compose(P, Q, S); m.setMatrixAt(i, M);
@@ -120,6 +128,8 @@ export function createNight(host, o = {}) {
       done() { m.count = i; upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); },
       left: () => n - i,
     };
+    if (cast) casters.add(q);
+    return q;
   }
   const UP = new THREE.Vector3(0, 1, 0);
   // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three …
@@ -192,7 +202,7 @@ export function createNight(host, o = {}) {
   // VARIETY B1 — THE AREA TRAFFIC (variety.js): each area's models fetched a stretch AHEAD of it, parsed one a frame, freed once passed. ONE
   // material for them all (the cars' own program — a model landing mid-run compiles nothing); until a model is in, its slot draws the plain one
   let vMat = null;
-  const unkindQ = q => { const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
+  const unkindQ = q => { casters.delete(q); const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
   const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; unkindQ(q); };
   const VL = createVariety({
     parseGlb,
@@ -827,6 +837,7 @@ export function createNight(host, o = {}) {
     if (FL) { const q = FL.shake(); shx += Math.sin(clock * 0.11) * q; shy += Math.cos(clock * 0.13) * q; }
     rig.apply(cam, shx, shy, heroCam ? [px, pz] : null);
     posed = true; fwd.set(0, 0, -1).applyQuaternion(cam.quaternion); FOG_UP.value = -fwd.y; depth();
+    sunCut = SMOOTH && day ? viewTopZ() : -Infinity;
     skyBias += (skyBiasT - skyBias) * (reduce ? 1 : 1 - Math.exp(-dt / 650)); if (Math.abs(skyBiasT - skyBias) < 0.02) skyBias = skyBiasT;
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
@@ -1154,6 +1165,7 @@ export function createNight(host, o = {}) {
     sunReal = sunAble && sunF > 0.004;
     if (sunReal) sunPass(camY); else if (SHD && tier < 2) sunFree();
     ground.uniforms.uShK.value = sunReal ? GR.sun * 0.9 * ease(sunF) : 0;
+    if (shOff) ground.uniforms.uShK.value = 0;
     renderer.render(scene, cam);
     if (bloom && !day) bloom.render(scene, cam);
     if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW, snapR)); } catch { ask(null); } }
@@ -1189,8 +1201,22 @@ export function createNight(host, o = {}) {
     const bg = scene.background, ca = renderer.getClearAlpha(); renderer.getClearColor(clearC);
     scene.background = null; scene.overrideMaterial = SHD.mat;
     renderer.setRenderTarget(SHD.rt); renderer.setClearColor(0xffffff, 1); renderer.clear();
-    try { renderer.render(scene, SHD.eye); } finally { renderer.setRenderTarget(null); scene.overrideMaterial = null; scene.background = bg; renderer.setClearColor(clearC, ca); }
+    if (SMOOTH) for (const q of casters) q.sunCap();
+    try {
+      renderer.render(scene, SHD.eye);
+      // (SMOOTH: a phone's tiled GPU would write the map's whole depth buffer back to memory each frame — nothing ever reads it)
+      if (SMOOTH) { const G = renderer.getContext(); if (G.invalidateFramebuffer) G.invalidateFramebuffer(G.FRAMEBUFFER, NO_DEPTH); }
+    } finally { if (SMOOTH) for (const q of casters) q.sunBack(); renderer.setRenderTarget(null); scene.overrideMaterial = null; scene.background = bg; renderer.setClearColor(clearC, ca); }
     ground.uniforms.uShM.value.copy(SHD_BIAS).multiply(SHD.eye.projectionMatrix).multiply(SHD.eye.matrixWorldInverse);
+  }
+  /** the furthest ground that isn't wholly fog (world z): the ground's fog is per vertex, so a lane counts while any corner of its quad (x ±23) is
+   *  short of the fog's far edge — one lane of margin past that line. Past it the ground is pure fog colour: a shadow there can't be seen */
+  function viewTopZ() {
+    if (fwd.z > -0.01) return -Infinity;
+    const far = scene.fog.far, c = cam.position;
+    let z = Infinity;
+    for (let x = -23; x <= 23; x += 46) { const at = c.z + (far - (x - c.x) * fwd.x + c.y * fwd.y) / fwd.z; if (at < z) z = at; }
+    return z - 1.25;
   }
   function sunFree() { if (!SHD) return; SHD.rt.dispose(); SHD.mat.dispose(); SHD = null; ground.uniforms.uShTex.value = WHITE_TEX; ground.uniforms.uShK.value = 0; }
   let snapAsk = null, snapW = 1080, snapR = 0;
@@ -1251,7 +1277,9 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ sunMap: !!SHD, sunF, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    /** (the lab's measure) the ground reads no sun map: what its four samples cost */
+    sunSampleOff(v) { shOff = !!v; },
+    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */

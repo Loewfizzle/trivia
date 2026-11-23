@@ -63,3 +63,14 @@ test('THE STUTTER RULE: a clean phone never moves; one stray hitch a few seconds
   // one burst (an area loading, a banner): 1.5 s of hitches, then clean
   let at = 0; assert.deepEqual(drive((t, f) => { const v = at > 10000 && at < 11500 && f % 6 === 0 ? 34 : 16.7; at += v; return v; }, 60).path, [2], 'one burst never steps');
 });
+
+test('THE SUN PASS: only casters that can reach seen ground, no depth written back, all of it behind &smooth=0', () => {
+  const n = read('js/games/jaywalk/night.js');
+  assert.match(n, /const SMOOTH = o\.smooth !== false;/);
+  assert.match(n, /sunCut = SMOOTH && day \? viewTopZ\(\) : -Infinity;/, 'no cut with the switch off, or by night');
+  assert.match(n, /if \(SMOOTH\) for \(const q of casters\) q\.sunCap\(\);/);
+  assert.match(n, /finally \{ if \(SMOOTH\) for \(const q of casters\) q\.sunBack\(\);/, 'the main pass always gets every instance back');
+  assert.match(n, /G\.invalidateFramebuffer\(G\.FRAMEBUFFER, NO_DEPTH\)/);
+  assert.match(n, /const SUN = Object\.freeze\(\{ x: 0\.97, z: -0\.24/, 'the cut relies on shadows falling AWAY from the camera (SUN.z < 0)');
+  assert.match(n, /SUN_MAP = \[1024, 2048\]/, 'the map keeps its size');
+});
