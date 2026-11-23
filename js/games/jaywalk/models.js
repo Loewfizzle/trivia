@@ -18,7 +18,7 @@ const WIDTH = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
 const LIN8 = new Float32Array(256).map((_, i) => lin(i / 255));
 /** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale. … */
 export function parseGlb(buf) { const it = parseGlbSteps(buf); let r = it.next(); while (!r.done) r = it.next(); return r.value; }
-/** SMOOTH — the same parse in small pieces: the loader runs as many as fit a frame's time box */
+/** SMOOTH — the same parse in four small pieces: the area loader takes one a frame */
 export function* parseGlbSteps(buf) {
   const dv = new DataView(buf);
   if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a GLB');
@@ -42,7 +42,6 @@ export function* parseGlbSteps(buf) {
   const node = json.nodes[0], prim = json.meshes[node.mesh].primitives[0], s = (node.scale || [1, 1, 1])[0];
   yield;
   const P = read(prim.attributes.POSITION);
-  yield;
   const N = read(prim.attributes.NORMAL);
   yield;
   const pos = P.out; for (let v = 0; v < pos.length; v++) pos[v] *= s;
@@ -52,7 +51,6 @@ export function* parseGlbSteps(buf) {
   yield;
   const IV = view(prim.indices), ia = json.accessors[prim.indices];
   const idx = IV && IV.st === 1 && (ia.componentType === 5123 || ia.componentType === 5125) ? IV.src.slice(0, ia.count) : (() => { const I = read(prim.indices); return P.count > 65535 ? Uint32Array.from(I.out) : Uint16Array.from(I.out); })();
-  yield;
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.BufferAttribute(N.out, 3));

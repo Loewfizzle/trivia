@@ -13,6 +13,7 @@
 // PD-2 (both paths): the RISING GHOST ROWS + their tag, BLOCKED! (the cancel), the KO card; then SURVIVAL (everyone still here: the same
 //   rows on every phone, no attacks, last one standing), a room of ONE (the options = SCORE RUSH + SURVIVAL), a solo SURVIVAL + a solo
 //   SCORE RUSH (SOLO RUN on the podium, never a win).
+import { frameCheck } from './kit/frame-report.mjs';
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -429,6 +430,7 @@ async function perfRun(p) {
     await sleep(4200);
     const f = await P(p, 'window.__prism.fps()');
     const s2 = [...f].sort((a, b) => a - b);
+    frameCheck(ok, `PRISM tier ${t} at ${CPU}× CPU`, f);
     perf.push({ tier: t, after: await P(p, 'window.__prism.tier()'), p50: +s2[Math.floor(s2.length * 0.5)].toFixed(1), p95: +s2[Math.floor(s2.length * 0.95)].toFixed(1), n: s2.length });
   }
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });

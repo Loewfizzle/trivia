@@ -7,6 +7,7 @@
 //              tier change logged; it may step DOWN, never flap back up (the probe's cap verdict misread a busy CPU — the shadow pops)
 //   shadows  — GROUP 1.1: THE SHADOW POPS — 30 s of hopping at tier 2 with a forced tier change: the sun shadows' strength never jumps
 //   traffic  — GROUP 3: each area's traffic (day + night), the taxis + the emergency lights close, the long vehicles
+import { frameCheck } from './frame-report.mjs';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
@@ -178,10 +179,11 @@ export async function looksVB1({ open, up, ok, sleep, waitFor, out, what = '', b
       const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
       await o.p.evaluate(() => { const J = window.__jwLab; J.clearFrames(); window.__mc = 0; window.__go = true; const f = () => { if (!window.__go) return; const c = J.view.info().calls; if (c > window.__mc) window.__mc = c; if (J.state().st === 'out') { J.restart('solo', 'look3'); } requestAnimationFrame(f); }; requestAnimationFrame(f); });
       await sleep(7000);
-      const r = await o.p.evaluate(() => { window.__go = false; const fr = window.__jwLab.frames().slice(10).sort((a, b) => a - b); return { calls: window.__mc, med: fr.length ? 1000 / fr[Math.floor(fr.length / 2)] : 0, worst: fr.length ? fr[fr.length - 1] : 0, n: fr.length }; });
+      const { list, ...r } = await o.p.evaluate(() => { window.__go = false; const fr = window.__jwLab.frames().slice(10).sort((a, b) => a - b); return { calls: window.__mc, med: fr.length ? 1000 / fr[Math.floor(fr.length / 2)] : 0, worst: fr.length ? fr[fr.length - 1] : 0, n: fr.length, list: fr }; });
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       rows.push({ name, look, tier, ...r });
       console.log(`     PERF ${name} ${look} tier ${tier}: worst ${r.calls} calls (≤ ${CALLS_MAX[tier]}) · median ${r.med.toFixed(1)} fps · worst frame ${r.worst.toFixed(1)} ms (${r.n} frames)`);
+      frameCheck(ok, `${name} ${look} tier ${tier}, 4× CPU`, list);
       ok(r.calls <= CALLS_MAX[tier], `PERF ${name} ${look} tier ${tier}: ${r.calls} draw calls ≤ ${CALLS_MAX[tier]}`);
       ok(r.med >= 58, `PERF ${name} ${look} tier ${tier}: median ${r.med.toFixed(1)} fps at 4× CPU`);
       errs.push(...o.errs); await o.close();

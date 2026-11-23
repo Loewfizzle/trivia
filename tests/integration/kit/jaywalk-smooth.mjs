@@ -4,6 +4,7 @@
 //   gpu — GROUP 3: what the sun's depth pass + the main pass cost on the GPU (timer queries, per render target) and in the frame's JS
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { stutterOf, stutterLine } from './frame-report.mjs';
 
 export const SCENES = {
   noon: '&tod=noon&weather=clear&date=2026-07-15',
@@ -110,6 +111,75 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     }
     await cmpCtx.close();
     console.log(`     THE SAME PICTURE: ${count} frames compared, worst ${worst.toFixed(4)} %`);
+  }
+
+  // table — GROUP 5: THE BEFORE / AFTER at a throttle where a frame has no slack (6× CPU, 390 @3, 8 kids): every look × DOWNTOWN standing + an area's
+  // models all arriving × tier 2 + 1, this code against &smooth=0, interleaved, `table:<reps>` runs each
+  if (what === 'table' || what.startsWith('table:')) {
+    const reps = what.startsWith('table:') ? Number(what.slice(6)) : 2, RATE = 6, got = {};
+    for (let rep = 0; rep < reps; rep++) for (const [name, sq] of Object.entries(SCENES)) for (const tier of [2, 1]) for (const where of ['downtown', 'area']) for (const smooth of rep % 2 ? [0, 1] : [1, 0]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth ? '' : '&smooth=0'}`);
+      await up(o.p);
+      if (/snow=/.test(sq)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.ghosts(7); J.warp(J.find('grass', 252)); });
+      await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && (!p || (!p.loading && !p.queued && !p.staged && !p.drops)); })()', 30000);
+      await sleep(1200);
+      const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+      await sleep(800);
+      await o.p.evaluate(a => { const J = window.__jwLab; J.clearFrames(); if (a) { setTimeout(() => J.view.varietyAgain(), 1000); setTimeout(() => J.view.varietyAgain(), 4600); } }, where === 'area');
+      await sleep(8000);
+      const r = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), co: window.__jwLab.cost() }));
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      const S = stutterOf(r.fr), k = `${name}|${where}|${tier}|${smooth}`;
+      (got[k] = got[k] || []).push({ ...S, work: q(r.co, 0.5), workP95: q(r.co, 0.95) });
+      console.log(`     TABLE ${smooth ? 'after ' : 'before'} ${name} ${where} t${tier} (run ${rep + 1}): ${stutterLine(S)} · work ${q(r.co, 0.5).toFixed(1)} ms`);
+      errs.push(...o.errs); await o.close();
+    }
+    const avg = (L, f) => L.reduce((a, x) => a + x[f], 0) / L.length, top = (L, f) => Math.max(...L.map(x => x[f]));
+    const lines = ['| look | where | tier | dropped a run | big a run | p95 ms | worst ms | frame work ms |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
+    for (const name of Object.keys(SCENES)) for (const where of ['downtown', 'area']) for (const tier of [2, 1]) {
+      const B = got[`${name}|${where}|${tier}|0`], A = got[`${name}|${where}|${tier}|1`];
+      if (!A || !B) continue;
+      const pair = (f, d = 1) => `${avg(B, f).toFixed(d)} → ${avg(A, f).toFixed(d)}`;
+      lines.push(`| ${name} | ${where === 'area' ? 'area change' : 'DOWNTOWN'} | ${tier} | ${pair('drops')} | ${pair('big')} | ${pair('p95')} | ${top(B, 'worst').toFixed(0)} → ${top(A, 'worst').toFixed(0)} | ${pair('work', 2)} |`);
+    }
+    console.log(lines.join('\n'));
+    if (out) { const f = join(out, 'table', 'before-after.md'); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); writeFileSync(join(out, 'table', 'before-after.json'), JSON.stringify(got, null, 1)); }
+  }
+
+  // ab — one scene, several URL variants, interleaved, each page's frame work + drops at 6× CPU (`ab:<look>:<tier>:<reps>`; SMOOTH_AB = variants split by |)
+  if (what.startsWith('ab:')) {
+    const [, look, tier, reps] = what.split(':'), V = (process.env.SMOOTH_AB || '|&smooth=0').split('|'), got = V.map(() => []);
+    for (let rep = 0; rep < Number(reps); rep++) for (let vi = 0; vi < V.length; vi++) {
+      const k = (vi + rep) % V.length;
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${SCENES[look]}${V[k]}`);
+      await up(o.p);
+      if (look === 'snow') await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.ghosts(7); J.warp(J.find('grass', 252)); });
+      await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && (!p || (!p.loading && !p.queued && !p.staged && !p.drops)); })()', 30000);
+      await sleep(Number(process.env.SMOOTH_WARM) || 1200);   // (how long the page runs unthrottled first: V8 must have optimized the frame's code, or the throttle freezes it cold)
+      const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+      await sleep(800);
+      await o.p.evaluate(() => window.__jwLab.clearFrames());
+      if (process.env.SMOOTH_PROFILE) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 500 }); await cdp.send('Profiler.start'); }
+      await sleep(6000);
+      const prof = process.env.SMOOTH_PROFILE ? (await cdp.send('Profiler.stop')).profile : null;
+      const r = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), co: window.__jwLab.cost(), i: window.__jwLab.view.info() }));
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      const S = stutterOf(r.fr);
+      if (prof) {
+        const self = new Map(), byId = new Map(prof.nodes.map(n => [n.id, n])), dt = prof.timeDeltas;
+        prof.samples.forEach((id, i) => { const c = byId.get(id).callFrame, key = `${c.functionName || '(anon)'} ${c.url.split('/').pop().split('?')[0]}:${c.lineNumber + 1}`; self.set(key, (self.get(key) || 0) + (dt[i] || 0)); });
+        const top = [...self].filter(([k]) => !/^\(idle\)|^\(program\)/.test(k)).sort((a, b) => b[1] - a[1]).slice(0, 9).map(([k, v]) => `${(v / 1000 / Math.max(1, S.n)).toFixed(2)} ${k}`);
+        const lines = new Map(); for (const n of prof.nodes) if (n.callFrame.functionName === 'frame' && n.callFrame.url.includes('lab.js')) for (const t of n.positionTicks || []) lines.set(t.line, (lines.get(t.line) || 0) + t.ticks);
+        const totalMs = [...self].filter(([key]) => !/^\(idle\)/.test(key)).reduce((a, x) => a + x[1], 0) / 1000 / Math.max(1, S.n);
+        console.log(`     LINES [${V[k] || 'default'}] run ${rep + 1}: busy ${totalMs.toFixed(1)} ms a frame · frame()'s ticks by line: ${[...lines].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([l, c]) => `${l}:${c}`).join('  ')}`);
+        console.log(`     PROFILE [${V[k] || 'default'}] run ${rep + 1}: work ${q(r.co, 0.5).toFixed(1)} ms, ${S.drops} drops — ms a frame: ${top.join(' | ')}`);
+      }
+      got[k].push({ work: q(r.co, 0.5), drops: S.drops, n: S.n, calls: r.i.calls, tris: r.i.tris, held: r.i.variety.held.length, props: r.i.props ? r.i.props.kinds : 0 });
+      errs.push(...o.errs); await o.close();
+    }
+    V.forEach((v, k) => console.log(`     AB ${look} t${tier} [${v || 'default'}]: work ${got[k].map(x => x.work.toFixed(1)).join(' ')} · drops ${got[k].map(x => x.drops).join(' ')} · calls ${got[k][0].calls} · tris ${got[k][0].tris} · models ${got[k][0].held} + ${got[k][0].props}`));
   }
 
   // casters — what the sun's depth pass actually draws: every instanced draw into the map (triangles a model × instances), biggest first

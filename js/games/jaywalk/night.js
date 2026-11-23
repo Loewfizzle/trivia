@@ -89,7 +89,7 @@ export function createNight(host, o = {}) {
   try { env = neonEnv(renderer); scene.environment = env; } catch { /* no gloss: fine */ }
 
   const P = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion(), E = new THREE.Euler(), M = new THREE.Matrix4(), C = new THREE.Color(), C2 = new THREE.Color();
-  const made = [], casters = new Set();
+  const made = [], casters = [];
   // SMOOTH — THE SUN'S CUT: a shadow falls AWAY from the camera (SUN.z < 0), so a caster wholly past the last ground the fog leaves visible can't land on anything seen
   let sunCut = -Infinity, shOff = false;
   /** an instanced kind. put(x, y, z, sx, sy, sz, ry, hex, k): place + size + turn + colour (× k) */
@@ -105,17 +105,26 @@ export function createNight(host, o = {}) {
     if (cast) m.layers.enable(SUN_LAYER);
     scene.add(m); made.push({ m, g });
     const col = m.instanceColor.array;
-    let i = 0, sn = 0, vis = true, reach = 0;
+    let i = 0, vis = true, reach = 0;
     if (cast) { if (!g.boundingSphere) g.computeBoundingSphere(); reach = g.boundingSphere.center.length() + g.boundingSphere.radius; }
     const q = {
       mesh: m,
-      reset() { i = 0; sn = 0; },
-      /** (the sun's pass only) draw just the instances up to the last one that can reach the view: the lanes are laid near → far */
-      sunCap() { vis = m.visible; m.count = sn; m.visible = vis && sn > 0; },
+      reset() { i = 0; },
+      /** (the sun's pass only — nothing added to `put`, the frame's hottest call) the lanes are laid near → far: walk back from the last
+       *  instance to the last one that can still reach seen ground, and draw up to it */
+      sunCap() {
+        vis = m.visible;
+        const e = m.instanceMatrix.array;
+        let c = i;
+        if (sunCut > -Infinity) for (; c > 0; c--) {
+          const b = (c - 1) * 16, sx = e[b] * e[b] + e[b + 1] * e[b + 1] + e[b + 2] * e[b + 2], sy = e[b + 4] * e[b + 4] + e[b + 5] * e[b + 5] + e[b + 6] * e[b + 6], sz = e[b + 8] * e[b + 8] + e[b + 9] * e[b + 9] + e[b + 10] * e[b + 10];
+          if (e[b + 14] + reach * Math.sqrt(sx > sy ? (sx > sz ? sx : sz) : (sy > sz ? sy : sz)) >= sunCut) break;
+        }
+        m.count = c; m.visible = vis && c > 0;
+      },
       sunBack() { m.count = i; m.visible = vis; },
       put(x, y, z, sx, sy, sz, ry, hex, k = 1, a0 = 1, a1 = 1, rx = 0, rz = 0, a2 = 0, a3 = 0) {
         if (i >= n) return;
-        if (cast && z + reach * Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) >= sunCut) sn = i + 1;
         P.set(x, y, z); S.set(sx, sy, sz);
         if (rx || rz) Q.setFromEuler(E.set(rx, ry, rz, 'YXZ')); else if (ry) Q.setFromAxisAngle(UP, ry); else Q.identity();
         M.compose(P, Q, S); m.setMatrixAt(i, M);
@@ -128,7 +137,7 @@ export function createNight(host, o = {}) {
       done() { m.count = i; upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); },
       left: () => n - i,
     };
-    if (cast) casters.add(q);
+    if (cast) casters.push(q);
     return q;
   }
   const UP = new THREE.Vector3(0, 1, 0);
@@ -202,7 +211,7 @@ export function createNight(host, o = {}) {
   // VARIETY B1 — THE AREA TRAFFIC (variety.js): each area's models fetched a stretch AHEAD of it, parsed one a frame, freed once passed. ONE
   // material for them all (the cars' own program — a model landing mid-run compiles nothing); until a model is in, its slot draws the plain one
   let vMat = null;
-  const unkindQ = q => { casters.delete(q); const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
+  const unkindQ = q => { const ci = casters.indexOf(q); if (ci >= 0) casters.splice(ci, 1); const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
   const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; unkindQ(q); };
   const VL = createVariety({
     parseGlb, parseSteps: SMOOTH ? parseGlbSteps : null,

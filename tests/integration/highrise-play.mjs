@@ -18,6 +18,7 @@
 //     pixels under THE DROP ZONE's edge: the same with a flyer up as without), the day's words + the tape readable on a bright sky
 //   · `--fly` = the flyers' look shots · `--hitch` = THE LAG HUNT's long run (HITCH_Q='&look=day' = by day; the flyers fly in it)
 //   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--fly] [--perf] [--webkit] [--review] [--s3] [--hitch] [--end]   (--review = the fresh-eyes review's finds only; the whole check runs them too · --end = S4B's END SCREEN: every cause + the finish, both looks)
+import { frameCheck } from './kit/frame-report.mjs';
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { flashWatch } from './kit/flash-watch.mjs';
@@ -519,7 +520,7 @@ async function perf() {
       const L = window.__hiPlay, play = document.querySelector('.hi-play'), t0 = performance.now();
       let n = 0, f0 = L.frames().length;
       (function poll() {
-        if (performance.now() - t0 > 10000 || L.state().over) { const fr = L.frames().slice(f0 + 20).sort((a, b) => a - b), i = L.state().info; return res({ n, frames: fr.length, avg: fr.reduce((a, b) => a + b, 0) / fr.length, p95: fr[Math.floor(fr.length * 0.95)], worst: fr[fr.length - 1], calls: i.calls, tris: i.tris, w: i.w, h: i.h, dpr: i.dpr, tier: i.tier, bloom: i.bloom, over: L.state().over, floor: L.state().floor }); }
+        if (performance.now() - t0 > 10000 || L.state().over) { const fr = L.frames().slice(f0 + 20).sort((a, b) => a - b), i = L.state().info; return res({ list: fr, n, frames: fr.length, avg: fr.reduce((a, b) => a + b, 0) / fr.length, p95: fr[Math.floor(fr.length * 0.95)], worst: fr[fr.length - 1], calls: i.calls, tris: i.tris, w: i.w, h: i.h, dpr: i.dpr, tier: i.tier, bloom: i.bloom, over: L.state().over, floor: L.state().floor }); }
         const m = L.msToPerfect();
         if (m != null && m <= 10) { setTimeout(() => { play.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 })); n++; setTimeout(poll, 220); }, n % 3 === 2 ? m + 42 : Math.max(0, m - 4)); return; }
         setTimeout(poll, 4);
@@ -527,6 +528,7 @@ async function perf() {
     }));
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     console.log(`| ${r.tier}${r.bloom ? ' (bloom)' : ''} | ${rate}× | ${(1000 / r.avg).toFixed(1)} | ${r.avg.toFixed(1)} (${r.p95.toFixed(1)} · ${r.worst.toFixed(1)}) | ${r.calls} | ${r.tris} | ${r.w}×${r.h} @${r.dpr} |   (${r.n} drops → floor ${r.floor}${r.over ? ', out' : ''}, ${r.frames} frames)`);
+    frameCheck(ok, `HIGH RISE tier ${tier} at ${rate}× CPU`, r.list);
     ok(1000 / r.avg > 57 && r.p95 < 20.5, `tier ${tier} at ${rate}× CPU: ${(1000 / r.avg).toFixed(1)} fps (p95 ${r.p95.toFixed(1)} ms, worst ${r.worst.toFixed(1)} ms)`);
     ok(d.errs.length === 0, `… no page error (${d.errs.join(' | ')})`);
     await d.close();

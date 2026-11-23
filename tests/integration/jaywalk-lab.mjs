@@ -26,6 +26,7 @@ import { CAUSE_LINES, VEHICLES } from '../../js/games/jaywalk/causes.js';
 import { looksH6A } from './kit/jaywalk-h6a.mjs';
 import { looksH6B } from './kit/jaywalk-h6b.mjs';
 import { looksPreflip, flashScan } from './kit/jaywalk-preflip.mjs';
+import { frameCheck } from './kit/frame-report.mjs';   // (SMOOTH — p95 · p99 · worst · dropped frames, with a budget, in every perf run)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 import { callsMax } from '../../js/games/jaywalk/daylook.js';   // (VARIETY A — THE TIERS: the draw-call line per tier — 64 · 64 · 96)
@@ -424,6 +425,7 @@ async function looksH5C(p, what, reqs) {
       await L('window.__jwLab.clearFrames()'); await sleep(ms);
       const f = (await L('window.__jwLab.frames()')).slice(2).sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / f.length, p95 = f[Math.floor(f.length * 0.95)], worst = f[f.length - 1];
       console.log('PERF', JSON.stringify({ moment: name, frames: f.length, fps: +(1000 / avg).toFixed(1), p95Ms: +p95.toFixed(1), worstMs: +worst.toFixed(1) }));
+      frameCheck(ok, `${name} at tier 2, 4× CPU`, f);
       ok(1000 / avg >= 58 && p95 < 20, `${name} at tier 2, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)})`);
     };
     await fresh('day'); await L('window.__jwLab.setTier(2)'); await sleep(600); await stand(38, 4); await sleep(1500);
@@ -761,6 +763,7 @@ try {
       if (J4P) ok(binLeft > 0, `${where} ${look} ${w}: the glow billboards never full over the lap (${binLeft} left at the fullest — the tree lights go LAST)`);
       ok(row.worstCalls <= callsMax(2) && row.runCalls <= callsMax(2), `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ ${callsMax(2)}`);
       if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3));
+      frameCheck(ok, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w} runway, 4× CPU`, fr);
       ok(row.fps >= 57 && !o.errs.length, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
       await o.close();
     }
@@ -808,6 +811,7 @@ try {
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
       const row = { w, where, occluders: occ ? 'off (before)' : 'ON (after)', frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), over33: fr.filter(x => x > 33.4).length, calls: Math.max(...calls) };
       console.log('BLOOM-AB', JSON.stringify(row));
+      frameCheck(ok, `${w} ${where} tier 2 night, occluders ${row.occluders}`, fr, occ ? null : undefined);
       ok(row.fps >= 57 && !o.errs.length, `${w} ${where} tier 2 night 4× CPU, occluders ${row.occluders}: ${row.fps} fps · p95 ${row.p95Ms} · worst ${row.worstMs} · ${row.calls} calls`);
       await o.close();
     }
@@ -1044,6 +1048,7 @@ try {
       const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info }));
       await o.p.emulateCPUThrottling(1);
       const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      frameCheck(ok, `8 KIDS tier ${tier} (run ${rep})`, fr);
       console.log('KIDSPERF', JSON.stringify({ tier, rep, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: f.i.calls, tris: f.i.tris }));
       await o.close();
     }
@@ -1061,6 +1066,7 @@ try {
       const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length, co = f.co.slice().sort((a, c) => a - c);
       const row = { tier, cpu: `${rate}×`, frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), over33: fr.filter(x => x > 33.4).length, calls: f.s.info.calls, tris: f.s.info.tris, canvas: `${f.s.info.w}×${f.s.info.h} @${f.s.info.dpr}`, bloom: f.s.info.bloom, workMedianMs: +co[co.length >> 1].toFixed(2), workP95Ms: +co[Math.floor(co.length * 0.95)].toFixed(2), workWorstMs: +co[co.length - 1].toFixed(1) };
       console.log('PERF', JSON.stringify(row)); rows2.push(row);
+      frameCheck(ok, `tier ${tier} pinned, ${rate}× CPU`, fr, rate > 4 ? null : undefined);
       ok(f.s.info.tier === tier && !o.errs.length, `tier ${tier} pinned (CPU ${rate}×): ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ${row.calls} calls · ${row.tris} tris · ${row.canvas}${row.bloom ? ' · bloom' : ''}`);
       await o.close();
     }
@@ -1084,6 +1090,7 @@ try {
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
       const row = { area: name, look, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris) };
       console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: `4× ${name} ${look}` });
+      frameCheck(ok, `${name} by ${look} tier ${tier}, 4× CPU`, fr);
       ok(row.fps >= 57 && !o.errs.length, `${name} BY ${look.toUpperCase()} at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ≤ ${row.calls} calls · ≤ ${row.tris} tris`);
       await o.close();
     }
@@ -1098,6 +1105,7 @@ try {
       const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length;
       const row = { kids: 8, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: f.i.calls, tris: f.i.tris };
       console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: '4× 8 kids' });
+      frameCheck(ok, `8 kids tier ${tier}, 4× CPU`, fr);
       ok(row.fps >= 57 && !o.errs.length, `8 KIDS (the kid + 7 ghosts — skinned, instanced) at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ${row.calls} calls · ${row.tris} tris`);
       await o.close();
     }

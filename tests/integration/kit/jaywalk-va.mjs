@@ -4,6 +4,7 @@
 //   day  — GROUP 3: the day look, before (&va=0) / after, 390 — the whole frame + a close-up of each piece
 //   tod  — GROUP 4: the five times of day + overcast, 390 (+ sunrise heavy snow, sunset autumn)
 //   fog  — GROUP 5: the white fog at the foot in every look × season, one sheet
+import { frameCheck } from './frame-report.mjs';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
@@ -132,6 +133,7 @@ export async function looksVA({ open, up, ok, sleep, waitFor, out, what = '', b,
       const td = await o.p.evaluate(() => window.__jwLab.view.tod());
       const med = fr[Math.floor(fr.length / 2)], row = { scene: k, tier, worstCalls: worst, runCalls, limit: callsMax(tier), frames: fr.length, fpsMedian: +(1000 / med).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(1), worstMs: +fr[fr.length - 1].toFixed(1), worst3: fr.slice(-3).map(v => +v.toFixed(1)), sun: td && td.sun };
       rows.push(row); console.log('VAPERF', JSON.stringify(row));
+      frameCheck(ok, `${k} tier ${tier}, 4× CPU`, fr);
       ok(row.worstCalls <= row.limit && row.runCalls <= row.limit, `${k} tier ${tier}: the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ ${row.limit}`);
       ok(row.fpsMedian >= 59 && !o.errs.length, `${k} tier ${tier}: 4× CPU, 8 kids on the runway — MEDIAN ${row.fpsMedian} fps (p95 ${row.p95Ms} ms · worst ${row.worstMs} ms · ${row.worst3.join(' / ')})`);
       errs.push(...o.errs); await o.close();

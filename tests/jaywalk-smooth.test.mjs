@@ -75,24 +75,23 @@ test('THE SUN PASS: only casters that can reach seen ground, no depth written ba
   assert.match(n, /SUN_MAP = \[1024, 2048\]/, 'the map keeps its size');
 });
 
-test('THE TIME BOX: small pieces inside the slice, one new model a frame, nothing in a hop, old path without parseSteps', async () => {
+test('THE LOADER: one small piece a frame, a new model alone, nothing as a hop starts, the old path without parseSteps', async () => {
   const { createVariety, PUMP } = await import('../js/games/jaywalk/variety.js');
   const realFetch = globalThis.fetch;
   globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
   try {
-    let t = 0;
-    const log = [], cost = 0.6;
-    const parseSteps = function* (b) { for (let k = 0; k < 4; k++) { t += cost; log.push('piece'); yield; } t += cost; return { dispose() {} }; };
-    const V = createVariety({ parseGlb: () => { throw new Error('the boxed path never parses whole'); }, parseSteps, add: id => log.push(`add ${id}`), drop: () => {}, now: () => t, ids: () => ['a', 'b'], url: id => id, known: new Set() });
+    const log = [];
+    const parseSteps = function* () { for (let k = 0; k < 3; k++) { log.push('piece'); yield; } log.push('piece'); return { dispose() {} }; };
+    const V = createVariety({ parseGlb: () => { throw new Error('the piece path never parses whole'); }, parseSteps, add: id => log.push(`add ${id}`), drop: () => {}, ids: () => ['a', 'b'], url: id => id, known: new Set() });
     V.want([0]);
     await new Promise(r => setTimeout(r, 5));
     assert.equal(V.pump(Infinity), false, 'the frame a hop starts in: nothing');
-    const before = t; assert.equal(V.pump(0), true);
-    assert.ok(t - before <= PUMP.slice + cost + 1e-9, `one box stays near ${PUMP.slice} ms (${(t - before).toFixed(1)})`);
-    assert.ok(log.length >= 2 && log.length <= 4, `several small pieces in one frame (${log.length})`);
-    let frames = 1;
-    while (V.info().held.length < 2 && frames < 30) { const adds = log.filter(x => x.startsWith('add')).length; V.pump(0); frames++; assert.ok(log.filter(x => x.startsWith('add')).length - adds <= 1, 'one new model a frame'); }
+    assert.equal(V.pump(PUMP.budget + 1), false, 'a busy frame: nothing');
+    let frames = 0;
+    while (V.info().held.length < 2 && frames < 40) { const n = log.length; assert.equal(V.pump(0), true); frames++; assert.ok(log.length - n <= 1, `one piece a frame (frame ${frames})`); }
     assert.deepEqual(V.info().held, ['a', 'b']);
-    assert.equal(V.info().staged, 0);
+    assert.equal(log.filter(x => x === 'piece').length, 8, 'each model in four pieces');
+    assert.equal(frames, 10, 'four pieces + its add, a model');
+    assert.equal(V.info().staged, 0); assert.equal(V.pump(0), false, 'nothing left');
   } finally { globalThis.fetch = realFetch; }
 });
