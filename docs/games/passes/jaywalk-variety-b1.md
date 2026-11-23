@@ -38,3 +38,47 @@ Shots: `Downloads\NEON\jaywalk-variety-b1\` (seam · sky · haze · shadows · t
   RUN OVER BY AN AIRPORT TUG …); the emergency vehicles + the work trucks keep their own colours (only the SUV, the sports sedan + the delivery
   truck take the palette); the tanker recoloured (a red cab, a steel tank — it shipped olive + oxblood); the city bus's white toned down; the
   bars red one side / blue the other, ≈ 2.6 flashes a second; the taxi sign's word in the house font.
+
+## GROUP 4 — THE MEASURE + THE FINAL RUN (local, the Beelink — my own fresh emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`)
+**THE MEASURE** (`jaywalk-lab.mjs --vb1=perf` — every area with its traffic in, 8 kids, 390 × 844 @3, the world running 7 s at 4× CPU; the
+worst frame's draw calls · the median fps) — **120 / 120**:
+| area | night t2 · t1 · t0 | noon t2 · t1 · t0 |
+| --- | --- | --- |
+| the opening | 52 · 27 · 26 | 46 · 29 · 28 |
+| THE DOCKS | 64 · 33 · 32 | 58 · 35 · 34 |
+| THE FISH MARKET | 58 · 29 · 29 | 51 · 31 · 31 |
+| THE RAIL YARD | 54 · 27 · 27 | 48 · 29 · 29 |
+| THE BRIDGE | 60 · 31 · 31 | 53 · 33 · 33 |
+| DOWNTOWN | 71 · 36 · 36 | 64 · 38 · 38 |
+| DOWNTOWN, Dec 24 heavy snow | 72 · 37 · 37 | 65 · 39 · 39 |
+| THE CANAL | 62 · 32 · 31 | 56 · 34 · 33 |
+| THE LIGHTHOUSE | 52 · 27 · 26 | 46 · 29 · 28 |
+| THE AIRFIELD | 57 · 29 · 27 | 50 · 31 · 31 |
+Every row **59.9 fps median** at every tier (worst single frames ≤ 17 ms but a few 33–50 ms — headless Chromium's known stall on the Beelink — and
+one 250 ms at THE RAIL YARD noon tier 1). The lines: tier 2 ≤ 96 (worst **72**), tiers 1 + 0 ≤ 64 (worst **39**). The older checks: `--j4perf`
+24 / 24 · `--jt1perf` 16 / 16 · `--va=perf` 54 / 54 · `--perf` (tiers 2 · 1 · 0) all within the lines.
+- THE LINE: the city 2,069.6 + JAYWALK 520.7 = **2,590 KB of 2,600** (+ `variety.js`, the scene's hooks; NO model in it). The game alone 48 modules
+  / 520.7 KB of 52 / 610 (JT2's ROOM line 520 → 530, a named call).
+- THE PACKS: autumn **87.0 KB** (code 54.6 + the pile 32.4) · winter **120.6 KB** (code 67.5 + models 53.1) — each of its own 150.
+- THE AREA DOWNLOADS (fetched ahead, per area): the opening / DOWNTOWN 350 KB · THE DOCKS / FISH MARKET 220 · THE RAIL YARD 169 · THE BRIDGE 151 ·
+  THE CANAL / LIGHTHOUSE 176 · THE AIRFIELD 237 (875 KB in all).
+- **THE FINAL RUN**: unit `node --test tests/*.test.mjs` **2,606 / 2,606** (+ `jaywalk-variety-b1` 11) · `e2e-jaywalk` FAST **119 / 119** (today) · Dec 24
+  **120 / 120** · Nov 25 **120 / 120** · `e2e-jaywalk-match` FAST **107 / 107** · Dec 24 **108 / 108** · Nov 25 **108 / 108** · `e2e-jaywalk-daily-run`
+  **69 / 69** · `jaywalk-lab.mjs` **103 / 103** · `--j4perf` 24 / 24 · `--jt1perf` 16 / 16 · `--va=perf` 54 / 54 · `--perf` 134 (its two failures =
+  the two lab checks below, fixed) · `--vb1=perf` 120 / 120 · `--vb1=traffic` 55 / 55 · smoke **24 / 24** · `/api` `server.test.mjs` **76 / 76** ·
+  rules: not touched.
+  The first pass of the final run had five reds: three were the new traffic meeting old checks (fixed — the lab's 14–48 draw-call sanity range →
+  64; "every vehicle names itself" demanded all 20 inside lanes 6–260 → the plain five + ≥ 4 area models, never a wrong name; e2e-jaywalk rebuilt the
+  end line in Node where no area model is "in" → the plain OR the area's name), and three timing ones that went green on the re-run with no
+  change: Dec 24 match (one of three phones started without the winter models — J4's "not in by the start" rule), Dec 24 solo (the NEW RECORD
+  flash), the daily run's try 3 (not started within 30 s).
+- Every server this pass started is stopped (the emulators, :5173, the before-code :5174 + its worktree); the preview server :5190 left up.
+
+## OPEN FOR BEN
+1. RE-PUBLISH: nothing (no rules change).
+2. The calls above (the lines' words, which vehicles keep their own colours, the tanker + city bus recolours, the bar's colours + pace, the
+   tier probe's fix in the shared kit — HIGH RISE + PRISM get it too).
+3. THE LINE: 2,590 of 2,600 KB — B2 has ~10 KB of start-bundle room; its trees + planters + edge pieces + snowplows go in the area loader / the
+   winter pack (winter now 120.6 of 150).
+4. The area downloads are 150–350 KB an area (Kenney's Car Kit wheels are most of each file's triangles) — if a phone on a slow line shows plain
+   cars for a stretch, slimming the wheels at build time is the lever.

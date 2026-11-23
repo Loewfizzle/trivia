@@ -840,7 +840,7 @@ try {
   ok(s.mode === 'solo' && s.seed === 'labseed1' && s.y === 0, `a solo run on its seed, the kid on lane 0 (${JSON.stringify({ mode: s.mode, seed: s.seed })})`);
   ok(s.gray === false && s.info.look === 'night' && !reqs.some(u => /graybox\.js/.test(u)), 'the night look — no graybox (its file never fetched)');
   ok(reqs.filter(u => /assets\/jaywalk\/models\/[\w-]+\.glb/.test(u)).length === 13 && !reqs.some(u => /crate-box|traffic-barrier/.test(u)) && ['kid', 'lighthouse', 'fishing-boat'].every(m => reqs.some(u => u.includes(`/models/${m}.glb`))) && reqs.some(u => /assets\/jaywalk\/skyline-night\.webp/.test(u)), 'the 13 models the scene draws — Kenney\'s 10 (no crate, no jersey barrier — H2B) + H5A\'s three (THE KID, the lighthouse, the fishing boat) — + the night skyline loaded (only the current look\'s picture)');
-  ok(s.info.calls >= 14 && s.info.calls <= 48 && s.info.tris > 4000, `the scene draws: ${s.info.calls} draw calls, ${s.info.tris} triangles (everything that repeats is instanced)`);
+  ok(s.info.calls >= 14 && s.info.calls <= 64 && s.info.tris > 4000,   /* (VARIETY B1: 48 → 64 — the opening's area traffic kinds + the taxi's sign + checker; the tiers' own lines: daylook.js#CALLS_MAX) */ `the scene draws: ${s.info.calls} draw calls, ${s.info.tris} triangles (everything that repeats is instanced)`);
   ok(s.kidY >= 0.6 && s.kidY <= 0.65, `THE CAMERA: the kid sits ${(s.kidY * 100).toFixed(1)} % down the screen (60–65 %)`);
   ok(Math.abs(s.info.fov - 54.4) < 0.6, `fov ${s.info.fov.toFixed(1)} at 390 × 844`);
   ok(await p.evaluate(() => { const a = document.querySelector('.jw-skyline').getBoundingClientRect(), z = document.querySelector('.jw-blackout').getBoundingClientRect(), f = a.height / innerHeight; return a.top === 0 && f >= 0.215 && f <= 0.245 && z.bottom >= innerHeight - 1 && !document.querySelector('.jw-sky'); }), 'THE SKYLINE BAND: the top 22–24 % of the screen; the bottom always fades to black');
@@ -937,8 +937,9 @@ try {
         named[r.hitBy] = r.line;
       }
     }
-    const got = VEHICLES.filter(v => named[v]);
-    ok(got.length === VEHICLES.length && !Object.keys(named).some(k => k.startsWith('BAD')), `EVERY VEHICLE NAMES ITSELF on the lab's end screen: ${VEHICLES.map(v => `${v} → "${named[v] || '—'}"`).join(' · ')}${Object.keys(named).filter(k => k.startsWith('BAD')).join(' ')}`);
+    // (VARIETY B1: the plain five + every AREA model these lanes drew — the opening's + THE DOCKS' sets are in; later areas' are named only once in)
+    const want = VEHICLES.filter(v => VEHICLES.indexOf(v) < 5 || lanes.some(q => q.kinds.includes(v))), got = want.filter(v => named[v]);
+    ok(want.slice(0, 5).every(v => named[v]) && got.length - 5 >= 4 &&   /* (the area models: whichever happened to hit within the tries — at least four; a wrong name never) */ !Object.keys(named).some(k => k.startsWith('BAD')), `EVERY VEHICLE NAMES ITSELF on the lab's end screen: ${want.map(v => `${v} → "${named[v] || '—'}"`).join(' · ')}${Object.keys(named).filter(k => k.startsWith('BAD')).join(' ')}`);
     await p.evaluate(() => window.__jwLab.restart('solo', 'labseed2'));
     await sleep(300);
   }

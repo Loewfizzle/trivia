@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/jaywalk.js';
 import { chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { CAUSE_LINES, DAY_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
+import { knowAll } from '../../js/games/jaywalk/variety.js';   // (VARIETY B1 — the area traffic: the names as the phone drew them)
 import { createCourse } from '../../js/games/jaywalk/course.js';
 import { seedOf } from '../../js/games/jaywalk/logic.js';
 import { memAt, memLine, seasonLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
@@ -236,9 +237,10 @@ try {
   let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n > span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
   ok([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)].includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
   // (H4 add-on: a car hit is named by THE VEHICLE on that lane at that tick — worked out here from the course alone; never a generic line)
-  { const veh = end.res.w === 'car' ? hitVehicle(createCourse(seedOf(g.code, g.m, node.go), { cv: end.res.cv === 2 ? 2 : 1 }), {   // (J2 FIX: the row's own course version — a v2 run was rebuilt on v1
-      y: end.res.y, x: end.res.px, end: end.res.e }) : '';
-    ok(end.res.w !== 'car' || (!!veh && end.cause === CAUSE_LINES[`car:${veh}`]), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }
+  { const hc = () => hitVehicle(createCourse(seedOf(g.code, g.m, node.go), { cv: end.res.cv === 2 ? 2 : 1 }), { y: end.res.y, x: end.res.px, end: end.res.e });   // (J2 FIX: the row's own course version — a v2 run was rebuilt on v1)
+    // (VARIETY B1: the phone names the vehicle IT drew — the area's model once that model was in on the page, else the plain one: either is right)
+    knowAll(false); const veh = end.res.w === 'car' ? hc() : ''; knowAll(true); const vehA = end.res.w === 'car' ? hc() : ''; knowAll(false);
+    ok(end.res.w !== 'car' || (!!veh && (end.cause === CAUSE_LINES[`car:${veh}`] || end.cause === CAUSE_LINES[`car:${vehA}`])), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}${vehA !== veh ? ` / its area's ${vehA}` : ''}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }
   ok(end.n === String(end.res.l) && /^LANES?$/.test(end.unit) && end.res.l >= 3, `the lanes: ${end.n} ${end.unit} (the host's replay of the log)`);
   ok(await P.ev("document.querySelector('.jw-final .sheet-kicker').textContent") === 'JAYWALK · SOLO' && parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .sheet-kicker')).fontSize")) >= 17, 'THE HEADER: JAYWALK · SOLO — big + bold (H5B)');
   await pastMoment(P);   // (the console's XP moment fades in over the end screen a beat after it: the shot is of the end screen itself)
