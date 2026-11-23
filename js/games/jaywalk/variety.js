@@ -5,22 +5,22 @@
 // the slot draws its plain vehicle — and the end line names the vehicle drawn (KNOWN: causes.js#vehicleAt asks it).
 
 /** every variety vehicle: its slot (cells), its drawn width + height (cells), its emergency light bar ('' = none; `bar` = along the body from the
- *  nose 0 … 1, its height as a share of the model's) */
+ *  nose 0 … 1, its height as a share of the model's) · dayK = by day a touch under (a white body blew out to a flat slab — the box truck's rule) */
 export const VARIETY = Object.freeze({
   police: { slot: 1, w: 0.7, h: 0.56, light: 'police', bar: [0.52, 0.98] },
   suv: { slot: 1, w: 0.72, h: 0.6 },
   sports: { slot: 1, w: 0.66, h: 0.46 },
   forklift: { slot: 1, w: 0.5, h: 0.64 },
-  ambulance: { slot: 2, w: 0.8, h: 0.9, light: 'ambulance', bar: [0.3, 0.99] },
+  ambulance: { slot: 2, w: 0.8, h: 0.9, dayK: 0.85, light: 'ambulance', bar: [0.3, 0.99] },
   firetruck: { slot: 2, w: 0.8, h: 0.86, light: 'fire', bar: [0.24, 0.99] },
-  delivery: { slot: 2, w: 0.8, h: 0.86 },
+  delivery: { slot: 2, w: 0.8, h: 0.86, dayK: 0.8 },
   garbage: { slot: 2, w: 0.82, h: 0.86 },
-  citybus: { slot: 2, w: 0.8, h: 0.86 },
+  citybus: { slot: 2, w: 0.8, h: 0.86, dayK: 0.86 },
   tanker: { slot: 2, w: 0.8, h: 0.84 },
   dump: { slot: 2, w: 0.82, h: 0.76 },
   tug: { slot: 2, w: 0.82, h: 0.6 },
   schoolbus: { slot: 3, w: 0.9, h: 0.95 },
-  semi: { slot: 3, w: 0.9, h: 1.05 },
+  semi: { slot: 3, w: 0.9, h: 1.05, dayK: 0.8 },
   bendy: { slot: 3, w: 0.88, h: 0.95 },
 });
 export const VARIETY_IDS = Object.freeze(Object.keys(VARIETY));
@@ -33,17 +33,17 @@ export const VARIETY_LINES = Object.freeze({
 });
 /** THE AREA SETS — by the area's index (tuning.js#LANDMARKS: 0 THE DOCKS · 1 THE FISH MARKET · 2 THE RAIL YARD · 3 THE BRIDGE · 4 DOWNTOWN ·
  *  5 THE CANAL · 6 THE LIGHTHOUSE · 7 THE AIRFIELD; −1 = the opening, DOWNTOWN's set) → per slot [id, share of that slot's vehicles]. A 1-cell
- *  slot keeps ≥ 2 / 3 plain cars everywhere (the sedans · hatchbacks · taxis). */
-const DOWNTOWN = { 1: [['police', 0.1], ['suv', 0.12], ['sports', 0.1]], 2: [['citybus', 0.32], ['delivery', 0.3]], 3: [['bendy', 0.6]] };
-const DOCKS = { 1: [['forklift', 0.14]], 2: [['delivery', 0.24], ['garbage', 0.2], ['tanker', 0.22]], 3: [['semi', 0.65]] };
-const SHORE = { 1: [['suv', 0.16]], 2: [['ambulance', 0.24]], 3: [['schoolbus', 0.6]] };
+ *  slot keeps ≥ 3 / 4 plain cars everywhere (the sedans · hatchbacks · taxis), every slot ≥ 1/2 plain — plain the clear majority on screen. */
+const DOWNTOWN = { 1: [['police', 0.07], ['suv', 0.08], ['sports', 0.07]], 2: [['citybus', 0.2], ['delivery', 0.17]], 3: [['bendy', 0.42]] };
+const DOCKS = { 1: [['forklift', 0.1]], 2: [['delivery', 0.13], ['garbage', 0.12], ['tanker', 0.13]], 3: [['semi', 0.45]] };
+const SHORE = { 1: [['suv', 0.1]], 2: [['ambulance', 0.2]], 3: [['schoolbus', 0.42]] };
 export const AREA_SETS = Object.freeze({
   '-1': DOWNTOWN, 4: DOWNTOWN,
   0: DOCKS, 1: DOCKS,
-  2: { 2: [['dump', 0.36], ['garbage', 0.26]], 3: [['semi', 0.65]] },
-  3: { 1: [['suv', 0.16]], 2: [['citybus', 0.28], ['tanker', 0.28]], 3: [['semi', 0.6]] },
+  2: { 2: [['dump', 0.22], ['garbage', 0.16]], 3: [['semi', 0.45]] },
+  3: { 1: [['suv', 0.12]], 2: [['citybus', 0.18], ['tanker', 0.18]], 3: [['semi', 0.42]] },
   5: SHORE, 6: SHORE,
-  7: { 2: [['tug', 0.26], ['tanker', 0.2], ['firetruck', 0.16], ['delivery', 0.2]] },
+  7: { 2: [['tug', 0.12], ['tanker', 0.1], ['firetruck', 0.1], ['delivery', 0.1]] },
 });
 /** the ids an area draws */
 export const areaIds = ar => { const S = AREA_SETS[ar] || {}; return [...new Set(Object.values(S).flat().map(e => e[0]))]; };

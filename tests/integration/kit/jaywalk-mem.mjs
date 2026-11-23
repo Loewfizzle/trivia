@@ -30,7 +30,7 @@ export const memAt = page => page.evaluate(async () => {
   // (JT2's add-on — THE SEASONAL PACK behind the final screen: nothing of it alive — the fall's particles, the footprints, the burst piles, the
   //  fireworks' canvas + sparks (season.sp — seasonal.js#info); no pack this run = nothing to hold)
   const sp = s && s.season && s.season.sp, fw = sp && sp.fw;
-  const seasonRest = !sp || (sp.resting === true && !sp.fall && !sp.prints && !sp.bursts && (!fw || (fw.px === 0 && fw.sparks === 0)));
+  const seasonRest = !sp || (sp.resting === true && !sp.fall && !sp.prints && !sp.bursts && !sp.skySnow && (!fw || (fw.px === 0 && fw.sparks === 0)));   // (VARIETY B1: + the skyline snow — whichever season's pack is in)
   const season = sp ? `${s.season.day} ${s.season.autumn > 0 ? 'autumn ' : ''}${s.season.winter > 0 ? 'winter ' : ''}${s.season.snowfall !== 'none' ? s.season.snowfall + ' snow ' : ''}${fw && fw.kind ? 'fireworks ' : ''}— fall ${sp.fall} · prints ${sp.prints} · piles burst ${sp.bursts} · fireworks ${fw ? `${fw.px} px ${fw.sparks} sparks` : 'none'}` : 'no pack';
   return { seasonRest, season, gl: r(glMb), bloom: r(bloomMb), canvas: r(cv / MB), canvases: n, pix: r(glMb + bloomMb + cv / MB), heap: performance.memory ? r(performance.memory.usedJSHeapSize / MB) : null,
     rest: i.rest == null ? null : i.rest, dpr: i.dpr, big, buf: gl ? `${gl.width}×${gl.height}` : '' };

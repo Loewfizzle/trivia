@@ -260,7 +260,7 @@ async function mount() {
     /** (a look check) the middle of a log on this water lane that is well inside the 9 columns right now (FP; −1 = none) */
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
-    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
+    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, per: (L.period || 0) / FP, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
     find: findLane, lane0: () => LANE_Q, warped: () => warped,
     /** (THE TOUCH-UP PASS's check) the run + its course as they are — the share frame's moment (shot.js#shotMs) reads both */
     raw: () => ({ run: { ...run }, course }),

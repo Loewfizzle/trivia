@@ -124,10 +124,11 @@ test('B1 — THE AREA SETS: the owner\'s list; plain cars the majority (a 1-cell
   for (const [ar, S] of Object.entries(V.AREA_SETS)) for (const [slot, L] of Object.entries(S)) {
     const share = L.reduce((a, e) => a + e[1], 0);
     assert.ok(share < 1, `area ${ar} slot ${slot}: some plain left`);
-    if (slot === '1') assert.ok(share <= 1 / 3, `area ${ar}: the 1-cell slot keeps ≥ 2/3 plain cars (${share})`);
+    if (slot === '1') assert.ok(share <= 1 / 4, `area ${ar}: the 1-cell slot keeps ≥ 3/4 plain cars (${share})`);
+    assert.ok(share <= 0.5, `area ${ar} slot ${slot}: ≥ 1/2 plain (${share})`);
     for (const [id] of L) assert.equal(V.VARIETY[id].slot, Number(slot), `${id} only in its own slot`);
   }
-  assert.equal(V.varietyAt(4, 1, 0.05), 'police'); assert.equal(V.varietyAt(4, 1, 0.99), ''); assert.equal(V.varietyAt(2, 1, 0.01), '', 'THE RAIL YARD: no 1-cell variety');
+  assert.equal(V.varietyAt(4, 1, 0.05), 'police'); assert.equal(V.varietyAt(4, 1, 0.3), ''); assert.equal(V.varietyAt(4, 1, 0.99), ''); assert.equal(V.varietyAt(2, 1, 0.01), '', 'THE RAIL YARD: no 1-cell variety');
 });
 
 test('B1 — THE NAMES ARE THE DRAWN ONES: vehicleAt names an area model only once it is in on this page (else the plain vehicle — what the slot draws); the slot, the length + the rules untouched', async () => {

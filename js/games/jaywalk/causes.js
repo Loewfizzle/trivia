@@ -1,7 +1,7 @@
 // JAYWALK — HOW YOU WENT OUT (H3 — docs/jaywalk.md "THE END SCREEN"): the end screen names it in big neon words — one line per cause +
 // The long notes: docs/games/jaywalk-notes.md
-import { FP, KID_HALF } from './tuning.js';
-import { moverLeft, area } from './course.js';
+import { FP, KID_HALF, areaIndex } from './tuning.js';
+import { moverLeft } from './course.js';
 import { VARIETY_IDS, VARIETY_LINES, varietyAt, varietyKnown } from './variety.js';   // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot — cosmetic)
 
 /** the view's own small hash (never the rules' rng — nothing here changes a run) */
@@ -29,7 +29,7 @@ export function plainAt(course, lane, j) {
 export function vehicleAt(course, lane, j) {
   const base = plainAt(course, lane, j);
   if (!base) return '';
-  const v = varietyAt(area(lane).index, base === 'truck' ? 3 : base === 'van' ? 2 : 1, hsh(seedNum(course) ^ (lane * 6151), j * 17 + 3));
+  const v = varietyAt(areaIndex(lane), base === 'truck' ? 3 : base === 'van' ? 2 : 1, hsh(seedNum(course) ^ (lane * 6151), j * 17 + 3));
   return v && varietyKnown(v) ? v : base;
 }
 

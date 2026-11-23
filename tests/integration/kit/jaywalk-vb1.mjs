@@ -128,7 +128,7 @@ export async function looksVB1({ open, up, ok, sleep, waitFor, out, what = '', b
         seen[`${name}-${look}`] = r;
         const plain = ['sedan', 'hatchback', 'taxi', 'van', 'truck'].reduce((a, k) => a + (r.n[k] || 0), 0), all2 = Object.values(r.n).reduce((a, b) => a + b, 0);
         ok(inn, `TRAFFIC ${name} ${look}: the area's models in (${r.v.held.join(' · ')})`);
-        ok(all2 === 0 || plain / all2 >= 0.5, `TRAFFIC ${name} ${look}: plain vehicles are the majority (${plain} of ${all2} in view: ${JSON.stringify(r.n)})`);
+        ok(all2 === 0 || plain / all2 > 0.5, `TRAFFIC ${name} ${look}: plain vehicles are the majority (${plain} of ${all2} in view: ${JSON.stringify(r.n)})`);
         files.push(await shotTo(o, `traffic/${name}-${look}-390.png`)); labels.push(`${name.toUpperCase()} · ${look}`);
         errs.push(...o.errs); await o.close();
       }
@@ -141,23 +141,23 @@ export async function looksVB1({ open, up, ok, sleep, waitFor, out, what = '', b
       await waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
       const at = await o.p.evaluate((idd, l0) => {
         const J = window.__jwLab;
-        for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + 38; i++) { if (J.lane(i - 2).type !== 'grass') continue; const it = (J.items(i).items || []).find(q => q.what === idd && q.left > 1.2 && q.left + q.len < 7.8); if (it) return { lane: i, t, c: it.left + it.len / 2, len: it.len }; } }
+        for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + 40; i++) { const I = J.items(i); for (const q of I.items || []) { if (q.what !== idd) continue; for (const k of [-1, 0, 1]) { const lf = q.left + k * (I.per || 0); if (lf > 1.2 && lf + q.len < 7.8) return { lane: i, t, c: lf + q.len / 2, len: q.len, left: q.left }; } } } }
         return null;
       }, id, lane0(ar));
       if (!at) { ok(false, `CLOSE ${tag}: a ${id} found on screen`); await o.close(); return null; }
-      await o.p.evaluate((a, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.setLook(lk); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look);
+      await o.p.evaluate((a, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look);
       await sleep(1600);
       const [sx, sy] = await o.p.evaluate(a => window.__jwLab.project(a.c, a.lane + 0.5), at);
       const cw = Math.min(390, 120 + at.len * 60), ch = 150, clip = { x: Math.max(0, Math.min(390 - cw, Math.round(sx * 390 - cw / 2))), y: Math.max(0, Math.min(844 - ch, Math.round(sy * 844 - ch * 0.6))), width: cw, height: ch };
       const f = await shotTo(o, `traffic/close-${tag}-390.png`, clip);
-      const line = await o.p.evaluate(a => { const J = window.__jwLab; return J.items(a.lane).items.find(q => Math.abs(q.left + q.len / 2 - a.c) < 0.01).what; }, at);
+      const line = await o.p.evaluate(a => { const J = window.__jwLab, q = J.items(a.lane).items.find(it => Math.abs(it.left - a.left) < 0.01); return q ? q.what : ''; }, at);
       ok(line === id, `CLOSE ${tag}: the ${id} drawn (lane ${at.lane}, ${at.len} cells)`);
       errs.push(...o.errs); await o.close();
       return f;
     };
     if (!only) {
       const cf = [], cl = [];
-      for (const [id, ar, look, tag] of [['police', 4, 'night', 'police-night'], ['ambulance', 5, 'night', 'ambulance-night'], ['firetruck', 7, 'night', 'firetruck-night'], ['taxi', 4, 'night', 'taxi-night'], ['taxi', 4, 'day', 'taxi-day'], ['police', 4, 'day', 'police-day'], ['semi', 0, 'day', 'semi-day'], ['bendy', 4, 'day', 'bendy-day'], ['schoolbus', 5, 'day', 'schoolbus-day'], ['semi', 2, 'night', 'semi-night'], ['citybus', 3, 'day', 'citybus-day'], ['tug', 7, 'day', 'tug-day'], ['forklift', 0, 'day', 'forklift-day'], ['dump', 2, 'day', 'dump-day'], ['tanker', 3, 'day', 'tanker-day'], ['garbage', 1, 'day', 'garbage-day'], ['delivery', 7, 'day', 'delivery-day'], ['suv', 6, 'day', 'suv-day'], ['sports', 4, 'day', 'sports-day']]) { const f = await close(id, ar, look, tag); if (f) { cf.push(f); cl.push(tag.toUpperCase()); } }
+      for (const [id, ar, look, tag] of [['police', 4, 'night', 'police-night'], ['ambulance', 5, 'night', 'ambulance-night'], ['firetruck', 7, 'night', 'firetruck-night'], ['taxi', 4, 'night', 'taxi-night'], ['taxi', 4, 'day', 'taxi-day'], ['police', 4, 'day', 'police-day'], ['semi', 0, 'day', 'semi-day'], ['bendy', 4, 'day', 'bendy-day'], ['schoolbus', 6, 'day', 'schoolbus-day'], ['semi', 2, 'night', 'semi-night'], ['citybus', 3, 'day', 'citybus-day'], ['tug', 7, 'day', 'tug-day'], ['forklift', 0, 'day', 'forklift-day'], ['dump', 2, 'day', 'dump-day'], ['tanker', 3, 'day', 'tanker-day'], ['garbage', 1, 'day', 'garbage-day'], ['delivery', 7, 'day', 'delivery-day'], ['suv', 6, 'day', 'suv-day'], ['sports', 4, 'day', 'sports-day']]) { const f = await close(id, ar, look, tag); if (f) { cf.push(f); cl.push(tag.toUpperCase()); } }
       await compose(cf, cl, 'traffic/close-sheet.png', 4, 300, 150 / 300);
     }
   }

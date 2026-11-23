@@ -132,7 +132,7 @@ test('THE FINAL SCREEN\'s MEMORY: the scene\'s rest() reaches the pack — the f
   assert.match(sp, /if \(SZ\.fireworks\) FW\.on\(SZ\.fireworks\); if \(resting\) FW\.rest\(true\);/, '… and its fireworks');
   assert.match(sp, /const falling = !resting && SZ\.snowfall !== 'none', leaves = !resting && /, 'the fall never re-shown in the frames the scene draws into its still');
   const k = readFileSync('tests/integration/kit/jaywalk-mem.mjs', 'utf8');
-  assert.match(k, /const seasonRest = !sp \|\| \(sp\.resting === true && !sp\.fall && !sp\.prints && !sp\.bursts && \(!fw \|\| \(fw\.px === 0 && fw\.sparks === 0\)\)\);/, 'the E2Es\' guard: nothing seasonal alive behind a final screen');
+  assert.match(k, /const seasonRest = !sp \|\| \(sp\.resting === true && !sp\.fall && !sp\.prints && !sp\.bursts && !sp\.skySnow && \(!fw \|\| \(fw\.px === 0 && fw\.sparks === 0\)\)\);/, 'the E2Es\' guard: nothing seasonal alive behind a final screen');
   for (const f of ['tests/integration/e2e-jaywalk.mjs', 'tests/integration/e2e-jaywalk-match.mjs']) assert.match(readFileSync(f, 'utf8'), /seasonRest/, `${f} checks it`);
   assert.match(readFileSync('tests/integration/kit/jaywalk-mem.mjs', 'utf8'), /export const JW_FINAL_BUDGET_MB = 20;/, 'the budget never raised');
 });

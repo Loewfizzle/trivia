@@ -1,7 +1,7 @@
 // JAYWALK — THE SCENE (H2 … H6B; three.js 0.160): the pure engine drawn in the smooth stylized 3D style — NIGHT + DAY are ONE scene
 // The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
-import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
+import { FP, COLS, HOP_TICKS, MODES, areaIndex } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, build, parseGlb } from './models.js';
 import { seasonWindow } from './season-gate.js';
@@ -679,7 +679,7 @@ export function createNight(host, o = {}) {
     const LF = vLF, LB = vLB;
     const bodyL = V.slot === 3 ? len - 0.1 : V.slot === 2 ? 1.9 : 0.96, sz = bodyL / B.l, sx = V.w / B.w, sy = V.h / B.h, ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
     const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), cx = X(left + len / 2);
-    q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, V.slot === 3 && day ? dim * 0.9 : dim);
+    q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, day && V.dayK ? dim * V.dayK : dim);
     K.shadow.put(cx, 0.03, z, len * 1.12, V.slot === 3 ? 1.05 : V.slot === 2 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * dim);
     if (!on) return;
     const [hw, hy] = V_LAMPS[V.slot], a1 = dim, back = L.dir > 0 ? 0 : Math.PI, rearX = nose - L.dir * bodyL, vw = V_VW[V.slot];
@@ -703,8 +703,8 @@ export function createNight(host, o = {}) {
   /** VARIETY B1 — THE TAXI's checker band (both sides, along the shoulder) + its roof sign (TAXI — lit at night, painted by day) */
   let vLF = NOP, vLB = NOP;   // (this frame's light puts — draw() sets them)
   function taxiDress(bx, z, bodyL, h, dim, on) {
-    const n = 6, sq = bodyL * 0.62 / n, x0 = bx - sq * (n - 1) / 2;
-    for (const side of [-1, 1]) for (let k = 0; k < n; k++) K.checker.put(x0 + k * sq, h * 0.6, z + side * 0.352, sq, 0.055, 0.012, 0, (k + (side > 0 ? 0 : 1)) % 2 ? 0x15151a : 0xf4f4f0, dim * (day ? 1 : 0.85));
+    const n = 7, sq = bodyL * 0.7 / n, x0 = bx - sq * (n - 1) / 2;   // (a band that reads from above at 390: it stands a little proud of the body's shoulder)
+    for (const side of [-1, 1]) for (let k = 0; k < n; k++) K.checker.put(x0 + k * sq, h * 0.64, z + side * 0.345, sq, 0.08, 0.06, 0, (k + (side > 0 ? 0 : 1)) % 2 ? 0x15151a : 0xf4f4f0, dim * (day ? 1 : 0.85));
     const lit = on && (!day || TL.cars > 0.6);
     K.taxiSign.put(bx, h + 0.15, z, 0.56, 0.21, 1, 0, 0xffffff, lit ? 2.1 : dim * (day ? 1 : 0.55), 1, 1, -0.95);
   }
@@ -830,7 +830,7 @@ export function createNight(host, o = {}) {
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
-    { const c0 = Math.floor(camY), a0 = area(c0 - 12).index, a1 = area(c0 + 20).index, a2 = area(c0 + 52).index, vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } VL.pump(); }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
+    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } VL.pump(); }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
     if (capT) flyGet();

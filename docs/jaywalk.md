@@ -37,6 +37,7 @@ import map); the RULES are a pure engine that never knows about it.
 | JT1 — SEASONS: ROOM FIRST · AUTUMN · THE HATS · FOOTPRINTS · NEW YEAR'S | Nov 22 2026 | `docs/games/passes/jaywalk-jt1.md` | a VIEW only: every seasonal layer is THE SEASONAL PACK's (`seasonal.js` + `seasonal-fx.js` + `season.js` + `fireworks.js` + J4's models — lazy, a season day only; the start bundle asks `season-gate.js`); AUTUMN Oct 20 → Nov 30 (turned trees, golden grass, fallen + drifting leaves, LEAF PILES that burst), the Santa hat Dec 1–31 + the party hat Jan 1 (in the kid's own geometry), FOOTPRINTS + a snow puff, NEW YEAR'S fireworks over the skyline (the finale before local midnight); the lab's `&clock=` · `&hat=0`. No rules change |
 | JT2 — TOUCH-UP: ROOM · THE MATCH FLAKE · THE FRIEND LINE · TAP TO START · THE CONTROLLER · BEST · AVG | Nov 22 2026 | `docs/games/passes/jaywalk-jt2.md` | the start bundle's long comment blocks → `docs/games/jaywalk-notes.md` (token-identical code) · THE STEADY BOT (the match flake's root) · the friend tape on the ground, half strength, fading (`lines.js#friendFade`) · TAP TO START (solo + the daily) · THE CONTROLLER (`kit/gamepad.js`) · THE BOARD's AVERAGE (`core/board-avg.js`) |
 | VARIETY A — THE LEAF PILE · THE TIERS · THE DAY LOOK · TIMES OF DAY · THE FOG CHECK | Nov 22 2026 | `docs/games/passes/jaywalk-variety-a.md` | a VIEW only: Polyfork's leaf pile (CC BY) in THE SEASONAL PACK · tier 2's line 96 draw calls (tiers 1/0 64 — `daylook.js#CALLS_MAX`) · THE DAY LOOK (contact shadows every tier, THE SUN's SHADOWS on tier 2 — a depth pass, the warm/cool grade stopping at the fog line, cloud shadows, the cars' shine by day, grass stripes + asphalt wear) · FIVE TIMES OF DAY on the city's sun model (`daylook.js`; a match = the HOST's sun, `game.lk`) + OVERCAST by date · THE FOG CHECK (dark grey fog over snow by day). No rules change |
+| VARIETY B1 — THE VARIETY A FIXES · ROOM · THE AREA TRAFFIC | Nov 22 2026 | `docs/games/passes/jaywalk-variety-b1.md` | a VIEW only: THE SHADOW POPS (the tier probe misread a busy CPU as capped → a flap; the sun shadows fade 1 s on any tier change, texel-snapped) · THE SKYLINE SNOW · the day haze later · THE SNOW-START SEAM (`mod(lane, 64)` → `lwOf`) · ONE PACK PER SEASON (`season.js#PACKS`) · THE AREA TRAFFIC (`variety.js` — 15 free models by area, loaded ahead, each exactly its slot's length; emergency light bars, THE TAXI, 11 colours) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -654,6 +655,74 @@ the screen's foot), by the snow cover that shows (`(winter − 0.3) / 0.35`, the
 never thinned. The sheet: `Downloads\NEON\jaywalk-variety-a\fog\sheet-390.png`.
 ### THE GAMEPLAY LOCK (`tests/jaywalk-variety-a.test.mjs`)
 course / engine / replay / logic / director / tuning / versions never reach `daylook.js`; `game.lk` is read by the view only.
+
+## VARIETY B1 — THE VARIETY A FIXES · ROOM · THE AREA TRAFFIC (Nov 22 — the owner; the pass log `docs/games/passes/jaywalk-variety-b1.md`; the decisions `docs/games/plan.md` "JAYWALK VARIETY B") — a VIEW only: no rules change, REPLAY = LIVE untouched
+### THE SHADOW POPS (`kit/tiers.js` the cap probe · `night.js` `sunF` + `#sunPass`)
+- THE CAUSE (logged — `jaywalk-lab.mjs --vb1=tiers`, the real governor at 10× CPU): **2 → 1 → 0 → 2 → 1 → 0** — the governor's cap probe (FR7 FIXES A's
+  PD6: "a step down that gave nothing = a 30 Hz Low Power cap → back up") read a CPU-BOUND phone (slow frames at every tier because the frame's
+  WORK is slow) as capped and jumped it back to tier 2 — the sun's shadows went off · on · off. A cap verdict now needs LIGHT work too
+  (`work ≤ CAP_WORK_MS`); a busy CPU steps down and stays (the shared kit: HIGH RISE + PRISM's own rule get the same). 10×: 2 → 1 → 0 once; 6×: stays 2.
+- THE FADE: the depth pass's shadow fades over **1 s** into the cheap offset blob on ANY tier change (and back) — `sunF` 0 … 1, the blob takes
+  `1 − ease(sunF)`; the pass keeps drawing through a fade-out, then a weak phone that stays down frees its map.
+- THE CAMERA: the sun's depth eye moves on the map's own TEXEL GRID (no swimming as the camera follows) and the sun's angle in whole degrees; it
+  already covered 9 lanes back → 33 ahead of the camera (every visible lane + those coming) and drew every frame before the scene (no lag).
+- PROVED: `--vb1=shadows` — 30 s of hopping at noon, tier 2, a forced step to tier 1 at 10 s + back at 18 s, every frame's strength recorded:
+  never a jump (worst 0.012 over the fade's own pace), the step-down fades over 1.16 s, on from the first frame. The strip: `shadows/strip-390.png`.
+### THE SKYLINE SNOW (`sky-snow.js` — the WINTER pack's own chunk)
+On a snow day the falling snow goes on OVER the painted skyline band: ONE DOM layer inside `.jw-skyline` (under the sea wall), two tiled flake
+layers (the far one smaller + slower — depth), each moved by a transform-only CSS animation (the compositor — no draw call, no frame work), every
+tile dividing its loop (no jump). Light = sparser + fainter, heavy = denser; by night cool dim blue-white; reduce motion = still flakes; hidden
+behind a final screen. Fetched through `lazyImport` on a snow day only (never on an autumn day).
+### MORE CLEAR VIEW UP TOP (`night.js#depth` — `HAZE_DAY`)
+The DAY looks (sunrise · noon · golden · sunset · overcast) start their far haze **2.2** lanes before the sea wall's foot (was 4.4 — the night's,
+unchanged); the far edge is the same (fully hazed at the wall's foot: no lane pops in at the top), the ramp still soft. Before / after: `haze/`.
+### THE SNOW-START SEAM (`night-fx.js#lwOf`)
+NOT the fog: the ground shader's noise coordinate was `mod(lane, 64) + z` — lane −1 read as **63**, so every noise pattern (the snow's drifts,
+the grass, the asphalt) jumped at lane 0's lower edge: a hard line right under the kid at the start, in every look (white snow showed it most);
+it scrolled away with the camera. Now `lwOf(lane)` wraps ONLY on a gateway lane (every 50 — its paving + neon trim already a hard edge): continuous
+from the lanes behind the start through the opening. The unit test walks lanes −20 … 1000. Before / after: `seam/sheet-390.png`.
+### ONE PACK PER SEASON (`season.js#PACKS` · `PACK_CORE` · `packOf`)
+Each season's pack = THE CORE (`season.js` + `seasonal.js` + `seasonal-fx.js` — the hooks, the fall, the ground's season GLSL) + ITS OWN code +
+ITS OWN models, under its OWN cap (150 KB — `tests/jaywalk-jt1.test.mjs` measures each): **autumn** = the core + the leaf pile · **winter** = the
+core + `sky-snow.js` + `fireworks.js` + the three winter models. A phone fetches only the day's: an autumn day never asks for a winter file, a winter
+day never for the pile. **Spring + Halloween**: rows ready, `live: false` (their folders + code come with their passes). The memory guard
+(`kit/jaywalk-mem.mjs#seasonRest`) covers whichever pack is in (the same rest path).
+### THE AREA TRAFFIC (`variety.js` — the sets + the pick (PURE) + the per-area loader · `causes.js#vehicleAt` / `plainAt` · `night.js#drawVariety`)
+- **COSMETIC**: the rules' road slots — a 1-cell car, the 2-cell van, the 3-cell box truck — their lengths, hit boxes, density, speeds, gaps:
+  unchanged. `varietyAt(area, slot, u)` says WHICH MODEL draws a slot, from the course's seed (its own hash — every phone the same). Plain cars
+  stay the majority: a 1-cell slot keeps ≥ 2/3 plain everywhere; more TYPES, never more vehicles.
+- **THE SETS** (`AREA_SETS`): opening + DOWNTOWN — police · SUV · sports sedan (cars) · city bus · delivery truck (vans) · THE BENDY BUS (long) ·
+  THE DOCKS + THE FISH MARKET — forklift · delivery · garbage · fuel tanker · THE SEMI · THE RAIL YARD — dump truck · garbage · THE SEMI · THE
+  BRIDGE — SUV · city bus · fuel tanker · THE SEMI · THE CANAL + THE LIGHTHOUSE — SUV · ambulance · THE SCHOOL BUS (the box truck's slot) ·
+  THE AIRFIELD — airport tug · fuel tanker · fire truck · delivery. (The taxis + sedans + hatchbacks everywhere, as before.)
+- **EXACTLY THE SLOT'S LENGTH**: a model is scaled to the rule's length — 0.96 (a car) · 1.9 (a van) · len − 0.1 (the long slot) — the same as
+  the plain car / van / box truck; its own width + height (`VARIETY[id].w / h`). Never longer or shorter than what hits you.
+- **THE NAMES ARE THE DRAWN ONES**: `vehicleAt` names an area model only once that model has come in ON THIS PAGE (`variety.js` KNOWN — kept
+  for the page's life, so a rival's line in an area this phone passed still names what was drawn there); else the plain vehicle — which is what
+  the slot draws then. New lines (≤ 26 letters): BUSTED BY A POLICE CAR · FLATTENED BY AN SUV · SMOKED BY A SPORTS CAR · SCOOPED BY A FORKLIFT ·
+  HIT BY AN AMBULANCE · RUN DOWN BY A FIRE TRUCK · HIT BY A DELIVERY TRUCK · TRASHED BY A GARBAGE TRUCK · FLATTENED BY A CITY BUS · … A FUEL
+  TANKER · … A DUMP TRUCK · RUN OVER BY AN AIRPORT TUG · FLATTENED BY A SCHOOL BUS · … A SEMI · … A BENDY BUS.
+- **PER AREA, AHEAD** (`createVariety`): every frame the areas from 12 lanes back to 52 ahead are wanted (asked again only when they change);
+  their files fetched, parsed ONE A FRAME, made a kind with ONE shared material (the cars' program — a model landing mid-run compiles nothing);
+  an area left behind → its models FREED (the kind removed, the buffers disposed). The opening + THE DOCKS are wanted from the scene's first
+  frame (the menu / the count); the opening's files are also warmed by the cartridge's preload (`index.js#preload` → `warmVariety` — the 1.5 MB
+  line). A file that fails is asked again 5 s later; meanwhile the plain vehicle — never a stall, never a missing car.
+- **EMERGENCY**: police · ambulance · fire truck carry a light bar — red one side, blue the other, alternating ≈ 2.6 / s with a soft halo + its
+  colour on the road (the glow billboards: no draw of their own, bloom-friendly) — at night (or with the lights on at sunset); unlit by day (the
+  models' own painted bars); steady with reduce motion. No sirens.
+- **THE TAXI**: a deeper taxi yellow (`TAXI_HEX` #f6b100), a black + white CHECKER band along both sides (its own small box kind) and a roof sign
+  that reads **TAXI** (a canvas texture: lit + blooming at night, painted by day). Its old roof glow kept.
+- **THE PALETTE**: the plain cars' tints 5 → 11 (+ pearl · tangerine · jade · lilac · garnet · steel); never a car in your kid's colour (as before).
+- The models' looks: day + night, every time of day (the paint shine by day), autumn + winter (no snow on car roofs — J4's readability call), the
+  bloom occluders (every vehicle kind is solid), the sun's shadows (they cast).
+- **THE FILES** (`assets/jaywalk/variety/` — `build-jaywalk-assets.py --only=variety`; credits: `CREDITS.md` + ☰ → Credits, four JAYWALK lines):
+  police 51 · suv 53 · sports 46 · forklift 53 · ambulance 65 · firetruck 66 · delivery 57 · garbage 74 · citybus 62 · tanker 27 · dump 87 · tug 87 ·
+  schoolbus 58 · semi 8 · bendy 81 KB (875 KB in all; NEVER the start bundle). Per area: the opening / DOWNTOWN 350 KB · THE DOCKS / FISH MARKET 220 ·
+  THE RAIL YARD 169 · THE BRIDGE 151 · THE CANAL / LIGHTHOUSE 176 · THE AIRFIELD 237 (a file shared by two sets is fetched once while both are near).
+- **THE LAB**: `--vb1=traffic` (every area day + night, the close-ups: the light bars + the taxis at night, the long vehicles) · `--vb1=perf`.
+### THE GAMEPLAY LOCK (`tests/jaywalk-variety-b1.test.mjs`)
+course / engine / replay / logic / director / tuning / versions + the server's judge never reach `variety.js` or `causes.js`; with every model in,
+the same course has the same slots + lengths (a VIEW); no variety file in the preload graph.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run
@@ -2002,6 +2071,7 @@ tab). The signs' stand-in row (`harbor-neon.js#JAYWALK_SIGN`) is gone: `signRost
   https://poly.pizza/m/KRebJXIRb8 (CC0 1.0)"). The 12 older models are byte-for-byte unchanged. `MODEL_REV` 2. The flyers
   (`models\flyers\`): H6A — below.
 - **H6A — THE FLYERS (`--only=flyers`; CC BY — their credit is REQUIRED: `CREDITS.md` + `LICENSE-flyers.txt` + `ui/credits.js` "JAYWALK — 3D models"):** `blackbird.glb` — Kiiba's "Sr-71" (Sketchfab, CC BY 4.0; Grok's delivery recoloured it near-black): 271 KB → **119 KB** (4,993 triangles; its ten parts as ONE mesh, each its material's own near-black in vertex colours — lifted a little off pure black so the scene's lights can shape it; its normal map does not ship; nose at +z, 1 long) · `ufo.glb` — Poly by Google's "Flying saucer" (poly.pizza/m/b0N_HeT_Ttb, CC BY 3.0): 67 KB → **61 KB** (its palette texture → vertex colours; the file has NO normals — computed, smooth under a 42° crease; its three landing legs left out: it flies; 1 across) · `mothership.glb` — Poly by Google's "Flying saucer" (poly.pizza/m/6hu2h8v78mO, CC BY 3.0): 366 KB → **108 KB** (the same treatment). **Fetched ON DEMAND by `flyers.js` alone** — never by `models.js#SCENE_MODELS` / `warmModels`, never at a run's start (the mothership: at a CAPPED run's start). `MODEL_REV` unchanged (no existing file was replaced).
+- **VARIETY B1 — THE AREA TRAFFIC (`--only=variety`):** 15 vehicles → `assets/jaywalk/variety/` (one mesh, vertex colours, quantized; turned to +z, centred; the CC BY credits REQUIRED — `CREDITS.md` + ☰ → Credits) — fetched PER AREA by `variety.js`, never the preload / the start bundle. A file replaced: bump `variety.js#VARIETY_REV`. "VARIETY B1" above.
 - A model / a sound replaced: bump `models.js#MODEL_REV` / `sfx.js#JW_SFX_REV`. After any change: `node scripts/build-file-hashes.mjs`.
 
 ## THE SOUNDS + THE AUDITION (H2 — `sounds.js` (the PURE table) + `sfx.js` + `audition.js`)
