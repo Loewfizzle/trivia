@@ -125,7 +125,11 @@ async function mount() {
  lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
-  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
+  let tierSteps = 0;   // (SMOOTH — the meter's STEPS: every automatic tier change on this page)
+  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); tierSteps++; }, initial: pin == null ? 2 : pin });
+  // SMOOTH — THE FRAME METER (`&hud=1`, lab-hud.js — lazy, this page only)
+  let meter = null;
+  if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierSteps, smooth: Q.get('smooth') !== '0' }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
 
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
@@ -206,6 +210,7 @@ async function mount() {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
     last = now;
+    if (meter) meter.frame(now);
     if (document.visibilityState === 'hidden' || sheetOpen) return;   // (the SOUNDS sheet holds the run still)
     const t0 = performance.now();
     if (bot && shown && now - overAt > 600) restart();   // (the measure's bot plays on)
@@ -234,7 +239,7 @@ async function mount() {
     if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
     if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}${i.tier == null ? '' : ` · tier ${tierPath.join('→')}`} · tick ${run.t}`; }
   }
-  document.addEventListener('visibilitychange', () => { last = 0; acc = 0; if (document.visibilityState === 'hidden' && awakeAt) { awakeAt = 0; awake(false); } });
+  document.addEventListener('visibilitychange', () => { last = 0; acc = 0; if (meter) meter.gap(); if (document.visibilityState === 'hidden' && awakeAt) { awakeAt = 0; awake(false); } });
   restart();
   raf = requestAnimationFrame(frame);
 

@@ -141,6 +141,14 @@
 .jw-check.is-bad { color: #fff; background: #c8102e; padding: 8px 10px; font-weight: 700; }
 .jw-check.is-bad::before { content: '✕ '; }
 .jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
+.jw-meter { position: absolute; left: 6px; top: calc(env(safe-area-inset-top) + 34px); width: 158px; box-sizing: border-box; padding: 4px 6px 5px; background: rgba(7, 6, 11, 0.8); border-left: 2px solid #3dff8b; font: 500 10px/1.4 var(--font-mono); color: #eafff0; z-index: 30; touch-action: manipulation; }
+.jw-meter.is-drop { border-left-color: #ffb02e; }
+.jw-m-big { font: 700 16px/1.1 var(--font-num); color: #fff; }
+.jw-m-l { white-space: nowrap; font-size: 9.5px; }
+.jw-m-btn { display: block; width: 100%; min-height: 44px; margin-top: 4px; background: rgba(61, 255, 139, 0.14); border: 1px solid #3dff8b; color: #eafff0; font: 700 11px/1 var(--font-ui); letter-spacing: 0.08em; touch-action: manipulation; }
+.jw-m-btn.is-on { background: rgba(255, 176, 46, 0.2); border-color: #ffb02e; }
+.jw-m-res { white-space: pre-line; margin-top: 4px; font-size: 9px; color: #ffe9b8; }
+.jw-m-res:empty { display: none; }
 .jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 104px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }
 
 /* ---- THE GAME (H3 — js/games/jaywalk/view.js): the same stage as the lab, inside the console's game frame; the console's corner buttons
