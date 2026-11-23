@@ -150,13 +150,13 @@ export function createNight(host, o = {}) {
   let day = false;
   // VARIETY A — THE TIMES OF DAY (daylook.js): TD = the look this phone shows ({ tod, look, el, overcast, lights }), GR = its grade (null by
   // night), TL = what glows by time; VA false = the lab's BEFORE (&va=0); sunReal = THE SUN's SHADOWS drawn by the depth pass this frame
-  let TD = null, GR = null, TL = lightsOf('night', -20), sunReal = false, fogDark = 0;
+  let TD = null, GR = null, TL = lightsOf('night', -20), sunReal = false, fogDark = 0, sunF = -1;   // (sunF — VARIETY B1: THE SUN's SHADOWS' strength 0 … 1, FADED over 1 s on any tier change — never a snap)
   const VA = o.va !== false;
   { const put0 = K.shadow.put; K.shadow.raw = put0; K.shadow.put = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1, ...r) => {
     if (!day) { put0(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, ...r); return; }
     // by day: a tight CONTACT shadow (every tier) + THE SUN's — this cheap offset copy on tiers 1 / 0 (tier 2: the depth pass draws the real one),
     // as long as the time of day's sun (golden: long), none on an OVERCAST day
-    const a = a1 == null ? 1 : a1, L = VA && GR ? GR.len : 1, sunK = sunReal ? 0 : VA && GR ? GR.sun : 1;
+    const a = a1 == null ? 1 : a1, L = VA && GR ? GR.len : 1, sunK = (1 - ease(sunF < 0 ? 0 : sunF)) * (VA && GR ? GR.sun : 1);   // (B1: the cheap blob fades in as the depth pass's shadow fades out — and back)
     const off = Math.min(SUN.len * L * (sy === 1 ? 0.55 : sy), (0.4 * Math.min(sx, sz) + 0.14) * L);   // (never further than the shadow is wide: it stays joined to the thing)
     if (sunK > 0.01) put0(x + SUN.x * off, y - 0.003, z + SUN.z * off, sx * 1.05 * (1 + 0.45 * (L - 1)), 1, sz * 1.05, ry, hex, k, a0, a * 0.62 * sunK, ...r);
     put0(x + SUN.x * 0.05, y, z + SUN.z * 0.05, sx * 0.9, 1, sz * 0.9, ry, hex, k, a0, a * (VA ? 0.98 : 0.9), ...r);
@@ -441,17 +441,17 @@ export function createNight(host, o = {}) {
 
   let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;   // (reveal — H3: 0 = only the start's few lanes out of the dark · 1 = the whole view)
   /** the rig's scale moved (a ZOOM change): the far plane + the fog follow it */
-  const FOOT_AT = 0.25, HAZE_LANES = 4.4;
+  const FOOT_AT = 0.25, HAZE_LANES = 4.4, HAZE_DAY = 2.2;   // (VARIETY B1 — MORE CLEAR VIEW UP TOP: the DAY looks' haze starts later — still fully hazed at the sea wall's foot, a soft edge; night unchanged)
   let footAt = 0, footDirty = true, posed = false;
   const fwd = new THREE.Vector3(0, 0, -1);
   function depth() {
-    const k = rig.k(), key = k + reveal * 7;
+    const hz = day && VA ? HAZE_DAY : HAZE_LANES, k = rig.k(), key = k + reveal * 7 + hz * 100;
     if (key === kAt && !footDirty) return;
     kAt = key; cam.far = 90 * k; cam.updateProjectionMatrix();
     footAt = 35 * k;
     if (posed && !heroCam) { P.set(0, (1 - 2 * FOOT_AT) * Math.tan(cam.fov * Math.PI / 360), -1).applyQuaternion(cam.quaternion); if (P.y < -0.05) footAt = cam.position.y / -P.y; footDirty = false; }
     else if (heroCam) footDirty = false;
-    const n = 22 * k + (footAt - HAZE_LANES * k - 22 * k) * reveal, f = 24.5 * k + (footAt - 24.5 * k) * reveal;
+    const n = 22 * k + (footAt - hz * k - 22 * k) * reveal, f = 24.5 * k + (footAt - 24.5 * k) * reveal;
     scene.fog.near = n; scene.fog.far = f; fogV.set(n, f);
   }
   /** how deep in the far haze a point is (0 = clear · 1 = gone) — for what three's own fog cannot fade */
@@ -1074,9 +1074,13 @@ export function createNight(host, o = {}) {
     for (const q of Object.values(KM)) q.done();
     ground.uniforms.uTime.value = reduce ? 0 : clock / 1000;
     renderer.info.reset();
-    sunReal = day && VA && tier === 2 && !!GR && GR.sun > 0 && !resting;
-    if (sunReal) sunPass(camY);
-    ground.uniforms.uShK.value = sunReal ? GR.sun * 0.9 : 0;
+    // (VARIETY B1 — THE SHADOW POPS: the depth pass's shadow FADES (1 s) into the cheap blob when the tier steps down, and back — never a snap;
+    //  a weak phone that stays down frees the map once the fade is over)
+    const sunAble = day && VA && !!GR && GR.sun > 0 && !resting, sunT = sunAble && tier === 2 ? 1 : 0;
+    sunF = !sunAble || sunF < 0 ? sunT : sunT > sunF ? Math.min(sunT, sunF + dt / 1000) : Math.max(sunT, sunF - dt / 1000);
+    sunReal = sunAble && sunF > 0.004;
+    if (sunReal) sunPass(camY); else if (SHD && tier < 2) sunFree();
+    ground.uniforms.uShK.value = sunReal ? GR.sun * 0.9 * ease(sunF) : 0;
     renderer.render(scene, cam);
     if (bloom && !day) bloom.render(scene, cam);   // (the bloom is the night's: by day the lights are paint)
     if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW, snapR)); } catch { ask(null); } }
@@ -1099,9 +1103,14 @@ export function createNight(host, o = {}) {
       SHD = { rt, eye: sc, mat: new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }) };
       ground.uniforms.uShTex.value = rt.texture; ground.uniforms.uShTx.value.set(1 / SUN_MAP[0], 1 / SUN_MAP[1]);
     }
-    const el = Math.max(14, Math.min(68, GR.key[2])) * Math.PI / 180, ce = Math.cos(el), cx = rig.x(), cz = Z(camY + 6), d = 42;
+    const el = Math.round(Math.max(14, Math.min(68, GR.key[2]))) * Math.PI / 180, ce = Math.cos(el), cx = rig.x(), cz = Z(camY + 6), d = 42;   // (B1: the sun's angle in whole degrees)
     const eye = SHD.eye; eye.position.set(cx - SUN.x * ce * d, Math.sin(el) * d, cz - SUN.z * ce * d);
     eye.up.set(0, 0, -1); eye.lookAt(cx, 0, cz); eye.updateMatrixWorld();
+    { // (VARIETY B1 — TEXEL-SNAPPED: the eye moves on the map's own texel grid, so a still thing's shadow never swims as the camera follows)
+      const m = eye.matrixWorld.elements, P0 = eye.position, tx = 21 / SUN_MAP[0], ty = 42 / SUN_MAP[1];
+      const er = P0.x * m[0] + P0.y * m[1] + P0.z * m[2], eu = P0.x * m[4] + P0.y * m[5] + P0.z * m[6], dr = Math.round(er / tx) * tx - er, du = Math.round(eu / ty) * ty - eu;
+      P0.set(P0.x + m[0] * dr + m[4] * du, P0.y + m[1] * dr + m[5] * du, P0.z + m[2] * dr + m[6] * du); eye.updateMatrixWorld();
+    }
     const bg = scene.background, ca = renderer.getClearAlpha(); renderer.getClearColor(clearC);
     scene.background = null; scene.overrideMaterial = SHD.mat;
     renderer.setRenderTarget(SHD.rt); renderer.setClearColor(0xffffff, 1); renderer.clear();
@@ -1167,7 +1176,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ sunMap: !!SHD, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, sunF, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */

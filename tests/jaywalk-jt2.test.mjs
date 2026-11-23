@@ -125,7 +125,7 @@ test('ROOM — JAYWALK\'s own preload graph stays under 520 KB (VARIETY A: 480 �
 test('THE FINAL SCREEN\'s MEMORY: the scene\'s rest() reaches the pack — the fall off, the footprints + burst piles let go, the fireworks\' canvas FREED (made again after)', () => {
   const n = readFileSync('js/games/jaywalk/night.js', 'utf8'), sp = readFileSync('js/games/jaywalk/seasonal.js', 'utf8'), fw = readFileSync('js/games/jaywalk/fireworks.js', 'utf8');
   assert.match(n, /rest\(on\) \{[\s\S]{0,400}?if \(SP\) SP\.rest\(on\);/, 'night.js#rest → the pack');
-  assert.match(sp, /rest\(on\) \{ resting = !!on; if \(on\) \{ fall\.show\(0\); prN = 0; burst\.clear\(\); \} if \(FW\) FW\.rest\(on\); \}/);
+  assert.match(sp, /rest\(on\) \{ resting = !!on; (?:if \(SKS\) SKS\.rest\(on\); )?if \(on\) \{ fall\.show\(0\); prN = 0; burst\.clear\(\); \} if \(FW\) FW\.rest\(on\); \}/);
   assert.match(fw, /rest\(on\) \{ resting = !!on; if \(on\) \{ clear\(\); n = 0; pending\.length = 0; cv\.width = cv\.height = 0; \} else if \(!cv\.width && W\) \{ cv\.width = W; cv\.height = H; \} \}/);
   assert.match(fw, /if \(!resting\) \{ cv\.width = W; cv\.height = H; \}/, 'a resize behind a final screen never makes the freed canvas again (the Dec 31 MOTHERSHIP final held 900 × 304 before)');
   assert.match(n, /SP = M\.createSeasonal\(SPAPI\); if \(resting\) SP\.rest\(true\);/, 'a pack that lands behind a final screen rests at once');

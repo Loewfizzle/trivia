@@ -44,16 +44,18 @@ export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamp
       let p50, p75;
       if (frameTimes) { p50 = quantile(frameTimes, 0.5); p75 = quantile(frameTimes, 0.75); }
       else { for (let i = 0; i < n; i++) sf[i] = frames[i]; sortN(sf, n); p50 = n ? sf[Math.floor(n * 0.5)] : 99; p75 = n ? sf[Math.floor(n * 0.75)] : 99; }
-      // (PD6: the probe's verdict — the step down gave nothing = the phone's cap: back up, and timing alone never steps it down again)
-      if (probeDue) {
-        const back = probeFrom;
-        if (capProbeSaysCapped(probeP50, p50)) { capped = true; probeOn = false; failed = -1; set(back); cool = now + 2500; goodSince = 0; return; }
-        probeOn = false;
-      }
-      if (n < minSamples || now < cool) return;
       for (let i = 0; i < wn; i++) sw[i] = works[i];
       sortN(sw, wn);
       const work = wn ? sw[Math.floor(wn * 0.75)] : 99;
+      // (PD6: the probe's verdict — the step down gave nothing = the phone's cap: back up, and timing alone never steps it down again.
+      //  VARIETY B1 — THE SHADOW POPS: only with LIGHT work. A phone whose frames are slow because its CPU is busy (work > CAP_WORK_MS) is
+      //  not capped — the probe read it as capped and jumped back to the top tier, and JAYWALK's sun shadows went off · on · off.)
+      if (probeDue) {
+        const back = probeFrom;
+        if (capProbeSaysCapped(probeP50, p50) && work <= CAP_WORK_MS) { capped = true; probeOn = false; failed = -1; set(back); cool = now + 2500; goodSince = 0; return; }
+        probeOn = false;
+      }
+      if (n < minSamples || now < cool) return;
       if (p75 > 19.5 && tier > 0) {
         if (capped && work <= CAP_WORK_MS) return;
         if (!capped && !probeOn) { probeOn = true; probeFrom = tier; probeP50 = p50; probeAt = now; }

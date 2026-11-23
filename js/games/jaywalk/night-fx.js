@@ -34,6 +34,9 @@ uniform sampler2D uShTex; uniform mat4 uShM; uniform float uShK; uniform vec2 uS
 varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane; varying vec3 vW;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+// (VARIETY B1 — THE SNOW-START SEAM: the ground's noise coordinate wraps ON A GATEWAY lane (every 50 — its paving + trim edge is a
+// seam already), never at lane 0: mod(lane, 64) read lane −1 as 63 — a hard line across the snow right under the kid's start)
+float lwOf(float l) { return l < 50.0 ? l + 50.0 : mod(l, 50.0); }
 float joint(vec2 f, float w) { return smoothstep(0.0, w, f.x) * smoothstep(1.0, 1.0 - w, f.x) * smoothstep(0.0, w * 2.0, f.y) * smoothstep(1.0, 1.0 - w * 2.0, f.y); }
 // JT1 — ROOM FIRST: THE SEASON's ground (J4 — the snow, the plowed roads, WET NEON STREETS · JT1 — autumn's golden grass + fallen
 // leaves) is THE SEASONAL PACK's (seasonal-fx.js#SEA_GLSL — ground.setSea swaps it in). The start bundle draws through these stubs.
@@ -95,7 +98,7 @@ void main() {
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
   vec3 c; float sig = 0.0;   // (VARIETY A: a WARNING's own paint — the rails' red flash, the runway's racing chevrons — is never graded or clouded)
   if (type < 0.5 || type > 4.5) {
-    float lw = mod(vLane, 64.0) + z;
+    float lw = lwOf(vLane) + z;
     float pat = vnoise(vec2(x * 0.42, lw * 0.42) + 3.0);
     c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.15, 0.85, pat));
     float va = uVA * uDay;
@@ -119,9 +122,9 @@ void main() {
   } else if (type < 1.5) {
     float ag = mix(16.0, 42.0, uDay);
     c = DN(vec3(0.062, 0.062, 0.086), vec3(0.36, 0.37, 0.40)) * (mix(0.92, 0.966, uDay) + mix(0.16, 0.068, uDay) * hash(floor(vec2(x * ag, z * ag))));
-    c *= 1.0 + uDay * 0.06 * (vnoise(vec2(x * 0.8, (mod(vLane, 64.0) + z) * 2.2)) - 0.5);
+    c *= 1.0 + uDay * 0.06 * (vnoise(vec2(x * 0.8, (lwOf(vLane) + z) * 2.2)) - 0.5);
     if (uVA * uDay > 0.5) {   // (VARIETY A — the asphalt by day: a fine aggregate, the wheel tracks' wear, an oil spot, hairline cracks)
-      float rl = mod(vLane, 64.0) + z;
+      float rl = lwOf(vLane) + z;
       c *= 0.9 + 0.13 * hash(floor(vec2(x * 70.0, rl * 70.0))) + 0.05 * vnoise(vec2(x * 9.0, rl * 9.0));
       c *= 1.0 - 0.07 * (smoothstep(0.1, 0.0, abs(z - 0.3)) + smoothstep(0.1, 0.0, abs(z - 0.7))) * (0.6 + 0.4 * vnoise(vec2(x * 1.3, rl)));
       float oh = hash(floor(vec2(x * 0.7, rl * 1.3)) + 2.1); c *= 1.0 - 0.18 * step(0.86, oh) * smoothstep(0.32, 0.05, length((fract(vec2(x * 0.7, rl * 1.3)) - 0.5) * vec2(1.0, 1.8)));
@@ -135,7 +138,7 @@ void main() {
     float dash = step(fract(x * 0.5 + b * 0.37), 0.52);
     float ln = smoothstep(0.04, 0.012, z) * (1.0 - curbD) + smoothstep(0.04, 0.012, 1.0 - z) * (1.0 - curbU);
     vec3 neon = mod(b, 2.0) < 0.5 ? DN(vec3(1.0, 0.62, 0.9), vec3(1.0, 0.84, 0.20)) : DN(vec3(0.93, 0.86, 1.0), vec3(0.97, 0.97, 0.95));   // (H5B's add-on: the second line pale lilac — never cyan: blue on the ground = water)
-    float rly = mod(vLane, 64.0) + z;
+    float rly = lwOf(vLane) + z;
     c = seaRoad(c, x, z, rly, curbD, curbU);   // (J4 — PLOWED: slush banked along the curbs, the wheel ruts · JT1 — leaves in the gutters: the pack's)
     if (uWet > 0.001 && uDay < 0.5) c = wetRoad(c, x, vLane + z, vnoise(vec2(x * 0.5, rly * 0.4)));
     c = mix(c, neon * mix(0.62, 1.0, uDay), dash * ln);
