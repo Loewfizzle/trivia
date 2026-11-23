@@ -591,21 +591,65 @@ export function createNight(host, o = {}) {
     for (const m of L) { m.visible = false; m.frustumCulled = false; if (m.isInstancedMesh) m.setMatrixAt(0, new THREE.Matrix4()); scene.add(m); }
     return { L, g };
   })();
-  function warm() {
+  function warmOpen() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
     const seaBack = SP ? SP.warmIn() : null;
     for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish, ...flyWarm.L]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }
+    return { put, seaBack };
+  }
+  function warmShut({ put, seaBack }) {
+    for (const [m, v, y, c] of put) { m.visible = v; m.position.y = y; if (m.isInstancedMesh) m.count = c; }
+    if (seaBack) seaBack();
+    for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.done(); }
+  }
+  function warmPaint() {
+    const w0 = warmOpen();
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     if (!otherWarm && lookSet) {
       otherWarm = true; day = !day;
       try { lookGL(); renderer.compile(scene, cam); renderer.render(scene, cam); } catch { /* as above */ }
       day = !day; lookGL();
     }
-    for (const [m, v, y, c] of put) { m.visible = v; m.position.y = y; if (m.isInstancedMesh) m.count = c; }
-    if (seaBack) seaBack();
-    for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.done(); }
+    warmShut(w0);
     warmed++;
+  }
+  // SMOOTH 3 — THE WARM-UP: at a quiet frame (the start line, a run's end) the shaders are LINKED IN THE BACKGROUND first (KHR_parallel_shader_compile) and the
+  // last picture is held until they are in: the winter ground's link blocked the page for 1.1 s here when it was first drawn. The first draws then go ONE STAGE A
+  // FRAME (the scene · the glow · the other look), not all in one. Never mid-run, never past WARM_MAX; a phone without the extension warms as before.
+  const WARM_MAX = 4000;
+  let warmQ = null, warmHeld = 0, warmStage = 0, warmLater = false, warmCalm = 0;   // (warmCalm: frames the first tap still waits, until the GPU has caught up)
+  const warmBusy = mats => { for (const m of mats) { const P = renderer.properties.get(m).currentProgram; if (!P || P.isReady()) mats.delete(m); } return mats.size > 0; };
+  function warmStep(calm) {
+    if (!calm) { warmStage = 0; warmPaint(); return; }   // (the first hop came: the rest at once, as before)
+    const w0 = warmOpen();
+    try {
+      if (warmStage === 1) renderer.render(scene, cam);
+      else if (warmStage === 2) { if (bloom) bloom.render(scene, cam); }
+      else if (!otherWarm && lookSet) { otherWarm = true; day = !day; lookGL(); renderer.render(scene, cam); day = !day; lookGL(); }
+    } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
+    warmShut(w0);
+    if (++warmStage > 3) { warmStage = 0; warmed++; warmCalm = 30; }
+  }
+  function warm(calm) {
+    warmQ = null; warmStage = 0; warmCalm = 0;
+    const bg = SMOOTH && renderer.extensions.has('KHR_parallel_shader_compile');
+    // (a piece that lands MID-RUN — the flyers, the shops, the props: its shaders start linking in the background, and the full warm waits for the next quiet frame)
+    if (bg && !calm) { try { renderer.compile(scene, cam); } catch { /* as above */ } warmLater = true; return; }
+    if (bg) {
+      warmLater = false;
+      const w0 = warmOpen();
+      let mats = null;
+      try {
+        mats = new Set(renderer.compile(scene, cam));
+        if (!otherWarm && lookSet) { day = !day; lookGL(); for (const m of renderer.compile(scene, cam)) mats.add(m); day = !day; lookGL(); }
+      } catch { mats = null; }
+      warmShut(w0);
+      if (mats && warmBusy(mats)) warmQ = { mats, until: performance.now() + WARM_MAX };
+      else warmStage = 1;
+      return;
+    }
+    warmPaint();
   }
 
   /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (a match): … */
@@ -756,7 +800,11 @@ export function createNight(host, o = {}) {
     const areaOn = !day || TL.lamps > 0.5;
     if (SP) fogCheck();
     if (SP && (run.t === 0 || run.st === 'out' || run.st === 'taken')) SP.quiet();
-    if (needWarm && w && h) { needWarm = false; warm(); }
+    { const calm = run.t === 0 || run.st === 'out' || run.st === 'taken';
+      if (warmLater && calm) needWarm = true;
+      if (needWarm && w && h) { needWarm = false; warm(calm); }
+      if (warmQ) { if (calm && !snapAsk && performance.now() < warmQ.until && warmBusy(warmQ.mats)) { warmHeld++; return; } warmQ = null; warmStage = 1; }
+      if (warmStage) warmStep(calm); else if (warmCalm) warmCalm = (dt < 22 ? Math.min(warmCalm, 3) : warmCalm) - 1; }
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
     if (run.st === 'out' || run.st === 'taken') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
@@ -1289,7 +1337,7 @@ export function createNight(host, o = {}) {
     },
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
-    el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
+    el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0 || warmCalm > 0,
     /** J4 — THE SEASON: prepSeason(s) starts THE SEASONAL PACK (in season only) · setSeason(s, { wet }) for the run starting now → what it applied */
     prepSeason, setSeason, season: () => ({ ...SZ, wet: wetOn ? SZ.wet : 0, pack: !!KM['w-pine'], sp: SP ? SP.info() : null }),
     /** JT1 — the pack's sounds (a leaf pile's crunch · the fireworks): fn(id) — the view plays them through its own sfx (the switches kept) */
@@ -1311,7 +1359,7 @@ export function createNight(host, o = {}) {
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
     /** (the lab's measure) the ground reads no sun map: what its four samples cost */
     sunSampleOff(v) { shOff = !!v; },
-    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, warming: !!warmQ || warmStage > 0 || warmCalm > 0, warmHeld, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */

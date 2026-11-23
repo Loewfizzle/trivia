@@ -15,7 +15,7 @@ test('THE ONE-OFF SPIKE: the scene never reads a canvas back mid-run; a hidden g
 });
 
 test('THE ONE-OFF SPIKE: the flyers\' three programs + the first banner are warmed before anyone plays', () => {
-  const n = read('js/games/jaywalk/night.js'), w = between(n, 'const flyWarm = (() => {', 'function warm()');
+  const n = read('js/games/jaywalk/night.js'), w = between(n, 'const flyWarm = (() => {', 'function warmOpen()');
   assert.match(w, /new THREE\.Mesh\(g, new THREE\.MeshStandardMaterial\(\{ vertexColors: true \}\)\)/, 'the UFO\'s settings');
   assert.match(w, /InstancedMesh\(g, new THREE\.MeshStandardMaterial\(\{ vertexColors: true, side: THREE\.DoubleSide \}\), 1\)/, 'the jet\'s settings');
   assert.match(w, /InstancedMesh\(g, new THREE\.MeshBasicMaterial\(\{ vertexColors: true, fog: false, toneMapped: false \}\), 1\)/, 'the flame\'s settings');

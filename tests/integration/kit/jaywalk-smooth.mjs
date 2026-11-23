@@ -270,33 +270,59 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     const [, r0, r1] = what.split(':'), reps = Number(r0) || 3, rate = Number(r1) || 4, SECS = 10;
     const FIRST = { 'summer night': '&tod=night&weather=clear&date=2026-07-15', 'dec 24 heavy night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy', 'dec 24 heavy noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy' };
     const spy = () => {
-      const S = window.__first = { on: 0, fr: [], gl: [] }, P = WebGL2RenderingContext.prototype;
+      const S = window.__first = { on: performance.now() || 1, hop: 0, fr: [], gl: [] }, P = WebGL2RenderingContext.prototype;
       const wrap = (name, size) => { const f = P[name]; P[name] = function (...a) { const t = performance.now(), r = f.apply(this, a), d = performance.now() - t; if (S.on) S.gl.push([name, Math.round(t - S.on), +d.toFixed(2), size ? size(a) : 0]); return r; }; };
       for (const n of ['linkProgram', 'compileShader', 'getProgramParameter']) wrap(n);
       wrap('bufferData', a => (typeof a[1] === 'number' ? a[1] : a[1] ? a[1].byteLength : 0));
       for (const n of ['texImage2D', 'texSubImage2D', 'texStorage2D']) wrap(n, a => { const v = a[a.length - 1]; return v && v.byteLength ? v.byteLength : 0; });
+      // (what a tiled phone GPU builds at a draw: a pipeline per program + target + blend + cull + depth write. A combination first drawn DURING the run is a stall there)
+      S.seen = new Map(); S.pre = 0; S.late = [];
+      const names = new WeakMap(); let pg = null, tg = 'main', bl = 0, cu = 0, dm = 1, bf = '';
+      const nameOf = (gl, x) => { if (!x) return 'none'; let n = names.get(x); if (!n) { try { const v = gl.getAttachedShaders(x) || [], src = v.map(o => gl.getShaderSource(o) || '').join(''), m = /#define SHADER_NAME (\S+)/.exec(src); let h = 0; for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) | 0; n = `${m ? m[1] : 'shader'}#${(h >>> 0).toString(36).slice(0, 4)}`; } catch { n = '?'; } names.set(x, n); } return n; };
+      const hook = (name, after) => { const f = P[name]; P[name] = function (...a) { after.call(this, a); return f.apply(this, a); }; };
+      hook('useProgram', function (a) { pg = nameOf(this, a[0]); });
+      hook('bindFramebuffer', function (a) { if (a[0] !== this.READ_FRAMEBUFFER) tg = a[1] ? 'target' : 'main'; });
+      hook('enable', function (a) { if (a[0] === this.BLEND) bl = 1; if (a[0] === this.CULL_FACE) cu = 1; });
+      hook('disable', function (a) { if (a[0] === this.BLEND) bl = 0; if (a[0] === this.CULL_FACE) cu = 0; });
+      hook('blendFunc', function (a) { bf = a.join(','); }); hook('blendFuncSeparate', function (a) { bf = a.join(','); }); hook('depthMask', function (a) { dm = a[0] ? 1 : 0; });
+      for (const d of ['drawArrays', 'drawElements', 'drawArraysInstanced', 'drawElementsInstanced']) hook(d, function () { const k = `${pg} ${tg} ${bl ? `blend ${bf}` : 'opaque'} cull${cu} z${dm}`; if (S.seen.has(k)) return; S.seen.set(k, 1); if (S.on) S.late.push([Math.round(performance.now() - S.on), k]); else S.pre++; });
       let l = 0; const loop = t => { if (S.on && l) S.fr.push([Math.round(t - S.on), +(t - l).toFixed(1)]); l = t; requestAnimationFrame(loop); }; requestAnimationFrame(loop);
     };
+    // (a NEW BROWSER a run: the GPU process keeps linked programs in memory, so a second page in one browser never shows the first-time cost. The page opens as the
+    //  owner's link does; the first hop comes 1.5 s after it is ready, as a player's first tap would)
+    const { default: pptr } = await import('./puppeteer.mjs'), { guardUrl } = await import('./live-guard.mjs');
     const one = async (sq, base) => {
-      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`, { ...(base ? { base } : {}), pre: async p => { await p.evaluateOnNewDocument(spy); const c = await p.createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate }); } });
-      await up(o.p);
-      await o.p.evaluate(() => { const J = window.__jwLab; window.__first.on = performance.now(); J.restart('solo', 'perfseed7'); J.bot(true); setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
-      await sleep(SECS * 1000 + 300);
-      const r = await o.p.evaluate(s => { const F = window.__first; return { fr: F.fr.filter(x => x[0] <= s * 1000), gl: F.gl.filter(x => x[0] <= s * 1000), pack: !!window.__jwLab.view.season().pack }; }, SECS);
-      errs.push(...o.errs); await o.close();
+      const br = await pptr.launch({ executablePath: process.argv[2], headless: true, args: ['--enable-gpu', '--use-angle=d3d11', '--enable-webgl', '--ignore-gpu-blocklist'] });
+      let r;
+      try {
+        const p = await br.newPage();
+        p.on('pageerror', e => errs.push(String(e.message || e)));
+        await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+        await p.evaluateOnNewDocument(spy);
+        const c = await p.createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate });
+        await p.goto(guardUrl(`${base || process.env.E2E_BASE || 'http://localhost:5173'}/jaywalk-lab?emu&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`, 'jaywalk-lab'), { waitUntil: 'load' });
+        await up(p);
+        await sleep(1500);
+        await p.evaluate(() => { const J = window.__jwLab, F = window.__first; J.bot(true); const w = setInterval(() => { if (J.state().t > 0) { F.hop = performance.now() - F.on; clearInterval(w); } }, 8); setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
+        await waitFor(p, 'window.__first.hop > 0', 8000);   // (play = the run's first tick: the first tap waits for the warm-up)
+        await sleep(8800);
+        r = await p.evaluate(() => { const F = window.__first, i = window.__jwLab.view.info(), end = F.hop + 8500; return { fr: F.fr.filter(x => x[0] <= end), inPlay: F.fr.filter(x => x[0] > F.hop && x[0] <= end).map(x => x[1]), gl: F.gl.filter(x => x[0] <= end), late: F.late.filter(x => x[0] > F.hop), pre: F.pre, held: i.warmHeld || 0, pack: !!window.__jwLab.view.season().pack }; });
+      } finally { await br.close(); }
       const dts = r.fr.map(x => x[1]), S = stutterOf(dts), sum = n => r.gl.filter(x => x[0] === n), kb = r.gl.filter(x => /^(bufferData|tex)/.test(x[0])).reduce((a, x) => a + x[3], 0) / 1024;
       const glMs = r.gl.reduce((a, x) => a + x[2], 0), worstGl = r.gl.reduce((w, x) => (x[2] > w[2] ? x : w), ['', 0, 0, 0]);
-      return { ...S, links: sum('linkProgram').length, compiles: sum('compileShader').length, kb, glMs, worstGl, bigAt: r.fr.filter(x => x[1] > 33.4).map(x => `${(x[0] / 1000).toFixed(1)}s:${x[1].toFixed(0)}`).slice(0, 12).join(' ') };
+      const P = stutterOf(r.inPlay);
+      return { ...S, playN: P.n, playBig: P.big, playDrops: P.drops, playWorst: P.worst, held: r.held, late: r.late, pre: r.pre, links: sum('linkProgram').length, compiles: sum('compileShader').length, kb, glMs, worstGl, bigAt: r.fr.filter(x => x[1] > 33.4).map(x => `${(x[0] / 1000).toFixed(1)}s:${x[1].toFixed(0)}`).slice(0, 12).join(' ') };
     };
-    const lines = ['| scene | code | frames | dropped | BIG | worst ms | programs linked in the run | uploads KB | GL calls ms |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'];
+    const lines = ['| scene | code | worst frame from page load, ms | BIG from page load | BIG in play (first hop on) | worst in play, ms | pipelines first drawn in play |', '| --- | --- | --- | --- | --- | --- | --- |'];
     for (const [name, sq] of Object.entries(FIRST)) {
       const got = { before: [], after: [] };
       for (let rep = 0; rep < reps; rep++) for (const which of (abBase ? (rep % 2 ? ['after', 'before'] : ['before', 'after']) : ['after'])) {
         const R = await one(sq, which === 'before' ? abBase : null);
         got[which].push(R);
-        console.log(`     FIRST ${which} ${name} (run ${rep + 1}): ${stutterLine(R)} · links ${R.links} · uploads ${R.kb.toFixed(0)} KB · GL ${R.glMs.toFixed(0)} ms (worst ${R.worstGl[0]} ${R.worstGl[2]} ms at ${(R.worstGl[1] / 1000).toFixed(1)} s) · BIG at ${R.bigAt || '—'}`);
+        console.log(`     FIRST ${which} ${name} (run ${rep + 1}): ${stutterLine(R)} · links ${R.links} · uploads ${R.kb.toFixed(0)} KB · GL ${R.glMs.toFixed(0)} ms (worst ${R.worstGl[0]} ${R.worstGl[2]} ms at ${(R.worstGl[1] / 1000).toFixed(1)} s) · BIG at ${R.bigAt || '—'} · held ${R.held} · IN PLAY: ${R.playBig} big, worst ${R.playWorst.toFixed(0)} ms · pipelines first drawn in play ${R.late.length}`);
+        if (process.env.FIRST_LIST) for (const [t, k] of R.late) console.log(`        LATE ${(t / 1000).toFixed(2)} s  ${k}`);
       }
-      for (const which of ['before', 'after']) { const L = got[which]; if (!L.length) continue; const av = f => L.reduce((a, x) => a + x[f], 0) / L.length; lines.push(`| ${name} | ${which} | ${Math.round(av('n'))} | ${av('drops').toFixed(1)} | ${av('big').toFixed(1)} | ${Math.max(...L.map(x => x.worst)).toFixed(0)} | ${av('links').toFixed(1)} | ${av('kb').toFixed(0)} | ${av('glMs').toFixed(0)} |`); }
+      for (const which of ['before', 'after']) { const L = got[which]; if (!L.length) continue; const av = f => L.reduce((a, x) => a + x[f], 0) / L.length; lines.push(`| ${name} | ${which} | ${Math.max(...L.map(x => x.worst)).toFixed(0)} | ${av('big').toFixed(1)} | ${av('playBig').toFixed(1)} | ${Math.max(...L.map(x => x.playWorst)).toFixed(0)} | ${(L.reduce((c, x) => c + x.late.length, 0) / L.length).toFixed(1)} |`); }
     }
     console.log(lines.join('\n'));
     if (out) { const f = join(out, 'first', `first-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }

@@ -354,6 +354,7 @@ export function createView() {
   }
   const tickNow = () => { const x = (srvNow() - go) * TICK_HZ / 1000, t = Math.floor(x); return { t, a: x - t }; };
 
+  let startAsk = null;
   function hop(d) {
     if (waitTap) { begin(d); return; }
     if (mode !== 'run' || (run && isOver(run)) || queue.length >= 2 || tickNow().t < 0) return;
@@ -372,7 +373,8 @@ export function createView() {
   /** the FIRST hop / tap / A: the run starts NOW — a solo run asks its GO (the stamp first), the daily opens its try; a hop is carried to tick 0 */
   function begin(d) {
     if (!waitTap || gone) return;
-    waitTap = false; hideStart();
+    if (night && night.warming && night.warming()) { startAsk = { d }; return; }   // (SMOOTH 3: the first tap waits for the shaders to finish, so the run never starts on a stall)
+    startAsk = null; waitTap = false; hideStart();
     if (d && !D) firstHop = d;
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
     sync();
@@ -720,6 +722,7 @@ export function createView() {
     if (isMatch || D) drawCount(g);
     drawLines(mine(g) && drawRun === run);
     night.draw(drawRun, course, a, dt, extra); duckMoment();
+    if (startAsk && !night.warming()) { const q = startAsk; startAsk = null; begin(q.d); }
     if (shotAt && performance.now() >= shotAt) takeShot();
     // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward …
     const placed = [], counting = !!rosterEl && rosterEl.classList.contains('is-on');
@@ -880,9 +883,9 @@ export function createView() {
     update(state) { st = state; if (matchLeft()) lateProof('seen');
       if (night) sync(); },
     unmount() {
-      gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer); document.body.classList.remove('jw-on');
+      gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
       if (offGL) offGL();
-      document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('visibilitychange', onVis); document.body.classList.remove('jw-on');
       awake(false);
       if (mode === 'run' && run && !isOver(run)) flush(true);
       if (W) W.close();
