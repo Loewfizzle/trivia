@@ -7,7 +7,7 @@ export const CAM = Object.freeze({ fov: 54, up: 16, back: 12, width: 9.42, kidAt
 export const ZOOMS = Object.freeze([7, 8, 9]);
 export const ZOOM = 8;
 export const ANGLES = Object.freeze(['straight', 'turned']);
-export const ANGLE = 'straight';   // (H3 — the owner's pick so far, Nov 16: ZOOM 8 + STRAIGHT; the lab keeps both switches — a later pass flips it in this one line)
+export const ANGLE = 'straight';
 /** THE TURN: the one tuned number — the camera sits this many degrees round the kid (to his right), so "up the course" runs up + a little right */
 export const TURN_DEG = 12;
 /** the follow never shows more than this many columns past the play area's edge (the dim edge column = the cue) */
@@ -17,8 +17,7 @@ export const EASE_MS = Object.freeze({ x: 140, y: 105, set: 170 });
 const DIST = Math.sqrt(CAM.up * CAM.up + CAM.back * CAM.back), KID_PITCH = Math.atan2(CAM.up, CAM.back), NDC = 2 * CAM.kidAt - 1;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-/** the lens for a screen shape (aspect = width / height): the vertical fov (degrees) that puts exactly ZOOM columns across at the kid's row,
- *  + how far ahead of him (in rig units) the camera aims so his feet sit KID_AT down the screen. PURE. */
+/** the lens for a screen shape (aspect = width / height): the vertical fov (degrees) that puts exactly ZOOM columns across at the kid's row, … */
 export function lensFor(aspect) {
   const q = CAM.width / 2 / DIST / (aspect > 0 ? aspect : 0.462);
   // (the kid sits below the lens's centre, a touch nearer than the rig's distance: T / √(1 + NDC² T²) = q)

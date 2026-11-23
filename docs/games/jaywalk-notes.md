@@ -1151,3 +1151,1402 @@ one of these modules writes its long notes HERE (or in docs/jaywalk.md) and keep
 // cards — vault/strip.js): the CSS size, then shrunk to fit down to o.min, then — only if it still can't fit at the minimum — an ELLIPSIS
 // (`fit-cut`). Never the two-line split. (The full card, the podium, the dress keep the rule above: whole, two lines.)
 ```
+
+## VARIETY B2 — THE TRAILING NOTES + THE DOC BLOCKS (moved out of the start bundle, Nov 22 2026)
+
+Every trailing `//` note (≥ 30 characters) and every multi-line `/** … */` block of JAYWALK's own preloaded modules moved here VERBATIM (a block keeps its first line + " …" in the code). Token-identical code (acorn's token streams compared, every file). Listed per module in file order: a trailing note under the code it ended (its first 100 characters), a block "before" the code line that follows it.
+
+### js/games/jaywalk/areas.js
+
+- before `export const LOOKS = Object.freeze([`:
+
+```js
+/**
+ * THE LOOK of each area (index = course.js#area(lane).index): `accent` (its gateway's neon + its signs), `paint` (H5B — its gateway BY DAY), `hero` (H5B — the pieces beside its gate), `sky` (the skyline band's
+ * tint), `lamp` (its street lamps' light) + `lampEvery` (a lamp every n-th ground lane), `obs` (what an obstacle on a PLAY cell is —
+ * every one stands knee-high or taller and reads as solid), `edge` + `edgeP` (the dressing in the edge columns of a ground lane and how
+ * often), `tufts` (grass tufts on its ground), `sig` — its SIGNATURE PIECES ([what, the lane of the stretch it stands nearest to]):
+ * the dock crane, the neon fish, the bridge's towers, THE LIGHTHOUSE, the control tower, the hangars, the moored boats.
+ */
+```
+- `{ g: cyl(0.15, 0.2, 0.5), color: 0x57504c, at: [0, 0.25, 0], shade: by([0.7, 0.9]) },` — // (warm iron — the review: the bollards read indigo-blue by night)
+- `{ g: roundBox(0.72, 0.16, 0.52, 0.07, 2), color: 0xf4f6f4, at: [0, 0.46, 0] },` — // (the ice: white — never pale blue: blue on the ground = water)
+- `const CONTAINER_HEX = [0xd8472f, 0xb5522f, 0x3ea86a, 0xe8a02a, 0x8a5fd0, 0xd8d8e0];` — // (H5C: no blue box — blue on the ground = water, the props too)
+- before `export function dressLane(d, T, i, L, h) {`:
+
+```js
+/**
+ * what stands on a ground lane of an area (view only — from the seed + the lane: the same picture on every phone). `h(a, b)` = the
+ * scene's own hash (0 … 1) for this lane. Fills d = { obs: [{ c, k, s, ry, dx, dz, r (a second random), edge? }], lamp, lampHex }.
+ * An obstacle on a PLAY cell is one of the area's solid pieces; everything else here stands in the two dim edge columns.
+ */
+```
+- before `export function sigOf(course, s, pick) {`:
+
+```js
+/**
+ * THE SIGNATURE PIECES of one stretch (view only): [{ y0, side (−1 left | 1 right), what, n }] — each on the lane nearest its place
+ * that can hold it: THE CRANE + the bridge's towers STRADDLE their lanes (their thin legs stand on the lane lines — the cars, the
+ * logs, the trains run between them), so any lane but a flight path / a gateway; the rest stand on a GROUND lane's edge column (a
+ * moored boat: a ground lane beside water when there is one). Sides alternate from the seed; the towers come in pairs.
+ */
+```
+- before `/** a BIG edge piece (it takes the whole edge column of its ground lane): q = dressLane's entry, x0 `:
+
+```js
+/** the scene's context for the two draw functions: { K (its kinds), A (the areas' kinds), KM + BOX (Kenney's + the landmarks'), X, Z,
+ *  lt (how lit the lane is: the blackout), on (its lights are on), T (the area's look), h (a hash 0 … 1), course } */
+```
+- `if (shop && c.SH && c.SH(q, x, z, dim, lt, on, c.day, sg)) return;` — // (H6B — shops.js, on demand: Kenney's storefronts; this box until they land)
+- `if (c.day) {` — // (BY DAY: dark glass, a shop's sign a PAINTED board — no light thrown)
+- before `export function drawSig(P, c) {`:
+
+```js
+/** ONE signature piece (its lane is being laid). → { beam: [x, y, z] } where THE LIGHTHOUSE's lamp is (the scene sweeps its beam
+ *  over the lanes) · { sign: [x, y, z] } where THE NEON FISH hangs */
+```
+- `const hot = k => (c.day ? lt * Math.min(1.12, (c.ek || 0.5) * 1.4 * k) : dim * k);` — // (by day the sun lights a pale piece: never blown out)
+- before `export function drawFishSign(c, w, hgt, day = false) {`:
+
+```js
+/** THE NEON FISH (the fish market's sign) on a canvas: a fish in neon tubes + its eye — drawn once a look (H5B — by DAY a painted
+ *  board: an orange fish, a white edge) */
+```
+
+### js/games/jaywalk/arrival.js
+
+- `import { area } from './course.js';` — // (the area table — PURE; the colours come in from the caller: areas.js#LOOKS needs three.js)
+- before `export function createArrival(parent, LOOKS) {`:
+
+```js
+/** the banner on `parent` (the game's / the lab's stage), the areas' colours = areas.js#LOOKS ({ accent, paint } an area) →
+ *  { show(lane, look) → shown?, hide(), on(), text(), destroy() } */
+```
+- `el.classList.remove('is-on'); void el.offsetWidth; el.classList.add('is-on');` — // (the entrance again from its start — once a crossing, never in a frame)
+
+### js/games/jaywalk/camera.js
+
+- `export const ANGLE = 'straight';` — // (H3 — the owner's pick so far, Nov 16: ZOOM 8 + STRAIGHT; the lab keeps both switches — a later pass flips it in this one line)
+- before `export function lensFor(aspect) {`:
+
+```js
+/** the lens for a screen shape (aspect = width / height): the vertical fov (degrees) that puts exactly ZOOM columns across at the kid's row,
+ *  + how far ahead of him (in rig units) the camera aims so his feet sit KID_AT down the screen. PURE. */
+```
+
+### js/games/jaywalk/causes.js
+
+- `import { VARIETY_IDS, VARIETY_LINES, varietyAt, varietyKnown } from './variety.js';` — // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot — cosmetic)
+- before `export function plainAt(course, lane, j) {`:
+
+```js
+/**
+ * THE ONE SOURCE OF TRUTH: which vehicle the j-th mover of ROAD lane `lane` of this course IS — a 1-cell car = a sedan / a hatchback /
+ * a taxi (from the course's seed + the lane + its place in the lane), 2 cells = the van, 3 = THE BOX TRUCK. '' = not a car.
+ * The night look draws by it; the end screen's line names it.
+ */
+```
+- before `export function vehicleAt(course, lane, j) {`:
+
+```js
+/** VARIETY B1 — THE AREA TRAFFIC: the slot's AREA model (variety.js — the course's seed, its own draw) once that model has come in on this page
+ *  (a slow network: the plain vehicle is drawn, and named) — else the plain one (plainAt). The same answer the night look draws by. */
+```
+- before `export function hitVehicle(course, { y, x, end }) {`:
+
+```js
+/** the vehicle that hit a kid who went out by a car: { y: the lane, x: their centre (FP), end: the tick } on this course → its kind.
+ *  The one on them at that tick — the engine's own box; were none found (never, for a real car hit) the NEAREST on the lane: a car hit
+ *  always names a vehicle that is on the screen ('' only when the lane is no road at all) */
+```
+- before `export const CAUSE_LINES = Object.freeze({`:
+
+```js
+/** THE WORDS — one line per cause + vehicle (≤ 2 short lines at phone size; no emoji, no dev text). NO generic car line: a car hit is
+ *  always one of the five vehicles */
+```
+- `if (taken || cause === 'taken') return SHIP_LINE;` — // (H6A — a finish line, not a death: never "TAKEN" in anything a player reads)
+- before `export function runLine(course, { cause = '', y = 0, x = 0, end = -1, lanes = 0, taken = false } = {`:
+
+```js
+/** the line of a finished run on its course (the game's views + the lab + the podium all come through here): { cause, y, x, end, lanes, taken }
+ *  + `look` (H5B — the look on this screen: 'day' | 'night') */
+```
+
+### js/games/jaywalk/course.js
+
+- before `export function area(lane) {`:
+
+```js
+/** THE AREA a lane is in (H5A — tuning.js#AREAS): { name, index (−1 = the opening, lanes 0–49 · 0 … 7), loop (0 = the first time
+ *  round, 1 = the loop's second lap …) } — lanes 50–99 THE DOCKS … 400–449 THE AIRFIELD, 450–499 THE DOCKS again */
+```
+- before `const OPENINGS = new Map();`:
+
+```js
+/**
+ * J2 — EVEN STARTS (v2 only — tuning.js#EVEN): the OPENING's kinds (lanes 0 … STRETCH − 1) for a seed, decided IN ORDER — each lane's raw
+ * kind (its own first draw, as in v1), then the spread tightened: a ground lane past the run / the window's cap becomes a hazard (its own
+ * second rng — the lane's own draws stay its own), a hazard past its run becomes ground; never more than 3 water — or 3 rail — in a row;
+ * no water before FIRST.water, no rail before FIRST.rail. PURE: a function of the seed alone (memoised, a few seeds at a time) — the
+ * same whatever lane is asked first, on the phone or the server.
+ */
+```
+- `const hazard = i => {` — // (a forced hazard: road · water · rail by the heat's own weights — never a 4th water / rail in a row)
+- before `const SPECIALS2 = new Map();   // (J2 — v2's stretches, a few at a time: every lane asks for its str`:
+
+```js
+/** A STRETCH's SPECIALS (the 50 lanes after a landmark): THE UFO (from lane 100) or THE BLACKBIRD's flight path (from lane 150) — rare, from
+ *  the seed, NEVER both in one stretch. → { s, ufo: zone | null, bb: band | null } */
+```
+- `const SPECIALS2 = new Map();` — // (J2 — v2's stretches, a few at a time: every lane asks for its stretch's, and a runway's layout is checked as it is made)
+- before `function specials2(seed, s) {`:
+
+```js
+/**
+ * J2 — A STRETCH's SPECIALS, COURSE RULES v2 (tuning.js#RUNWAY): THE UFO as in v1 (its zone drawn from the same stream — from lane 100,
+ * capped lower) or THE BLACKBIRD's RUNWAYS — from lane RUNWAY.first, more often from 250, THE AIRFIELD full of them; never both in one
+ * stretch. → { s, ufo, bb: null, bb2: null, rw: [{ id, y0, n, lanes: [the pulse of each lane] }] }
+ */
+```
+- `const a = ri(rand, 8, 30); ri(rand, 10, 38);` — // (the UFO's zone + drift: v1's own draws, in v1's order)
+- `for (let j = n - 1; j > 0; j--) { const q = ri(R, 0, j), t = slots[j]; slots[j] = slots[q]; slots[q]` — // (the order the jets come in: shuffled)
+- before `export function runwaySlack(lanes) {`:
+
+```js
+/**
+ * J2 — FAIR BY CONSTRUCTION: how many start ticks of a lap a CAREFUL kid on the safe lane before a runway can leave from and get across —
+ * waiting (on a lane while it is quiet) + hopping up (a hop = HOP_TICKS: the lane it left for the first half, the next one after —
+ * engine.js). A lane counts as deadly through its pass + its trail at EVERY column (the jet crosses the lane in `pass` ticks: the
+ * strictest column for each tick). PURE, integers: a backward pass over three laps of (lane, tick).
+ */
+```
+- before `export function runwayWait(lanes) {`:
+
+```js
+/**
+ * J2 FIX — FAIR BY CONSTRUCTION, the wait: the LONGEST a careful kid (the same model as runwaySlack — every column, waiting + hopping) can be
+ * kept from the safe lane before a runway to the safe lane after it, beyond the hops themselves, over every start tick of a lap (ticks).
+ * PURE, integers: a backward pass of the earliest arrival over four laps. (A start no way across in that horizon = a huge number.)
+ */
+```
+- before `export function typeAt(seed, i, sp = null, cv = 1) {`:
+
+```js
+/** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the
+ *  landmark lanes, the flight path's bands, no water / rail under a UFO, never more than 3 water — or 3 rail — lanes in a row). Reads raw kinds only: no recursion. */
+```
+- `while (n < i && rawType(seed, i - 1 - n) === t) n++;` — // (the raw run behind this lane — it ends at the calm opening at the latest)
+- before `export function buildLane(seed, i, cv = 1) {`:
+
+```js
+/**
+ * ONE LANE — pure by (seed, lane index): { i, type, heat, mark (its landmark's name | null — the GATEWAY into that area), ufo (THE UFO whose beam can reach it | null),
+ *   grass:  obs [9 × 0 | 1]
+ *   road / water:  dir, v, period, pad, items [{ off, len }]   (cars · logs)
+ *   rail / flight: pulse { period, phase, tell, pass, len, v, dir (+ band, n: the flight path's lanes share ONE pulse) } }
+ */
+```
+- `const rand = laneRand(seed, i); rand();` — // (the first draw was the raw kind)
+- `const wet = !calm && (typeAt(seed, i - 1, null, cv) === 'water' || typeAt(seed, i + 1, null, cv) ===` — // (a log's rider may step off anywhere)
+- `const dir = i % 2 ? 1 : -1;` — // (two water lanes side by side always run OPPOSITE ways: a rider always meets the next lane's logs)
+- `} else lane.pulse = bandAt(sp, i).pulse;` — // (THE FLIGHT PATH: every lane of the band shares the band's one pulse)
+- `if (p.trail && u < p.pass + p.trail) return { st: 'trail', k, s: u - p.pass, left: p.period - u };` — // (J2 — v2's RUNWAYS: THE AFTERBURNER TRAIL burns on — still deadly)
+- `const key = String(seed), lanes = new Map(), keep = o.keep || 700, cv = o.cv === 2 ? 2 : 1;` — // (J2: the COURSE VERSION — 1 unless asked)
+
+### js/games/jaywalk/cues.js
+
+- `bellBehind: 2, bellAhead: 6,` — // (a rail lane this near the kid — on his screen — rings the bell)
+- `hornReach: 2600,` — // (… when a car's nose is within 2.6 cells of him and closing — past the near miss's 1 cell)
+- before `export const TICK = Object.freeze({ far: 3.5, near: 1, levelFar: 0.18, rateFar: 0.85, rateNear: 1.75`:
+
+```js
+/** THE STOPWATCH (BEFORE THE FLIP): the dark's gap behind the kid (lanes) → silent at `far` and beyond (the wall waits 5 lanes back;
+ *  3.5 = just outside the old lights-dying's 3 — measured: ≈ 8 % of a moving bot's run, heard in half the runs; at 4.5 it was 24 %, every
+ *  run), then fading in from `levelFar` + speeding up to its loudest + fastest at `near` */
+```
+- before `export function carClosing(lane, tick, x) {`:
+
+```js
+/** the car on a ROAD lane nearest ahead of the kid's box that is driving AT him: → { gap (FP from its nose to his box), side (−1 it
+ *  comes from the left | 1 from the right), j (its place in the lane — causes.js#vehicleAt names it) } or null */
+```
+- before `export function cuesAt(S, run, course) {`:
+
+```js
+/**
+ * ONE TICK: the run after its step (alive), the course → the cues to play now: [{ cue, pan? }] (the engine's events are no longer read:
+ * the near miss made the car-pass, gone with H5B).
+ * S = createCues(). Deterministic: the same run + course give the same cues.
+ */
+```
+
+### js/games/jaywalk/daylook.js
+
+- before `export const BANDS = Object.freeze({ sunrise: 6, golden: 10, sunset: 2 });`:
+
+```js
+/** THE BANDS (the sun's elevation, °): the DAY look — whatever AUTO calls day — split into
+ *  sunrise = a morning under +6° · noon = above (morning ≥ +6°, evening ≥ +10°) · golden = an evening +10° … +2° · sunset = an evening under +2°
+ *  (into the blue hour) → night where the city says night (sky.js: about −10.5° in the morning, −9° in the evening) */
+```
+- before `export function lightsOf(tod, el) {`:
+
+```js
+/** THE LIGHTS by time (the owner, Nov 22): { cars, beams, neon, lamps } 0 … 1 — what glows in a DAY look (night = all 1, as always)
+ *  sunrise: the cars' head + tail lamps at HALF (small, crisp — no beams, no glow pools) + the neon switching OFF through the morning (the
+ *  city's own neon ramp) · noon + golden: none · sunset: the city's lamps ramp (around sunset) brings the lights ON, its neon ramp the neon */
+```
+- before `export function overcastDay(day) {`:
+
+```js
+/** OVERCAST (the owner): an occasional weather day picked by DATE — the same for everyone, about 1 day in 7, day looks only. `day` = the
+ *  run's own 4 am Eastern day key ('d20261124' — the season's: a match = its first GO's day) */
+```
+- before `export function resolveTod(choice, sun, day, force = {}) {`:
+
+```js
+/** the look one phone shows: { tod, look ('day' | 'night'), el, morning, overcast, lights } — `choice` = the GAME LOOK (auto · day · night),
+ *  `sun` = { el, morning } (sky.js — the phone's own place + clock, or the HOST's stamp in a match), `day` = the run's day key (overcast) */
+```
+- before `export const GRADE = Object.freeze({`:
+
+```js
+/** THE GRADE of each DAY look (+ OVERCAST over any of them) — night.js#lookGL + the ground shader + the band's css (`data-tod` / `data-wx`):
+ *  key [hex, intensity, the sun's height for the shadows °] · hemi [sky, ground, intensity] · fog = the far haze · warm = the ground's sunlit
+ *  tint · cool = its shadows' tint · sun = how strong the sun's shadows (0 = none) · len = how long (× noon) · cloud = the drifting cloud
+ *  shadows · dew = the sunrise's sparkle on the grass · shine = the cars' paint in the sun (envMapIntensity; roughness by `gloss`) */
+```
+- before `export async function sunAt(ms) {`:
+
+```js
+/** the sun at the phone's place now (core/sky.js — THE CITY's model: its place from the phone's zone, its day / night = kit/look.js#sunUpNow's
+ *  rule) → { el, morning, night } · null if the module can't load. The HOST's stamp at a match's start is the same object, packed (`stampOf`) */
+```
+- before `export const stampOf = s => (s ? { e: Math.round(s.el * 10) / 10, m: s.morning ? 1 : 0, n: s.night ?`:
+
+```js
+/** THE HOST's clock in a match (the owner): the sun at the match's start, packed into the start (`game.lk` — the host's own write, no new rule)
+ *  → { e, m, n } · back → the sun object */
+```
+
+### js/games/jaywalk/director.js
+
+- `seed: solo ? String(seed) : '',` — // (a MATCH's course is picked AFTER GO — the step count → play; a SOLO run's from its own GO — never this)
+- before `export const endedFor = (game, node, now, online) => !!(node && node.e) || now >= lastSeen(game, nod`:
+
+```js
+/** H4: has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the kid is out AND (offline)
+ *  a dropped signal has had its time to come back */
+```
+- before `export function liveOf({ code, matchId, tree, now, online = null }) {`:
+
+```js
+/**
+ * THE CONSOLE FIX — THE LIVE RUNS of a match (core/proof.js#liveGoers on this game's clock: THE FIRST GO's tick 0, THE MOTHERSHIP's cap
+ * + END_GRACE_MS, IDLE_OUT_MS, DROP_WAIT_MS): the on-time runs not ended yet, read from the proof nodes ALONE (never the host's game) —
+ * THE SERVER holds a report while any is (api/report.js), the podium waits for them (view.js). → { uids, until }
+ */
+```
+- before `export const nextRun = (game, { matchId, now }) => (game && game.phase === 'final' && game.mode === `:
+
+```js
+/** H3 — PLAY AGAIN after a SOLO run (PURE — the console's INSTANT AGAIN: games/kit/again.js): the NEXT solo run of a finished one — a new
+ *  match of its own (its own id, its own proof node, its own report), the same player, `play` at once. null = not a finished solo run. */
+```
+
+### js/games/jaywalk/engine.js
+
+- `t: 0, st: 'idle',` — // 'idle' | 'hop' | 'out' | 'taken'
+- `x: MID_COL * FP + FP / 2, y: 0,` — // the kid: centre x (FP), lane
+- `fx: 0, fy: 0, tx: 0, ty: 0, k: 0,` — // a hop in flight: from → to, k of HOP_TICKS
+- `best: 0, bestT: 0,` — // the farthest lane LANDED on + its tick (the ranking: lanes, then the earlier tick)
+- `sp: [],` — // J1 — SPLIT TIMES: sp[i] = the tick lane (i + 1) × SPLIT_EVERY was FIRST landed on
+- `bbBand: -1, bbK: 0, boom: 0,` — // THE BLACKBIRD's moment: standing on its lane when the tell began → hopped clear
+- `near: {}, took: {}, beam: -1,` — // THE UFO's: the ones whose beam swept beside the kid · the ones that took them
+- `carKey: -1,` — // (the near-miss event's latch)
+- `else { const col = colOf(tx); if (to.type === 'grass' && to.obs[col]) ok = false; else tx = col * FP` — // (off a log: snapped to its column)
+- `} else if (ok && (tx < 0 || tx > WIDTH)) ok = false;` — // (on the water the kid keeps their place along the log — never past the edge)
+- `if (run.y % SPLIT_EVERY === 0) run.sp.push(T);` — // (J1: `best` climbs one lane at a time — every multiple is landed on exactly once)
+- before `export function step(run, course, d, ev) {`:
+
+```js
+/**
+ * ONE TICK. `d` = this tick's hop ('' = none); `ev` (optional) collects the EVENTS for the view + the sounds:
+ *   hop { d } · bump { d } · land { on: 'ground' | 'wood' | 'water' } · best { lane } · landmark { lane, name } · near { lane } (a car within a
+ *   cell) · beam { id } (THE UFO's beam beside the kid) · boom (THE BLACKBIRD passed the lane they hopped clear of) · out { cause, lane } ·
+ *   taken { lane }
+ * (the WORLD's own moments — a train's tell, THE BLACKBIRD's tell + pass — are pure functions of (lane, tick): course.js#pulseAt.)
+ */
+```
+- `run.x += lane.dir * lane.v;` — // (riding: carried with the log)
+- `else if (d2 <= (u.r + FP) * (u.r + FP)) {` — // (the beam swept the cell beside them)
+- `else if (k === run.bbK && cy >= p.band && cy < p.band + p.n) run.bbBand = -1;` — // (still on it as it passed: no moment)
+- `splits: run.sp.slice(),` — // (J1 — SPLIT TIMES: [tick to 50, tick to 100, …] — only the ones reached)
+- `y: run.y, x: run.x,` — // (where the kid is / went out — the end screen names what hit them: causes.js)
+- `ufo: ids.some(id => !run.took[id]),` — // jaywalk-ufo: its beam swept beside them and THAT UFO never took them
+- `airfield: run.best >= LOOP_LANES,` — // jaywalk-airfield: lane 400 in ONE run — solo OR match (H6A)
+- `mothership: run.st === 'taken',` — // jaywalk-mothership (H6A): still in when THE MOTHERSHIP arrives (solo has none)
+- before `export function inputProblem(log, i, t, d, mode = 'solo') {`:
+
+```js
+/**
+ * THE HOP LOG's BOUNDS — ONE FUNCTION for the phone's recorder AND the judge (replay.js#logProblem): may entry `i` of `log` (tick `t`,
+ * way `d`) stand? → null, or why not. (The go-live review: the recorder knew only the 2-tick gap — a tap in the Mothership's own tick,
+ * or 21 taps in a second, wrote a log the judge refused WHOLE. An input the recorder does not log is not played either.)
+ */
+```
+
+### js/games/jaywalk/ghosts.js
+
+- `const copyRun = (to, r) => { Object.assign(to, r); to.near = { ...r.near }; to.took = { ...r.took };` — // (J1: the splits too — never one array for two runs)
+- `if (at < cf.t) { G.ci++; continue; }` — // (never: the log's ticks rise)
+- `const sure = G.done && G.ci >= lg.length;` — // (their whole log is here AND applied: what the rules say next is what happened)
+- `Object.assign(G.keep, r); G.keep.sp = r.sp.slice();` — // (J1 — the review: its own splits)
+- before `export function tagGroups(items) {`:
+
+```js
+/**
+ * H5B's add-on — STACKED TAGS MERGE (the owner: never a pile of name tags): ghosts standing on the same / touching squares share ONE
+ * tag — the leader's name + "+N" ("MIKIE +2"). PURE: items = [{ id, x (cells), y (lane), best, name }] (the ghosts whose tag may show)
+ * → [{ lead (its id), text, ids }] — a group = everything joined by touching squares (a chain counts); its leader = the farthest
+ * along (best, then the lane it stands on, then the id — the same on every phone).
+ */
+```
+
+### js/games/jaywalk/index.js
+
+- before `export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dat`:
+
+```js
+/** H5B — THE MUSIC FOLLOWS THE LOOK (the existing mood stations): the day deck by day, the evening deck by night — `meta.MUSIC` stays
+ *  the podium's + the fallback */
+```
+- `export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('j` — // (THE FIX PASS — P1: three.js through the import map — Safari < 16.4 gets a clear card, never a blank match)
+- `lazyImport(import('./variety.js'), './variety.js').then(M => M.warmVariety && M.warmVariety()).catch` — // (VARIETY B1 — the opening's area traffic)
+- `lazyImport(import('./props.js'), './props.js').then(M => M.warmProps && M.warmProps()).catch(() => {` — // (VARIETY B2 — the opening's trees + edge pieces: the module + its files)
+
+### js/games/jaywalk/lines.js
+
+- `export const LINE_HEX = Object.freeze({ best: 0xffc53a, friend: 0xff4fd8 });` — // (H5B's add-on — the owner: the friend line is NEON PINK, never blue / cyan — a pale cyan band across a lane read as a strip of water)
+- before `export const FADE_FAR = 4, FADE_NEAR = 1;`:
+
+```js
+/** JT2 — THE FRIEND LINE FADES as the kid comes: `ahead` = its lane − the kid's (a float while he hops) → 1 at ≥ FADE_FAR lanes ahead,
+ *  0 at ≤ FADE_NEAR (smooth between) — it never sits over the lane he is about to cross; the crossing's burst draws on its own */
+```
+- before `export function parseTable(rows) {`:
+
+```js
+/**
+ * the table's rows ([{ n, v, me? }] — api/_lib/friends.js#boardTable: you + your friends who have a best) →
+ * { best: your own server-counted best (0 = none yet), friends: [{ n, v }] — the nearest first (lowest lanes first) }
+ */
+```
+- before `export function nextFriend(friends, reached) {`:
+
+```js
+/** THE NEXT FRIEND: the lowest friend best the player has not passed yet — its line lies at the far edge of that lane, so a player
+ *  standing ON the friend's lane (level with them) still has it right ahead; one lane more crosses it (null = none ahead — no line) */
+```
+- before `export function linesFor({ best = 0, friends = [], reached = 0, solo = true } = {}) {`:
+
+```js
+/**
+ * what the scene draws right now → { best: { lane, text } | null, friend: { lane, text } | null }
+ * `best` = your server-counted best (0 = none) · `friends` = parseTable's · `reached` = the farthest lane landed on this run ·
+ * `solo` = a solo run (a match draws YOUR BEST alone)
+ */
+```
+
+### js/games/jaywalk/logic.js
+
+- `export const END_GRACE_MS = 4000;` — // (after THE MOTHERSHIP's tick: the last chunks land)
+- before `export const DROP_WAIT_MS = CLOCK.drop;`:
+
+```js
+/** THE DROPPED SIGNAL in a match: a player whose proven log says OUT but whose own end never arrived is waited for this long (their
+ *  phone may be offline with hops still queued) before the match ends without it */
+```
+- before `export const seedOf = (code, matchId, go) => 'g${hashString('${code}:${matchId}:${go}').toString(36)`:
+
+```js
+/**
+ * THE COURSE IS PICKED AFTER GO (H3 — the owner, Nov 16): the seed = hash(room code + matchId + a SERVER time the rules enforce — a proof
+ * node's `go`: === now, written once). Nobody knows the course before the run is on the clock: no one can shop for an easy one. PURE —
+ * the phone and the server derive the same seed. SOLO: the player's own GO. A MATCH (H4): THE FIRST GO (below).
+ */
+```
+- before `export { firstGo };   // (THE PROOF PASS: ONE copy — core/proof.js, HIGH RISE's too)`:
+
+```js
+/**
+ * H4 — THE FIRST GO: the EARLIEST `go` among a match's proof nodes (0 = none yet). Every phone writes its own GO in the count's last 2 s;
+ * the server stamps each on arrival, and a later arrival always carries a later time — so the first GO is FINAL the moment it lands, the
+ * same on every phone and on the server, whoever the host is (in practice the host's phone is as likely as any — nobody chooses the
+ * millisecond). The match's course = seedOf(code, matchId, that time); its tick 0 = that time + GO_LEAD_MS.
+ */
+```
+- `export { firstGo };` — // (THE PROOF PASS: ONE copy — core/proof.js, HIGH RISE's too)
+- before `export function startOf(game, runs, code) {`:
+
+```js
+/**
+ * H4B — THE NODES ARE THE TRUTH: the course + tick 0 a phone PLAYS (and the host scores) = THE FIRST GO among the proof nodes it has
+ * from the SERVER — exactly what the server's own count derives — whatever the game says; the game's own (the director's GO patch — or
+ * an UNPROVEN match's stand-in) only when there is no node to read (the mirror not there yet, no GO anywhere). `runs` must hold
+ * CONFIRMED values only: a phone writes its GO as a transaction that is never applied locally (view.js#askGoMatch), so its own estimate
+ * of the server's time can never pick a course. null = not known yet (the count holds).
+ */
+```
+- before `export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseSt`:
+
+```js
+/** THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A, SHOULD 1 — js/games/highrise/match.js#goBeforeGiveUp, ported): the
+ *  host's line stalled round GO, its mirror showed no GO for NO_GO_MS and it marked the match UNPROVEN — AFTER everyone had started; every
+ *  phone restarted on a stand-in course and nothing counted. THE NODES ARE THE TRUTH here too: a FIRST GO the server stamped BEFORE the
+ *  host gave up (the unproven step's own time) was there all along — the match is proven: its course + tick 0 are the GO's (the director
+ *  takes the mark back: director.js#nextStep). A GO stamped after it never moves a match already running on its stand-in. */
+```
+- before `export const matchVersion = S => versionAt(S && S.g0 > 0 ? S.g0 : S ? S.playAt - GO_LEAD_MS : 0);`:
+
+```js
+/** J2 — COURSE RULES v2 (versions.js): the version a MATCH is played on = the one in force at THE FIRST GO (`g0`; a stand-in course with no
+ *  GO: its tick 0 − the lead) — the phones, the host's podium and the server read this */
+```
+- before `export const nodeVersion = (node, E) => runVersion(node && node.cv != null ? node.cv : null, E, goOf`:
+
+```js
+/** the version ONE run replays on, from its proof node: its own `cv` checked against the version in force at its GO (a solo run: its own
+ *  GO · a match: THE FIRST GO) — 1 | 2, or 0 = refused (versions.js#runVersion) */
+```
+- before `export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null, cv = 1 }) {`:
+
+```js
+/**
+ * ONE proof node ({ go, c: { i: { s, at } }, e?, k? }) → its result row — THE JUDGE's (replay.js#judgeRun: the bounds, THE SPEED CHECK +
+ * THE DROPPED SIGNAL, the replay). { l: lanes, t: the tick they got there, w: the cause, e: the tick it ended (−1 = not yet), y · px:
+ * where the kid went out (the end screen names what hit them), x: taken (1), cut (1 — a slowed log: counted to its last on-time hop),
+ * bad (why — a refused log: the run of a kid who never hopped) }. `t0` = tick 0 (a server time), `from` = the earliest a chunk may arrive,
+ * `until` = score it as it stands at that tick. The host's podium and the server's count both come through here.
+ */
+```
+- `if (out) out.hops = bad ? 0 : j.hops;` — // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)
+- before `export function scoreRun(game, node, now = null, code = '') {`:
+
+```js
+/**
+ * ONE player's result from their own node, to the server time `now` (a run still going is scored as it stands). No node / a refused log
+ * → the run of a kid who never hopped (the wall takes them); a solo run with no GO, a match with no course yet → nothing.
+ */
+```
+- before `export function scoreCalls(game, runs, results) {`:
+
+```js
+/**
+ * H4 — CALL THE WINNER (the match kit's piece; the call = the caller's own proof node's `k: { w, at }` — the rules: only once they are
+ * out, a player still in, once, the server's time). At the end: a call counts when the caller was OUT (never taken), named a player who
+ * was still in at that moment, and made it within CALL_WINDOW_MS of their own end; right = that player won (alone or tied for first).
+ * → { uid: { w, ok, bonus } } — the bonus = core/playlist.js#callBonus(the players still in when they went out), game-night points.
+ */
+```
+
+### js/games/jaywalk/models.js
+
+- `export const MODEL_REV = 2;` — // (bump when a model file is replaced)
+- before `export const LANDMARK_MODELS = Object.freeze(['lighthouse', 'fishing-boat']);`:
+
+```js
+/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (THE DOCKS' crates are built in code — H5A)
+ *  and so is the jersey barrier (from above it read as a pale cube — the barrier is now THE BARRICADE, built in code);
+ *  H5A — THE AREAS' two models: the lighthouse (MaverickFX, CC0) + the fishing boat (Kenney's Watercraft Kit, CC0) */
+```
+- before `export function parseGlb(buf) {`:
+
+```js
+/** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale.
+ *  B2: read through typed-array VIEWS (aligned — our writer's layout) — a model parses in ~1 ms where the DataView reads took 8–17 ms at 6× CPU */
+```
+- `const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WID` — // (an unaligned file: the slow path)
+- before `export const KID = Object.freeze({ h: 0.78 });`:
+
+```js
+/**
+ * THE KID (H5A — the owner, Nov 16): Kenney's "Mini Skate" skate boy (CC0) — assets/jaywalk/models/kid.glb, re-packed by
+ * scripts/build-jaywalk-assets.py: ONE mesh, the colormap in vertex colours, the PAINT = his T-shirt + THE CAP (they take the player's
+ * colour; the face, the arms, the jeans + the white sneakers stay Kenney's), each vertex's ONE bone (`bone`) and THE POSES (the skin
+ * matrices of idle · jump · fall + the SPLAY, a row a frame). He faces −z (up the course), 0.78 tall, his cap built into his head.
+ * → the geometry (+ `userData.poses` = { tex (a float texture: 3 texels a bone across, a row a frame), clips: { name: [first row,
+ * frames] } }), or null (the file never came: the scene draws his glow ring + shadow alone, never throws). Tried three times.
+ */
+```
+- before `export const LOG = Object.freeze({ r: 0.36, top: 0.36 });`:
+
+```js
+/**
+ * A LOG (H3 — the owner, Nov 16: all the SAME THICKNESS, each its OWN LENGTH; nothing on a log that could read as a pickup), `len` cells
+ * long along x (1 · 2 · 3 · 4 — one geometry a length: nothing is stretched), built in code in the smooth toy style:
+ *   · a ROUND trunk of ONE radius (LOG.r — a true circle across: it must read as thick + round), HALF-SUNK: the scene floats its centre
+ *     at the waterline, so only the round back shows — LIT ON TOP, DARK DOWN THE SIDES (the shade by the angle round it)
+ *   · BARK GRAIN ALONG THE LENGTH: each strip round the trunk is one tone from end to end (a ridge or a dark furrow) → crisp lines
+ *   · PALE RINGED ENDS as round discs — sawn on a slant (the top a little shorter), so the cut faces are SEEN from the camera above
+ * NO moss, NO branch stub, NO dot (H2B's stub ended in a pale sawn face — two small concentric circles on the log's shoulder: from the
+ * camera it read as a dot, a pickup; JAYWALK has none). Its top sits LOG.top above its centre.
+ */
+```
+- `const BARK = 0x9a6238, GRAIN = [1, 1, 0.7, 1, 0.94, 1, 0.66, 1, 1, 0.92, 0.7, 1, 1, 0.68, 1, 0.94, 1` — // (a strip round the trunk: a ridge, or a dark furrow — the same from end to end)
+- `const lit = a => 0.3 + 0.86 * Math.pow(Math.max(0, Math.cos(a - 1.3)), 2.2);` — // (brightest on the shoulder the camera + the key light see, falling away to BOTH limbs: it reads as ROUND)
+- `const RINGS = [[0, 0.1, 0xdcc394], [0.1, 0.34, 0xe9d3a6], [0.34, 0.39, 0xdcc394], [0.39, 0.62, 0xe9d` — // (H4 — the owner: PLAIN PALE WOOD, the rings only a shade darker + thin — the banded ends read as a shell)
+- `const end = (q, a, hex) => put(side * (L / 2 - SL * q * R * Math.sin(a)), q * R * Math.sin(a), q * R` — // (H4: the cut faces look UP at the key light — plain pale wood on both ends, never the pink rim light's sheen)
+- before `export const TRUCK = Object.freeze({ len: 2.9, box: [-1.36, 0.5], top: 1.12 });`:
+
+```js
+/**
+ * THE BOX TRUCK (the 3-cell vehicle — H2B, the owner: "a real box truck"), built in code in the smooth style: a rounded CAB in the truck's
+ * colour (paint) with dark glass, a long rounded white cargo BOX with a stripe in the truck's colour, a dark chassis, six wheels, a bumper.
+ * 2.9 long along z (its nose at +z, like Kenney's cars), 0.8 wide, ≈ 1.12 tall. Its lights (head, tail, the amber markers along the box's
+ * side) are the scene's light quads. TRUCK.box = where the box's side runs (z), for the markers.
+ */
+```
+- before `export function buildBarricade() {`:
+
+```js
+/** THE BARRICADE (H2B): a road barricade that reads at phone size — two striped boards (orange / white) on two dark A-frame legs, a lamp
+ *  on one end (its amber glow is the scene's light quad). 0.9 wide along x, ≈ 0.66 tall; the boards face the camera (z). */
+```
+
+### js/games/jaywalk/moments-view.js
+
+- before `export function createMomentsView(root, o) {`:
+
+```js
+/**
+ * root = the game's stage · o = { sound(id), nameOf(uid), colorOf(uid) → css colour } → { pump(s), frame(now, ghostAt), reset(), info() }
+ * pump({ ids, me, ends, mine, lanes, quiet }) — the match's state, ~10× a second (quiet = this phone's own OUT card is up: no banner over it)
+ * frame(now, ghostAt, kidAt) — every frame: the red X's follow their fallen ghost (ghostAt(uid) → [x, y, cellPx] on the stage | null); kidAt()
+ *   → the kid on screen [x, y, cellPx] | null (a gravestone in the lane in front of it fades)
+ */
+```
+- `const xs = [], pendingX = new Map();` — // (uid → the moment its out was seen: its ghost's fall is drawn once the ghost is over — ≤ 3 s)
+- `if (!merge) { bannerAt = now; count.banners++; o.sound('out-drop'); }` — // (the out sound ONCE a banner)
+- `if (!p) { X.el.style.visibility = 'hidden'; continue; }` — // (visibility — the X's own animation owns its opacity)
+
+### js/games/jaywalk/moments.js
+
+- `export const OUT_MERGE_MS = 1000;` — // (outs closer than this share ONE banner — "MIA + LIAM OUT")
+- `export const BANNER_MS = 1500;` — // (the OUT banner: in · hold · out)
+- `export const X_MS = 1500;` — // (the red X where a ghost fell: bright this long, then it SETTLES into its gravestone — never removed before the match ends)
+- `export const H2H_STRIP_MS = 3000;` — // (HEAD TO HEAD: the big text holds to here, then shrinks into the duel strip)
+- `export const H2H_MS = 5000;` — // (… gone by here: the strip stays for the rest of the duel)
+- before `export const GRAVE_NEAR = 0.5, GRAVE_AHEAD = 1.5;`:
+
+```js
+/** THE GRAVESTONES — LIGHT near the kid (PURE; JT2's add-on — the owner, Nov 22: "they read as faded"): a mark at p = [x, y, cell] (stage px)
+ *  dims (to ~50 %, never lower — css .is-ahead) ONLY while it sits on THE LANE THE KID IS ABOUT TO HOP INTO — the band GRAVE_NEAR lanes in front
+ *  of his middle to GRAVE_AHEAD (forward = up the screen), the whole width; on his own lane, behind him (passed) or further up: full. kid = [x, y, cell] | null */
+```
+- `const endOf = e => (e && typeof e === 'object' ? { out: e.w !== 'taken' && e.w !== 'quiet', l: Math.` — // ('quiet' — view.js: a run the host's own rule calls over with no `e`: it leaves the count, no moment)
+- before `export function stepMoments(M, { ids, me, ends = {}, mine = null, lanes = {} }) {`:
+
+```js
+/**
+ * ONE STEP (PURE): `ids` = the match's players · `me` = this phone (a watcher: not among ids) · `ends` = { uid: their node's `e` | null } ·
+ * `mine` = this phone's own end ({ w, l } from its engine — null while it runs) · `lanes` = { uid: lanes now } (the lead's words) →
+ * { events: [{ k: 'out', uid, l, left } | { k: 'h2h', a, b } | { k: 'last', lead }], alive: [uids still in], duel: [a, b] | null }
+ */
+```
+- `if (!M.base) {` — // (the first look — a fresh match, or a refresh / rejoin mid-match: what has happened is the baseline, nothing replayed)
+- `if (!e.out) continue;` — // (THE MOTHERSHIP's finish is no out)
+
+### js/games/jaywalk/night-fx.js
+
+- `export const DAY_FOG_HEX = 0xc6e6f7;` — // (H5C — THE FAR EDGE: the day picture's own haze where its sea meets the sky (#87cef4 → #b8e8fb): the far lanes fade into the same air)
+- `const WHITE1 = (() => { const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, ` — // (no sun pass: depth 1 everywhere)
+- `uWet: { value: 0 },` — // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+- `uShTex: { value: WHITE1 }, uShM: { value: new THREE.Matrix4() }, uShK: { value: 0 }, uShTx: { value:` — // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+- `lay(k, i, t, dn, up, seed, dark, fx, ar = 0) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; k` — // (ar — H5A: the lane's AREA, 0 = the opening · 1 … 8)
+- before `/** VARIETY B2 — WHITE VEHICLES BY DAY: 0 at night (the night's cars untouched — every use below is `:
+
+```js
+/** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the
+ *  rest keep their vertex colours; `lit` (0 … 1 — the blackout, the dim edge columns) scales both. */
+```
+- `const ROLL_V = 'float jwMn = min(vColor.r, min(vColor.g, vColor.b)); vColor *= 1.0 - 0.2 * uRoll * s` — // (a near-white body → a soft off-white by day)
+- before `const ROLL_F = 'if (uRoll > 0.0) { float jwPk = max(outgoingLight.r, max(outgoingLight.g, outgoingLi`:
+
+```js
+/** the day's HIGHLIGHT ROLL-OFF: past the knee a lit colour is eased toward 1 (its hue kept — every channel by one factor), never clipped flat:
+ *  a white bus keeps its panels + windows; the darker parts (glass, trim, lines) are below the knee — untouched */
+```
+- before `export function dayEnv(renderer) {`:
+
+```js
+/** H5B — THE DAY LOOK's environment (the gloss on the cars + the kid by day): a clear blue sky, a bright horizon, the sun high on
+ *  one side, warm ground light from below */
+```
+- `const v = y / (H - 1), up = Math.max(0, 1 - v * 2), dn = Math.max(0, v * 2 - 1);` — // (v 0 = straight up · 0.5 = the horizon · 1 = down)
+- before `export const OCC_LAYER = 2;`:
+
+```js
+/** J1 — THE NIGHT GLOW FIX: the SOLID scene's layer (night.js#kind marks every opaque kind but the tufts: vehicles, trains, trees, posts,
+ *  barricades, logs, the areas' props, shops, the kid). The bloom draws it first as FLAT BLACK depth (OCC_MAT), then the lights (layer 1)
+ *  depth-tested against it — a light behind a box truck / a car / a train / a tree makes no glow on top of it. */
+```
+- before `export const OCC_MAT = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, side: THREE.Double`:
+
+```js
+/** ONE shared override material (warmed with the rest — night.js#warm renders the bloom once: no new program mid-run). Black, no fog (a fogged
+ *  far occluder would tint the bloom target), both faces (a mirrored instance never leaves a hole), pushed back a hair (a lamp ON a body's
+ *  face stays lit — the main picture shows it) */
+```
+
+### js/games/jaywalk/night.js
+
+- `import { VARIETY, createVariety, setWinterTraffic } from './variety.js';` — // (VARIETY B1 — THE AREA TRAFFIC: which model draws a slot, loaded per area ahead of it)
+- `import { GRADE, gradeOf, lightsOf } from './daylook.js';` — // (VARIETY A — THE TIMES OF DAY: the grade + the lights by time — PURE)   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
+- `const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;` — // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
+- `const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7` — // (a car's body tint: pink · cyan · violet · coral · blue — VARIETY B1 + pearl · tangerine · jade · lilac · garnet · steel)
+- `const TAXI_HEX = 0xf6b100;` — // (H4 — THE TAXI: cab yellow, never a neon tint · VARIETY B1: a deeper taxi yellow — never read as a small yellow car)
+- `const HEAD_REACH = 1.35, TAIL_LEN = 1.2;` — // (TAIL_LEN — H5C: the tail pool, from under the bumper to where it has faded out)
+- `const LOG_FEET = 0.33;` — // (H3 — where the kid's feet stand on a log: its round back, the log HALF-SUNK — its centre a hair under the waterline)
+- `const KID_S = 1.62;` — // (THE KID's size on the lane — H5A, Kenney's skate boy, 0.78 tall: ≈ 1.26 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
+- `const KID_YAW = Math.PI;` — // (Kenney's kid faces +z, as his cars do; the scene's "up the course" is −z)
+- before `const FOG_LAYERS = Object.freeze([`:
+
+```js
+/** THE FOG BANK's layers (back → front): [lanes behind the bank's edge, height, a puff's width + height, alpha, drift (cells / s),
+ *  its sunlit top, its cool underside, the spacing] */
+```
+- before `const NO_SEASON = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none', wet: 0, autumn`:
+
+```js
+/** J4 — WINTER · JT1 — SEASONS (docs/jaywalk.md "JT1 — SEASONS"): a VIEW — every seasonal layer is THE SEASONAL PACK's (seasonal.js, fetched
+ *  only on a season day — season-gate.js — or the lab's forced date; never the start bundle). The scene calls it at fixed points of a frame. */
+```
+- `const fogV = new THREE.Vector2(26, 35);` — // (the shaders' copy of the fog's near / far)
+- `const rig = createCamera({ zoom: o.zoom, angle: o.angle, hero: o.hero });` — // (hero: THE POSTER's low camera — camera.js; the game never passes it)
+- `const heroCam = !!o.hero;` — // THE CAMERA (camera.js): the zoom, the sideways follow, the turn
+- `if (solid) m.layers.enable(OCC_LAYER);` — // (J1 — THE NIGHT GLOW FIX: a solid thing hides the lights behind it from the bloom — night-fx.js#createBloom)
+- `if (cast) m.layers.enable(SUN_LAYER);` — // (VARIETY A — it casts THE SUN's SHADOW on tier 2: the depth pass draws only this layer)
+- `let SP = null;` — // (THE SEASONAL PACK, once it is in — prepSeason)
+- `flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),` — // pools · trails · beams · rings · edge lines
+- `bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 900, { aux: ['aFx', 2], raw: true, order: 3,` — // lamps · light quads · sparks
+- `tufts: kind(GEO.tuft, lambert(), 220, { solid: false, cast: false }),` — // (J1: a grass tuft never hides a light pool)
+- `let TD = null, GR = null, TL = lightsOf('night', -20), sunReal = false, fogDark = 0, sunF = -1;` — // (sunF — VARIETY B1: THE SUN's SHADOWS' strength 0 … 1, FADED over 1 s on any tier change — never a snap)
+- `const a = a1 == null ? 1 : a1, L = VA && GR ? GR.len : 1, sunK = (1 - ease(sunF < 0 ? 0 : sunF)) * (` — // (B1: the cheap blob fades in as the depth pass's shadow fades out — and back)
+- `const off = Math.min(SUN.len * L * (sy === 1 ? 0.55 : sy), (0.4 * Math.min(sx, sz) + 0.14) * L);` — // (never further than the shadow is wide: it stays joined to the thing)
+- `const KM = {}, BOX = {}, carMats = [];` — // (carMats — VARIETY A: the cars' paint shines in the sun by day)
+- `needWarm = true;` — // (H4B — the new kinds' programs + buffers are made in the NEXT frame, not when a car first drives in)
+- `KM['v-${id}'] = kind(g, vMat, 24, { aux: ['aLit', 1] }); g.dispose();` — // (kind() keeps its own clone)
+- `K.taxiSign.mesh.layers.enable(1);` — // (at night it blooms: a lit sign)
+- before `function setSeason(day, o = {}) {`:
+
+```js
+  /** the season for the run starting now: its DAY · { wet (WET NEON STREETS — the lab's; WET_LIVE in the game), snow (the lab's forced fall),
+   *  clock (the lab's local minutes), now (the phone's clock: the New Year's finale) } → what it applied (the normal look if the pack is not in) */
+```
+- `SZ = SP ? SP.apply(want ? day : '', o) : { ...NO_SEASON, day: day || '' };` — // (a scene kept over PLAY AGAIN on another day: the pack takes its season back off)
+- `{ const wt = SZ.winter > 0; if (wt !== winterT) { winterT = wt; setWinterTraffic(wt); vwKey = -1; } ` — // (B2 — THE WINTER TRUCKS: a winter run's van slots — variety.js)
+- `const FR = {}, seaLand = { on: false, L: null, x: 0, y: 0 };` — // (JT1 — the numbers a frame hands THE SEASONAL PACK · this frame's landing — no garbage)
+- `const labelGeo = new THREE.PlaneGeometry(7.0, 0.875).rotateX(-Math.PI / 2);` — // (BIG: the letters ≈ half a lane tall; 7 cells — H5C: the words are CENTRED on the screen (they ride the camera's column): never cut by its edge)
+- `const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest:` — // (the dark halo: they read on bright water · JT2: the FRIEND's words lie UNDER the traffic — YOUR BEST's still read over a van)
+- `const gateShow = v => {` — // (BEFORE THE FLIP: marked drawn only once drawn; a refused / wiped / blank board drawn again; a small pop-in)
+- `if (day) {` — // (BY DAY: a PAINTED sign — the area's colour, a white trim, the name in white paint with a dark edge. BEFORE THE FLIP: the
+- `} else {` — // (BY NIGHT: a neon sign — a smoked see-through panel, a tube round the arch in the area's colour, its white-hot core)
+- `board(8); c.fillStyle = 'rgba(9, 6, 24, 0.9)'; c.fill();` — // (a SOLID dark board, as the day's is solid: the letters are never cluttered by what is behind)
+- `if (day) {` — // (BY DAY: the line's colour as paint)
+- `} else {` — // (BY NIGHT: neon — the colour, its glow, a white-hot core)
+- `const LINES = { best: null, friend: null }, crossed = [];` — // (crossed: a line's burst — { k, lane, t0 })
+- `const skyUnder = document.createElement('div'), skyOver = document.createElement('div');` — // (UNDER is always solid; only OVER's opacity ever moves)
+- `const skyS = { now: '', over: false, want: '', fades: 0, until: 0, ms: 0 };` — // (over: the picture on screen sits on the OVER layer · until: its cross-fade's end)
+- `if (wait > 0) { setTimeout(go, wait + 30); return; }` — // (a visible layer's picture never changes: wait the running fade out)
+- `for (const f of [...skyHold.keys()]) if (!keep.includes(f) && f !== skyS.now) skyHold.delete(f);` — // (ONLY the current + the next are held — + the one still on screen through a look's cross-fade)
+- `skyBiasT = plan.bias; skyMax = plan.max; skyMin = plan.min;` — // (the go-live review: the count stays clear of the landmark · a match's left landmarks stay clear of the chips)
+- `const g = day && VA ? GR || GRADE.noon : null, U = ground.uniforms;` — // (VARIETY A — the time of day's grade: daylook.js#GRADE)
+- `hemi.color.setHex(g ? g.hemi[0] : day ? 0xd6e9ff : 0x8fa0ff); hemi.groundColor.setHex(g ? g.hemi[1] ` — // (H5C: a soft SKY fill — cooler from above, warm bounce from the ground)
+- `key.position.set(-5, g ? Math.max(2.5, 12 * Math.sin(g.key[2] * Math.PI / 180) / 0.79) : 12, 9);` — // (a low sun lights the things from lower down: sunrise, golden, sunset)
+- `DAY_ROLL.value = day ? 1 : 0;` — // (B2 — WHITE VEHICLES BY DAY: the off-white + the highlight roll-off — night-fx.js#paintMaterial `roll`)
+- `for (const m of carMats) { m.roughness = g ? g.gloss : 0.28; m.envMapIntensity = g ? g.shine : 1.1; ` — // (VARIETY A — the paint shines in the sun by day; the night's cars untouched)
+- `K.shadow.mesh.material.uniforms.uDay.value = day ? 1 : 0;` — // (H5C — a day shadow is COOL: the sky fills it)
+- `{ const st = host.closest ? host.closest('.jw-stage') : null; if (st) { if (k > 0.5) st.dataset.fog ` — // (the screen's foot fades into the same dark fog — css/jaywalk.css)
+- `let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;` — // (reveal — H3: 0 = only the start's few lanes out of the dark · 1 = the whole view)
+- `const FOOT_AT = 0.25, HAZE_LANES = 4.4, HAZE_DAY = 2.2;` — // (VARIETY B1 — MORE CLEAR VIEW UP TOP: the DAY looks' haze starts later — still fully hazed at the sea wall's foot, a soft edge; night unchanged)
+- `let fitAsk = 0;` — // (BEFORE THE FLIP — a resize only ASKS; draw() resizes FIRST, then renders: a resize after the frame was drawn showed the stage's pale day sky for a frame — the owner's "white flashes". 0 · 1 = a size check · 2 = forced)
+- `cam.fov = rig.fit(w / h);` — // (ZOOM columns across on every screen shape — camera.js#lensFor)
+- `fitNow(true); fitAsk = 0;` — // (the new canvas: sized at once — nothing drawn on it yet)
+- `let vwKey = -1;` — // (VARIETY B1 — the areas near the camera: asked again only when they change)
+- `const docks = !!L.mark || (i > 40 && (i % 50 <= 3 || i % 50 >= 47));` — // (by a landmark: the docks' clutter)
+- `if (PR) PR.dress(d, i, L, area(i).index, (a, b) => hsh(vseed ^ (i * (733 + b * 59)), a));` — // (B2 — which tree model a tree cell draws + the edge decoration: props.js#dress)
+- before `function warm() {`:
+
+```js
+  /** THE START: a phone builds a program + uploads a mesh at its FIRST DRAW WITH SOMETHING IN IT — so each kind gets ONE instance
+   *  far under the ground + ONE hidden frame is rendered (the bloom too), then all is put back: at the top of the first frame + of
+   *  the one after Kenney's models land. */
+```
+- `const seaBack = SP ? SP.warmIn() : null;` — // (J4 — the falling snow's program too: THE SEASONAL PACK's)
+- `for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push(` — // (J2: the jets are ONE instanced mesh — warmed with one in it)
+- before `/**`:
+
+```js
+  /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (a match):
+   *  [{ run, hex, out? }] — each gets `tag` = [x, y] on the screen (CSS px) or null. `o.t` = THE WORLD's TICK: all is drawn at it.
+   *  `o.a` = the ghosts' fraction; `g.vis` / `o.off` = a late hop's CATCH-UP ({ x, y, u: 0 … 1, d }); `g.held` = unconfirmed. */
+```
+- before `const EMBER = 14, burnHash = (i, k) => { const x = (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453)`:
+
+```js
+  /**
+   * J2 — THE AFTERBURNER TRAIL (a v2 runway lane — course.js#laneHit: everything behind its jet burns through the pass, then the WHOLE lane
+   * for `p.trail` ticks): BLUE-PINK PLASMA in both looks (the owner, Nov 21: amber fire sank into the amber runway lights) — a glowing
+   * streak on the road (a white-violet core in a hot PINK glow · by day a dark scorched band under pink paint: BLUE ON THE GROUND = WATER,
+   * so the blue stays OFF the ground) + a row of standing plasma tongues (an electric-blue body, a white-hot heart, a pink tip), cooling as
+   * it ages but bright to the last deadly tick; then out fast (EMBER ticks of dim violet embers — never read as live). Instanced kinds only
+   * (no draw call of its own). `u` = ticks into the lap.
+   */
+```
+- `const EMBER = 14, burnHash = (i, k) => { const x = (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453)` — // (0 … 1: the tongues stay inside their own lane)
+- `K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff2aa8, 1, 4, 0.62 * heat * fl * lt);` — // the glow round it (inside its own lane: never read as the next one burning)
+- `K.flat.put(cx, 0.05, z, w, 1, 0.3, 0, live ? 0xa86cff : 0x5a1a6e, 1, 4, 0.6 * heat * lt);` — // the hot core (violet, never white: additive light over the pink would blow out)
+- `K.bill.put(x, fh * 0.66, zz - 0.01, fw * 0.75, fh * 1.05, 1, 0, 0xff2ab8, 1, 9, 0.5 * A);` — // its pink tip (the tongue's top, licking up past the blue)
+- `K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, 0x1e50ff, 1, 9, A);` — // the plasma tongue (narrow at its top)
+- `K.bill.put(x, fh * 0.28, zz + 0.02, fw * 0.36, fh * 0.5, 1, 0, 0x7cc8ff, 1, 9, 0.55 * A);` — // its hot heart (cyan — additive: white would wash the blue out)
+- before `function runwayLamps(p, st, tellF, head, z, lt) {`:
+
+```js
+  /**
+   * J2 FIX — THE RUNWAY LAMPS, CRISP (the owner, Nov 21: the big glowing lamp balls looked cheap): every lamp a SMALL FIXTURE — a dark housing
+   * set in the tarmac (by day: night's additive light has no dark) + a sharp bright PIP (shape 11 — a hard edge at 3×, no halo). Off the
+   * tell: a dim lens. In the tell + the pass: a RUNNING SEQUENCE across the lane toward the crossing (every 3rd lamp lit, stepping every 7
+   * ticks off the rules' own clock — steady, all lit, with reduce motion), the amber row + the red row, the racing head brightest. The
+   * chevron arrows (the ground's shader) are untouched. By day always; by night on the lab's `&rwnight=new` only (a soft glow under a lit
+   * pip there — the dark road needs it). Instanced kinds only.
+   */
+```
+- `if (day) K.flat.put(x, 0.046, z + e, 0.32, 1, 0.2, 0, 0x30343c, 1, 12, 0.85 * far);` — // the housing (a small crisp box set in the tarmac)
+- `if (!day) K.flat.put(x, 0.04, z + e, 0.9, 1, 0.7, 0, hex, 1, 0, 0.42 * far);` — // (night compare: a small glow on the road)
+- before `function heatTrail(p, u, z, x0, x1, cx, w, A, age, live, heat) {`:
+
+```js
+  /**
+   * J2 FIX — THE TRAIL BY DAY = HEAT, NOT NEON (the owner, Nov 21): a SCORCHED dark streak on the asphalt + a thin WHITE-HOT centre line
+   * (a warm edge round it) + see-through, soft-edged BLUE-WHITE flame tongues standing up (shape 13: no solid cones, they flicker, their
+   * tips fade to nothing — BLUE ONLY STANDS UP: blue on the ground = water) + a faint HEAT SHIMMER (a translucent wavy band over it) +
+   * SMOKE WISPS rising as the 0.7 s ends. By night (the lab's `&rwnight=new` only): the same, tuned for additive light — the violet core on
+   * the road, electric-blue tongues with a CYAN heart (white would wash the blue out). Instanced kinds only (no draw call of its own).
+   */
+```
+- `if (day) { K.flat.put(cx, 0.049, z, w, 1, 1.9, 0, 0x2a2420, 1, 4, 0.82 * sc); K.flat.put(cx, 0.0495,` — // the SCORCHED streak + its charred core (soot, never blue)
+- `K.flat.put(cx, 0.053, z, w, 1, day ? 0.5 : 0.36, 0, day ? 0xff6a10 : 0xa86cff, 1, 4, (day ? 0.8 : 0.` — // the line's hot edge (violet by night)
+- `K.bill.put(x, hh * 0.32, zz + 0.02, fw * 0.48, hh * 0.62, 1, 0, day ? 0xffffff : 0x7cd8ff, 1, 13, (d` — // its hot heart (cyan by night)
+- before `/** B2 — THE WINTER TRUCKS' SPRAY (one shared particle — the glow billboards: no draw of their own, `:
+
+```js
+  /** VARIETY B1 — a variety vehicle in its slot: EXACTLY the slot's length (the rule's — never shorter or longer than what hits you), its own
+   *  width + height; the plain cars' lights; an emergency vehicle's light bar FLASHES red / blue at night (bloom), unlit by day */
+```
+- before `function spray(kind, nose, rear, dir, z, dim, ph) {`:
+
+```js
+  /** B2 — THE WINTER TRUCKS' SPRAY (one shared particle — the glow billboards: no draw of their own, no state, no garbage): the plow's snow
+   *  kicked off its blade toward the curb; the salt fanned out behind the spinner. Small, see-through, short-lived — never hiding a car */
+```
+- `if (V.spray && !reduce) spray(V.spray, nose, nose - L.dir * bodyL, L.dir, z, dim, hsh(vseed ^ (i * 9` — // (B2 — THE WINTER TRUCKS' spray)
+- `if (V.light === 'beacon') {` — // B2 — THE WINTER TRUCKS' AMBER BEACON: a rotating flash (~1.4 a second) + its glow + its colour on the road — at night only (steady with reduce motion)
+- `if (V.light && (!day || TL.cars > 0.6)) {` — // THE LIGHT BAR: red on one side, blue on the other — alternating ~2.6 times a second (steady with reduce motion)
+- `if (on1 && !reduce) LF(bxl, 0.045, z + dz * 3, 1.6, 1, 1.3, 0, hex, 1, 0, 0.16 * a1);` — // (its colour on the road round it)
+- `let vLF = NOP, vLB = NOP;` — // (this frame's light puts — draw() sets them)
+- `const n = 7, sq = bodyL * 0.7 / n, x0 = bx - sq * (n - 1) / 2;` — // (a band that reads from above at 390: it stands a little proud of the body's shoulder)
+- `if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }` — // (a resize asked since the last frame: done HERE, before this frame renders)
+- `const fT0 = performance.now();` — // (B2 — THE TAPS: the loaders step only in a light frame — their pump at the end)
+- `const LF = !day ? K.flat.put : TL.beams > 0.01 ? lfDay : NOP, LB = !day ? K.bill.put : TL.cars > 0.0` — // (VARIETY A — by day what glows follows the time: daylook.js#lightsOf)
+- `if (SP) fogCheck();` — // (THE FOG CHECK: the winter models land after the start — the fog follows the snow that shows)
+- `if (SP && (run.t === 0 || run.st === 'out' || run.st === 'taken')) SP.quiet();` — // (J4 — the pack's kinds + shaders brought in at a quiet frame, never mid-run)
+- `if (SP) { seaLand.L = at; seaLand.x = lx; seaLand.y = ly; seaLand.on = true; }` — // (JT1 — the prints, the puff, a leaf pile: told to the pack below, with the frame's numbers)
+- `if (run.st === 'hop') { sy = 1 + 0.2 * Math.sin(Math.PI * f) - 0.17 * Math.exp(-f * 13); tilt = 0.3 ` — // (he leans INTO the hop — Kenney's kid faces +z: the lean's sign follows)
+- `flat = { thin: 1 - 0.86 * sq + bounce, wide: 1 + 0.5 * sq - bounce * 0.6 };` — // (a PANCAKE: half as wide again, a seventh as thick)
+- `fx.yaw += (0 - fx.yaw) * sq; ry = fx.yaw; s3 = [flat.wide, flat.thin, flat.wide];` — // (his head up the screen: the sneakers kick out toward the camera)
+- `} else if (H.cause === 'water' || H.cause === 'edge') {` — // (the edge: carried off on the log a moment more, then the splash) + the sink
+- `} else if (H.cause === 'train' || H.cause === 'blackbird') {` — // knocked away, spinning — THE BLACKBIRD's SHOCKWAVE blasts him higher, tumbling, toward the lens
+- `} else {` — // THE UFO's ABDUCTION (H6A — flyers.js): frozen mid-step, then up the beam, spinning + shrinking
+- `} else if (run.st === 'taken') {` — // THE MOTHERSHIP (H6A — a finish line): he rises into it, glowing in his colour
+- `const SE = SP && SZ.any ? SP : null;` — // (THE SEASONAL PACK this frame — none: nothing seasonal is drawn)
+- `lWant = !!SE && !day && ((wetOn && tier === 2) || SZ.snowfall !== 'none');` — // (J4 — THE LIGHTS this frame)
+- `if (FL) { const q = FL.shake(); shx += Math.sin(clock * 0.11) * q; shy += Math.cos(clock * 0.13) * q` — // (THE BLACKBIRD's pass: ≤ 4 px, ≤ 200 ms)
+- `posed = true; fwd.set(0, 0, -1).applyQuaternion(cam.quaternion); FOG_UP.value = -fwd.y; depth();` — // (the fog follows the lens: full at the sea wall's foot)
+- `{ const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 +` — // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
+- `if (q.edge && (q.c < 0 ? sgL : sgR)) continue;` — // (a signature piece stands on this side of the lane)
+- `if (q.deco === 2) { if (PR) PR.deco(q, x, zz, dim, lt); continue; }` — // (B2 — an edge piece: props.js)
+- `if (!SE || !SE.tree(x, zz, s, q, i, dim, on, lt, q.tk || '')) { if (!q.tk || !PR || !PR.tree(q.tk, x` — // (B2 — the area's tree model: props.js; not in yet = today's round tree)   // (J4 — winter swaps it: a snow pine · a lit Christmas tree — seasonal.js)
+- `if (!SE || !SE.planter(x, zz, q, i, dim)) { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Ma` — // (J4 — some planters → SNOWMEN: seasonal.js)
+- `if (D.lamp && !(D.lamp < 0 ? sgL : sgR)) {` — // a street lamp on the edge column: its head over the grass, a warm pool under it
+- `if (!car) fxv = L.dir * L.v * 0.06;` — // (H5B's add-on — THE WATER FLOWS the way its logs go: the lane's current in cells a second, for the ground's ripple caps + specks)
+- `if (V && !vq) what = plainAt(course, i, j);` — // (VARIETY B1: its area's model freed / not in — the plain vehicle)
+- `const taxi = what === 'taxi', nk = Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length), ` — // (never a car in YOUR kid's colour — a VIEW: the rules know no colour)
+- `const truck = what === 'truck', tz = (len - 0.1) / TRUCK.len;` — // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
+- `if (truck) K.trucks.put(cx, 0, z, 0.94, 0.9, tz, ry, tint, 1, day ? dim * 0.8 : dim);` — // (by day a touch under: its white box blew out to a flat slab — now its side reads under its top)
+- `if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); LB(bx, 0.5, z, 0.62, 0.42, 1` — // its ROOF LIGHT: a small lit box + its warm halo
+- `if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }` — // (J4 — its headlights + its tail on the wet road)
+- `for (const e of [-hw, hw]) {` — // BOTH headlights + BOTH tail lamps, each at its own place on the model
+- `LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1` — // a short soft beam on the road ahead
+- `K.shadow.put(cx, 0.047, z + 0.06, len * 1.06 + 0.25, 0.35, 1.25, 0, 0, 1, 0, 0.5 * Math.min(1, lt));` — // (H5B's add-on: a soft darker shadow under each log — it sits ON bright water)
+- `for (const c of [-0.3, 3, 6, 9.3]) {` — // the signals: red, flashing from the tell to the train's tail
+- `K.posts.put(x, 0.3, z - 0.44, 0.1, 0.6, 0.1, 0, 0x2a2a34, lt); K.posts.put(x, 0.66, z - 0.46, 0.3, 0` — // (a post + its signal head's housing: a lamp, never a lollipop)
+- `if (st.st === 'tell' && on) {` — // a warning glow on the side it comes from
+- `for (const e of [-tw, tw]) {` — // the train's front: BOTH headlights cast a soft beam (a little longer than a car's); BOTH tail lights a red glow
+- `tailBar(X(rear - p.dir * 0.03), ty + 0.04, z, 0.86, lt); glow(X(nose), z, 0xfff2d0, 1.2 * lt); glow(` — // (H6B — the cars' rule: a light bar across its tail …)
+- `LF(X(rear - p.dir * (TAIL_LEN * 0.65 - 0.2)), 0.05, z, TAIL_LEN * 1.3, 1, 1.0, p.dir > 0 ? Math.PI :` — // … and ONE oval red pool starting at it, centred, as wide as the train
+- `LF(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0xffe2b8, 1, 4, 0.3 * lt);` — // (its windows' light on the ground: warm — never blue)
+- `if (p.trail) burnLane(p, u, z, lt);` — // (J2 — v2's runways: THE AFTERBURNER TRAIL — drawn here, never waiting for the flyers' module)
+- `if (L.ufo && nu < 2 && L.ufo.id !== ufoSeen) {` — // THE UFO (H6A — flyers.js; once a UFO). Until the module has landed: its ring — the rules' warning — alone
+- `if (SE && L.type === 'grass') SE.grass(i, L, z, lt, AR);` — // (JT1 — a LEAF PILE on it, if it has one)
+- `if (TL.neon > 0.02) for (const x of [xl, xr]) { const nk = TL.neon * li; K.bill.put(x, 3.1, zf + 0.0` — // (VARIETY A — the gates' neon by time: OFF through the morning, ON at sunset)
+- `K.bill.put(gx, 1.72, z - 0.47, 0.26, 0.26, 1, 0, fxv ? 0xff2a2a : railGone ? 0x24302a : 0x40ff80, 1,` — // (red in the tell · dark while the train is here · green: clear)
+- `LF(px, feet + 0.04, pz + 0.04, 2.3, 1, 1.9, 0, kidHex, 1, 0, 0.3 * lit);` — // (H5A: softer — the new kid's own colours (his face, his arms, his sneakers) must read through it)
+- `if (SE && g.hopW && !ghop && !g.outAt) SE.land(GL, gx, gy, g.dir, false, area(r.y).index);` — // (JT1 — a rival LANDED: its prints on the snow, a pile it lands in bursts)
+- `if (fr) {` — // (the tape lies at the ground's edge of the lane: a car on its lane hides it, one on the next lane stands clear of it — never drawn over traffic)
+- `K.flat.put(0, 0.062, z, 9.06, 1, 0.05, 0, 0xffd6f0, 1, 4, (0.32 * fd + fl * 1.1) * ll);` — // (a pale pink core — no white-hot line to bloom at night)
+- `if (day) K.flat.put(0, 0.358, z, 9.1, 1, 0.8, 0, 0x5a3a00, 1, 4, 0.6 * Math.min(1, ll));` — // (by day: a dark edge under the tape — it must read on a sunlit lane)
+- `const wz = Z(Ln.lane + (both ? 1.42 : 0.42) - (L.mark ? 1 : 0));` — // (H5A — a gateway lane carries its area's name: the line's words lie a lane lower)
+- `lab.m.position.set(rig.x(), 0.07, wz);` — // (centred on the screen: the words ride the camera's own column — never cut by an edge)
+- `else { const s = (clock - q.t0) / 1000, sz = q.sz || 0.16, yy = q.y + q.vy * s - (q.g || 6.5) * s * ` — // (JT1: a snow puff · a leaf — their own size, alpha, fall + shape)
+- `if (tier === 0 && li === 1) continue;` — // (the lowest tier: one body layer less)
+- `K.bill.put(x + 0.25 * sw * sz * 0.2, y - sh * sz * 0.2, z, sw * sz * 1.08, sh * sz, 1, 0, fogC.under` — // (shape 10: a puff fades INTO the ground — never cut by it · VARIETY A: THE FOG CHECK's colours)
+- `K.flat.put(0, 0.07, Z(wallE + 0.5), 30, 1, 2.6, 0, 0x5a3a9a, 1, 4, 0.1);` — // (a cold VIOLET breath ahead of it — never blue: blue on the ground = water; the ragged glowing lip itself is the ground shader's)
+- `curtain.position.set(0, 1.2, Z(wallE - (day ? 3.1 : 2.3) - 20)); curtain.scale.set(60, 2.6, 40);` — // (by night it starts where the ground is already fully dark: its straight front is never seen)
+- `if (bloom && !day) bloom.render(scene, cam);` — // (the bloom is the night's: by day the lights are paint)
+- `const WHITE_TEX = ground.uniforms.uShTex.value;` — // (no depth map: the ground's 1 × 1 white)
+- `const el = Math.round(Math.max(14, Math.min(68, GR.key[2]))) * Math.PI / 180, ce = Math.cos(el), cx ` — // (B1: the sun's angle in whole degrees)
+- `{` — // (VARIETY B1 — TEXEL-SNAPPED: the eye moves on the map's own texel grid, so a still thing's shadow never swims as the camera follows)
+- `if (on) { if (bloom) { bloom.dispose(); bloom = null; } sunFree(); for (const f of [...skyHold.keys(` — // (VARIETY A: the sun's depth map freed behind a final screen — made again by the next sunny frame)
+- `el.width = 0; el.height = 0;` — // (BEFORE THE FLIP: the canvas freed at once — CLAUDE.md "THE LONG NIGHT's RULE")
+
+### js/games/jaywalk/numerals.js
+
+- `const FOOT = new Map();` — // 'weight family' → { l, w, r, h, b } in em (w = 0: this font's 1 already stands on a foot — or it can't be measured)
+- before `export function footOf(family, weight = 700, fresh = false) {`:
+
+```js
+/** THE FOOT of this font's "1" (em): l = its left edge from the glyph's origin · w = its width · r = how far it reaches past the
+ *  glyph's advance · h = its height · b = where the baseline sits above the foot of a line-height-1 box · adv = the 1's advance.
+ *  Measured once a font (a 1 drawn at 200 px, its stem read off the pixels); `fresh` measures again (the web font just landed). */
+```
+- `const t = mid[1] - mid[0], has = base[1] - base[0] > t * 1.6;` — // (a base already wider than the stem: the font's own foot)
+- `el.dataset.num = t; el.dataset.dg = String(t.length); el.setAttribute('aria-label', t);` — // (data-dg: the lane count steps down a size at 3 + 4 digits — css .jw-lanes[data-dg])
+- before `export function drawNum(c, text, x, y, size, family, weight = 900) {`:
+
+```js
+/** canvas — draw `text` from x (its left edge; the baseline at y) glyph by glyph: the room between digits, a foot under every 1.
+ *  Uses the context's own fill + shadow (call it once a pass). The context's font must be `${weight} ${size}px ${family}`. → its width */
+```
+
+### js/games/jaywalk/replay.js
+
+- before `export function replay({ seed, mode = 'solo', log = [], until = null, cv = 1 } = {}) {`:
+
+```js
+/**
+ * → { lanes, tick, end, over, y, x, cause, taken, hits, feats: { boom, ufo, airfield }, used }
+ *   lanes = the farthest lane landed on · tick = when (the tie-break: the earlier tick wins) · end = the tick the run ended (−1 = `until` came first) ·
+ *   cause = the hit ('car' | 'water' | 'train' | 'edge' | 'blackbird' | 'ufo' | 'wall') or 'taken' (THE MOTHERSHIP) · used = the log entries played.
+ * A hop logged at tick t is applied IN tick t (a hop logged after the run ended is never played: `used` < log.length).
+ * `until` (optional) stops at that tick (a run still going — the ghosts, a match scored as it stands).
+ */
+```
+- `const run = createRun({ seed, mode }), course = createCourse(seed, { cv });` — // (J2 — `cv` = the COURSE VERSION: versions.js)
+- `const why = inputProblem(log, i, h && h.t, h && h.d, mode);` — // (engine.js — the recorder's own function: the two can not differ)
+- before `const chunkStr = v => (typeof v === 'string' ? v : v && typeof v === 'object' && typeof v.s === 'str`:
+
+```js
+/** a chunk as the proof node holds it: H3 = { s: the packed hops, at: the SERVER's time it was written (the rules: === now) }; a bare
+ *  string (H1's shape — the pure tests) still reads */
+```
+- before `export function chunkTimes(c) {`:
+
+```js
+/** THE CHUNKS' OWN CLOCK (H3) → [{ at (the server's time), n (its hops), t0, t1 (its first + last hop's tick) }], or null (a hole, a bad
+ *  chunk, a chunk without its timestamp) */
+```
+- before `export function clockProblem(go, times, { from = null } = {}) {`:
+
+```js
+/**
+ * THE SPEED CHECK, BOTH WAYS (H3 — PURE) + THE DROPPED SIGNAL (H4). Tick 0 = `go` (a server time). A chunk's `at` = the server's time it
+ * ARRIVED. It may not hold a hop AHEAD of the real clock (tick > the clock's tick + CLOCK.ahead: a sped-up game, a log made in advance) —
+ * the run is refused. A hop far BEHIND it (its chunk's first hop > CLOCK.behind late) is one of two things:
+ *   · A DROPPED SIGNAL: the phone was offline — its queued chunks arrive TOGETHER after a SILENCE. The lag is explained when no hop is
+ *     older than the last arrival before the silence (− CLOCK.behind), the silence is ≤ CLOCK.drop, and the burst is back on the clock
+ *     within CLOCK.catchUp of its first chunk (a later chunk on time), each chunk of it LESS late than the one before — or the run
+ *     simply ended inside it. Never held against the run.
+ *   · SLOW MOTION: the ticks drift behind while the chunks keep arriving — no silence explains it → BEHIND: the run counts up to the
+ *     first late hop. A "drop" that never catches up was slow motion all along → cut at the burst's first hop.
+ * → null (honest) | { why: 'go' | 'chunks' | 'clock' | 'ahead' | 'behind', tick (behind: the run counts up to it), hops (the hops before it) }
+ * `from` (a MATCH): the earliest a chunk may arrive — the first GO (tick 0 is 2 s after it); default = `go`.
+ */
+```
+- `let last = from == null ? go : from, hops = 0, drop = null;` — // (drop: a burst whose lag the silence before it explains — until it catches up)
+- `if (!(k.at >= last)) return { why: 'clock' };` — // (a chunk's time never runs backwards, never before GO)
+- `if (k.t0 >= now - CLOCK.behind) drop = null;` — // (on the clock — a drop before it is settled)
+- before `export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, from = null, until = n`:
+
+```js
+/**
+ * THE JUDGE (H4 — PURE): ONE run from its hop log + its chunks' clock — the host's podium (logic.js#scoreNode) and the server's count
+ * (api/_lib/jaywalk.js) run THIS, so they agree to the lane. → { ok: true, result (the replay's), over, cut? } | { ok: false, why }
+ * Refused: a log that breaks the bounds · AHEAD of the clock · a broken clock · a hop logged after the run had ended · a course version
+ * that is no version (J2 — `cv` is the version the run replays on: the caller's versions.js#runVersion). A log BEHIND the
+ * clock is CUT (`cut: { why, tick }`): the run counts up to its last on-time hop. `until` = score it as it stands at that tick.
+ * J2 FIX — THE END CHECK (v2 only): `end` = the phone's own end ({ l, t } — the proof's `e`, never a count): a v2 run that ENDED in the
+ * replay must have ended where the phone saw it end — else the phone played other v2 numbers (the pre-fix J2 build): 'old build', never
+ * counted. It can only refuse (a phone's claim never adds a lane); a cut run, a run still going or no `e` = not checked.
+ */
+```
+- `if (cv !== 1 && cv !== 2) return { ok: false, why: 'version' };` — // (J2 — versions.js#runVersion's 0: a version not in force at its GO, or none past THE GRACE)
+
+### js/games/jaywalk/sfx.js
+
+- `export const JW_SFX_REV = 4;` — // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B · 4: BEFORE THE FLIP's area arrival)
+- `export const TRIM = 0.8;` — // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
+- before `let labPicks = false;`:
+
+```js
+/** THE TAKES ARE PINNED (BEFORE THE FLIP — the owner, Nov 17): the GAME plays the owner's picks for everyone — every A / B sound its
+ *  take A (NEW BEST = its B recording is that sound's only file since H6B; the train = set B; the area arrival = the sparkle). Only the
+ *  LAB page (lab.js → useLabPicks) plays + remembers this phone's own A / B choice from THE SOUND AUDITION. */
+```
+- `const bytes = new Map();` — // 'id:a' → Promise<ArrayBuffer | null>
+- `const bufs = new Map();` — // 'id:a' → AudioBuffer (for bufCtx)
+- `const live = new Set();` — // the voices sounding: { src, pri, at }
+- `const log = [];` — // the test hook: what started
+- `const asked = [];` — // the test hook: what was asked for (locked / headless included)
+- `const total = { asked: 0, started: 0, by: {} };` — // (… and how many EVER — the two lists keep their last 200: H5A's cues fill them fast)
+- before `export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match && !s.season).map(s => s.id)`:
+
+```js
+/** fetch the bytes now (no AudioContext needed). `ids`: which sounds (default: every sound in play); `both` = a sound's pick AND its
+ *  backup (the audition's — the game fetches the take it plays: the owner's pick, A unless this phone chose B) */
+```
+- `export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match && !s.season).map(s => s.id)` — // (J1: the match's own sounds only when asked — view.js, a match · JT1: the season's on their days)
+- before `export function play(id, o = {}) {`:
+
+```js
+/**
+ * play one sound NOW: name, { ab ('a' | 'b' — default: the owner's pick), rate, vol, loop } → a handle { stop() } (null = nothing started:
+ * locked, muted, undecoded, outranked). A tap that comes BEFORE the unlock (the first hop) plays as soon as it lands, if still fresh.
+ */
+```
+- `if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : ` — // (locked / muted: ONE sound waits for the unlock — every call used to leave a listener there for good)
+- `if (s.max && voices.filter(q => q.id === id).length >= s.max) return null;` — // (H5A — a sound's own cap: ≤ 2 car passes, one horn, one bell)
+- before `const set = (vol, rate) => { try { const t = ctx.currentTime; g.gain.setTargetAtTime(s.gain * vol, t`:
+
+```js
+    /** stop it — `fade` s (default: the sound's own — the train sounds' 0.5 s): a ramp first, never a dead cut · set(vol, rate): a loop
+     *  glides to a new level + speed (THE STOPWATCH — never a jump) */
+```
+- `let tick = null, tickWant = null;` — // (tickWant: the { level, rate } wanted now — null = silent)
+- `const cued = [];` — // the test hook: every cue asked
+- `if (q.cue === 'train-horn') return play('train-horn', { pan: q.pan });` — // (H5C — one blast a train, when its warning starts)
+- `if (q.cue === 'truck-horn') return play('truck-horn', { pan: q.pan });` — // (BEFORE THE FLIP — a box truck's own air horn, now and then)
+- `if (e.e === 'out') return e.cause === 'water' || e.cause === 'edge' ? play('splash') : e.cause === '` — // (THE UFO: the beam's own sounds — flyers.js)
+- `export const totals = () => ({ ...total, by: { ...total.by } });` — // (by: how often each sound was ever asked for)
+
+### js/games/jaywalk/skyline.js
+
+- before `export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge: -17, downtown: 4.25`:
+
+```js
+/**
+ * WHERE THE LANDMARK STANDS: a phone shows the middle ≈ 65 % of the picture — the band RESTS this many % of the picture's width off
+ * its centre while the kid is in the area (+ = its RIGHT side comes in): the landmark on the screen, clear of the lane count; the
+ * slide with the kid's column rides on top. NIGHT HAS ITS OWN (H6B — measured off the night pictures).
+ */
+```
+- `export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge: -17, downtown: 4.25` — // (H6B's review: the cranes, the fish hall, the rail yard + downtown's towers were cut by the screen's right edge; the lighthouse stood under the match's chips)
+- before `export const SKY_MAX = Object.freeze({`:
+
+```js
+/**
+ * THE LANE COUNT NEVER TOUCHES A LANDMARK (the go-live review — measured off the pictures on a 390 pt phone, the tightest: the columns
+ * each landmark fills in the count's rows against a 3- / 4-digit count's width — x 128 … 262 of 390, css `.jw-lanes[data-dg]`): the HIGHEST shift at which
+ * the area's landmark still stands clear of the count. The rest offsets above sit under it; the SLIDE never carries the band past it
+ * (the kid at the right edge: the band simply stops). An area not named has no limit but the room.
+ */
+```
+- before `export const SKY_OPEN_DAY = Object.freeze({ bias: 6.5, min: 5.5 });`:
+
+```js
+/**
+ * THE OPENING BY DAY (the second review): the plain day picture has a small lighthouse at 43 % — right under a 1- / 2-digit count
+ * when the band rests centred. The opening rests a little to the right (the lighthouse left of the count) and never slides back
+ * past `min`. By night the plain picture has no lighthouse: centred, as before.
+ */
+```
+- before `export const SKY_PIN = -17.25, SKY_MATCH_PIN = Object.freeze(['bridge', 'lighthouse']);`:
+
+```js
+/**
+ * IN A MATCH the players' chips stand on the band's LEFT edge (css `.jw-order`: 86 pt wide, down to 164 pt with 8 players). The two
+ * landmarks painted on the LEFT rest as far RIGHT as the picture goes and do not slide back under them: the lighthouse (both looks)
+ * and the night bridge then stand clear of the chips; THE DAY BRIDGE cannot — it is painted over the picture's left 38 %, the band has
+ * ± 17 % of room: its right tower + span stand clear, its left tower is behind the column (docs/jaywalk.md "THE GO-LIVE REVIEW").
+ */
+```
+- before `export const SKY_LIGHTS = Object.freeze([[31.7, 51.4, 0], [62.6, 64.8, 1.7], [64.2, 65, 1.7], [66.4,`:
+
+```js
+/** THE NIGHT's LIFE, in % of the picture: [x, y, delay s] the red aviation lights · [x, y, w, h, delay s] the windows that flicker —
+ *  and, per area, the ones its painted landmark stands on (measured by scripts/build-jaywalk-assets.py): OFF there. */
+```
+- before `export function skyPlan(lane, look, match = false) {`:
+
+```js
+/**
+ * what the band needs with the kid at `lane` in `look` → { now: the picture on the band, next: the one to fetch ahead (null = none),
+ * bias: where the band rests (% of the picture's width), max / min: the highest / lowest shift the slide may reach (99 / −99 = the room alone) }. `match`:
+ * the chips are up — the left landmarks are pinned (SKY_MATCH_PIN).
+ */
+```
+
+### js/games/jaywalk/sounds.js
+
+- before `export const SOUNDS = Object.freeze([`:
+
+```js
+/** every JAYWALK sound: id, its words in the audition, a B backup?, a loop (the whole WAV), its gain into the limiter, its priority,
+ *  `max` (how many of it may sound at once), `fade` (s — H5B: it NEVER stops dead: its own end, a stop and a dropped voice all ramp
+ *  out through its gain). H5A — ALL IN PLAY (the owner picked ALL A): THE PRIORITY = your own hit / splash (4) > the train · the
+ *  lights dying · a gateway · a new best (3) > a horn (2) > a hop · a landing (1).
+ *  H5B (the owner, playing H5A): THE HORN AT HALF its level (1.0 → 0.5) · the CAR-PASS near-miss whoosh is GONE ("it's terrible" — its
+ *  row, its cue, its fetch, its two files) · the train sounds FADE OUT (`FADE_S`)
+ *  H5C (the owner): THE TRAIN SOUNDS = set B — a North American crossing bell (ONE take: the old bells, A + B, are gone) + THE TRAIN
+ *  HORN (one blast a train, when its warning starts) · THE AREA ARRIVAL ("area-arrive") replaces the landmark ping (its row + file gone)
+ *  H6B (the owner): NEW BEST = its B take, ONE take (the sparkle is THE AREA ARRIVAL's alone) · THE MIX — every gain set against the
+ *  others, MEASURED (tests/integration/jaywalk-mix.mjs — docs/jaywalk.md "THE MIX"): the train's bell + horn + the arrival chime came
+ *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run)
+ *  BEFORE THE FLIP (the owner, Nov 17 — the delivery's sfx5, all CC0): THE STOPWATCH (a seamless WAV loop — cues.js#tickOf: silent until
+ *  the dark is within 3.5 lanes (it waits at 5), a calm tick-tock fading in + speeding up as it closes; it REPLACES the lights dying — row + file gone) ·
+ *  THE TRUCK HORN (the owner, 7:21 pm: the SAME horn moments alternate car · truck — no horn added; at the car horn's measured loudness) ·
+ *  THE AREA ARRIVAL replaced ("Success" — a warm synth chord; the sparkle is gone). Their levels measured against the rest (jaywalk-mix). */
+```
+- `export const HOP_VARY = Object.freeze({ rate: 0.06, db: 2 });` — // (a hop: pitch ± 6 %, gain ± 2 dB — never the same twice)
+
+### js/games/jaywalk/splits-card.js
+
+- before `export function splitsCard(ticks) {`:
+
+```js
+/**
+ * → { el (null when no split was reached — nothing is shown), server(sp) } — `ticks` = this run's splits (the phone's own engine first).
+ * server({ r, b, n }): the server's answer for THIS run — its splits win, its bests replace the remembered ones, its faster ones glow.
+ */
+```
+- `if (n) { x.box.classList.add('is-new'); x.best.replaceChildren('NEW BEST', h('b', splitGain(n.tick, ` — // (the gain on its own line: every box keeps one width)
+- `const r = cleanSplits(sp.r), b = sp.b != null ? cleanSplits(sp.b) : known();` — // (no bests in the answer — a run not counted: the remembered ones stay)
+- `if (Array.isArray(sp.r) && !r.length) { el.hidden = true; return; }` — // (the server's run reached no split — a cut run: its numbers win)
+
+### js/games/jaywalk/tuning.js
+
+- `export const MID_COL = 4;` — // (the centre column: never an obstacle on it — a straight way through every grass lane)
+- `export const KID_HALF = 300;` — // (the kid's half width against cars / trains / the Blackbird — 0.3 of a cell: a fair, slightly small box)
+- `export const LOG_GRACE = 150;` — // (how far past a log's end the kid's centre may sit and still be on it)
+- `export const CALM_LANES = 4;` — // (lanes 0–3: plain grass — the opening is always calm)
+- `export const STRETCH = 50;` — // (a stretch = the 50 lanes from one landmark to the next)
+- before `export const SPLIT_EVERY = 50;`:
+
+```js
+/** J1 — SPLIT TIMES: the tick each multiple of this many lanes is FIRST reached (engine.js#land → the run's `sp`; the end card's boxes; the
+ *  server's best splits — core/splits.js). 60 ticks = 1 s. */
+```
+- before `export const EVEN = Object.freeze({ grassRun: 2, grassPer10: 5, hazardRun: 3 });`:
+
+```js
+/** J2 — EVEN STARTS (COURSE RULES v2 only — versions.js; v1 never reads this): the opening (lanes CALM_LANES … STRETCH − 1) never runs
+ *  free. The kinds keep the heat's own mix, but its SPREAD is tightened, lane by lane in order (course.js#openingKinds): never more than
+ *  `grassRun` ground lanes in a row · never more than `grassPer10` in any 10 lanes running · never more than `hazardRun` hazard lanes in a
+ *  row (the other side of the same coin: the overall difficulty stays the curve's — measured, docs/jaywalk.md "EVEN STARTS"). */
+```
+- `export const WATER_RUN_MAX = 3;` — // (never more than 3 water lanes in a row)
+- `export const RAIL_RUN_MAX = 3;` — // (… nor more than 3 rail lanes — H5A: THE RAIL YARD leans hard on them)
+- before `export const AREAS = Object.freeze([`:
+
+```js
+/** THE AREAS (H5A — the owner, Nov 16): a new area every 50 lanes — the stretch that BEGINS at a landmark's lane IS that place (lanes
+ *  50–99 THE DOCKS · 100–149 THE FISH MARKET · … · 400–449 THE AIRFIELD · 450 on: the loop again, harder); lanes 0–49 are the plain
+ *  opening. Each area LEANS the lane mix — `mix` [grass, road, water, rail], a PERCENTAGE on the heat's own weights (MIX): the difficulty
+ *  curve keeps climbing underneath — the speeds, the gaps, the logs' lengths, the trains' laps stay the heat's alone. `cars` + `gap` =
+ *  HEAVIER TRAFFIC (more cars a lap, less spare room between them — never under the crossable gap, ROAD.gapMin + gapVTicks);
+ *  `flight` = the stretch has its flight paths FOR SURE, two of them (no UFO there: never both in one stretch). */
+```
+- `Object.freeze({ name: 'THE FISH MARKET', mix: Object.freeze([135, 90, 130, 50]) }),` — // the market's ground + water
+- `cars: [2, 4],` — // (cars in one lap of the lane, before the gaps are sized)
+- `gapMin: 2600, gapVTicks: 26,` — // (a gap is never under 2.6 cells + what a car covers in 26 ticks — the crossable window)
+- `gapExtra: [5200, 2400],` — // (+ a random 0 … this much, by heat)
+- before `export const WATER = Object.freeze({`:
+
+```js
+/** WATER (H3 — the owner, Nov 16): every log its OWN LENGTH, 1–4 cells, from the seed — long logs more common early, short ones later (the
+ *  difficulty curve) — and UNEVEN GAPS. A 1-cell log is the hard one: never on a lane beside another water lane, never on a fast lane. */
+```
+- `lenW: [[4, 14, 36, 46], [30, 40, 22, 8]],` — // (the weights of a 1 · 2 · 3 · 4-cell log at heat 0 → 1000; past 1000 they keep going, never under 1)
+- `oneV: 44,` — // (a 1-cell log only on a lane this slow or slower — its landing window stays ≥ ~0.5 s)
+- `gapShort: [900, 1500], shortOf: 380,` — // (UNEVEN GAPS: this many gaps of 1000 are SHORT — 0.9–1.5 cells …)
+- `gapMin: 1400, gapExtra: [1400, 2600],` — // (… the rest LONG: 1.4 cells + a random 0 … this much, by heat)
+- `export const MIN_TELL_TICKS = 90;` — // (1.5 s — the Blackbird's tell is never shorter: tests/jaywalk-sim.test.mjs)
+- before `export const RUNWAY = Object.freeze({`:
+
+```js
+/**
+ * J2 — THE BLACKBIRD's RUNWAYS (COURSE RULES v2 only — versions.js; v1 keeps FLIGHT): a runway = a band of 3 or 4 flight lanes, EACH with
+ * its OWN jet on ONE shared lap, staggered (the lanes' passes spread round the lap in a shuffled order — never all at once: a kid weaves
+ * and times across). Every lane: its tell (≥ MIN_TELL_TICKS) → the pass (the body, `FLIGHT.len` at `FLIGHT.v`) → THE AFTERBURNER TRAIL
+ * (`trail` ticks: the whole lane still burns — touching it = 'blackbird') → quiet. A runway always has a SAFE ground lane right before
+ * and right after it (a place to wait — course.js#typeAt), never another runway back to back. FAIR BY CONSTRUCTION: every layout is
+ * checked as it is made (course.js#runwaySlack — a careful kid, waiting + hopping, gets across from at least `slack` start ticks of
+ * every lap); one that is not falls back to the tight cluster (`gap[0]`), which always leaves a calm gap the whole band is quiet in.
+ *   period   a lane's lap [at heat 0, at heat 1000] = [[min, max], [min, max]] ticks (4–6 s early → 3–4.5 s deeper; never under periodMin)
+ *   four     ‰ of runways with 4 lanes (else 3), by heat
+ *   chance   ‰ a stretch gets runways: s2 = THE FISH MARKET (from lane `first`) · mid = 150–249 · deep = 250 on (+ `two` ‰ of those a 2nd)
+ *   ufo      the most ‰ a stretch gives THE UFO first (never both in one stretch) · THE AIRFIELD: `airfield` runways, never a UFO
+ *   v        J2 FIX — THE BLACKBIRD YOU CAN SEE (the owner, Nov 21): a runway jet's speed (FP a tick) [lanes 120–249, from 250, THE AIRFIELD]
+ *            — it crosses the 8-column view in ≈ 0.67 · 0.53 · 0.39 s (J2 flew 1000: 0.13 s, felt, never seen). `len` = its body.
+ *   tell     the per-lane warning — 72 ticks = 1.2 s (J2: 1.6 s): the slower, SEEN jet keeps the threat about the same. v2's own floor
+ *            (`tellMin`); v1 keeps MIN_TELL_TICKS (1.5 s) — frozen.
+ */
+```
+- `gap: Object.freeze([18, 0]), slack: 24, wait: 216,` — // (J2 FIX — `wait`: a layout that can keep a careful kid waiting more than 3.6 s is not used either — course.js#runwayWait)
+- `start: -8 * FP,` — // (it begins 8 lanes behind the start)
+- `delay: 180,` — // (and waits 3 s — the calm opening)
+- `behind: 5,` — // (never more than 5 lanes behind the kid's BEST: no banking distance — it waits just under the screen's foot)
+- before `export const MODES = Object.freeze({`:
+
+```js
+/** THE MODES — the wall's pace (FP a tick) + its speed-up, THE MOTHERSHIP's tick (cap: 0 = never). All tunable here.
+ *  ONE LIFE EVERYWHERE (H4 — the owner, Nov 16): one hit = out, in every mode. No lives option, no respawn, no blink, no one-up.
+ *  SOLO ENDLESS = no speed-up, no end · MATCH = faster from ~4 min, THE MOTHERSHIP at ~6 min takes whoever is left (rare — a reward) ·
+ *  DAILY (built later — DAILY A / B) = faster from ~3 min, THE MOTHERSHIP at ~5 min. */
+```
+- `export const MIN_INPUT_GAP = 2;` — // (two inputs are never closer than 2 ticks — 33 ms)
+- `export const MAX_INPUTS_PER_SEC = 20;` — // (… and never more than 20 in any one second)
+- `export const MAX_LOG = 60000;` — // (a solo run's whole log; a capped mode's = its cap / MIN_INPUT_GAP at most)
+- `ahead: 2 * TICK_HZ,` — // (a chunk's LAST hop: at most 2 s ahead of the chunk's own timestamp — the phone's clock estimate + a frame)
+- `behind: 8 * TICK_HZ,` — // (… its FIRST hop: at most 8 s behind it — the upload every second + a slow network)
+- `drop: 75 * 1000,` — // (ms — THE DROPPED SIGNAL: a silence this long before a burst explains its lag: ~60 s offline + the reconnect)
+- `catchUp: 15 * 1000,` — // (ms — … and the burst must be back on the clock within this of its first chunk, or it was never a drop)
+- `jitter: 6,` — // (ticks — inside a burst a chunk may be this much later than the one before it, never more: a lag that grows is slow motion)
+- `flushMs: 1000,` — // (the phone uploads its new hops every second — a solo run)
+- `flushMatchMs: 120,` — // (… AT ONCE in a MATCH — H4B: a hop goes up within this; the others' ghosts are your hop log. ≤ 8 small writes a second at the very most)
+- `chunkMax: 400,` — // (a chunk's packed string — the rules' bound)
+
+### js/games/jaywalk/variety.js
+
+- before `export const VARIETY = Object.freeze({`:
+
+```js
+/** every variety vehicle: its slot (cells), its drawn width + height (cells), its emergency light bar ('' = none; `bar` = along the body from the
+ *  nose 0 … 1, its height as a share of the model's) · dayK = by day a touch under (a white body blew out to a flat slab — the box truck's rule) */
+```
+- before `const DOWNTOWN = { 1: [['police', 0.07], ['suv', 0.08], ['sports', 0.07]], 2: [['citybus', 0.2], ['d`:
+
+```js
+/** THE AREA SETS — by the area's index (tuning.js#LANDMARKS: 0 THE DOCKS · 1 THE FISH MARKET · 2 THE RAIL YARD · 3 THE BRIDGE · 4 DOWNTOWN ·
+ *  5 THE CANAL · 6 THE LIGHTHOUSE · 7 THE AIRFIELD; −1 = the opening, DOWNTOWN's set) → per slot [id, share of that slot's vehicles]. A 1-cell
+ *  slot keeps ≥ 3 / 4 plain cars everywhere (the sedans · hatchbacks · taxis), every slot ≥ 1/2 plain — plain the clear majority on screen. */
+```
+- before `let WINTER = false;`:
+
+```js
+/** VARIETY B2 — THE WINTER TRUCKS: on a winter run (the run's own day — night.js#setSeason, Dec 1 → Mar 1) the van slot's top tenth of
+ *  draws (always a PLAIN van in every set: no set reaches 0.9) is a snowplow (0.90 …) or a salt truck (0.95 …); every phone on the run's day */
+```
+- before `const KNOWN = new Set();`:
+
+```js
+/** THE NAMES ARE THE DRAWN ONES: the ids whose model has come in on this page (kept for the page's life — a rival's end line in an area this
+ *  phone already passed still names what was drawn there) */
+```
+- `export const VARIETY_REV = 2;` — // (B2: the files slimmed — the wheels, the undersides, the hidden insides)
+- before `export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL('${id}.glb?v=${VARI`:
+
+```js
+/** the OPENING's files into the HTTP cache (the cartridge's preload, during the walk inside — its 1.5 MB line: THE DOCKS' come in from the
+ *  scene itself while the menu / the count shows) — fetched, never parsed */
+```
+- before `export const PUMP = Object.freeze({ budget: 7, starve: 24 });`:
+
+```js
+/** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step;
+ *  after STARVE frames skipped in a row, one step is taken anyway (a phone that is always busy still gets its models) */
+```
+- before `export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaWants,`:
+
+```js
+/**
+ * THE PER-AREA LOADER: want(list of area indices) → the files of those areas fetched (the ones no longer wanted FREED — drop(id)); pump(busy)
+ * at the END of a frame takes at most ONE STEP (B2: a model's parse, OR its kind made — never both in one frame), and none when the frame was
+ * busy (PUMP); a file that fails is asked again 5 s later (never a stall: the slot draws its plain vehicle meanwhile). The steps' cost is kept
+ * (info: `worst` ms). `ids` (an area → its model ids) · `url` · `known` let B2's trees + edge pieces share this loader. → { want, pump, info, destroy }
+ */
+```
+- `const held = new Map(), queue = [];` — // id → 'loading' | 'in' · the fetched buffers waiting for a frame
+- `const drops = [];` — // (B2: the models no longer wanted — freed ONE a step too: an area passed never frees six kinds in one frame)
+- `for (let k = drops.length - 1; k >= 0; k--) if (wanted.has(drops[k])) { held.set(drops[k], 'in'); dr` — // (wanted again before it was freed: kept)
+
+### js/games/jaywalk/versions.js
+
+- before `export const CV_REV = 2;`:
+
+```js
+/** J2 FIX — the REVISION of v2's numbers this code plays: 2 = THE BLACKBIRD YOU CAN SEE (the jets slower, the tell 1.2 s — tuning.js#RUNWAY,
+ *  changed BEFORE v2 went live; v2 is FROZEN from here — tests/fixtures/jaywalk-v2/). A phone still on the pre-fix J2 build plays the old
+ *  numbers under the same `cv` 2: the daily's START refuses it on a v2 day (no `cvr` — it is told to refresh) and a solo / match run of its is
+ *  refused by THE END CHECK (replay.js#judgeRun: its own end `e` never matches the server's replay) — never a wrong count. */
+```
+- `switchAt = typeof ms === 'number' && !Number.isNaN(ms) ? ms : CV_SWITCH_MS;` — // (Infinity = v1 for ever: the unit tests of the match logic)
+- before `export function runVersion(cv, E, go) {`:
+
+```js
+/**
+ * THE CHECK (PURE — the host's podium + the server's count): the version a run REPLAYS on, from what its proof carries.
+ *   `cv` = the run's own field (undefined / null = none) · `E` = the version in force at its GO (versionAt) · `go` = its GO (a server time)
+ * → 1 | 2, or 0 = REFUSED ('version' — a version that is not the one in force at its GO; or none at all once THE GRACE is over)
+ */
+```
+- before `export function tryVersion(day, cvs, now, cvr = null) {`:
+
+```js
+/** the daily's START: the version a NEW try is opened on → 1 | 2, or 0 = refused. ONE COURSE A DAY ("a day's daily uses the version in force
+ *  at its 4 am" — the fresh-eyes review's M4: no grace here): a v2 day refuses a phone that does not know v2 (it is told to refresh); a v1 day
+ *  is v1 for everyone. `cvs` = the newest version the phone says it knows (none = an old-code phone) · `cvr` = its v2 numbers' revision (J2 FIX:
+ *  none = the pre-fix J2 build — refused on a v2 day). (`now` kept for the callers' shape) */
+```
+
+### js/games/jaywalk/victory.js
+
+- `finLine(h('div.jw-fin-cause', { 'data-text': line }, line), 'jaywalk', gold),` — // (CITY PART 2 — THE END NEON: JAYWALK's pink; THE MOTHERSHIP gold)
+- before `export const TABLE_ROWS = 4;`:
+
+```js
+/**
+ * YOUR TABLE (H3): your friends' JAYWALK bests under your own — you + the friends YOUR list names (the server's read: /api/profile `table`,
+ * never a pid in the page), best first, as SLIM CARDS (ui/strip-board.js — stills + THE LIVE LANE), the lanes at the right. Shown only when
+ * a friend has a best (a table of one is nothing); at most TABLE_ROWS rows — you are always among them.
+ */
+```
+- `return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-ta` — // (JT2: + THE BOARD's AVERAGE under the best)   // (CITY H2 — THE YOU ROW: the shared glow, never this table's own box)
+- `list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length)))); if (rows.some` — // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
+- before `export function endOf(game, uid, code, courses = null) {`:
+
+```js
+/** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes. The course: a SOLO run's from its
+ *  own GO, a MATCH's the game's (`courses` — one course built once for a whole podium) */
+```
+- `const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed, cv = r.cv === 2 ? 2 : 1, key = '${` — // (J2: the row's course version)
+- `const look = typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day` — // (H5B: by day the wall is THE FOG BANK)
+- `el.dataset.mode = 'match'; el.dataset.podium = 'none';` — // (the console lists EVERY place under this body — slim cards, the lanes, the cause lines)
+- `const p = ((state && state.players) || {})[uid], table = () => { if (!tabled && el.isConnected) { ta` — // (your row glows in YOUR colour)
+
+### js/games/jaywalk/view.js
+
+- `const SHIP_SEEN = 252;` — // (ticks: the 4.2 s the Mothership's lift is seen — flyers.js#holdMs)
+- `const SHIP_WARN = 600;` — // (ticks: the Mothership's 10-s warning before the cap — flyers.js#FLY.warn: THE ARRIVAL BANNER never shows over it)
+- `let table = null;` — // { uid, at, p: Promise<{ best, friends } | null> }
+- `if (choice === 'auto' && !sun) choice = document.body.dataset.look === 'day' ? 'day' : 'night';` — // (the sun not read yet: the console's own day / night)
+- `let code = '', uid = '', matchId = '', mode = 'wait', D = null;` — // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
+- `let todAt = -1e9, todKey = '';` — // (VARIETY A — THE TIME OF DAY's last check + what the scene shows)
+- `const ghosts = new Map();` — // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
+- `let look = 'night';` — // (H5B — the look this screen is drawn in now)
+- `let rosterEl = null, rosterKey = '';` — // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
+- `let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;` — // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
+- `let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;` — // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
+- `let mom = null, momAt = 0, stageW = 390, stageH = 844, offSize = null;` — // (J1 — THE MATCH MOMENTS: moments-view.js; the stage's size from a ResizeObserver — never read in a frame)
+- `let mergedSeen = '';` — // (TEST — JT2: the last merged name tag ("ALICE +1") this screen put up: the E2E reads the moment, never polls for it)
+- before `const scoredNow = g => { try { return { ...g, ...finalPatch(g, runsNow() || {}, srvNow(), code) }; }`:
+
+```js
+  /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early
+   *  `final`'s numbers */
+```
+- `const syncs = TEST ? [] : null;` — // (the pass's measure — tests/integration/sound-sync.mjs: when each hop's / landing's sound was asked)
+- `lanesEl = h('div.jw-lanes'); setNum(lanesEl, 0); prepNums(lanesEl); markEl = h('div.jw-mark', '');` — // (THE BIG NUMERALS — numerals.js: room between the digits, a 1 with a foot)
+- `arriveEl = createArrival(root, AREA_LOOKS);` — // (BEFORE THE FLIP — THE ARRIVAL BANNER: arrival.js)
+- `look = lookNow(); night.setLook(look); root.dataset.look = look;` — // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
+- `try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish` — // (J4 — THE SEASONAL PACK fetched while the menu / the count shows: in season only, never blocking GO)
+- `try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serve` — // (J1: + THE MATCH MOMENTS' three, a match only · JT1: the season's own, on a season day only)
+- `if (offGL) offGL();` — // (the dead scene's destroy() is not a second loss)
+- `let seasonRun = null;` — // (the season this run APPLIED — its normal look if its pack was not in by its start)
+- before `function reSeason() {`:
+
+```js
+  /** a rebuilt scene (THE LOST CONTEXT) takes back EXACTLY the season its run applied — winter only if the run had it (never turned on mid-run);
+   *  the pack fetched again for the next run either way */
+```
+- `if (node && node.go > 0) { rejoin(node); return; }` — // (a refresh / a rejoin mid-run: the run so far is in the node)
+- `if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { i` — // (the GO is ON the server: never unproven for the cv's round trip)
+- before `function writeCv(goAt, E) {`:
+
+```js
+  /** J2 — COURSE RULES v2: a solo run's version = the one in force at its own GO (versions.js), written beside it (`cv`) — the rules take it
+   *  once, after the GO; the server checks it against the GO. REFUSED (rules not re-published yet): the run plays the version the server
+   *  will replay a run with no `cv` on (v1 until THE GRACE ends) — the phone and the server always agree */
+```
+- before `function rejoin(n) {`:
+
+```js
+  /** a SOLO rejoin: a node with its GO but no cv and NO hop yet (a refresh between the GO and the cv) writes it now; one with hops keeps
+   *  the version they were played on (no cv = v1, the run with no cv — never moved under them) */
+```
+- before `function askGoMatch() {`:
+
+```js
+  /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A refusal
+   *  (this phone's clock a touch early, a rejoin) is looked at and tried again a few times — never a stuck start: the count runs on */
+```
+- `log = old || []; W.reset({ sent: log.length, next: chunks ? Object.keys(chunks).length : 0, verify: ` — // (CITY I: a rejoin's first write reads the chunks fresh)
+- `if (firstHop) { queue.push(firstHop); firstHop = ''; }` — // (JT2: the hop that started the run is its first)
+- `revealed = true; if (night) night.setReveal(1);` — // (the flag too: a lost context's rebuild reads it — THE POLISH PASS)
+- before `function adoptMatch(S, runs, cv) {`:
+
+```js
+  /** a MATCH's course lands (THE FIRST GO → the seed + tick 0; in `play` the game's own): the kid stands on it, the engine waits for
+   *  tick 0. A rejoin: this player's own log so far is replayed to now. A watcher (not a participant) has no run of their own. */
+```
+- `else if (isOver(run)) { mode = 'over'; overAt = -1e9; callDone = true; }` — // (a rejoin after their own end: straight to watching)
+- `if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }` — // (the TEST bots: asked once a TICK — a stalled phone catching up makes the same moves; JT2, the match flake)
+- `setTimeout(() => { if (lanesEl) lanesEl.classList.remove('is-flash'); }, 720);` — // (the flash, then the counter's own small pop a lane again)
+- `if (own && !record && isRecord(lines.best, run.best)) { record = true; lanesEl.classList.add('is-rec` — // (a rejoin, an answer that came late: no burst)
+- `const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if` — // (THE STALE-MODULE RULE: an existing export, lazily)
+- `const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phas` — // (past 'play' — the count's last 2 s still take a chunk)
+- `if (W) W.close();` — // (the run before: what it logged leaves now; its late answers touch nothing)
+- `keepOwnSplits(matchId, run.sp);` — // (J1 — YOUR SPLITS: the end card's boxes from this phone's own engine, at once)
+- `awakeAt = 0; awake(false);` — // (THE SOUND SYNC: the hold ends with the run — the hit's own sound plays out, then the context naps again)
+- `if (waitTap) { if (countKey) { countKey = ''; countEl.textContent = ''; rosterEl.classList.remove('i` — // (JT2: TAP TO START says it all — no GET READY under it)
+- `const ship = run.st === 'taken';` — // (H6A — THE MOTHERSHIP = A FINISH LINE: its gold card, once the arrival has been seen)
+- `if (night && root && (todDirty || now - todAt > 1000)) {` — // (VARIETY A — THE TIME OF DAY: once a second, at once on a setting change)
+- `if (waitTap && D) { if (now - veilAt < 500) return; veilAt = now; }` — // (JT2 — the daily's veil: the blurred course is a near-still, never a blur re-run every frame)
+- `else if (sndOn && now - awakeAt > 1000) { awakeAt = now; awake(true); }` — // (THE SOUND SYNC: the lease, renewed while the run is live)
+- `const held = performance.now() - overAt > hold();` — // (the hit is seen first — the kid stays his own colour through it)
+- `if (mom && runs && course !== START && c && c.t >= 0 && !root.classList.contains('is-over')) {` — // (never behind the podium: no moment's sound over it)
+- `if (!final && !localEnd) { tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now); ` — // (only while the scene is DRAWN: behind an end screen it rests — 8 easy seconds there stepped the tier up for the next run)
+- `if (shownBest > 0) { popN ^= 1; lanesEl.classList.remove('is-pop', 'is-pop2'); lanesEl.classList.add` — // (two names, one animation: it restarts with no layout read in the frame)
+- `if (arriveEl && arriveEl.on() && !arriveNow()) arriveEl.hide();` — // (the Mothership's warning / the run's end takes the top: the banner goes at once — never stacked)
+- `{ const RH = globalThis.__nsRunHold; if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter(); }` — // (THE CONSOLE FIX: the run is over + written — follow the room)
+- `if (!g || g.phase !== 'final' || final || runLive()) return;` — // (THE CONSOLE FIX: a live proven run of this phone's own is played out first)
+- `{ const RH = globalThis.__nsRunHold; if (RH && RH.on) return; }` — // (… the room moved on: no podium for a match it left — the phone follows it)
+- `else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);` — // (the end has not reached the room — no signal: never a frozen screen)
+- `root.classList.add('is-over'); root.append(finalWrap); night.rest(true);` — // (H6B: the scene rests behind the end screen)
+- before `function showLocalEnd(waiting) {`:
+
+```js
+  /** a SOLO run's own end: UNPROVEN (no proof → the match can't reach the console's podium) — or proven but the signal is gone (`waiting`:
+   *  the run is in the phone's queue and counts when it lands; the podium takes this screen's place by itself) */
+```
+- `{ const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }` — // (J1 — YOUR SPLITS: every run's end card — the phone's own engine; no server answer here)
+- `if (waitTap && n && n.go > 0) { waitTap = false; hideStart(); }` — // (a refresh / a rejoin mid-run: back on its run at once — never a second start)
+- `else if (!(performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000)) showStart();` — // (JT2: PLAY AGAIN / TRY AGAIN — that tap was the start)
+- `bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => {` — // (JT2: `steady` — THE STEADY BOT, the E2E's players who must stay in)
+- `update(state) { st = state; if (matchLeft()) lateProof('seen');` — // (CITY I: from the moment this phone sees the match end, a chunk / e still in flight is an expected refusal)
+- `if (offGL) offGL();` — // (BEFORE THE FLIP: off BEFORE any destroy() — a deliberate teardown is never a lost context)
+- `awake(false);` — // (THE SOUND SYNC: a hold never outlives the view)
+- `if (mode === 'run' && run && !isOver(run)) flush(true);` — // (a QUIT mid-run: what was hopped is in the proof)
+- `if (W) W.close();` — // (… what is logged leaves now, in order; nothing is tried again once the view is gone)
+- `if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.des` — // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)

@@ -1,20 +1,6 @@
 // JAYWALK — THE SOUNDS' TABLE (H2 — docs/jaywalk.md "THE SOUNDS"). PURE, no imports (the unit tests read it; sfx.js plays it): every sound,
 // The long notes: docs/games/jaywalk-notes.md
-/** every JAYWALK sound: id, its words in the audition, a B backup?, a loop (the whole WAV), its gain into the limiter, its priority,
- *  `max` (how many of it may sound at once), `fade` (s — H5B: it NEVER stops dead: its own end, a stop and a dropped voice all ramp
- *  out through its gain). H5A — ALL IN PLAY (the owner picked ALL A): THE PRIORITY = your own hit / splash (4) > the train · the
- *  lights dying · a gateway · a new best (3) > a horn (2) > a hop · a landing (1).
- *  H5B (the owner, playing H5A): THE HORN AT HALF its level (1.0 → 0.5) · the CAR-PASS near-miss whoosh is GONE ("it's terrible" — its
- *  row, its cue, its fetch, its two files) · the train sounds FADE OUT (`FADE_S`)
- *  H5C (the owner): THE TRAIN SOUNDS = set B — a North American crossing bell (ONE take: the old bells, A + B, are gone) + THE TRAIN
- *  HORN (one blast a train, when its warning starts) · THE AREA ARRIVAL ("area-arrive") replaces the landmark ping (its row + file gone)
- *  H6B (the owner): NEW BEST = its B take, ONE take (the sparkle is THE AREA ARRIVAL's alone) · THE MIX — every gain set against the
- *  others, MEASURED (tests/integration/jaywalk-mix.mjs — docs/jaywalk.md "THE MIX"): the train's bell + horn + the arrival chime came
- *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run)
- *  BEFORE THE FLIP (the owner, Nov 17 — the delivery's sfx5, all CC0): THE STOPWATCH (a seamless WAV loop — cues.js#tickOf: silent until
- *  the dark is within 3.5 lanes (it waits at 5), a calm tick-tock fading in + speeding up as it closes; it REPLACES the lights dying — row + file gone) ·
- *  THE TRUCK HORN (the owner, 7:21 pm: the SAME horn moments alternate car · truck — no horn added; at the car horn's measured loudness) ·
- *  THE AREA ARRIVAL replaced ("Success" — a warm synth chord; the sparkle is gone). Their levels measured against the rest (jaywalk-mix). */
+/** every JAYWALK sound: id, its words in the audition, a B backup?, a loop (the whole WAV), its gain into the limiter, its priority, … */
 export const SOUNDS = Object.freeze([
   { id: 'hop', label: 'HOP', b: true, gain: 1.25, pri: 1, play: true },
   { id: 'land-wood', label: 'LAND ON A LOG', b: true, gain: 1.4, pri: 1, play: true },
@@ -51,7 +37,7 @@ export const TRAIN_DUCK = Object.freeze({ level: 0.72, inS: 0.25, outS: 0.9, hol
 /** H5B — the train sounds' fade (s): the bell's loop when its signals stop, the pass at its own end / when it is stopped */
 export const FADE_S = 0.5;
 export const VOICES = 8;
-export const HOP_VARY = Object.freeze({ rate: 0.06, db: 2 });   // (a hop: pitch ± 6 %, gain ± 2 dB — never the same twice)
+export const HOP_VARY = Object.freeze({ rate: 0.06, db: 2 });
 /** PRIORITY: a full house (8 voices) drops the new sound unless it outranks the quietest-ranked one sounding (the oldest of those goes) */
 export function admit(voices, pri, max = VOICES) {
   if (voices.length < max) return { ok: true, drop: -1 };

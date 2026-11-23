@@ -3,12 +3,10 @@
 import * as THREE from 'three';
 
 const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);
-export const MODEL_REV = 2;   // (bump when a model file is replaced)
+export const MODEL_REV = 2;
 export const KENNEY = Object.freeze(['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-front', 'train-carriage',
   'bush-planter', 'street-lamp', 'traffic-cone', 'traffic-barrier', 'trash-dumpster', 'crate-box']);
-/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (THE DOCKS' crates are built in code — H5A)
- *  and so is the jersey barrier (from above it read as a pale cube — the barrier is now THE BARRICADE, built in code);
- *  H5A — THE AREAS' two models: the lighthouse (MaverickFX, CC0) + the fishing boat (Kenney's Watercraft Kit, CC0) */
+/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (THE DOCKS' crates are built in code — H5A) … */
 export const LANDMARK_MODELS = Object.freeze(['lighthouse', 'fishing-boat']);
 export const SCENE_MODELS = Object.freeze([...KENNEY.filter(n => n !== 'crate-box' && n !== 'traffic-barrier'), ...LANDMARK_MODELS]);
 const lin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
@@ -18,8 +16,7 @@ const WIDTH = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
 
 /** (VARIETY B2 — THE TAPS) a colour byte → its linear value: one table, never a pow per vertex */
 const LIN8 = new Float32Array(256).map((_, i) => lin(i / 255));
-/** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale.
- *  B2: read through typed-array VIEWS (aligned — our writer's layout) — a model parses in ~1 ms where the DataView reads took 8–17 ms at 6× CPU */
+/** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale. … */
 export function parseGlb(buf) {
   const dv = new DataView(buf);
   if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a GLB');
@@ -34,7 +31,7 @@ export function parseGlb(buf) {
   const read = i => {
     const V = view(i);
     if (V) { const { src, st, n, count, k } = V, out = new Float32Array(count * n); for (let v = 0, o = 0; v < count; v++) for (let c = 0, b = v * st; c < n; c++) out[o++] = src[b + c] * k; return { out, n, count }; }
-    const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WIDTH[a.type];   // (an unaligned file: the slow path)
+    const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WIDTH[a.type];
     const stride = bv.byteStride || T.BYTES_PER_ELEMENT * n, at = bin + (bv.byteOffset || 0) + (a.byteOffset || 0), k = a.normalized ? 1 / NORM[a.componentType] : 1;
     const out = new Float32Array(a.count * n), get = { 5120: 'getInt8', 5121: 'getUint8', 5122: 'getInt16', 5123: 'getUint16', 5125: 'getUint32', 5126: 'getFloat32' }[a.componentType];
     for (let v = 0; v < a.count; v++) for (let c = 0; c < n; c++) out[v * n + c] = dv[get](at + v * stride + c * T.BYTES_PER_ELEMENT, true) * k;
@@ -121,14 +118,7 @@ export function roundBox(w, h, d, r, seg = 3) {
 }
 const ball = (r, w = 14, h = 10) => new THREE.SphereGeometry(r, w, h);
 
-/**
- * THE KID (H5A — the owner, Nov 16): Kenney's "Mini Skate" skate boy (CC0) — assets/jaywalk/models/kid.glb, re-packed by
- * scripts/build-jaywalk-assets.py: ONE mesh, the colormap in vertex colours, the PAINT = his T-shirt + THE CAP (they take the player's
- * colour; the face, the arms, the jeans + the white sneakers stay Kenney's), each vertex's ONE bone (`bone`) and THE POSES (the skin
- * matrices of idle · jump · fall + the SPLAY, a row a frame). He faces −z (up the course), 0.78 tall, his cap built into his head.
- * → the geometry (+ `userData.poses` = { tex (a float texture: 3 texels a bone across, a row a frame), clips: { name: [first row,
- * frames] } }), or null (the file never came: the scene draws his glow ring + shadow alone, never throws). Tried three times.
- */
+/** … */
 export const KID = Object.freeze({ h: 0.78 });
 export async function loadKid() {
   for (let i = 0; i < 3; i++) {
@@ -157,24 +147,15 @@ export function buildTuft() {
   const c = (x, z, h, r) => ({ g: new THREE.ConeGeometry(0.035, h, 5), color: 0x3fae55, at: [x, h / 2, z], rot: r, shade: y => 0.55 + y * 4 });
   return build([c(0, 0, 0.13, [0, 0, 0]), c(0.05, 0.02, 0.1, [0, 0, -0.5]), c(-0.05, -0.01, 0.1, [0, 0, 0.5]), c(0.01, 0.05, 0.09, [0.5, 0, 0])]);
 }
-/**
- * A LOG (H3 — the owner, Nov 16: all the SAME THICKNESS, each its OWN LENGTH; nothing on a log that could read as a pickup), `len` cells
- * long along x (1 · 2 · 3 · 4 — one geometry a length: nothing is stretched), built in code in the smooth toy style:
- *   · a ROUND trunk of ONE radius (LOG.r — a true circle across: it must read as thick + round), HALF-SUNK: the scene floats its centre
- *     at the waterline, so only the round back shows — LIT ON TOP, DARK DOWN THE SIDES (the shade by the angle round it)
- *   · BARK GRAIN ALONG THE LENGTH: each strip round the trunk is one tone from end to end (a ridge or a dark furrow) → crisp lines
- *   · PALE RINGED ENDS as round discs — sawn on a slant (the top a little shorter), so the cut faces are SEEN from the camera above
- * NO moss, NO branch stub, NO dot (H2B's stub ended in a pale sawn face — two small concentric circles on the log's shoulder: from the
- * camera it read as a dot, a pickup; JAYWALK has none). Its top sits LOG.top above its centre.
- */
+/** … */
 export const LOG = Object.freeze({ r: 0.36, top: 0.36 });
 export function buildLog(len) {
   const L = len - 0.1, R = LOG.r, SL = 0.62, nx = Math.max(2, len * 2), na = 20, nc = 12, A0 = -0.42, A1 = Math.PI + 0.42;
   const pos = [], nor = [], col = [], c = new THREE.Color();
-  const BARK = 0x9a6238, GRAIN = [1, 1, 0.7, 1, 0.94, 1, 0.66, 1, 1, 0.92, 0.7, 1, 1, 0.68, 1, 0.94, 1, 0.7, 1, 1];   // (a strip round the trunk: a ridge, or a dark furrow — the same from end to end)
+  const BARK = 0x9a6238, GRAIN = [1, 1, 0.7, 1, 0.94, 1, 0.66, 1, 1, 0.92, 0.7, 1, 1, 0.68, 1, 0.94, 1, 0.7, 1, 1];
   const put = (x, y, z, nx_, ny, nz, hex, k) => { pos.push(x, y, z); const l = Math.hypot(nx_, ny, nz) || 1; nor.push(nx_ / l, ny / l, nz / l); c.set(hex); col.push(c.r * k, c.g * k, c.b * k); };
   /** lit on top, dark down the sides */
-  const lit = a => 0.3 + 0.86 * Math.pow(Math.max(0, Math.cos(a - 1.3)), 2.2);   // (brightest on the shoulder the camera + the key light see, falling away to BOTH limbs: it reads as ROUND)
+  const lit = a => 0.3 + 0.86 * Math.pow(Math.max(0, Math.cos(a - 1.3)), 2.2);
   /** a point of the trunk: u 0 … 1 along it, a = the angle round it (0 = the camera's side, π / 2 = the top) */
   const trunk = (u, a, k) => { const ca = Math.cos(a), sa = Math.sin(a), half = L / 2 - SL * R * sa; put(-half + 2 * half * u, R * sa, R * ca, 0, sa, ca, BARK, k); };
   for (let i = 0; i < nx; i++) for (let j = 0; j < na; j++) {
@@ -183,9 +164,9 @@ export function buildLog(len) {
     trunk(u0, a0, k); trunk(u1, a1, k); trunk(u0, a1, k);
   }
   // THE CUT ENDS (H4): plain pale wood, subtle rings (three thin ones a shade darker, the bark's thin edge) — round discs on the slanted saw cut
-  const RINGS = [[0, 0.1, 0xdcc394], [0.1, 0.34, 0xe9d3a6], [0.34, 0.39, 0xdcc394], [0.39, 0.62, 0xe9d3a6], [0.62, 0.67, 0xdcc394], [0.67, 0.93, 0xe9d3a6], [0.93, 1, 0xa87c50]];   // (H4 — the owner: PLAIN PALE WOOD, the rings only a shade darker + thin — the banded ends read as a shell)
+  const RINGS = [[0, 0.1, 0xdcc394], [0.1, 0.34, 0xe9d3a6], [0.34, 0.39, 0xdcc394], [0.39, 0.62, 0xe9d3a6], [0.62, 0.67, 0xdcc394], [0.67, 0.93, 0xe9d3a6], [0.93, 1, 0xa87c50]];
   for (const side of [-1, 1]) {
-    const end = (q, a, hex) => put(side * (L / 2 - SL * q * R * Math.sin(a)), q * R * Math.sin(a), q * R * Math.cos(a), side * 0.12, 1, 0.42, hex, 0.74);   // (H4: the cut faces look UP at the key light — plain pale wood on both ends, never the pink rim light's sheen)
+    const end = (q, a, hex) => put(side * (L / 2 - SL * q * R * Math.sin(a)), q * R * Math.sin(a), q * R * Math.cos(a), side * 0.12, 1, 0.42, hex, 0.74);
     for (const [q0, q1, hex] of RINGS) for (let j = 0; j < nc; j++) {
       const a0 = A0 + (A1 - A0) * j / nc, a1 = A0 + (A1 - A0) * (j + 1) / nc;
       if (side < 0) { end(q0, a0, hex); end(q1, a0, hex); end(q1, a1, hex); end(q0, a0, hex); end(q1, a1, hex); end(q0, a1, hex); }
@@ -198,12 +179,7 @@ export function buildLog(len) {
   g.computeBoundingBox();
   return g;
 }
-/**
- * THE BOX TRUCK (the 3-cell vehicle — H2B, the owner: "a real box truck"), built in code in the smooth style: a rounded CAB in the truck's
- * colour (paint) with dark glass, a long rounded white cargo BOX with a stripe in the truck's colour, a dark chassis, six wheels, a bumper.
- * 2.9 long along z (its nose at +z, like Kenney's cars), 0.8 wide, ≈ 1.12 tall. Its lights (head, tail, the amber markers along the box's
- * side) are the scene's light quads. TRUCK.box = where the box's side runs (z), for the markers.
- */
+/** … */
 export const TRUCK = Object.freeze({ len: 2.9, box: [-1.36, 0.5], top: 1.12 });
 export function buildTruck() {
   const dark = 0x1c1c24, glass = 0x121a2c, white = 0xe2e5f0, tyre = 0x101014, hub = 0x9aa0b4;
@@ -222,8 +198,7 @@ export function buildTruck() {
     ...wheel(-0.33, 1.02), ...wheel(0.33, 1.02), ...wheel(-0.33, -0.62), ...wheel(0.33, -0.62), ...wheel(-0.33, -1.02), ...wheel(0.33, -1.02),
   ]);
 }
-/** THE BARRICADE (H2B): a road barricade that reads at phone size — two striped boards (orange / white) on two dark A-frame legs, a lamp
- *  on one end (its amber glow is the scene's light quad). 0.9 wide along x, ≈ 0.66 tall; the boards face the camera (z). */
+/** THE BARRICADE (H2B): a road barricade that reads at phone size — two striped boards (orange / white) on two dark A-frame legs, a lamp … */
 export function buildBarricade() {
   const parts = [];
   for (const y of [0.47, 0.25]) for (let i = 0; i < 6; i++) parts.push({ g: roundBox(0.15, 0.14, 0.05, 0.015, 2), color: i % 2 ? 0xf4f4f8 : 0xff6418, at: [-0.375 + i * 0.15, y, 0] });

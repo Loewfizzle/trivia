@@ -1,7 +1,7 @@
 // JAYWALK — THE ARRIVAL BANNER (BEFORE THE FLIP — the owner, Nov 17: "when I cross it, it plays the noise, but nothing tells me where I am";
 // The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
-import { area } from './course.js';   // (the area table — PURE; the colours come in from the caller: areas.js#LOOKS needs three.js)
+import { area } from './course.js';
 
 /** how long the banner is on the screen (ms) — its entrance + its fade inside (css/jaywalk.css .jw-arrive: the same 2.5 s) */
 export const ARRIVE_MS = 2500;
@@ -17,8 +17,7 @@ export function arrivalWords(lane) {
   return { name: a.name, sub: a.loop ? `LAP ${a.loop + 1} · LANE ${lane}` : `LANE ${lane}`, index: a.index };
 }
 
-/** the banner on `parent` (the game's / the lab's stage), the areas' colours = areas.js#LOOKS ({ accent, paint } an area) →
- *  { show(lane, look) → shown?, hide(), on(), text(), destroy() } */
+/** the banner on `parent` (the game's / the lab's stage), the areas' colours = areas.js#LOOKS ({ accent, paint } an area) → … */
 export function createArrival(parent, LOOKS) {
   const nameEl = h('b.jw-arrive-n'), subEl = h('span.jw-arrive-s');
   const el = h('div.jw-arrive', { role: 'status', 'aria-live': 'polite' }, h('div.jw-arrive-board', nameEl, subEl));
@@ -34,7 +33,7 @@ export function createArrival(parent, LOOKS) {
       nameEl.textContent = w.name; subEl.textContent = w.sub;
       el.dataset.look = look === 'day' ? 'day' : 'night';
       el.style.setProperty('--c', hex(L.accent)); el.style.setProperty('--p', hex(shade(L.paint, 0.72)));
-      el.classList.remove('is-on'); void el.offsetWidth; el.classList.add('is-on');   // (the entrance again from its start — once a crossing, never in a frame)
+      el.classList.remove('is-on'); void el.offsetWidth; el.classList.add('is-on');
       on = true; clearTimeout(t); t = setTimeout(hide, ARRIVE_MS);
       return true;
     },

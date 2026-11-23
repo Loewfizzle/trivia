@@ -10,7 +10,7 @@ export const HELD_SHOW_MS = 900;
 export const GHOST_STEPS = 2700;
 const BEHIND_TICKS = 30;
 
-const copyRun = (to, r) => { Object.assign(to, r); to.near = { ...r.near }; to.took = { ...r.took }; to.sp = r.sp.slice(); return to; };   // (J1: the splits too — never one array for two runs)
+const copyRun = (to, r) => { Object.assign(to, r); to.near = { ...r.near }; to.took = { ...r.took }; to.sp = r.sp.slice(); return to; };
 
 export function createGhost(seed, mode = 'match') {
   return { conf: createRun({ seed, mode }), ci: 0, run: createRun({ seed, mode }), keep: {}, log: [], done: false, held: false, heldAt: 0, off: null, vis: null, behind: false };
@@ -40,7 +40,7 @@ export function stepGhost(G, course, target, now) {
   // THE CONFIRMED RUN: every known hop in its own tick — never past the world's tick (a phone's clock a touch ahead of this one's)
   while (G.ci < lg.length && !isOver(cf) && cf.t < target && n < GHOST_STEPS) {
     const at = lg[G.ci].t;
-    if (at < cf.t) { G.ci++; continue; }   // (never: the log's ticks rise)
+    if (at < cf.t) { G.ci++; continue; }
     let d = '';
     if (at === cf.t) { d = lg[G.ci++].d; moved = true; }
     step(cf, course, d); n++;
@@ -53,11 +53,11 @@ export function stepGhost(G, course, target, now) {
   }
   // THE DRAWN RUN: on to the world's tick with no new hop assumed. A step that would take them OUT is not taken until their own end says so
   if (!G.held) {
-    const sure = G.done && G.ci >= lg.length;   // (their whole log is here AND applied: what the rules say next is what happened)
+    const sure = G.done && G.ci >= lg.length;
     while (r.t < target && !isOver(r) && n < GHOST_STEPS) {
       n++;
       if (sure) { step(r, course, ''); continue; }
-      Object.assign(G.keep, r); G.keep.sp = r.sp.slice();   // (J1 — the review: its own splits)
+      Object.assign(G.keep, r); G.keep.sp = r.sp.slice();
       step(r, course, '');
       if (r.st === 'out') { Object.assign(r, G.keep); G.held = true; G.heldAt = now; break; }
     }
@@ -72,12 +72,7 @@ export function stepGhost(G, course, target, now) {
   return G;
 }
 
-/**
- * H5B's add-on — STACKED TAGS MERGE (the owner: never a pile of name tags): ghosts standing on the same / touching squares share ONE
- * tag — the leader's name + "+N" ("MIKIE +2"). PURE: items = [{ id, x (cells), y (lane), best, name }] (the ghosts whose tag may show)
- * → [{ lead (its id), text, ids }] — a group = everything joined by touching squares (a chain counts); its leader = the farthest
- * along (best, then the lane it stands on, then the id — the same on every phone).
- */
+/** … */
 export function tagGroups(items) {
   const list = items.map(q => ({ ...q, cx: Math.floor(q.x), cy: Math.round(q.y) })), seen = new Set(), out = [];
   for (const a of list) {

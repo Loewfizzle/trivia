@@ -17,9 +17,8 @@ export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
 export const GO_LEAD_MS = 2000;
 /** no GO at all this long after the count's end (no signal anywhere, the rules not published) → the match plays UNPROVEN, never counted */
 export const NO_GO_MS = 3000;
-export const END_GRACE_MS = 4000;         // (after THE MOTHERSHIP's tick: the last chunks land)
-/** THE DROPPED SIGNAL in a match: a player whose proven log says OUT but whose own end never arrived is waited for this long (their
- *  phone may be offline with hops still queued) before the match ends without it */
+export const END_GRACE_MS = 4000;
+/** THE DROPPED SIGNAL in a match: a player whose proven log says OUT but whose own end never arrived is waited for this long (their … */
 export const DROP_WAIT_MS = CLOCK.drop;
 /** Call the Winner: a call counts when it was made within this of the caller's own end (the hit is seen first, then the kit's window) */
 export const CALL_WINDOW_MS = CALL_MS + 6000;
@@ -30,46 +29,25 @@ export const tickAt = (game, now) => Math.floor((now - game.playAt) * TICK_HZ / 
 /** the moment THE MOTHERSHIP comes (ms) — null in solo endless */
 export const capAt = game => { const c = MODES[game.mode] ? MODES[game.mode].cap : 0; return c ? game.playAt + Math.ceil(c * 1000 / TICK_HZ) : null; };
 
-/**
- * THE COURSE IS PICKED AFTER GO (H3 — the owner, Nov 16): the seed = hash(room code + matchId + a SERVER time the rules enforce — a proof
- * node's `go`: === now, written once). Nobody knows the course before the run is on the clock: no one can shop for an easy one. PURE —
- * the phone and the server derive the same seed. SOLO: the player's own GO. A MATCH (H4): THE FIRST GO (below).
- */
+/** … */
 export const seedOf = (code, matchId, go) => `g${hashString(`${code}:${matchId}:${go}`).toString(36)}${hashString(`jw:${go}:${matchId}:${code}`).toString(36)}`;
 /** a SOLO run's tick at a server time: tick 0 = its own GO */
 export const soloTick = (go, now) => Math.floor((now - go) * TICK_HZ / 1000);
-/**
- * H4 — THE FIRST GO: the EARLIEST `go` among a match's proof nodes (0 = none yet). Every phone writes its own GO in the count's last 2 s;
- * the server stamps each on arrival, and a later arrival always carries a later time — so the first GO is FINAL the moment it lands, the
- * same on every phone and on the server, whoever the host is (in practice the host's phone is as likely as any — nobody chooses the
- * millisecond). The match's course = seedOf(code, matchId, that time); its tick 0 = that time + GO_LEAD_MS.
- */
-export { firstGo };   // (THE PROOF PASS: ONE copy — core/proof.js, HIGH RISE's too)
+/** … */
+export { firstGo };
 /** the match's clock + course from its proof nodes (null = no GO yet) — PURE: the phones, the host's director and the server agree */
 export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(code, matchId, g0) } : null; };
-/**
- * H4B — THE NODES ARE THE TRUTH: the course + tick 0 a phone PLAYS (and the host scores) = THE FIRST GO among the proof nodes it has
- * from the SERVER — exactly what the server's own count derives — whatever the game says; the game's own (the director's GO patch — or
- * an UNPROVEN match's stand-in) only when there is no node to read (the mirror not there yet, no GO anywhere). `runs` must hold
- * CONFIRMED values only: a phone writes its GO as a transaction that is never applied locally (view.js#askGoMatch), so its own estimate
- * of the server's time can never pick a course. null = not known yet (the count holds).
- */
+/** … */
 export function startOf(game, runs, code) {
   const m = game && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
   if (m && (!game.unproven || goBeforeGiveUp(game, m))) return m;
   return game && game.phase !== 'count' && game.seed ? { g0: game.g0 || 0, playAt: game.playAt, seed: game.seed } : null;
 }
-/** THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A, SHOULD 1 — js/games/highrise/match.js#goBeforeGiveUp, ported): the
- *  host's line stalled round GO, its mirror showed no GO for NO_GO_MS and it marked the match UNPROVEN — AFTER everyone had started; every
- *  phone restarted on a stand-in course and nothing counted. THE NODES ARE THE TRUTH here too: a FIRST GO the server stamped BEFORE the
- *  host gave up (the unproven step's own time) was there all along — the match is proven: its course + tick 0 are the GO's (the director
- *  takes the mark back: director.js#nextStep). A GO stamped after it never moves a match already running on its stand-in. */
+/** THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A, SHOULD 1 — js/games/highrise/match.js#goBeforeGiveUp, ported): the … */
 export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseStartAt);
-/** J2 — COURSE RULES v2 (versions.js): the version a MATCH is played on = the one in force at THE FIRST GO (`g0`; a stand-in course with no
- *  GO: its tick 0 − the lead) — the phones, the host's podium and the server read this */
+/** J2 — COURSE RULES v2 (versions.js): the version a MATCH is played on = the one in force at THE FIRST GO (`g0`; a stand-in course with no … */
 export const matchVersion = S => versionAt(S && S.g0 > 0 ? S.g0 : S ? S.playAt - GO_LEAD_MS : 0);
-/** the version ONE run replays on, from its proof node: its own `cv` checked against the version in force at its GO (a solo run: its own
- *  GO · a match: THE FIRST GO) — 1 | 2, or 0 = refused (versions.js#runVersion) */
+/** the version ONE run replays on, from its proof node: its own `cv` checked against the version in force at its GO (a solo run: its own … */
 export const nodeVersion = (node, E) => runVersion(node && node.cv != null ? node.cv : null, E, goOf(node));
 /** the seed one player's run is played on: SOLO = from their own GO (null before it) · a MATCH = the game's (the director's GO patch) */
 export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && node.go > 0 ? seedOf(code, game.matchId, node.go) : null) : game.seed || null);
@@ -77,13 +55,7 @@ export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && no
 const NONE = Object.freeze({ l: 0, t: 0, w: '', e: -1 });
 /** H6A — a result's feats as the row carries them: 'boom ufo airfield mothership' ('' = none) */
 export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).join(' ');
-/**
- * ONE proof node ({ go, c: { i: { s, at } }, e?, k? }) → its result row — THE JUDGE's (replay.js#judgeRun: the bounds, THE SPEED CHECK +
- * THE DROPPED SIGNAL, the replay). { l: lanes, t: the tick they got there, w: the cause, e: the tick it ended (−1 = not yet), y · px:
- * where the kid went out (the end screen names what hit them), x: taken (1), cut (1 — a slowed log: counted to its last on-time hop),
- * bad (why — a refused log: the run of a kid who never hopped) }. `t0` = tick 0 (a server time), `from` = the earliest a chunk may arrive,
- * `until` = score it as it stands at that tick. The host's podium and the server's count both come through here.
- */
+/** … */
 export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null, cv = 1 }) {
   // (THE FIX PASS — S3 a: THE CHUNK CEILING before anything is unpacked — a node fatter than its own clock allows is a refused log)
   if (overChunkCeiling(node, CHUNKS_PER_SEC)) { if (out) out.hops = 0; return { ...scoreNode({ seed, mode, node: null, t0, until, cv: cv === 2 ? 2 : 1 }), bad: 'too many chunks' }; }
@@ -91,16 +63,13 @@ export function scoreNode({ seed, mode, node, t0, from = null, until = null, out
   let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until, cv, end: (node && node.e) || null }) : { ok: false, why: 'chunks' }, bad = '';
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until, cv: cv === 2 ? 2 : 1 }); }
   const r = j.result, f = bad ? '' : featsOf(r);
-  if (out) out.hops = bad ? 0 : j.hops;   // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)
+  if (out) out.hops = bad ? 0 : j.hops;
   // (J1 — SPLIT TIMES: `sp` = the ticks each 50 lanes was first reached, from THE JUDGE's own replay — none for a refused log)
   const sp = !bad && r.splits && r.splits.length ? r.splits : null;
   // (J2: + `cv` 2 — the course version the row was judged on, so its end line can rebuild the lane that hit them; a v1 row is unchanged)
   return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(sp ? { sp } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}), ...(cv === 2 ? { cv: 2 } : {}) };
 }
-/**
- * ONE player's result from their own node, to the server time `now` (a run still going is scored as it stands). No node / a refused log
- * → the run of a kid who never hopped (the wall takes them); a solo run with no GO, a match with no course yet → nothing.
- */
+/** … */
 export function scoreRun(game, node, now = null, code = '') {
   const seed = runSeed(game, node, code), solo = game.mode === 'solo';
   if (!seed) return { ...NONE };
@@ -132,12 +101,7 @@ export function standings(game) {
   });
 }
 
-/**
- * H4 — CALL THE WINNER (the match kit's piece; the call = the caller's own proof node's `k: { w, at }` — the rules: only once they are
- * out, a player still in, once, the server's time). At the end: a call counts when the caller was OUT (never taken), named a player who
- * was still in at that moment, and made it within CALL_WINDOW_MS of their own end; right = that player won (alone or tied for first).
- * → { uid: { w, ok, bonus } } — the bonus = core/playlist.js#callBonus(the players still in when they went out), game-night points.
- */
+/** … */
 export function scoreCalls(game, runs, results) {
   const out = {}, ids = Object.keys(game.participants || {}), first = standings({ participants: game.participants, results }).filter(r => r.rank === 1).map(r => r.uid);
   // (THE PROOF PASS — core/proof.js: a player with NO RUN (no GO on time) is never "still in" (they ended before anyone: −1); a FULL DRAW pays nobody)

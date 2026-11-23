@@ -10,38 +10,19 @@ export const SKY_AHEAD = 14;
 export const SKY_FADE_MS = 2000, SKY_LOOK_MS = 1500;
 /** the band = the top 24 % of the stage; its picture is 1280 × 432 and covers the band's height */
 export const SKY_BAND = 0.24, SKY_ASPECT = 1280 / 432;
-/**
- * WHERE THE LANDMARK STANDS: a phone shows the middle ≈ 65 % of the picture — the band RESTS this many % of the picture's width off
- * its centre while the kid is in the area (+ = its RIGHT side comes in): the landmark on the screen, clear of the lane count; the
- * slide with the kid's column rides on top. NIGHT HAS ITS OWN (H6B — measured off the night pictures).
- */
-export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge: -17, downtown: 4.25, canal: 7, lighthouse: -16.5, airfield: 13 });   // (H6B's review: the cranes, the fish hall, the rail yard + downtown's towers were cut by the screen's right edge; the lighthouse stood under the match's chips)
+/** … */
+export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge: -17, downtown: 4.25, canal: 7, lighthouse: -16.5, airfield: 13 });
 export const SKY_BIAS_NIGHT = Object.freeze({ docks: 7.5, fish: 15, yard: 15, bridge: -14, downtown: 5.25, canal: 12, lighthouse: -17, airfield: 10.5 });
-/**
- * THE LANE COUNT NEVER TOUCHES A LANDMARK (the go-live review — measured off the pictures on a 390 pt phone, the tightest: the columns
- * each landmark fills in the count's rows against a 3- / 4-digit count's width — x 128 … 262 of 390, css `.jw-lanes[data-dg]`): the HIGHEST shift at which
- * the area's landmark still stands clear of the count. The rest offsets above sit under it; the SLIDE never carries the band past it
- * (the kid at the right edge: the band simply stops). An area not named has no limit but the room.
- */
+/** … */
 export const SKY_MAX = Object.freeze({
   day: Object.freeze({ docks: 14.75, downtown: 5, airfield: 13.5 }),
   night: Object.freeze({ docks: 7.5, downtown: 5.5, airfield: 10.75 }),
 });
-/**
- * THE OPENING BY DAY (the second review): the plain day picture has a small lighthouse at 43 % — right under a 1- / 2-digit count
- * when the band rests centred. The opening rests a little to the right (the lighthouse left of the count) and never slides back
- * past `min`. By night the plain picture has no lighthouse: centred, as before.
- */
+/** … */
 export const SKY_OPEN_DAY = Object.freeze({ bias: 6.5, min: 5.5 });
-/**
- * IN A MATCH the players' chips stand on the band's LEFT edge (css `.jw-order`: 86 pt wide, down to 164 pt with 8 players). The two
- * landmarks painted on the LEFT rest as far RIGHT as the picture goes and do not slide back under them: the lighthouse (both looks)
- * and the night bridge then stand clear of the chips; THE DAY BRIDGE cannot — it is painted over the picture's left 38 %, the band has
- * ± 17 % of room: its right tower + span stand clear, its left tower is behind the column (docs/jaywalk.md "THE GO-LIVE REVIEW").
- */
+/** … */
 export const SKY_PIN = -17.25, SKY_MATCH_PIN = Object.freeze(['bridge', 'lighthouse']);
-/** THE NIGHT's LIFE, in % of the picture: [x, y, delay s] the red aviation lights · [x, y, w, h, delay s] the windows that flicker —
- *  and, per area, the ones its painted landmark stands on (measured by scripts/build-jaywalk-assets.py): OFF there. */
+/** THE NIGHT's LIFE, in % of the picture: [x, y, delay s] the red aviation lights · [x, y, w, h, delay s] the windows that flicker — … */
 export const SKY_LIGHTS = Object.freeze([[31.7, 51.4, 0], [62.6, 64.8, 1.7], [64.2, 65, 1.7], [66.4, 56, 0.9], [67.7, 56.2, 0.9], [88.8, 53.2, 0.4], [93.8, 64.1, 1.3], [10.9, 56.5, 2.1]]);
 export const SKY_NEON = Object.freeze([[24, 72, 2.5, 5.8, 0], [33.6, 66.9, 1.8, 8.3, 2.2], [80.2, 75.9, 2.6, 3.5, 3.7], [8.5, 77.1, 2.3, 3, 1.1], [75.3, 72.2, 1.8, 4.6, 4.4]]);
 export const SKY_OFF = Object.freeze({
@@ -56,11 +37,7 @@ export const skyOff = file => { const m = /^skyline-night-([a-z]+)\.webp$/.exec(
 export const skyId = lane => { const a = area(Math.max(0, Math.floor(lane))); return a.index < 0 ? '' : SKY_IDS[a.index]; };
 /** the picture's file for a look + an area's id */
 export const skyFile = (look, id) => { const l = look === 'day' ? 'day' : 'night'; return id ? `skyline-${l}-${id}.webp` : `skyline-${l}.webp`; };
-/**
- * what the band needs with the kid at `lane` in `look` → { now: the picture on the band, next: the one to fetch ahead (null = none),
- * bias: where the band rests (% of the picture's width), max / min: the highest / lowest shift the slide may reach (99 / −99 = the room alone) }. `match`:
- * the chips are up — the left landmarks are pinned (SKY_MATCH_PIN).
- */
+/** … */
 export function skyPlan(lane, look, match = false) {
   const id = skyId(lane), now = skyFile(look, id), nx = skyFile(look, skyId(lane + SKY_AHEAD)), day = look === 'day';
   const pin = match && SKY_MATCH_PIN.includes(id), max = pin ? SKY_PIN : (day ? SKY_MAX.day : SKY_MAX.night)[id], open = !id && day;

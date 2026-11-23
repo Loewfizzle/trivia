@@ -11,16 +11,16 @@ export function createRun({ seed, mode = 'solo' } = {}) {
   if (!M) throw new Error(`jaywalk: unknown mode ${mode}`);
   return {
     seed: String(seed), mode,
-    t: 0, st: 'idle',                       // 'idle' | 'hop' | 'out' | 'taken'
-    x: MID_COL * FP + FP / 2, y: 0,         // the kid: centre x (FP), lane
-    fx: 0, fy: 0, tx: 0, ty: 0, k: 0,       // a hop in flight: from → to, k of HOP_TICKS
+    t: 0, st: 'idle',
+    x: MID_COL * FP + FP / 2, y: 0,
+    fx: 0, fy: 0, tx: 0, ty: 0, k: 0,
     buf: '',                                // ONE buffered hop
-    best: 0, bestT: 0,                      // the farthest lane LANDED on + its tick (the ranking: lanes, then the earlier tick)
-    sp: [],                                 // J1 — SPLIT TIMES: sp[i] = the tick lane (i + 1) × SPLIT_EVERY was FIRST landed on
+    best: 0, bestT: 0,
+    sp: [],
     wall: WALL.start, cause: '', end: -1, hits: 0,
-    bbBand: -1, bbK: 0, boom: 0,            // THE BLACKBIRD's moment: standing on its lane when the tell began → hopped clear
-    near: {}, took: {}, beam: -1,           // THE UFO's: the ones whose beam swept beside the kid · the ones that took them
-    carKey: -1,                             // (the near-miss event's latch)
+    bbBand: -1, bbK: 0, boom: 0,
+    near: {}, took: {}, beam: -1,
+    carKey: -1,
   };
 }
 export const isOver = run => run.st === 'out' || run.st === 'taken';
@@ -42,8 +42,8 @@ function startHop(run, course, d, ev) {
   if (ok && to.type !== 'water') {
     const c = Math.floor(tx / FP);
     if (side && (c < 0 || c >= COLS)) ok = false;   // (the screen's edge)
-    else { const col = colOf(tx); if (to.type === 'grass' && to.obs[col]) ok = false; else tx = col * FP + FP / 2; }   // (off a log: snapped to its column)
-  } else if (ok && (tx < 0 || tx > WIDTH)) ok = false;   // (on the water the kid keeps their place along the log — never past the edge)
+    else { const col = colOf(tx); if (to.type === 'grass' && to.obs[col]) ok = false; else tx = col * FP + FP / 2; }
+  } else if (ok && (tx < 0 || tx > WIDTH)) ok = false;
   if (!ok) { if (ev) ev.push({ e: 'bump', d }); return; }
   run.fx = run.x; run.fy = run.y; run.tx = tx; run.ty = ty; run.k = 0; run.st = 'hop';
   if (ev) ev.push({ e: 'hop', d });
@@ -59,19 +59,13 @@ function land(run, course, T, ev) {
   } else if (ev) ev.push({ e: 'land', on: 'ground' });
   if (run.y > run.best) {
     run.best = run.y; run.bestT = T;
-    if (run.y % SPLIT_EVERY === 0) run.sp.push(T);   // (J1: `best` climbs one lane at a time — every multiple is landed on exactly once)
+    if (run.y % SPLIT_EVERY === 0) run.sp.push(T);
     if (ev) { ev.push({ e: 'best', lane: run.y }); if (lane.mark) ev.push({ e: 'landmark', lane: run.y, name: lane.mark }); }
   }
   if (run.buf) { const b = run.buf; run.buf = ''; startHop(run, course, b, ev); }
 }
 
-/**
- * ONE TICK. `d` = this tick's hop ('' = none); `ev` (optional) collects the EVENTS for the view + the sounds:
- *   hop { d } · bump { d } · land { on: 'ground' | 'wood' | 'water' } · best { lane } · landmark { lane, name } · near { lane } (a car within a
- *   cell) · beam { id } (THE UFO's beam beside the kid) · boom (THE BLACKBIRD passed the lane they hopped clear of) · out { cause, lane } ·
- *   taken { lane }
- * (the WORLD's own moments — a train's tell, THE BLACKBIRD's tell + pass — are pure functions of (lane, tick): course.js#pulseAt.)
- */
+/** … */
 export function step(run, course, d, ev) {
   if (run.st === 'out' || run.st === 'taken') return run;
   const M = MODES[run.mode];
@@ -85,7 +79,7 @@ export function step(run, course, d, ev) {
     const lane = course.lane(run.y);
     if (lane.type === 'water') {
       if (logUnder(lane, run.t, run.x) >= 0) {
-        run.x += lane.dir * lane.v;   // (riding: carried with the log)
+        run.x += lane.dir * lane.v;
         if (run.x < 0 || run.x > WIDTH) hit(run, 'edge', run.y, run.x, T, ev);
       } else hit(run, 'water', run.y, run.x, T, ev);
     }
@@ -113,7 +107,7 @@ export function step(run, course, d, ev) {
     if (lane.ufo) {
       const u = lane.ufo, dx = cx - ufoX(u, T), dy = yc - ufoY(u, T), d2 = dx * dx + dy * dy;
       if (d2 <= u.r * u.r) { if (!cause) { cause = 'ufo'; ufoId = u.id; } }
-      else if (d2 <= (u.r + FP) * (u.r + FP)) {   // (the beam swept the cell beside them)
+      else if (d2 <= (u.r + FP) * (u.r + FP)) {
         if (!cause) { run.near[u.id] = 1; if (run.beam !== u.id) { run.beam = u.id; if (ev) ev.push({ e: 'beam', id: u.id }); } }
       } else if (run.beam === u.id) run.beam = -1;
     } else run.beam = -1;
@@ -134,7 +128,7 @@ export function step(run, course, d, ev) {
       if (run.bbBand >= 0) {
         const p = course.lane(run.bbBand).pulse, k = Math.floor((T - p.phase) / p.period), u = mod(T - p.phase, p.period);
         if (k > run.bbK || (k === run.bbK && u >= p.pass)) { run.boom = 1; run.bbBand = -1; if (ev) ev.push({ e: 'boom' }); }
-        else if (k === run.bbK && cy >= p.band && cy < p.band + p.n) run.bbBand = -1;   // (still on it as it passed: no moment)
+        else if (k === run.bbK && cy >= p.band && cy < p.band + p.n) run.bbBand = -1;
       }
     }
   }
@@ -154,23 +148,19 @@ export function resultOf(run) {
   const ids = Object.keys(run.near);
   return {
     lanes: run.best, tick: run.bestT, end: run.end, over: isOver(run),
-    splits: run.sp.slice(),                                           // (J1 — SPLIT TIMES: [tick to 50, tick to 100, …] — only the ones reached)
-    y: run.y, x: run.x,                                               // (where the kid is / went out — the end screen names what hit them: causes.js)
+    splits: run.sp.slice(),
+    y: run.y, x: run.x,
     cause: run.st === 'taken' ? 'taken' : run.cause, taken: run.st === 'taken', hits: run.hits,
     feats: {
       boom: run.boom === 1,                                           // jaywalk-boom
-      ufo: ids.some(id => !run.took[id]),                             // jaywalk-ufo: its beam swept beside them and THAT UFO never took them
-      airfield: run.best >= LOOP_LANES,                               // jaywalk-airfield: lane 400 in ONE run — solo OR match (H6A)
-      mothership: run.st === 'taken',                                 // jaywalk-mothership (H6A): still in when THE MOTHERSHIP arrives (solo has none)
+      ufo: ids.some(id => !run.took[id]),
+      airfield: run.best >= LOOP_LANES,
+      mothership: run.st === 'taken',
     },
   };
 }
 
-/**
- * THE HOP LOG's BOUNDS — ONE FUNCTION for the phone's recorder AND the judge (replay.js#logProblem): may entry `i` of `log` (tick `t`,
- * way `d`) stand? → null, or why not. (The go-live review: the recorder knew only the 2-tick gap — a tap in the Mothership's own tick,
- * or 21 taps in a second, wrote a log the judge refused WHOLE. An input the recorder does not log is not played either.)
- */
+/** … */
 export function inputProblem(log, i, t, d, mode = 'solo') {
   const M = MODES[mode];
   if (!M) return 'mode';

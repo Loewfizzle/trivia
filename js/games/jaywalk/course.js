@@ -13,8 +13,7 @@ const ceilDiv = (a, b) => Math.floor((a + b - 1) / b);
 /** ALL randomness: core/rng.js seeded PER LANE — hashString(seed + lane index) */
 const laneRand = (seed, i) => rngFrom(hashString(`${seed}:${i}`));
 
-/** THE AREA a lane is in (H5A — tuning.js#AREAS): { name, index (−1 = the opening, lanes 0–49 · 0 … 7), loop (0 = the first time
- *  round, 1 = the loop's second lap …) } — lanes 50–99 THE DOCKS … 400–449 THE AIRFIELD, 450–499 THE DOCKS again */
+/** THE AREA a lane is in (H5A — tuning.js#AREAS): { name, index (−1 = the opening, lanes 0–49 · 0 … 7), loop (0 = the first time … */
 export function area(lane) {
   const s = Math.floor(lane / STRETCH), n = LANDMARKS.length;
   return s < 1 ? { name: '', index: -1, loop: 0 } : { name: LANDMARKS[(s - 1) % n], index: (s - 1) % n, loop: Math.floor((s - 1) / n) };
@@ -33,13 +32,7 @@ export function rawType(seed, i, cv = 1) {
   return r < wg ? 'grass' : r < wg + wr ? 'road' : r < wg + wr + ww ? 'water' : 'rail';
 }
 
-/**
- * J2 — EVEN STARTS (v2 only — tuning.js#EVEN): the OPENING's kinds (lanes 0 … STRETCH − 1) for a seed, decided IN ORDER — each lane's raw
- * kind (its own first draw, as in v1), then the spread tightened: a ground lane past the run / the window's cap becomes a hazard (its own
- * second rng — the lane's own draws stay its own), a hazard past its run becomes ground; never more than 3 water — or 3 rail — in a row;
- * no water before FIRST.water, no rail before FIRST.rail. PURE: a function of the seed alone (memoised, a few seeds at a time) — the
- * same whatever lane is asked first, on the phone or the server.
- */
+/** … */
 const OPENINGS = new Map();
 function openingKinds(seed) {
   let K = OPENINGS.get(seed);
@@ -48,7 +41,7 @@ function openingKinds(seed) {
   let g = 0, hz = 0;
   const runOf = (i, t) => { let n = 0; while (i - 1 - n >= CALM_LANES && K[i - 1 - n] === t) n++; return n; };
   const grassIn9 = i => { let n = 0; for (let j = Math.max(CALM_LANES, i - 9); j < i; j++) if (K[j] === 'grass') n++; return n; };
-  const hazard = i => {   // (a forced hazard: road · water · rail by the heat's own weights — never a 4th water / rail in a row)
+  const hazard = i => {
     const heat = heatAt(i), rand = rngFrom(hashString(`${seed}:e${i}`));
     const wr = byHeat(MIX.road[0], MIX.road[1], heat), ww = i >= FIRST.water && runOf(i, 'water') < WATER_RUN_MAX ? byHeat(MIX.water[0], MIX.water[1], heat) : 0;
     const wt = i >= FIRST.rail && runOf(i, 'rail') < RAIL_RUN_MAX ? byHeat(MIX.rail[0], MIX.rail[1], heat) : 0;
@@ -68,9 +61,8 @@ function openingKinds(seed) {
   return K;
 }
 
-/** A STRETCH's SPECIALS (the 50 lanes after a landmark): THE UFO (from lane 100) or THE BLACKBIRD's flight path (from lane 150) — rare, from
- *  the seed, NEVER both in one stretch. → { s, ufo: zone | null, bb: band | null } */
-const SPECIALS2 = new Map();   // (J2 — v2's stretches, a few at a time: every lane asks for its stretch's, and a runway's layout is checked as it is made)
+/** A STRETCH's SPECIALS (the 50 lanes after a landmark): THE UFO (from lane 100) or THE BLACKBIRD's flight path (from lane 150) — rare, from … */
+const SPECIALS2 = new Map();
 export function specials(seed, s, cv = 1) {
   if (cv >= 2) {
     const key = `${seed}|${s}`;
@@ -100,15 +92,11 @@ export function specials(seed, s, cv = 1) {
   else if (pick < cu + cb) out.bb = band(base + b, period, phase, dir);
   return out;
 }
-/**
- * J2 — A STRETCH's SPECIALS, COURSE RULES v2 (tuning.js#RUNWAY): THE UFO as in v1 (its zone drawn from the same stream — from lane 100,
- * capped lower) or THE BLACKBIRD's RUNWAYS — from lane RUNWAY.first, more often from 250, THE AIRFIELD full of them; never both in one
- * stretch. → { s, ufo, bb: null, bb2: null, rw: [{ id, y0, n, lanes: [the pulse of each lane] }] }
- */
+/** … */
 function specials2(seed, s) {
   const rand = rngFrom(hashString(`${seed}:s${s}`)), base = s * STRETCH, heat = heatAt(base);
   const pick = Math.floor(rand() * 1000);
-  const a = ri(rand, 8, 30); ri(rand, 10, 38);   // (the UFO's zone + drift: v1's own draws, in v1's order)
+  const a = ri(rand, 8, 30); ri(rand, 10, 38);
   const vx = ri(rand, UFO.vx[0], UFO.vx[1]) * (rand() < 0.5 ? 1 : -1), vy = ri(rand, UFO.vy[0], UFO.vy[1]) * (rand() < 0.5 ? 1 : -1);
   const px = ri(rand, 0, 2 * WIDTH - 1), py = ri(rand, 0, 2 * UFO.lanes * FP - 1);
   const out = { s, ufo: null, bb: null, bb2: null, rw: [] };
@@ -131,7 +119,7 @@ function specials2(seed, s) {
     const P = Math.max(RUNWAY.periodMin, ri(R, byHeat(RUNWAY.period[0][0], RUNWAY.period[1][0], h), byHeat(RUNWAY.period[0][1], RUNWAY.period[1][1], h)));
     const ph0 = ri(R, 0, P - 1), slots = [], dirs = [], jit = [];
     for (let j = 0; j < n; j++) { slots.push(j); dirs.push(R() < 0.5 ? 1 : -1); jit.push(ri(R, 0, RUNWAY.jitter)); }
-    for (let j = n - 1; j > 0; j--) { const q = ri(R, 0, j), t = slots[j]; slots[j] = slots[q]; slots[q] = t; }   // (the order the jets come in: shuffled)
+    for (let j = n - 1; j > 0; j--) { const q = ri(R, 0, j), t = slots[j]; slots[j] = slots[q]; slots[q] = t; }
     // THE STAGGER: the ticks between one lane's jet and the next — from the tight cluster to the lap shared evenly (by the seed); a layout …
     const even = Math.floor(P / n), D0 = ri(R, RUNWAY.gap[0], RUNWAY.gap[1] || even);
     // (J2 FIX — THE BLACKBIRD YOU CAN SEE: the jet's speed by where the runway is — the first runways slowest, from 250 a step faster, THE …
@@ -146,12 +134,7 @@ function specials2(seed, s) {
   }
   return out;
 }
-/**
- * J2 — FAIR BY CONSTRUCTION: how many start ticks of a lap a CAREFUL kid on the safe lane before a runway can leave from and get across —
- * waiting (on a lane while it is quiet) + hopping up (a hop = HOP_TICKS: the lane it left for the first half, the next one after —
- * engine.js). A lane counts as deadly through its pass + its trail at EVERY column (the jet crosses the lane in `pass` ticks: the
- * strictest column for each tick). PURE, integers: a backward pass over three laps of (lane, tick).
- */
+/** … */
 export function runwaySlack(lanes) {
   const n = lanes.length, P = lanes[0].period, H = 3 * P, burn = lanes[0].pass + lanes[0].trail, half = HOP_TICKS >> 1;
   const deadly = (j, t) => j >= 0 && j < n && mod(t - lanes[j].phase, P) < burn;
@@ -164,11 +147,7 @@ export function runwaySlack(lanes) {
   for (let t = P; t < 2 * P; t++) if (hop(-1, t) && ok[0][t + HOP_TICKS]) c++;
   return c;
 }
-/**
- * J2 FIX — FAIR BY CONSTRUCTION, the wait: the LONGEST a careful kid (the same model as runwaySlack — every column, waiting + hopping) can be
- * kept from the safe lane before a runway to the safe lane after it, beyond the hops themselves, over every start tick of a lap (ticks).
- * PURE, integers: a backward pass of the earliest arrival over four laps. (A start no way across in that horizon = a huge number.)
- */
+/** … */
 export function runwayWait(lanes) {
   const n = lanes.length, P = lanes[0].period, H = 4 * P, burn = lanes[0].pass + lanes[0].trail, half = HOP_TICKS >> 1, NO = 1e9;
   const deadly = (j, t) => j >= 0 && j < n && mod(t - lanes[j].phase, P) < burn;
@@ -194,8 +173,7 @@ const waitAt = (sp, i) => { if (sp.rw) for (const r of sp.rw) if (i === r.y0 - 1
 /** can THE UFO's beam reach this lane? (its zone + one lane each side — the circle's reach) */
 const ufoReach = (u, i) => !!u && i >= u.y0 - 1 && i <= u.y0 + u.h;
 
-/** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the
- *  landmark lanes, the flight path's bands, no water / rail under a UFO, never more than 3 water — or 3 rail — lanes in a row). Reads raw kinds only: no recursion. */
+/** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the … */
 export function typeAt(seed, i, sp = null, cv = 1) {
   if (cv >= 2 && i >= 0 && i < STRETCH) return i < CALM_LANES ? 'grass' : openingKinds(seed)[i];   // (J2 — EVEN STARTS)
   if (!sp) sp = specials(seed, Math.floor(i / STRETCH), cv);
@@ -208,7 +186,7 @@ export function typeAt(seed, i, sp = null, cv = 1) {
     // (never more than 3 water — or 3 rail — lanes in a row: in a long raw run every 4th lane is ground. H5A: a run goes ON after its …
     const max = t === 'water' ? WATER_RUN_MAX : RAIL_RUN_MAX;
     let n = 0;
-    while (n < i && rawType(seed, i - 1 - n) === t) n++;   // (the raw run behind this lane — it ends at the calm opening at the latest)
+    while (n < i && rawType(seed, i - 1 - n) === t) n++;
     if (n % (max + 1) === max) t = 'grass';
   }
   return t;
@@ -222,20 +200,15 @@ function layMovers(rand, { v, n, lenOf, gapOf, pad }) {
   return { items, period: off };
 }
 
-/**
- * ONE LANE — pure by (seed, lane index): { i, type, heat, mark (its landmark's name | null — the GATEWAY into that area), ufo (THE UFO whose beam can reach it | null),
- *   grass:  obs [9 × 0 | 1]
- *   road / water:  dir, v, period, pad, items [{ off, len }]   (cars · logs)
- *   rail / flight: pulse { period, phase, tell, pass, len, v, dir (+ band, n: the flight path's lanes share ONE pulse) } }
- */
+/** … */
 export function buildLane(seed, i, cv = 1) {
   const s = Math.floor(i / STRETCH), sp = specials(seed, s, cv), type = typeAt(seed, i, sp, cv), heat = heatAt(i);
-  const rand = laneRand(seed, i); rand();   // (the first draw was the raw kind)
+  const rand = laneRand(seed, i); rand();
   const lane = { i, type, heat, mark: landmarkAt(i), ufo: ufoReach(sp.ufo, i) ? sp.ufo : null };
   if (type === 'grass') {
     const obs = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     const calm = i < CALM_LANES || !!lane.mark;
-    const wet = !calm && (typeAt(seed, i - 1, null, cv) === 'water' || typeAt(seed, i + 1, null, cv) === 'water');   // (a log's rider may step off anywhere)
+    const wet = !calm && (typeAt(seed, i - 1, null, cv) === 'water' || typeAt(seed, i + 1, null, cv) === 'water');
     if (!calm && !wet) {
       let n = ri(rand, clamp(byHeat(GRASS.obstacles[0][0], GRASS.obstacles[1][0], heat), 0, 3), clamp(byHeat(GRASS.obstacles[0][1], GRASS.obstacles[1][1], heat), 0, 6));
       while (n-- > 0) { const c = ri(rand, 0, COLS - 2); obs[c >= MID_COL ? c + 1 : c] = 1; }   // (never the centre column)
@@ -249,7 +222,7 @@ export function buildLane(seed, i, cv = 1) {
     const m = layMovers(rand, { v, n: ri(rand, ROAD.cars[0], ROAD.cars[1]) + (A.cars || 0), pad: 3000, lenOf: () => ROAD.lens[Math.floor(rand() * ROAD.lens.length)], gapOf: () => ROAD.gapMin + v * ROAD.gapVTicks + ri(rand, 0, extra) });
     Object.assign(lane, { dir, v, pad: 3000, period: m.period, items: m.items });
   } else if (type === 'water') {
-    const dir = i % 2 ? 1 : -1;   // (two water lanes side by side always run OPPOSITE ways: a rider always meets the next lane's logs)
+    const dir = i % 2 ? 1 : -1;
     const v = clamp(ri(rand, byHeat(WATER.vMin[0], WATER.vMin[1], heat), byHeat(WATER.vMax[0], WATER.vMax[1], heat)), 12, 80);
     // H3 — every log its OWN length (1–4 cells: long ones early, short ones later — the weights by heat) + UNEVEN gaps (short · long). A …
     const W = [0, 1, 2, 3].map(k => Math.max(1, byHeat(WATER.lenW[0][k], WATER.lenW[1][k], heat))), sum = W[0] + W[1] + W[2] + W[3];
@@ -263,7 +236,7 @@ export function buildLane(seed, i, cv = 1) {
     const dir = rand() < 0.5 ? 1 : -1;
     const period = Math.max(150, ri(rand, byHeat(RAIL.period[0][0], RAIL.period[1][0], heat), byHeat(RAIL.period[0][1], RAIL.period[1][1], heat)));
     lane.pulse = { period, phase: ri(rand, 0, period - 1), tell: RAIL.tell, len: RAIL.len, v: RAIL.v, pass: ceilDiv(WIDTH + RAIL.len, RAIL.v), dir };
-  } else lane.pulse = bandAt(sp, i).pulse;   // (THE FLIGHT PATH: every lane of the band shares the band's one pulse)
+  } else lane.pulse = bandAt(sp, i).pulse;
   return lane;
 }
 
@@ -274,7 +247,7 @@ export const moverLeft = (lane, item, tick) => mod(item.off + lane.dir * lane.v 
 export function pulseAt(p, tick) {
   const u = mod(tick - p.phase, p.period), k = Math.floor((tick - p.phase) / p.period);
   if (u < p.pass) return { st: 'pass', k, s: u, left: 0 };
-  if (p.trail && u < p.pass + p.trail) return { st: 'trail', k, s: u - p.pass, left: p.period - u };   // (J2 — v2's RUNWAYS: THE AFTERBURNER TRAIL burns on — still deadly)
+  if (p.trail && u < p.pass + p.trail) return { st: 'trail', k, s: u - p.pass, left: p.period - u };
   if (u >= p.period - p.tell) return { st: 'tell', k: k + 1, s: 0, left: p.period - u };
   return { st: 'idle', k, s: 0, left: p.period - u };
 }
@@ -318,7 +291,7 @@ export function carNear(lane, tick, x, reach) {
 
 /** THE COURSE of one seed: lane(i) built on demand + kept (a few hundred at most) — the same lanes whatever the order asked */
 export function createCourse(seed, o = {}) {
-  const key = String(seed), lanes = new Map(), keep = o.keep || 700, cv = o.cv === 2 ? 2 : 1;   // (J2: the COURSE VERSION — 1 unless asked)
+  const key = String(seed), lanes = new Map(), keep = o.keep || 700, cv = o.cv === 2 ? 2 : 1;
   return {
     seed: key, cv,
     lane(i) {

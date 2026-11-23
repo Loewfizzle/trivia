@@ -7,11 +7,10 @@ export * from './meta.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
-/** H5B — THE MUSIC FOLLOWS THE LOOK (the existing mood stations): the day deck by day, the evening deck by night — `meta.MUSIC` stays
- *  the podium's + the fallback */
+/** H5B — THE MUSIC FOLLOWS THE LOOK (the existing mood stations): the day deck by day, the evening deck by night — `meta.MUSIC` stays … */
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
 
-export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'), { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('JAYWALK') : null });   // (THE FIX PASS — P1: three.js through the import map — Safari < 16.4 gets a clear card, never a blank match)
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'), { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('JAYWALK') : null });
 
 // THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop — …
 export const livePaths = g => ({ runs: `jw/${g.matchId}` });
@@ -42,8 +41,8 @@ export const nightBonus = bonus;
 export function preload() {
   lazyImport(import('./sfx.js'), './sfx.js').then(S => S.fetchSounds()).catch(() => {});
   lazyImport(import('./models.js'), './models.js').then(M => M.warmModels && M.warmModels()).catch(() => {});
-  lazyImport(import('./variety.js'), './variety.js').then(M => M.warmVariety && M.warmVariety()).catch(() => {});   // (VARIETY B1 — the opening's area traffic)
-  lazyImport(import('./props.js'), './props.js').then(M => M.warmProps && M.warmProps()).catch(() => {});   // (VARIETY B2 — the opening's trees + edge pieces: the module + its files)
+  lazyImport(import('./variety.js'), './variety.js').then(M => M.warmVariety && M.warmVariety()).catch(() => {});
+  lazyImport(import('./props.js'), './props.js').then(M => M.warmProps && M.warmProps()).catch(() => {});
 }
 /** PLAY AGAIN after a solo run — the console's INSTANT AGAIN (games/kit/again.js): the next solo run as a match of its own, no walk inside */
 export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });

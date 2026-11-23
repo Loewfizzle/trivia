@@ -13,8 +13,8 @@ import { backToLobby } from '../../host.js';
 import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
 import { TICK_HZ, CLOCK, FP, MODES } from './tuning.js';
-const SHIP_SEEN = 252;   // (ticks: the 4.2 s the Mothership's lift is seen — flyers.js#holdMs)
-const SHIP_WARN = 600;   // (ticks: the Mothership's 10-s warning before the cap — flyers.js#FLY.warn: THE ARRIVAL BANNER never shows over it)
+const SHIP_SEEN = 252;
+const SHIP_WARN = 600;
 import { createCourse, laneHit, logUnder } from './course.js';
 import { createArrival } from './arrival.js';
 import { LOOKS as AREA_LOOKS } from './areas.js';
@@ -75,7 +75,7 @@ const dayOfRun = at => (TEST_DAY || turnDay(at));
 if (TEST) { globalThis.__jwViews = () => VIEWS.filter(r => r.deref()).length; globalThis.__jwViewIds = () => VIEWS.map((r, i) => (r.deref() ? i : -1)).filter(i => i >= 0); globalThis.__jwScenes = () => scenesMade; }
 
 // THE LINES' DATA (lines.js): the SERVER-counted bests (yours + friends'), asked ONCE at a run's start, kept a short while; …
-let table = null;   // { uid, at, p: Promise<{ best, friends } | null> }
+let table = null;
 function loadTable(uid) {
   if (table && table.uid === uid && performance.now() - table.at < TABLE_KEEP_MS) return table.p;
   const p = lazyImport(import('../../profile/api.js'), '../../profile/api.js').then(A => A.api('profile', { action: 'table', b: BOARD })).then(d => parseTable(d && d.rows)).catch(() => null);
@@ -101,7 +101,7 @@ function phoneSun() {
 function todFor(stamp, day) {
   let choice = lookChoice();
   const sun = stamp ? sunOfStamp(stamp) : phoneSun();
-  if (choice === 'auto' && !sun) choice = document.body.dataset.look === 'day' ? 'day' : 'night';   // (the sun not read yet: the console's own day / night)
+  if (choice === 'auto' && !sun) choice = document.body.dataset.look === 'day' ? 'day' : 'night';
   return resolveTod(choice, sun, day);
 }
 try { window.addEventListener('ns-look', () => { todDirty = true; }); } catch { /* not a browser */ }
@@ -113,23 +113,23 @@ export function createView() {
   let lanesEl = null, markEl = null, hintEl = null, finalWrap = null, final = null, localEnd = null, arriveEl = null;
   let orderEl = null, tagsEl = null, countEl = null, watchEl = null, overEl = null, outCard = null;
   // the run
-  let code = '', uid = '', matchId = '', mode = 'wait', D = null;   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
+  let code = '', uid = '', matchId = '', mode = 'wait', D = null;
   let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false, cvAsked = false, cvMine = 0;
   let wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0, lateGo = false;
-  let todAt = -1e9, todKey = '';   // (VARIETY A — THE TIME OF DAY's last check + what the scene shows)
+  let todAt = -1e9, todKey = '';
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
-  const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
-  let look = 'night';   // (H5B — the look this screen is drawn in now)
-  let rosterEl = null, rosterKey = '';   // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
-  let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
-  let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
-  let mom = null, momAt = 0, stageW = 390, stageH = 844, offSize = null;   // (J1 — THE MATCH MOMENTS: moments-view.js; the stage's size from a ResizeObserver — never read in a frame)
+  const ghosts = new Map();
+  let look = 'night';
+  let rosterEl = null, rosterKey = '';
+  let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;
+  let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;
+  let mom = null, momAt = 0, stageW = 390, stageH = 844, offSize = null;
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
   // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
   let waitTap = false, startEl = null, firstHop = '', veilAt = 0, offPad = null;
-  let mergedSeen = '';   // (TEST — JT2: the last merged name tag ("ALICE +1") this screen put up: the E2E reads the moment, never polls for it)
+  let mergedSeen = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
@@ -145,13 +145,12 @@ export function createView() {
     const since = performance.now() - overAt;
     return since < hold() || (since < END_OWED_MS && !!W && W.owes());
   }
-  /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early
-   *  `final`'s numbers */
+  /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early … */
   const scoredNow = g => { try { return { ...g, ...finalPatch(g, runsNow() || {}, srvNow(), code) }; } catch { return g; } };
   // HIGH RISE S4A — THE SOUND SYNC (the owner plays with MUSIC OFF): PODCAST MODE naps the audio context between two effects — every hop's …
   let awakeAt = 0;
   const awake = on => { const f = globalThis.__nsHoldAwake; if (f) { try { f(on, 'jaywalk'); } catch { /* audio is polish */ } } };
-  const syncs = TEST ? [] : null;   // (the pass's measure — tests/integration/sound-sync.mjs: when each hop's / landing's sound was asked)
+  const syncs = TEST ? [] : null;
   const srvNow = () => t0srv + (performance.now() - t0perf);
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
@@ -161,7 +160,7 @@ export function createView() {
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
 
   function build(el) {
-    lanesEl = h('div.jw-lanes'); setNum(lanesEl, 0); prepNums(lanesEl); markEl = h('div.jw-mark', '');   // (THE BIG NUMERALS — numerals.js: room between the digits, a 1 with a foot)
+    lanesEl = h('div.jw-lanes'); setNum(lanesEl, 0); prepNums(lanesEl); markEl = h('div.jw-mark', '');
     hintEl = getPref('hint', '') ? null : h('div.jw-hint', 'TAP TO HOP · SWIPE TO STEP');
     orderEl = h('ol.jw-order', { 'aria-label': 'The order' }); tagsEl = h('div.jw-tags', { 'aria-hidden': 'true' });
     countEl = h('div.jw-count', { 'aria-live': 'polite' }); watchEl = h('div.jw-watch'); overEl = h('div.jw-over.mk-theme');
@@ -170,7 +169,7 @@ export function createView() {
     play = had ? had.play : h('div.jw-play', { role: 'application', 'aria-label': 'Jaywalk — tap to hop, swipe to move' });
     root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, rosterEl, countEl, watchEl, hintEl, overEl);
     el.replaceChildren(root);
-    arriveEl = createArrival(root, AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: arrival.js)
+    arriveEl = createArrival(root, AREA_LOOKS);
     if (isMatch) {
       mom = createMomentsView(root, { nameOf, colorOf: u => colorHex(((st.players && st.players[u]) || {}).color), sound: id => { if (sndOn) { try { SFX.play(id); } catch { /* silent */ } } } });
       try { const ro = new ResizeObserver(es => { const r = es[0] && es[0].contentRect; if (r && r.width) { stageW = r.width; stageH = r.height; } }); ro.observe(root); offSize = () => ro.disconnect(); } catch { /* the defaults */ }
@@ -180,15 +179,15 @@ export function createView() {
       if (!had) scenesMade++;
       night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: ZOOM, angle: ANGLE, tier: tierMem(), look: lookNow() });
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
-      look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
+      look = lookNow(); night.setLook(look); root.dataset.look = look;
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
     night.setReveal(0, true); watchGL();
-    try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }   // (J4 — THE SEASONAL PACK fetched while the menu / the count shows: in season only, never blocking GO)
+    try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish …
-    try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }   // (J1: + THE MATCH MOMENTS' three, a match only · JT1: the season's own, on a season day only)
+    try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
 
 // THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment …
@@ -201,7 +200,7 @@ export function createView() {
       clearTimeout(t);
       if (gone || !night || night !== mine || !play || !cv.isConnected) return;
       const me = (st.players && st.players[followUid || uid]) || {}, o = { kidColor: colorHex(me.color), zoom: night.zoom(), angle: night.angle(), tier: night.tier(), look: lookNow() }, rest = night.resting();
-      if (offGL) offGL();   // (the dead scene's destroy() is not a second loss)
+      if (offGL) offGL();
       try { night.destroy(); } catch { /* its context is gone */ }
       try { scenesMade++; night = createNight(play, o); night.setReveal(revealed ? 1 : 0, true); lineKey = ''; todKey = ''; todDirty = true; if (rest) night.rest(true); watchGL(); reSeason(); }
       catch { night = null; if (root) root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); }
@@ -218,14 +217,13 @@ export function createView() {
   }
 
   // ---- J4 — THE SEASON (season.js — a VIEW: the run's own day → the winter look; the rules never see it): a solo run + the daily = their GO's …
-  let seasonRun = null;   // (the season this run APPLIED — its normal look if its pack was not in by its start)
+  let seasonRun = null;
   function seasonFor(at) { const d = at > 0 ? dayOfRun(at) : ''; seasonRun = null; if (night) { try { seasonRun = night.setSeason(d, { wet: WET_LIVE, now: srvNow }); seasonSounds(d); } catch { /* polish */ } } }
   /** JT1 — THE SEASON's sounds (sounds.js `season` rows): fetched on their day only (a leaf pile's crunch in autumn · the fireworks Dec 31 + Jan 1) */
   function seasonSounds(d) { if (!seasonWindow(d)) return; try { SFX.fetchSounds(SFX.seasonSoundsOf(d)); if (sndOn) Promise.resolve(SFX.decode()).catch(() => {}); } catch { /* audio is polish */ } }
   /** JT1 — a sound THE SEASONAL PACK asks for (a burst pile, a firework opening) — through the game's own sfx: muted / locked = silent */
   function seasonSound(id) { if (sndOn && !gone) { try { SFX.play(id); } catch { /* silent */ } } }
-  /** a rebuilt scene (THE LOST CONTEXT) takes back EXACTLY the season its run applied — winter only if the run had it (never turned on mid-run);
-   *  the pack fetched again for the next run either way */
+  /** a rebuilt scene (THE LOST CONTEXT) takes back EXACTLY the season its run applied — winter only if the run had it (never turned on mid-run); … */
   function reSeason() {
     const s = seasonRun, n = night; if (!n) return;
     try {
@@ -266,7 +264,7 @@ export function createView() {
     if (asked) return;
     asked = true;
     const m = matchId, path = `${nodePath()}/go`, runs = runsNow(), node = runs ? runs[uid] : null;
-    if (node && node.go > 0) { rejoin(node); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
+    if (node && node.go > 0) { rejoin(node); return; }
     clearTimeout(goTimer);
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
@@ -274,7 +272,7 @@ export function createView() {
     stampT0(treePath(), 'jaywalk').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
-      if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); }); }   // (the GO is ON the server: never unproven for the cv's round trip)
+      if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); }); }
       else unproven('no go');
     }).catch(() => {
       // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
@@ -285,9 +283,7 @@ export function createView() {
       }).catch(() => { if (!gone && m === matchId && mode === 'wait') unproven('refused'); });
     });
   }
-  /** J2 — COURSE RULES v2: a solo run's version = the one in force at its own GO (versions.js), written beside it (`cv`) — the rules take it
-   *  once, after the GO; the server checks it against the GO. REFUSED (rules not re-published yet): the run plays the version the server
-   *  will replay a run with no `cv` on (v1 until THE GRACE ends) — the phone and the server always agree */
+  /** J2 — COURSE RULES v2: a solo run's version = the one in force at its own GO (versions.js), written beside it (`cv`) — the rules take it … */
   function writeCv(goAt, E) {
     const path = `${nodePath()}/cv`;
     expectRefusal(path, 'jaywalk cv: the rules are not re-published yet (J2) — the run plays v1');
@@ -295,15 +291,13 @@ export function createView() {
   }
   /** a node read back from the SERVER (a rejoin): the version it replays on (an unknown one: the version in force — it will not count) */
   const cvOfNode = n => nodeVersion(n, versionAt(n.go)) || versionAt(n.go);
-  /** a SOLO rejoin: a node with its GO but no cv and NO hop yet (a refresh between the GO and the cv) writes it now; one with hops keeps
-   *  the version they were played on (no cv = v1, the run with no cv — never moved under them) */
+  /** a SOLO rejoin: a node with its GO but no cv and NO hop yet (a refresh between the GO and the cv) writes it now; one with hops keeps … */
   function rejoin(n) {
     const m = matchId;
     if (n.cv == null && n.c == null) writeCv(n.go, versionAt(n.go)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(n.go, null, true, null, cv); });
     else adopt(n.go, n.c, true, null, cvOfNode(n));
   }
-  /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A refusal
-   *  (this phone's clock a touch early, a rejoin) is looked at and tried again a few times — never a stuck start: the count runs on */
+  /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A refusal … */
   function askGoMatch() {
     if (asked) return;
     asked = true;
@@ -330,20 +324,19 @@ export function createView() {
     course = createCourse(seed, { cv: cv === 2 || cv === 1 ? cv : versionAt(go) }); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
     seasonFor(go);
     const old = chunks ? logFromChunks(chunks) : null;
-    log = old || []; W.reset({ sent: log.length, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks });   // (CITY I: a rejoin's first write reads the chunks fresh)
+    log = old || []; W.reset({ sent: log.length, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks });
     anchor();
     catchUp();
     mode = 'run';
-    if (firstHop) { queue.push(firstHop); firstHop = ''; }   // (JT2: the hop that started the run is its first)
-    revealed = true; if (night) night.setReveal(1);   // (the flag too: a lost context's rebuild reads it — THE POLISH PASS)
+    if (firstHop) { queue.push(firstHop); firstHop = ''; }
+    revealed = true; if (night) night.setReveal(1);
   }
   /** no proof here (no signal, the rules not published): a SOLO run still plays — on its own seed + clock, never counted */
   function unproven(why) {
     if (why === 'refused') refused();
     adopt(serverNow(), null, false);
   }
-  /** a MATCH's course lands (THE FIRST GO → the seed + tick 0; in `play` the game's own): the kid stands on it, the engine waits for
-   *  tick 0. A rejoin: this player's own log so far is replayed to now. A watcher (not a participant) has no run of their own. */
+  /** a MATCH's course lands (THE FIRST GO → the seed + tick 0; in `play` the game's own): the kid stands on it, the engine waits for … */
   function adoptMatch(S, runs, cv) {
     go = S.playAt; course = createCourse(S.seed, { cv }); run = createRun({ seed: S.seed, mode: 'match' });
     seasonFor(S.playAt);
@@ -356,7 +349,7 @@ export function createView() {
     catchUp();
     revealed = false; lanesShown = -1;
     if (!mine(st.game)) { mode = 'over'; overAt = -1e9; watching = true; }
-    else if (isOver(run)) { mode = 'over'; overAt = -1e9; callDone = true; }   // (a rejoin after their own end: straight to watching)
+    else if (isOver(run)) { mode = 'over'; overAt = -1e9; callDone = true; }
     else mode = 'run';
   }
   const tickNow = () => { const x = (srvNow() - go) * TICK_HZ / 1000, t = Math.floor(x); return { t, a: x - t }; };
@@ -407,7 +400,7 @@ export function createView() {
   const arriveNow = () => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn() && !isOver(run);
   function tick() {
     let d = '';
-    if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }   // (the TEST bots: asked once a TICK — a stalled phone catching up makes the same moves; JT2, the match flake)
+    if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }
     if (queue.length && canLog(log, run.t, queue[0], run.mode)) { d = queue.shift(); log.push({ t: run.t, d }); }
     const ev = [];
     step(run, course, d, ev);
@@ -448,7 +441,7 @@ export function createView() {
       night.flashLine('best', lines.best);
       lanesEl.classList.add('is-record');
       lanesEl.classList.remove('is-pop', 'is-flash'); void lanesEl.offsetWidth; lanesEl.classList.add('is-flash');
-      setTimeout(() => { if (lanesEl) lanesEl.classList.remove('is-flash'); }, 720);   // (the flash, then the counter's own small pop a lane again)
+      setTimeout(() => { if (lanesEl) lanesEl.classList.remove('is-flash'); }, 720);
       if (sndOn) { try { SFX.play('new-best'); } catch { /* silent */ } }
     }
     if (!isMatch) for (const f of crossedFriends(lines.friends, lane - 1, lane)) {
@@ -458,7 +451,7 @@ export function createView() {
   }
   /** what the scene draws of them now (set only when it changes): your own lines on your own run — never over a player you watch */
   function drawLines(own) {
-    if (own && !record && isRecord(lines.best, run.best)) { record = true; lanesEl.classList.add('is-record'); }   // (a rejoin, an answer that came late: no burst)
+    if (own && !record && isRecord(lines.best, run.best)) { record = true; lanesEl.classList.add('is-record'); }
     const want = own ? linesFor({ best: lines.best, friends: lines.friends, reached: run.best, solo: !isMatch }) : { best: null, friend: null };
     const key = `${want.best ? want.best.lane : 0}|${want.friend ? want.friend.text : ''}`;
     if (key === lineKey) return;
@@ -466,8 +459,8 @@ export function createView() {
   }
   /** THE PROOF: the new hops go up in chunks, each server-stamped on ARRIVAL; offline they queue + land together (THE DROPPED SIGNAL) */
   // CITY I — A LATE PROOF CHUNK = A QUIET COUNT, NEVER A RULES REFUSED ROW (the inbox's 8:05 pm entry — the late k write's family, docs/jaywalk.md …
-  const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('late-proof'); }).catch(() => {});   // (THE STALE-MODULE RULE: an existing export, lazily)
-  const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && st.game.phase !== 'count'));   // (past 'play' — the count's last 2 s still take a chunk)
+  const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('late-proof'); }).catch(() => {});
+  const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && st.game.phase !== 'count'));
   let lateSeen = '';
   function lateProof(why) {
     if (D || lateSeen === matchId || !proven) return;
@@ -478,7 +471,7 @@ export function createView() {
   // THE PROOF PASS — THE PROOF WRITER (kit/proof-writer.js, HIGH RISE's too — the review's MUST 2 a): ONE burst at a time (the next chunk …
   let W = null;
   function newWriter() {
-    if (W) W.close();   // (the run before: what it logged leaves now; its late answers touch nothing)
+    if (W) W.close();
     W = createProofWriter({
       count: () => log.length, pack: (a, b) => packLog(log.slice(0, b), a), entriesOf: c => { const l = logFromChunks(c); return l ? l.length : -1; },
       chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs), left: matchLeft,
@@ -491,8 +484,8 @@ export function createView() {
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
-    keepOwnSplits(matchId, run.sp);   // (J1 — YOUR SPLITS: the end card's boxes from this phone's own engine, at once)
-    awakeAt = 0; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the hit's own sound plays out, then the context naps again)
+    keepOwnSplits(matchId, run.sp);
+    awakeAt = 0; awake(false);
     quiet();
     flush(true);
     sendEnd();
@@ -572,7 +565,7 @@ export function createView() {
   }
   /** 3 · 2 · 1 · GO — from the match's own tick 0 once the first GO has landed (till then the count the host set) */
   function drawCount(g) {
-    if (waitTap) { if (countKey) { countKey = ''; countEl.textContent = ''; rosterEl.classList.remove('is-on'); } return; }   // (JT2: TAP TO START says it all — no GET READY under it)
+    if (waitTap) { if (countKey) { countKey = ''; countEl.textContent = ''; rosterEl.classList.remove('is-on'); } return; }
     const t0 = course !== START ? go : g.playAt, left = t0 - srvNow();
     const txt = g.phase === 'final' || left < -700 ? '' : left <= 0 ? 'GO' : left > 3000 ? '' : String(Math.ceil(left / 1000));
     const key = course === START && left <= 0 ? 'GET READY' : txt;
@@ -625,7 +618,7 @@ export function createView() {
   function afterOut(g, runs) {
     liveRuns = runs;
     const since = performance.now() - overAt;
-    const ship = run.st === 'taken';   // (H6A — THE MOTHERSHIP = A FINISH LINE: its gold card, once the arrival has been seen)
+    const ship = run.st === 'taken';
     if (!outCard && mine(g) && since < 60000 && overAt > 0 && (!ship || since > 1500)) {
       outCard = h(`div.jw-outcard${ship ? '.is-ship' : ''}`, h('div.jw-outcard-k', ship ? 'THE FINISH LINE' : 'OUT'), h('div.jw-fin-cause', `${ship ? 'YOU ' : ''}${lineOf(run, course)}`), h('div.jw-outcard-n', `${run.best} ${run.best === 1 ? 'LANE' : 'LANES'}`));
       overEl.append(outCard);
@@ -678,7 +671,7 @@ export function createView() {
     if (gone) return;
     raf = requestAnimationFrame(frame);
     // (H5B — the GAME LOOK is read LIVE: it re-themes this screen at once)
-    if (night && root && (todDirty || now - todAt > 1000)) {   // (VARIETY A — THE TIME OF DAY: once a second, at once on a setting change)
+    if (night && root && (todDirty || now - todAt > 1000)) {
       todDirty = false; todAt = now;
       const g0 = st.game, r = todFor(isMatch && g0 && g0.lk, (seasonRun && seasonRun.day) || dayOfRun(serverNow())), k = `${r.tod}|${r.overcast ? 1 : 0}|${Math.round(r.el * 2)}`;
       if (k !== todKey) { todKey = k; TODV = r; night.setTod(r); look = r.look; root.dataset.look = r.look; root.dataset.tod = r.tod; }
@@ -686,7 +679,7 @@ export function createView() {
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;
-    if (waitTap && D) { if (now - veilAt < 500) return; veilAt = now; }   // (JT2 — the daily's veil: the blurred course is a near-still, never a blur re-run every frame)
+    if (waitTap && D) { if (now - veilAt < 500) return; veilAt = now; }
     const t0 = performance.now(), g = st.game;
     let a = 0, c = null;
     if (isMatch && now - lastPump > 100) { lastPump = now; syncMatch(g); }
@@ -697,7 +690,7 @@ export function createView() {
       a = isOver(run) || run.t < c.t || c.t < 0 ? 0 : c.a;
       flush(false);
       if (isOver(run)) onOver();
-      else if (sndOn && now - awakeAt > 1000) { awakeAt = now; awake(true); }   // (THE SOUND SYNC: the lease, renewed while the run is live)
+      else if (sndOn && now - awakeAt > 1000) { awakeAt = now; awake(true); }
     }
     let drawRun = run, extra = null;
     if (isMatch && c) {
@@ -707,7 +700,7 @@ export function createView() {
       const alive = mode === 'run' && !isOver(run), wt = alive ? run.t : Math.max(0, c.t), wa = alive ? a : c.t < 0 ? 0 : c.a;
       stepGhosts(wt);
       if (mode === 'over') afterOut(g, runs);
-      const held = performance.now() - overAt > hold();   // (the hit is seen first — the kid stays his own colour through it)
+      const held = performance.now() - overAt > hold();
       if (watching && held) {
         const f = chooseFollow(runs);
         if (f !== followUid) { followUid = f; const F = ghosts.get(f); if (F) { night.setKidColor(colorHex(((st.players && st.players[f]) || {}).color)); night.resetKid(); } }
@@ -719,7 +712,7 @@ export function createView() {
       extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null, own: drawRun === run };
       if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
-      if (mom && runs && course !== START && c && c.t >= 0 && !root.classList.contains('is-over')) {   // (never behind the podium: no moment's sound over it)
+      if (mom && runs && course !== START && c && c.t >= 0 && !root.classList.contains('is-over')) {
         if (now - momAt > 100) { momAt = now; pumpMoments(g, runs); }
         mom.frame(now, ghostAt, () => kidOnScreen(drawRun));
       }
@@ -740,17 +733,17 @@ export function createView() {
         if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
       }
     }
-    if (!final && !localEnd) { tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now); }   // (only while the scene is DRAWN: behind an end screen it rests — 8 easy seconds there stepped the tier up for the next run)
+    if (!final && !localEnd) { tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now); }
     if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
     const shownBest = watching && drawRun !== run ? drawRun.best : run.best;
     if (shownBest !== lanesShown) {
       lanesShown = shownBest; setNum(lanesEl, shownBest);
-      if (shownBest > 0) { popN ^= 1; lanesEl.classList.remove('is-pop', 'is-pop2'); lanesEl.classList.add(popN ? 'is-pop2' : 'is-pop'); }   // (two names, one animation: it restarts with no layout read in the frame)
+      if (shownBest > 0) { popN ^= 1; lanesEl.classList.remove('is-pop', 'is-pop2'); lanesEl.classList.add(popN ? 'is-pop2' : 'is-pop'); }
     }
     if (markUntil && now > markUntil) { markEl.textContent = ''; markUntil = 0; }
-    if (arriveEl && arriveEl.on() && !arriveNow()) arriveEl.hide();   // (the Mothership's warning / the run's end takes the top: the banner goes at once — never stacked)
+    if (arriveEl && arriveEl.on() && !arriveNow()) arriveEl.hide();
     if (mode === 'over' || (isMatch && g && g.phase === 'final')) endScreen();
-    { const RH = globalThis.__nsRunHold; if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter(); }   // (THE CONSOLE FIX: the run is over + written — follow the room)
+    { const RH = globalThis.__nsRunHold; if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter(); }
   }
 
   // ---- the end
@@ -758,8 +751,8 @@ export function createView() {
     const g = st.game;
     if (isMatch) {
       // (the match is over — the host's step: the podium for everyone) …
-      if (!g || g.phase !== 'final' || final || runLive()) return;   // (THE CONSOLE FIX: a live proven run of this phone's own is played out first)
-      { const RH = globalThis.__nsRunHold; if (RH && RH.on) return; }   // (… the room moved on: no podium for a match it left — the phone follows it)
+      if (!g || g.phase !== 'final' || final || runLive()) return;
+      { const RH = globalThis.__nsRunHold; if (RH && RH.on) return; }
       const ship = mode === 'over' && Object.values(g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
       if (ship || (mode === 'over' && performance.now() - overAt < hold())) return;
       // (… and a rival's run still LIVE — the host's `final` came early: this phone keeps watching; the cap ends the wait)
@@ -771,7 +764,7 @@ export function createView() {
     if (D) { if (!localEnd) { localEnd = D.end(isOver(run), lineOf(run, course), run.sp.slice()); root.classList.add('is-over'); root.append(localEnd); night.rest(true); } return; }
     if (proven) {
       if (g && g.phase === 'final') { if (!final) { hideLocalEnd(); showFinal(g); } }
-      else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);   // (the end has not reached the room — no signal: never a frozen screen)
+      else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);
       return;
     }
     if (!localEnd) showLocalEnd(false);
@@ -783,14 +776,13 @@ export function createView() {
     if (outCard) { outCard.remove(); outCard = null; }
     final = createFinal({ game: g, rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', mode: solo ? 'SOLO' : 'MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
     finalWrap = h('div.jw-final', final.el);
-    root.classList.add('is-over'); root.append(finalWrap); night.rest(true);   // (H6B: the scene rests behind the end screen)
+    root.classList.add('is-over'); root.append(finalWrap); night.rest(true);
   }
-  /** a SOLO run's own end: UNPROVEN (no proof → the match can't reach the console's podium) — or proven but the signal is gone (`waiting`:
-   *  the run is in the phone's queue and counts when it lands; the podium takes this screen's place by itself) */
+  /** a SOLO run's own end: UNPROVEN (no proof → the match can't reach the console's podium) — or proven but the signal is gone (`waiting`: … */
   function showLocalEnd(waiting) {
     const body = h('div.final-body.jw-fin-local');
     buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
-    { const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }   // (J1 — YOUR SPLITS: every run's end card — the phone's own engine; no server answer here)
+    { const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }
     // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', 'data-pad': 'a', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
@@ -837,7 +829,7 @@ export function createView() {
     if (D) { if (!asked && !waitTap) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed, r.cv === 2 ? 2 : 1); }, () => {}); } return; }
     if (g.phase === 'play' && mine(g) && soloGame(g)) {
       const runs = runsNow(), n = runs ? runs[uid] : null;
-      if (waitTap && n && n.go > 0) { waitTap = false; hideStart(); }   // (a refresh / a rejoin mid-run: back on its run at once — never a second start)
+      if (waitTap && n && n.go > 0) { waitTap = false; hideStart(); }
       if (!waitTap) askGo();
     }
     // (a refresh on the podium: the run in the node, replayed to its end, stands behind the frame)
@@ -861,7 +853,7 @@ export function createView() {
       if (!night) return;
       reset();
       if (isMatch) root.classList.add('is-match');
-      else if (!(performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000)) showStart();   // (JT2: PLAY AGAIN / TRY AGAIN — that tap was the start)
+      else if (!(performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000)) showStart();
       addEventListener('gamepadconnected', onPad);
       try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padOn(); } catch { /* no pads */ }
       if (TEST) globalThis.__jwGame = {
@@ -877,7 +869,7 @@ export function createView() {
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
         setTier(t) { pinned = t != null; if (t != null) tiers.set(t); },
-        bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { const q = { seed: `${course.seed}${uid}`, ...(o || {}) }; bot = q.steady ? B.steadyBot(q) : B.greedyBot(q); }); },   // (JT2: `steady` — THE STEADY BOT, the E2E's players who must stay in)
+        bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { const q = { seed: `${course.seed}${uid}`, ...(o || {}) }; bot = q.steady ? B.steadyBot(q) : B.greedyBot(q); }); },
         follow: nextFollow,
       };
       document.addEventListener('visibilitychange', onVis);
@@ -885,15 +877,15 @@ export function createView() {
       raf = requestAnimationFrame(frame);
     },
     holdsRun,
-    update(state) { st = state; if (matchLeft()) lateProof('seen');   // (CITY I: from the moment this phone sees the match end, a chunk / e still in flight is an expected refusal)
+    update(state) { st = state; if (matchLeft()) lateProof('seen');
       if (night) sync(); },
     unmount() {
       gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
-      if (offGL) offGL();   // (BEFORE THE FLIP: off BEFORE any destroy() — a deliberate teardown is never a lost context)
+      if (offGL) offGL();
       document.removeEventListener('visibilitychange', onVis);
-      awake(false);   // (THE SOUND SYNC: a hold never outlives the view)
-      if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
-      if (W) W.close();   // (… what is logged leaves now, in order; nothing is tried again once the view is gone)
+      awake(false);
+      if (mode === 'run' && run && !isOver(run)) flush(true);
+      if (W) W.close();
       if (offControls) offControls();
       removeEventListener('gamepadconnected', onPad); if (offPad) { offPad(); offPad = null; } clearTimeout(padT); padEl = null;
       if (final) final.destroy();
@@ -901,7 +893,7 @@ export function createView() {
       try { SFX.stopAll(); } catch { /* silent */ }
       if (night) {
         // (PLAY AGAIN's remount (INSTANT AGAIN): the scene kept warm; anything else frees it at once)
-        if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }   // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)
+        if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }
       }
       if (arriveEl) { arriveEl.destroy(); arriveEl = null; }
       if (mom) { mom.destroy(); mom = null; } if (offSize) { offSize(); offSize = null; }

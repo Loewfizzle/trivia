@@ -5,18 +5,13 @@ import { createMoments, stepMoments, bannerWords, lastWords, graveAhead, OUT_MER
 
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
-/**
- * root = the game's stage · o = { sound(id), nameOf(uid), colorOf(uid) → css colour } → { pump(s), frame(now, ghostAt), reset(), info() }
- * pump({ ids, me, ends, mine, lanes, quiet }) — the match's state, ~10× a second (quiet = this phone's own OUT card is up: no banner over it)
- * frame(now, ghostAt, kidAt) — every frame: the red X's follow their fallen ghost (ghostAt(uid) → [x, y, cellPx] on the stage | null); kidAt()
- *   → the kid on screen [x, y, cellPx] | null (a gravestone in the lane in front of it fades)
- */
+/** … */
 export function createMomentsView(root, o) {
   const layer = h('div.jw-mom', { 'aria-live': 'polite' }), strip = h('div.jw-duel', { 'aria-label': 'The duel' });
   layer.append(strip);
   root.append(layer);
   let M = createMoments(), banner = null, bannerAt = 0, bannerList = [], h2h = null, h2hAt = 0, last = null, lastAt = 0, stripKey = '', ids0 = 0;
-  const xs = [], pendingX = new Map();   // (uid → the moment its out was seen: its ghost's fall is drawn once the ghost is over — ≤ 3 s)
+  const xs = [], pendingX = new Map();
   const count = { out: 0, banners: 0, xs: 0, graves: 0, h2h: 0, last: 0, banner: '', duel: '' };
   const nameEl = u => h('span', { style: { color: o.colorOf(u) } }, o.nameOf(u));
 
@@ -30,7 +25,7 @@ export function createMomentsView(root, o) {
     const el = h('div.jw-ban', head, h('span.jw-ban-s', W.sub));
     if (banner) banner.remove();
     banner = el; layer.append(el); count.banner = `${W.head} · ${W.sub}`;
-    if (!merge) { bannerAt = now; count.banners++; o.sound('out-drop'); }   // (the out sound ONCE a banner)
+    if (!merge) { bannerAt = now; count.banners++; o.sound('out-drop'); }
   }
   function showH2h(a, b, lanes, now) {
     if (h2h) h2h.remove();
@@ -96,7 +91,7 @@ export function createMomentsView(root, o) {
         // (THE GRAVESTONES: past X_MS the X settles — once — and stays for the rest of the match)
         if (!X.grave && now - X.at > X_MS) { X.grave = true; X.el.classList.add('is-grave'); count.graves++; }
         const p = ghostAt(X.u);
-        if (!p) { X.el.style.visibility = 'hidden'; continue; }   // (visibility — the X's own animation owns its opacity)
+        if (!p) { X.el.style.visibility = 'hidden'; continue; }
         X.el.style.visibility = '';
         const key = `${Math.round(p[0])},${Math.round(p[1])}`;
         if (key !== X.k) { X.k = key; X.el.style.transform = `translate3d(${Math.round(p[0])}px,${Math.round(p[1])}px,0) translate(-50%,-50%)`; }

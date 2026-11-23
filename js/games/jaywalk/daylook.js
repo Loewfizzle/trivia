@@ -12,9 +12,7 @@ export const CALLS_MAX = Object.freeze([64, 64, 96]);
 export const callsMax = tier => CALLS_MAX[tier < 0 ? 0 : tier > 2 ? 2 : tier | 0];
 
 export const TODS = Object.freeze(['sunrise', 'noon', 'golden', 'sunset', 'night']);
-/** THE BANDS (the sun's elevation, °): the DAY look — whatever AUTO calls day — split into
- *  sunrise = a morning under +6° · noon = above (morning ≥ +6°, evening ≥ +10°) · golden = an evening +10° … +2° · sunset = an evening under +2°
- *  (into the blue hour) → night where the city says night (sky.js: about −10.5° in the morning, −9° in the evening) */
+/** THE BANDS (the sun's elevation, °): the DAY look — whatever AUTO calls day — split into … */
 export const BANDS = Object.freeze({ sunrise: 6, golden: 10, sunset: 2 });
 /** the lab's sun for each forced time of day (the band's look at a typical moment): sunrise just up · sunset in the blue hour's start */
 export const LAB_SUN = Object.freeze({ sunrise: 1.5, noon: 40, golden: 5, sunset: -3.5, night: -20 });
@@ -25,9 +23,7 @@ export function todOf(el, morning) {
   return el >= BANDS.golden ? 'noon' : el >= BANDS.sunset ? 'golden' : 'sunset';
 }
 
-/** THE LIGHTS by time (the owner, Nov 22): { cars, beams, neon, lamps } 0 … 1 — what glows in a DAY look (night = all 1, as always)
- *  sunrise: the cars' head + tail lamps at HALF (small, crisp — no beams, no glow pools) + the neon switching OFF through the morning (the
- *  city's own neon ramp) · noon + golden: none · sunset: the city's lamps ramp (around sunset) brings the lights ON, its neon ramp the neon */
+/** THE LIGHTS by time (the owner, Nov 22): { cars, beams, neon, lamps } 0 … 1 — what glows in a DAY look (night = all 1, as always) … */
 export function lightsOf(tod, el) {
   if (tod === 'night') return { cars: 1, beams: 1, neon: 1, lamps: 1 };
   const k = duskDark(el);
@@ -36,8 +32,7 @@ export function lightsOf(tod, el) {
   return { cars: 0, beams: 0, neon: 0, lamps: 0 };
 }
 
-/** OVERCAST (the owner): an occasional weather day picked by DATE — the same for everyone, about 1 day in 7, day looks only. `day` = the
- *  run's own 4 am Eastern day key ('d20261124' — the season's: a match = its first GO's day) */
+/** OVERCAST (the owner): an occasional weather day picked by DATE — the same for everyone, about 1 day in 7, day looks only. `day` = the … */
 export function overcastDay(day) {
   if (!day) return false;
   let x = 0x811c9dc5;
@@ -46,8 +41,7 @@ export function overcastDay(day) {
   return (x >>> 0) / 4294967296 < 1 / 7;
 }
 
-/** the look one phone shows: { tod, look ('day' | 'night'), el, morning, overcast, lights } — `choice` = the GAME LOOK (auto · day · night),
- *  `sun` = { el, morning } (sky.js — the phone's own place + clock, or the HOST's stamp in a match), `day` = the run's day key (overcast) */
+/** the look one phone shows: { tod, look ('day' | 'night'), el, morning, overcast, lights } — `choice` = the GAME LOOK (auto · day · night), … */
 export function resolveTod(choice, sun, day, force = {}) {
   let tod = force.tod && TODS.includes(force.tod) ? force.tod : null, el;
   if (!tod) {
@@ -61,10 +55,7 @@ export function resolveTod(choice, sun, day, force = {}) {
   return { tod, look: tod === 'night' ? 'night' : 'day', el, overcast, lights: lightsOf(tod, el) };
 }
 
-/** THE GRADE of each DAY look (+ OVERCAST over any of them) — night.js#lookGL + the ground shader + the band's css (`data-tod` / `data-wx`):
- *  key [hex, intensity, the sun's height for the shadows °] · hemi [sky, ground, intensity] · fog = the far haze · warm = the ground's sunlit
- *  tint · cool = its shadows' tint · sun = how strong the sun's shadows (0 = none) · len = how long (× noon) · cloud = the drifting cloud
- *  shadows · dew = the sunrise's sparkle on the grass · shine = the cars' paint in the sun (envMapIntensity; roughness by `gloss`) */
+/** THE GRADE of each DAY look (+ OVERCAST over any of them) — night.js#lookGL + the ground shader + the band's css (`data-tod` / `data-wx`): … */
 export const GRADE = Object.freeze({
   noon: { key: [0xffe2ae, 2.75, 52], hemi: [0xcfe2ff, 0xc2ab84, 2.05], rim: 0.3, fog: 0xc6e6f7, warm: [1.05, 1.0, 0.93], cool: [0.80, 0.88, 1.06], sun: 1, len: 1, cloud: 0.13, dew: 0, shine: 1.6, gloss: 0.16 },
   sunrise: { key: [0xffc6b4, 2.45, 18], hemi: [0xe6cbe9, 0xc79c90, 2.0], rim: 0.4, fog: 0xeccde0, warm: [1.06, 0.96, 1.02], cool: [0.84, 0.84, 1.07], sun: 0.8, len: 1.55, cloud: 0.06, dew: 1, shine: 1.5, gloss: 0.16 },
@@ -81,8 +72,7 @@ export function gradeOf(r) {
   return r.tod === 'sunset' ? { ...o, hemi: [0xa9a3c0, 0x8e8a8e, 2.1], fog: 0xb7b3c4, key: [0xd8cfe0, 1.0, 60] } : r.tod === 'sunrise' ? { ...o, dew: 1, fog: 0xd6d0db } : o;
 }
 
-/** the sun at the phone's place now (core/sky.js — THE CITY's model: its place from the phone's zone, its day / night = kit/look.js#sunUpNow's
- *  rule) → { el, morning, night } · null if the module can't load. The HOST's stamp at a match's start is the same object, packed (`stampOf`) */
+/** the sun at the phone's place now (core/sky.js — THE CITY's model: its place from the phone's zone, its day / night = kit/look.js#sunUpNow's … */
 export async function sunAt(ms) {
   try {
     const S = await lazyImport(import('../../core/sky.js'), '../../core/sky.js');
@@ -90,7 +80,6 @@ export async function sunAt(ms) {
     return { el: L.sun.el, morning: L.local.h + L.local.mi / 60 < 12.5, night: (w.day || 0) + (w.golden || 0) + (w.dawn || 0) < 0.5 };
   } catch { return null; }
 }
-/** THE HOST's clock in a match (the owner): the sun at the match's start, packed into the start (`game.lk` — the host's own write, no new rule)
- *  → { e, m, n } · back → the sun object */
+/** THE HOST's clock in a match (the owner): the sun at the match's start, packed into the start (`game.lk` — the host's own write, no new rule) … */
 export const stampOf = s => (s ? { e: Math.round(s.el * 10) / 10, m: s.morning ? 1 : 0, n: s.night ? 1 : 0 } : null);
 export const sunOfStamp = k => (k && Number.isFinite(+k.e) ? { el: +k.e, morning: !!k.m, night: !!k.n } : null);

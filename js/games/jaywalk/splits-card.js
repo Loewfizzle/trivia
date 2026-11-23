@@ -13,10 +13,7 @@ export const ownSplits = matchId => (own && own.m === String(matchId || '') ? ow
 const known = () => { try { return cleanSplits(JSON.parse(getPref('splits', '[]'))); } catch { return []; } };
 export const rememberBests = b => { const v = cleanSplits(b); if (v.length) setPref('splits', JSON.stringify(v)); };
 
-/**
- * → { el (null when no split was reached — nothing is shown), server(sp) } — `ticks` = this run's splits (the phone's own engine first).
- * server({ r, b, n }): the server's answer for THIS run — its splits win, its bests replace the remembered ones, its faster ones glow.
- */
+/** … */
 export function splitsCard(ticks) {
   let shown = cleanSplits(ticks);
   if (!shown.length) return { el: null, server() {} };
@@ -33,7 +30,7 @@ export function splitsCard(ticks) {
   const bests = (b, news) => {
     boxes.forEach((x, i) => {
       const n = (news || []).find(q => q.i === i);
-      if (n) { x.box.classList.add('is-new'); x.best.replaceChildren('NEW BEST', h('b', splitGain(n.tick, n.prev))); return; }   // (the gain on its own line: every box keeps one width)
+      if (n) { x.box.classList.add('is-new'); x.best.replaceChildren('NEW BEST', h('b', splitGain(n.tick, n.prev))); return; }
       x.box.classList.remove('is-new');
       x.best.textContent = b[i] != null ? `BEST ${splitClock(b[i])}` : '';
     });
@@ -44,8 +41,8 @@ export function splitsCard(ticks) {
     el,
     server(sp) {
       if (!sp || !el.isConnected) return;
-      const r = cleanSplits(sp.r), b = sp.b != null ? cleanSplits(sp.b) : known();   // (no bests in the answer — a run not counted: the remembered ones stay)
-      if (Array.isArray(sp.r) && !r.length) { el.hidden = true; return; }   // (the server's run reached no split — a cut run: its numbers win)
+      const r = cleanSplits(sp.r), b = sp.b != null ? cleanSplits(sp.b) : known();
+      if (Array.isArray(sp.r) && !r.length) { el.hidden = true; return; }
       if (r.length && (r.length !== shown.length || r.some((t, i) => t !== shown[i]))) { shown = r; build(r); }   // (the server's numbers win)
       rememberBests(b);
       bests(b, Array.isArray(sp.n) ? sp.n : []);

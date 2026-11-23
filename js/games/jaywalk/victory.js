@@ -30,7 +30,7 @@ export function buildEnd(el, { line, lanes, note = '', gold = false }) {
   const big = h('b');
   setNum(big, num(lanes)); prepNums(el);
   el.replaceChildren(
-    finLine(h('div.jw-fin-cause', { 'data-text': line }, line), 'jaywalk', gold),   // (CITY PART 2 — THE END NEON: JAYWALK's pink; THE MOTHERSHIP gold)
+    finLine(h('div.jw-fin-cause', { 'data-text': line }, line), 'jaywalk', gold),
     h('div.jw-fin-n', big, h('span', Number(lanes) === 1 ? 'LANE' : 'LANES')),
     best, avg);
   return {
@@ -42,11 +42,7 @@ export function buildEnd(el, { line, lanes, note = '', gold = false }) {
   };
 }
 
-/**
- * YOUR TABLE (H3): your friends' JAYWALK bests under your own — you + the friends YOUR list names (the server's read: /api/profile `table`,
- * never a pid in the page), best first, as SLIM CARDS (ui/strip-board.js — stills + THE LIVE LANE), the lanes at the right. Shown only when
- * a friend has a best (a table of one is nothing); at most TABLE_ROWS rows — you are always among them.
- */
+/** … */
 export const TABLE_ROWS = 4;
 export function tableRows(rows, max = TABLE_ROWS) {
   const all = (rows || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, place: i + 1 }));
@@ -67,9 +63,9 @@ export function yourTable(el, me) {
     if (!rows.length || !slot.isConnected) { slot.remove(); return; }
     const strips = [], list = h('ol.jw-table-list', ...rows.map(r => {
       const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v), 'av' in r ? h('small.jw-table-av', avgLabel(r.av)) : null));   // (JT2: + THE BOARD's AVERAGE under the best)   // (CITY H2 — THE YOU ROW: the shared glow, never this table's own box)
+      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v), 'av' in r ? h('small.jw-table-av', avgLabel(r.av)) : null));
     }));
-    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length)))); if (rows.some(r => 'av' in r)) list.classList.add('has-av');   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
+    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length)))); if (rows.some(r => 'av' in r)) list.classList.add('has-av');
     slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
     const surface = SB.K.liveList(list, { label: 'jaywalk-table' });
     strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
@@ -77,21 +73,20 @@ export function yourTable(el, me) {
   }).catch(() => slot.remove());
 }
 
-/** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes. The course: a SOLO run's from its
- *  own GO, a MATCH's the game's (`courses` — one course built once for a whole podium) */
+/** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes. The course: a SOLO run's from its … */
 export function endOf(game, uid, code, courses = null) {
   const r = ((game && game.results) || {})[uid] || {}, solo = game && game.mode === 'solo';
   let course = null;
   if (r.w === 'car' && r.e >= 0 && (solo ? r.go > 0 : !!(game && game.seed))) {
     try {
-      const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed, cv = r.cv === 2 ? 2 : 1, key = `${seed}:${cv}`;   // (J2: the row's course version)
+      const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed, cv = r.cv === 2 ? 2 : 1, key = `${seed}:${cv}`;
       course = (courses && courses[key]) || createCourse(seed, { cv });
       if (courses) courses[key] = course;
     } catch { course = null; }
   }
   // (causes.js#runLine — THE ONE path: a car hit is named by the vehicle the scene drew on that lane at that tick)
   const vehicle = course ? hitVehicle(course, { y: r.y, x: r.px, end: r.e }) : '';
-  const look = typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'day' : 'night';   // (H5B: by day the wall is THE FOG BANK)
+  const look = typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'day' : 'night';
   const line = course ? runLine(course, { cause: r.w, y: r.y, x: r.px, end: r.e, lanes: r.l || 0, taken: !!r.x }, look) : causeLine({ cause: r.w, lanes: r.l || 0, taken: !!r.x, look });
   return { line, lanes: r.l || 0, vehicle, ship: !!r.x };
 }
@@ -111,7 +106,7 @@ function addSplits(el, game, uid) {
 /** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own); SHARE + the list under it are the console's */
 function matchScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
-  el.dataset.mode = 'match'; el.dataset.podium = 'none';   // (the console lists EVERY place under this body — slim cards, the lanes, the cause lines)
+  el.dataset.mode = 'match'; el.dataset.podium = 'none';
   if (!mine) { el.classList.add('jw-fin'); return; }
   const E = endOf(game, uid, code), place = (standings(game).find(r => r.uid === uid) || {}).rank || 0;
   // (compact: the frame's WINNER line leads and the list follows — the words, then ONE line: the lanes + the place)
@@ -149,7 +144,7 @@ export function finalScene(el, game, state) {
   if (!code) return;
   // (YOUR TABLE: once the server has counted this run — its outcome — or a moment later, whichever comes first)
   let tabled = false;
-  const p = ((state && state.players) || {})[uid], table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el, p && p.color != null ? colorHex(p.color) : ''); } };   // (your row glows in YOUR colour)
+  const p = ((state && state.players) || {})[uid], table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el, p && p.color != null ? colorHex(p.color) : ''); } };
   setTimeout(table, 2200);
   if (!(E.lanes > 0)) return;
   // NEW BEST / YOUR BEST — from the server's own answer for THIS match (it replayed the run); the phone only remembers the last one it was told

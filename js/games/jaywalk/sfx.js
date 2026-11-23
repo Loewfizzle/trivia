@@ -6,14 +6,12 @@ import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS, seas
 export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS, seasonSoundsOf };
 
 const DIR = new URL('../../../audio/jaywalk/', import.meta.url);
-export const JW_SFX_REV = 4;   // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B · 4: BEFORE THE FLIP's area arrival)
+export const JW_SFX_REV = 4;
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
-export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
+export const TRIM = 0.8;
 
-/** THE TAKES ARE PINNED (BEFORE THE FLIP — the owner, Nov 17): the GAME plays the owner's picks for everyone — every A / B sound its
- *  take A (NEW BEST = its B recording is that sound's only file since H6B; the train = set B; the area arrival = the sparkle). Only the
- *  LAB page (lab.js → useLabPicks) plays + remembers this phone's own A / B choice from THE SOUND AUDITION. */
+/** THE TAKES ARE PINNED (BEFORE THE FLIP — the owner, Nov 17): the GAME plays the owner's picks for everyone — every A / B sound its … */
 let labPicks = false;
 export function useLabPicks(on = true) { labPicks = !!on; }
 /** the take a sound plays: 'a' | 'b' — the owner's (A) in the game; this phone's audition pick in the lab */
@@ -24,17 +22,16 @@ export const picksLine = () => `JAYWALK SOUNDS: ${SOUNDS.map(s => `${s.id} ${pic
 const fileOf = (id, ab) => `${id}${ab === 'b' ? '-b' : ''}.${BY[id].ext || 'mp3'}`;
 const keysOf = s => (s.b ? [`${s.id}:a`, `${s.id}:b`] : [`${s.id}:a`]);
 
-const bytes = new Map();               // 'id:a' → Promise<ArrayBuffer | null>
-const bufs = new Map();                // 'id:a' → AudioBuffer (for bufCtx)
+const bytes = new Map();
+const bufs = new Map();
 let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
-const live = new Set();                // the voices sounding: { src, pri, at }
-const log = [];                        // the test hook: what started
-const asked = [];                      // the test hook: what was asked for (locked / headless included)
-const total = { asked: 0, started: 0, by: {} };   // (… and how many EVER — the two lists keep their last 200: H5A's cues fill them fast)
+const live = new Set();
+const log = [];
+const asked = [];
+const total = { asked: 0, started: 0, by: {} };
 
-/** fetch the bytes now (no AudioContext needed). `ids`: which sounds (default: every sound in play); `both` = a sound's pick AND its
- *  backup (the audition's — the game fetches the take it plays: the owner's pick, A unless this phone chose B) */
-export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match && !s.season).map(s => s.id), both = false) {   // (J1: the match's own sounds only when asked — view.js, a match · JT1: the season's on their days)
+/** fetch the bytes now (no AudioContext needed). `ids`: which sounds (default: every sound in play); `both` = a sound's pick AND its … */
+export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match && !s.season).map(s => s.id), both = false) {
   for (const id of ids) for (const k of both ? keysOf(BY[id]) : [`${id}:${pick(id)}`]) {
     if (bytes.has(k)) continue;
     const p = fetch(new URL(`${fileOf(id, k.slice(-1))}?v=${JW_SFX_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)
@@ -60,10 +57,7 @@ function out(ctx) {
   bus = comp;
   return bus;
 }
-/**
- * play one sound NOW: name, { ab ('a' | 'b' — default: the owner's pick), rate, vol, loop } → a handle { stop() } (null = nothing started:
- * locked, muted, undecoded, outranked). A tap that comes BEFORE the unlock (the first hop) plays as soon as it lands, if still fresh.
- */
+/** … */
 export function play(id, o = {}) {
   const s = BY[id];
   if (!s) return null;
@@ -75,12 +69,12 @@ export function play(id, o = {}) {
     // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes it …
     if (!isUnlocked() || !ctx || !bufs.get(key) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }   // (locked / muted: ONE sound waits for the unlock — every call used to leave a listener there for good)
+      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
       return null;
     }
     const voices = [...live], a = admit(voices, s.pri);
     if (!a.ok) return null;
-    if (s.max && voices.filter(q => q.id === id).length >= s.max) return null;   // (H5A — a sound's own cap: ≤ 2 car passes, one horn, one bell)
+    if (s.max && voices.filter(q => q.id === id).length >= s.max) return null;
     if (a.drop >= 0) voices[a.drop].end();
     const src = ctx.createBufferSource(), g = ctx.createGain(), v = { src, id, pri: s.loop ? 9 : s.pri, at: t0, fade: s.fade || 0 };
     src.buffer = bufs.get(key); src.playbackRate.value = o.rate || 1; src.loop = !!(o.loop || s.loop);
@@ -98,8 +92,7 @@ export function play(id, o = {}) {
       try { if (fade > 0) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.02); } else src.stop(); } catch { /* ended */ }
     };
     total.started++; log.push({ id, ab: key.slice(-1), rate: +src.playbackRate.value.toFixed(3), gain: +g.gain.value.toFixed(3), loop: src.loop, pan: +(o.pan || 0).toFixed(2) }); if (log.length > 200) log.shift();
-    /** stop it — `fade` s (default: the sound's own — the train sounds' 0.5 s): a ramp first, never a dead cut · set(vol, rate): a loop
-     *  glides to a new level + speed (THE STOPWATCH — never a jump) */
+    /** stop it — `fade` s (default: the sound's own — the train sounds' 0.5 s): a ramp first, never a dead cut · set(vol, rate): a loop … */
     const set = (vol, rate) => { try { const t = ctx.currentTime; g.gain.setTargetAtTime(s.gain * vol, t, 0.15); if (rate) src.playbackRate.setTargetAtTime(rate, t, 0.25); } catch { /* ended */ } };
     return { stop: v.end, set };
   } catch { return null; }
@@ -112,16 +105,16 @@ export function stopAll() { bellWant = false; bell = null; tickWant = null; tick
 // H5A — THE WORLD's CUES (cues.js#cuesAt → here): the bell is ONE seamless loop held while the signals flash — started on `bell-on` …
 let bell = null, bellWant = false;
 // BEFORE THE FLIP — THE STOPWATCH: ONE loop, held while the dark is close; `tick` cues glide its level + speed, `tick-off` fades it out
-let tick = null, tickWant = null;   // (tickWant: the { level, rate } wanted now — null = silent)
-const cued = [];   // the test hook: every cue asked
+let tick = null, tickWant = null;
+const cued = [];
 export function onCue(q) {
   cued.push(q.cue); if (cued.length > 200) cued.shift();
   if (q.cue === 'bell-on') { bellWant = true; if (!bell) bell = play('train-bell', { loop: true, onLate: h => { if (bellWant && !bell) bell = h; else h.stop(); } }); return bell; }
   if (q.cue === 'bell-off') { bellWant = false; if (bell) { bell.stop(FADE_S); bell = null; } return null; }
   if (q.cue === 'train-pass') return play('train-pass', { pan: q.pan });
-  if (q.cue === 'train-horn') return play('train-horn', { pan: q.pan });   // (H5C — one blast a train, when its warning starts)
+  if (q.cue === 'train-horn') return play('train-horn', { pan: q.pan });
   if (q.cue === 'horn') return play('horn', { pan: q.pan });
-  if (q.cue === 'truck-horn') return play('truck-horn', { pan: q.pan });   // (BEFORE THE FLIP — a box truck's own air horn, now and then)
+  if (q.cue === 'truck-horn') return play('truck-horn', { pan: q.pan });
   if (q.cue === 'tick') {
     tickWant = { level: q.level, rate: q.rate };
     if (tick) tick.set(q.level, q.rate);
@@ -137,11 +130,11 @@ export const cues = () => cued.slice();
 export function onEvent(e, rnd = Math.random) {
   if (e.e === 'hop') return play('hop', { rate: 1 + (rnd() * 2 - 1) * HOP_VARY.rate, vol: Math.pow(10, (rnd() * 2 - 1) * HOP_VARY.db / 20) });
   if (e.e === 'land' && e.on === 'wood') return play('land-wood', { rate: 1 + (rnd() * 2 - 1) * 0.04 });
-  if (e.e === 'out') return e.cause === 'water' || e.cause === 'edge' ? play('splash') : e.cause === 'ufo' ? null : play('hit');   // (THE UFO: the beam's own sounds — flyers.js)
+  if (e.e === 'out') return e.cause === 'water' || e.cause === 'edge' ? play('splash') : e.cause === 'ufo' ? null : play('hit');
   return null;
 }
 /** the test hooks: what started on the audio context · what was asked for · the voices sounding */
 export const played = () => log.slice();
 export const wanted = () => asked.slice();
 export const sounding = () => live.size;
-export const totals = () => ({ ...total, by: { ...total.by } });   // (by: how often each sound was ever asked for)
+export const totals = () => ({ ...total, by: { ...total.by } });

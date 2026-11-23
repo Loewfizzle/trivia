@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 export const FOG_HEX = 0x0b0716;
 /** H5B — THE DAY LOOK's haze (the far lanes fade into it; the day skyline's water meets it) */
-export const DAY_FOG_HEX = 0xc6e6f7;   // (H5C — THE FAR EDGE: the day picture's own haze where its sea meets the sky (#87cef4 → #b8e8fb): the far lanes fade into the same air)
+export const DAY_FOG_HEX = 0xc6e6f7;
 export const rgb = hex => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255];
 /** lane kinds as the ground shader counts them */
 export const KIND = Object.freeze({ grass: 0, road: 1, water: 2, rail: 3, flight: 4, mark: 5 });
@@ -239,7 +239,7 @@ void main() {
 }`;
 
 const SEA_STUB = /\/\/SEA\{[\s\S]*?\/\/\}SEA/;
-const WHITE1 = (() => { const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); t.needsUpdate = true; return t; })();   // (no sun pass: depth 1 everywhere)
+const WHITE1 = (() => { const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); t.needsUpdate = true; return t; })();
 /** the lanes' ground: n instanced planes. → { mesh, lay(k, lane, kind, down, up, seed, dark, fx, area), done(n), uniforms } */
 export function createGround(n, fog) {
   const base = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), g = new THREE.InstancedBufferGeometry();
@@ -249,17 +249,17 @@ export function createGround(n, fog) {
   for (const a of [aL, aK, aS]) a.setUsage(THREE.DynamicDrawUsage);
   g.setAttribute('aLane', aL); g.setAttribute('aKind', aK); g.setAttribute('aState', aS);
   const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 }, uWall: { value: -99 },
-    uWet: { value: 0 },   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+    uWet: { value: 0 },
     // VARIETY A — the day's grade + the sun's shadows (night.js#lookGL / #sunPass) + the fog bank's colour (THE FOG CHECK)
     uVA: { value: 1 }, uWarm: { value: new THREE.Vector3(1, 1, 1) }, uCool: { value: new THREE.Vector3(1, 1, 1) }, uCloud: { value: 0 }, uDew: { value: 0 },
-    uShTex: { value: WHITE1 }, uShM: { value: new THREE.Matrix4() }, uShK: { value: 0 }, uShTx: { value: new THREE.Vector2(1 / 1024, 1 / 2048) }, uFogBank: { value: new THREE.Vector3(0.875, 0.906, 0.933) } };   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+    uShTex: { value: WHITE1 }, uShM: { value: new THREE.Matrix4() }, uShK: { value: 0 }, uShTx: { value: new THREE.Vector2(1 / 1024, 1 / 2048) }, uFogBank: { value: new THREE.Vector3(0.875, 0.906, 0.933) } };
   const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: GROUND_V, fragmentShader: GROUND_F, uniforms }));
   mesh.frustumCulled = false; mesh.renderOrder = -1;
   return {
     mesh, uniforms,
     /** JT1 — THE SEASONAL PACK's ground (its GLSL in place of the stubs) · '' = back to the stubs */
     setSea(glsl) { const f = glsl ? GROUND_F.replace(SEA_STUB, glsl) : GROUND_F; if (mesh.material.fragmentShader !== f) { mesh.material.fragmentShader = f; mesh.material.needsUpdate = true; } },
-    lay(k, i, t, dn, up, seed, dark, fx, ar = 0) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; kind[k * 4 + 2] = up; kind[k * 4 + 3] = seed; state[k * 3] = dark; state[k * 3 + 1] = fx; state[k * 3 + 2] = ar; },   // (ar — H5A: the lane's AREA, 0 = the opening · 1 … 8)
+    lay(k, i, t, dn, up, seed, dark, fx, ar = 0) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; kind[k * 4 + 2] = up; kind[k * 4 + 3] = seed; state[k * 3] = dark; state[k * 3 + 1] = fx; state[k * 3 + 2] = ar; },
     done(c) { g.instanceCount = c; aL.needsUpdate = aK.needsUpdate = aS.needsUpdate = true; },
     dispose() { g.dispose(); base.dispose(); mesh.material.dispose(); },
   };
@@ -344,13 +344,11 @@ mat4 jwRow(int y) {
   return mat4(a.x, b.x, c.x, 0.0, a.y, b.y, c.y, 0.0, a.z, b.z, c.z, 0.0, a.w, b.w, c.w, 1.0);
 }
 mat4 jwPose(float row) { float f = fract(row); int y = int(floor(row)); return jwRow(y) * (1.0 - f) + jwRow(y + 1) * f; }`;
-/** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the
- *  rest keep their vertex colours; `lit` (0 … 1 — the blackout, the dim edge columns) scales both. */
+/** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the … */
 /** VARIETY B2 — WHITE VEHICLES BY DAY: 0 at night (the night's cars untouched — every use below is an exact no-op at 0), 1 by day (night.js#lookGL) */
 export const DAY_ROLL = { value: 0 };
-const ROLL_V = 'float jwMn = min(vColor.r, min(vColor.g, vColor.b)); vColor *= 1.0 - 0.2 * uRoll * smoothstep(0.42, 0.82, jwMn);';   // (a near-white body → a soft off-white by day)
-/** the day's HIGHLIGHT ROLL-OFF: past the knee a lit colour is eased toward 1 (its hue kept — every channel by one factor), never clipped flat:
- *  a white bus keeps its panels + windows; the darker parts (glass, trim, lines) are below the knee — untouched */
+const ROLL_V = 'float jwMn = min(vColor.r, min(vColor.g, vColor.b)); vColor *= 1.0 - 0.2 * uRoll * smoothstep(0.42, 0.82, jwMn);';
+/** the day's HIGHLIGHT ROLL-OFF: past the knee a lit colour is eased toward 1 (its hue kept — every channel by one factor), never clipped flat: … */
 const ROLL_F = 'if (uRoll > 0.0) { float jwPk = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); if (jwPk > 0.58) outgoingLight *= mix(1.0, (0.58 + 0.38 * (1.0 - exp((0.58 - jwPk) / 0.38))) / jwPk, uRoll); }';
 export function paintMaterial(mat, { instanced = false, rim = false, skin = null, fade = false, roll = false } = {}) {
   const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) }, uPose: { value: skin } };
@@ -408,12 +406,11 @@ export function neonEnv(renderer) {
   return env;
 }
 
-/** H5B — THE DAY LOOK's environment (the gloss on the cars + the kid by day): a clear blue sky, a bright horizon, the sun high on
- *  one side, warm ground light from below */
+/** H5B — THE DAY LOOK's environment (the gloss on the cars + the kid by day): a clear blue sky, a bright horizon, the sun high on … */
 export function dayEnv(renderer) {
   const W = 64, H = 32, d = new Uint8Array(W * H * 4);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const v = y / (H - 1), up = Math.max(0, 1 - v * 2), dn = Math.max(0, v * 2 - 1);   // (v 0 = straight up · 0.5 = the horizon · 1 = down)
+    const v = y / (H - 1), up = Math.max(0, 1 - v * 2), dn = Math.max(0, v * 2 - 1);
     let r = 250 - up * 140 - dn * 90, g = 252 - up * 80 - dn * 100, b = 255 - up * 12 - dn * 150;
     let dx = Math.abs(x / W - 0.3); dx = Math.min(dx, 1 - dx);
     const s = Math.max(0, 1 - Math.hypot(dx, (v - 0.2) * 1.4) / 0.12), f = s * s;
@@ -437,13 +434,9 @@ void main() {
   gl_FragColor = vec4(c, 1.0);
 }`;
 const QUAD_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
-/** J1 — THE NIGHT GLOW FIX: the SOLID scene's layer (night.js#kind marks every opaque kind but the tufts: vehicles, trains, trees, posts,
- *  barricades, logs, the areas' props, shops, the kid). The bloom draws it first as FLAT BLACK depth (OCC_MAT), then the lights (layer 1)
- *  depth-tested against it — a light behind a box truck / a car / a train / a tree makes no glow on top of it. */
+/** J1 — THE NIGHT GLOW FIX: the SOLID scene's layer (night.js#kind marks every opaque kind but the tufts: vehicles, trains, trees, posts, … */
 export const OCC_LAYER = 2;
-/** ONE shared override material (warmed with the rest — night.js#warm renders the bloom once: no new program mid-run). Black, no fog (a fogged
- *  far occluder would tint the bloom target), both faces (a mirrored instance never leaves a hole), pushed back a hair (a lamp ON a body's
- *  face stays lit — the main picture shows it) */
+/** ONE shared override material (warmed with the rest — night.js#warm renders the bloom once: no new program mid-run). Black, no fog (a fogged … */
 export const OCC_MAT = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 4, toneMapped: false });
 export function createBloom(renderer) {
   const opt = { depthBuffer: true, stencilBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };

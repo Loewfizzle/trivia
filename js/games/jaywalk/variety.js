@@ -4,8 +4,7 @@
 // rule's length). The models load PER AREA, a stretch AHEAD (createVariety) — never the start bundle; until a model is in (a slow network)
 // the slot draws its plain vehicle — and the end line names the vehicle drawn (KNOWN: causes.js#vehicleAt asks it).
 
-/** every variety vehicle: its slot (cells), its drawn width + height (cells), its emergency light bar ('' = none; `bar` = along the body from the
- *  nose 0 … 1, its height as a share of the model's) · dayK = by day a touch under (a white body blew out to a flat slab — the box truck's rule) */
+/** every variety vehicle: its slot (cells), its drawn width + height (cells), its emergency light bar ('' = none; `bar` = along the body from the … */
 export const VARIETY = Object.freeze({
   police: { slot: 1, w: 0.7, h: 0.56, light: 'police', bar: [0.52, 0.98] },
   suv: { slot: 1, w: 0.72, h: 0.6 },
@@ -36,9 +35,7 @@ export const VARIETY_LINES = Object.freeze({
   schoolbus: 'FLATTENED BY A SCHOOL BUS', semi: 'FLATTENED BY A SEMI', bendy: 'FLATTENED BY A BENDY BUS',
   plow: 'PLOWED BY A SNOWPLOW', salt: 'SALTED BY A SALT TRUCK',
 });
-/** THE AREA SETS — by the area's index (tuning.js#LANDMARKS: 0 THE DOCKS · 1 THE FISH MARKET · 2 THE RAIL YARD · 3 THE BRIDGE · 4 DOWNTOWN ·
- *  5 THE CANAL · 6 THE LIGHTHOUSE · 7 THE AIRFIELD; −1 = the opening, DOWNTOWN's set) → per slot [id, share of that slot's vehicles]. A 1-cell
- *  slot keeps ≥ 3 / 4 plain cars everywhere (the sedans · hatchbacks · taxis), every slot ≥ 1/2 plain — plain the clear majority on screen. */
+/** THE AREA SETS — by the area's index (tuning.js#LANDMARKS: 0 THE DOCKS · 1 THE FISH MARKET · 2 THE RAIL YARD · 3 THE BRIDGE · 4 DOWNTOWN · … */
 const DOWNTOWN = { 1: [['police', 0.07], ['suv', 0.08], ['sports', 0.07]], 2: [['citybus', 0.2], ['delivery', 0.17]], 3: [['bendy', 0.42]] };
 const DOCKS = { 1: [['forklift', 0.1]], 2: [['delivery', 0.13], ['garbage', 0.12], ['tanker', 0.13]], 3: [['semi', 0.45]] };
 const SHORE = { 1: [['suv', 0.1]], 2: [['ambulance', 0.2]], 3: [['schoolbus', 0.42]] };
@@ -52,8 +49,7 @@ export const AREA_SETS = Object.freeze({
 });
 /** the ids an area draws */
 export const areaIds = ar => { const S = AREA_SETS[ar] || {}; return [...new Set(Object.values(S).flat().map(e => e[0]))]; };
-/** VARIETY B2 — THE WINTER TRUCKS: on a winter run (the run's own day — night.js#setSeason, Dec 1 → Mar 1) the van slot's top tenth of
- *  draws (always a PLAIN van in every set: no set reaches 0.9) is a snowplow (0.90 …) or a salt truck (0.95 …); every phone on the run's day */
+/** VARIETY B2 — THE WINTER TRUCKS: on a winter run (the run's own day — night.js#setSeason, Dec 1 → Mar 1) the van slot's top tenth of … */
 let WINTER = false;
 export const setWinterTraffic = on => { WINTER = !!on; };
 export const winterTraffic = () => WINTER;
@@ -69,32 +65,24 @@ export function varietyAt(ar, slot, u) {
   return '';
 }
 
-/** THE NAMES ARE THE DRAWN ONES: the ids whose model has come in on this page (kept for the page's life — a rival's end line in an area this
- *  phone already passed still names what was drawn there) */
+/** THE NAMES ARE THE DRAWN ONES: the ids whose model has come in on this page (kept for the page's life — a rival's end line in an area this … */
 const KNOWN = new Set();
 export const varietyKnown = id => KNOWN.has(id);
 /** (the tests + the lab) every id known — as if all were in */
 export const knowAll = (on = true) => { if (on) for (const id of VARIETY_IDS) KNOWN.add(id); else KNOWN.clear(); };
 
 const DIR = new URL('../../../assets/jaywalk/variety/', import.meta.url);
-export const VARIETY_REV = 2;   // (B2: the files slimmed — the wheels, the undersides, the hidden insides)
-/** the OPENING's files into the HTTP cache (the cartridge's preload, during the walk inside — its 1.5 MB line: THE DOCKS' come in from the
- *  scene itself while the menu / the count shows) — fetched, never parsed */
+export const VARIETY_REV = 2;
+/** the OPENING's files into the HTTP cache (the cartridge's preload, during the walk inside — its 1.5 MB line: THE DOCKS' come in from the … */
 export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL(`${id}.glb?v=${VARIETY_REV}`, DIR)).catch(() => null)));
 
-/** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step;
- *  after STARVE frames skipped in a row, one step is taken anyway (a phone that is always busy still gets its models) */
+/** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step; … */
 export const PUMP = Object.freeze({ budget: 7, starve: 24 });
-/**
- * THE PER-AREA LOADER: want(list of area indices) → the files of those areas fetched (the ones no longer wanted FREED — drop(id)); pump(busy)
- * at the END of a frame takes at most ONE STEP (B2: a model's parse, OR its kind made — never both in one frame), and none when the frame was
- * busy (PUMP); a file that fails is asked again 5 s later (never a stall: the slot draws its plain vehicle meanwhile). The steps' cost is kept
- * (info: `worst` ms). `ids` (an area → its model ids) · `url` · `known` let B2's trees + edge pieces share this loader. → { want, pump, info, destroy }
- */
+/** … */
 export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaWants, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
-  const held = new Map(), queue = [];   // id → 'loading' | 'in' · the fetched buffers waiting for a frame
+  const held = new Map(), queue = [];
   let wanted = new Set(), dead = false, retryAt = 0, staged = null, starve = 0, worst = 0;
-  const drops = [];   // (B2: the models no longer wanted — freed ONE a step too: an area passed never frees six kinds in one frame)
+  const drops = [];
   function fetchOne(id) {
     held.set(id, 'loading');
     fetch(url(id)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(id))))
@@ -106,7 +94,7 @@ export function createVariety({ parseGlb, add, drop, now = () => performance.now
     want(areas) {
       retryAt = 0;
       wanted = new Set(areas.flatMap(ids));
-      for (let k = drops.length - 1; k >= 0; k--) if (wanted.has(drops[k])) { held.set(drops[k], 'in'); drops.splice(k, 1); }   // (wanted again before it was freed: kept)
+      for (let k = drops.length - 1; k >= 0; k--) if (wanted.has(drops[k])) { held.set(drops[k], 'in'); drops.splice(k, 1); }
       for (const id of wanted) if (!held.has(id)) fetchOne(id);
       for (const [id, st] of [...held]) if (!wanted.has(id)) { held.delete(id); if (st === 'in') drops.push(id); }
     },

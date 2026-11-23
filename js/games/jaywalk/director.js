@@ -13,7 +13,7 @@ export function createGame({ matchId, settings, participants, now, seed }) {
   const n = Object.keys(participants || {}).length, mode = modeOf(participants), solo = mode === 'solo';
   return {
     id: 'jaywalk', matchId, settings: cleanSettings(settings, n), participants, mode,
-    seed: solo ? String(seed) : '',   // (a MATCH's course is picked AFTER GO — the step count → play; a SOLO run's from its own GO — never this)
+    seed: solo ? String(seed) : '',
     phase: solo ? 'play' : 'count', phaseStartAt: now, playAt: solo ? now : now + COUNT_MS,
   };
 }
@@ -35,15 +35,10 @@ export function lastSeen(game, node) {
   if (c) { let hi = -1; for (const k of Object.keys(c)) { const i = Number(k); if (i > hi) hi = i; } const v = hi >= 0 ? c[hi] : null; if (v && v.at > at) at = v.at; }
   return at;
 }
-/** H4: has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the kid is out AND (offline)
- *  a dropped signal has had its time to come back */
+/** H4: has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the kid is out AND (offline) … */
 export const endedFor = (game, node, now, online) => !!(node && node.e) || now >= lastSeen(game, node) + IDLE_OUT_MS + (online ? 0 : DROP_WAIT_MS);
 
-/**
- * THE CONSOLE FIX — THE LIVE RUNS of a match (core/proof.js#liveGoers on this game's clock: THE FIRST GO's tick 0, THE MOTHERSHIP's cap
- * + END_GRACE_MS, IDLE_OUT_MS, DROP_WAIT_MS): the on-time runs not ended yet, read from the proof nodes ALONE (never the host's game) —
- * THE SERVER holds a report while any is (api/report.js), the podium waits for them (view.js). → { uids, until }
- */
+/** … */
 export function liveOf({ code, matchId, tree, now, online = null }) {
   const S = tree ? matchStart(code, matchId, tree) : null;
   if (!S) return { uids: [], until: 0 };
@@ -84,7 +79,6 @@ export function nightBonus(game) {
   return out;
 }
 
-/** H3 — PLAY AGAIN after a SOLO run (PURE — the console's INSTANT AGAIN: games/kit/again.js): the NEXT solo run of a finished one — a new
- *  match of its own (its own id, its own proof node, its own report), the same player, `play` at once. null = not a finished solo run. */
+/** H3 — PLAY AGAIN after a SOLO run (PURE — the console's INSTANT AGAIN: games/kit/again.js): the NEXT solo run of a finished one — a new … */
 export const nextRun = (game, { matchId, now }) => (game && game.phase === 'final' && game.mode === 'solo' && matchId
   ? createGame({ matchId, settings: game.settings, participants: game.participants, now, seed: `again:${game.matchId}` }) : null);
