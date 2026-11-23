@@ -72,6 +72,46 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     errs.push(...o.errs); await o.close();
   }
 
+  // tiers — GROUP 2: 45 s of hopping at 10× / 6× / 4× CPU, the new rule against &smooth=0, every tier change logged: never a flap
+  if (what === 'tiers' || what.startsWith('tiers:')) {
+    const rates = what.startsWith('tiers:') ? what.slice(6).split('+').map(Number) : [10, 6, 4];
+    for (const rate of rates) for (const smooth of [1, 0]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=look3&zoom=8&angle=straight&cv=2${SCENES.noon}${smooth ? '' : '&smooth=0'}`);
+      await up(o.p);
+      const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'look3'); J.bot(true); window.__tl = []; let last = -1; const t0 = performance.now(); setInterval(() => { const t = J.view.tier(); if (t !== last) { window.__tl.push([Math.round(performance.now() - t0), t]); last = t; } if (J.state().st === 'out') J.restart('solo'); }, 100); });
+      await sleep(45000);
+      const tl = await o.p.evaluate(() => window.__tl);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      const ups = tl.filter((r, i) => i && r[1] > tl[i - 1][1]).length;
+      console.log(`     TIER LOG ${smooth ? 'NEW' : 'OLD'} at ${rate}× CPU: ${tl.map(([t, k]) => `${(t / 1000).toFixed(1)} s → ${k}`).join(' · ')}`);
+      if (smooth) ok(ups <= 1 && tl.length <= 4, `TIERS at ${rate}× CPU: no flap (${tl.map(r => r[1]).join(' → ')}; ${ups} back up)`);
+      errs.push(...o.errs); await o.close();
+    }
+  }
+
+  // casters — what the sun's depth pass actually draws: every instanced draw into the map (triangles a model × instances), biggest first
+  if (what === 'casters') {
+    for (const [name, sq] of [['noon', SCENES.noon], ['snow', SCENES.snow]]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`);
+      await up(o.p);
+      if (/snow=/.test(sq)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.ghosts(7); J.warp(J.find('grass', 252)); });
+      await waitFor(o.p, '(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && !v.staged; })()', 30000);
+      await sleep(1500);
+      const r = await o.p.evaluate(() => new Promise(res => {
+        const gl = document.querySelector('canvas.jw-canvas').getContext('webgl2'), bind = gl.bindFramebuffer.bind(gl), draw = gl.drawElementsInstanced.bind(gl);
+        let inRt = false, L = [], main = 0;
+        gl.bindFramebuffer = (t, fb) => { bind(t, fb); inRt = !!fb; };
+        gl.drawElementsInstanced = (m, c, ty, off, n) => { if (inRt) L.push([c / 3, n]); else main += c / 3 * n; draw(m, c, ty, off, n); };
+        let k = 0; const f = () => { if (++k === 2) { L = []; main = 0; } if (k === 3) { res({ L, main }); return; } requestAnimationFrame(f); }; requestAnimationFrame(f);
+      }));
+      const rows = r.L.map(([t, n]) => ({ t, n, all: t * n })).sort((a, b) => b.all - a.all), tot = rows.reduce((a, x) => a + x.all, 0);
+      console.log(`     CASTERS ${name}: ${rows.length} draws, ${tot} tris into the map (main pass ${r.main}) · biggest: ${rows.slice(0, 12).map(x => `${x.t}×${x.n}`).join('  ')}`);
+      errs.push(...o.errs); await o.close();
+    }
+  }
+
   if (all || what === 'gpu') {
     const rows = [];
     for (const [name, sq] of Object.entries(SCENES)) for (const tier of [2, 1]) {

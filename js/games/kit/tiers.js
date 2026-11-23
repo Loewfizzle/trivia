@@ -10,6 +10,21 @@ export const CAP_PROBE_MS = 4000, CAP_WORK_MS = 12;
 export const capProbeSaysCapped = (beforeP50, nowP50) => Number(nowP50) >= Number(beforeP50) * 0.85;
 export const quantile = (a, p) => { const x = [...a].sort((m, n) => m - n); return x[Math.floor(x.length * p)] ?? 99; };
 
+/**
+ * JAYWALK SMOOTH — THE STUTTER RULE (opt-in: `createTiers({ stutter: true })`; a game that doesn't ask keeps the rule above, step for step).
+ * ≥ `count` dropped frames in the last `span` ms, seen again `again` ms later (one burst — a load, a banner — never counts), steps down, though the p75 looks fine. A dropped frame is judged against the phone's OWN
+ * cadence (past `ms` AND `over` × its median), so a steady 30 Hz Low Power cap counts none. The step is a PROBE: CAP_PROBE_MS later, if the
+ * drops did not fall below `helped` of what they were, the tier was not the cause → back up, and this rule stays off for the page (no flapping).
+ */
+export const STUTTER = Object.freeze({ ms: 25, over: 1.5, count: 6, span: 2000, again: 3000, helped: 0.6 });
+/** PURE, makes nothing: the dropped frames in the newest `span` ms of a ring (`head` = where the next value goes) */
+export function dropsIn(a, n, head, size, p50) {
+  const line = Math.max(STUTTER.ms, p50 * STUTTER.over);
+  let c = 0, sum = 0;
+  for (let k = 1; k <= n && sum < STUTTER.span; k++) { const v = a[(head - k + size) % size]; sum += v; if (v > line) c++; }
+  return c;
+}
+
 /** in place: the first `n` values of `a`, rising (an insertion sort — 120 samples at most; no list, no comparator made) */
 function sortN(a, n) {
   for (let i = 1; i < n; i++) { const v = a[i]; let j = i - 1; while (j >= 0 && a[j] > v) { a[j + 1] = a[j]; j--; } a[j + 1] = v; }
@@ -20,12 +35,13 @@ function sortN(a, n) {
  * it makes NOTHING while it runs — the samples live in two rings of numbers made once, a quantile is read off a scratch copy sorted in
  * place. (It used to copy + sort its 120 samples three times an asking, each with a comparator of its own.) The rule itself is unchanged.
  */
-export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamples = 90 } = {}) {
+export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamples = 90, stutter = false } = {}) {
   let tier = initial, cool = 0, failed = -1, goodSince = 0, lastFrame = 0, capped = false;
   let probeOn = false, probeFrom = 0, probeP50 = 0, probeAt = 0;
+  let spOn = false, spFrom = 0, spCount = 0, spAt = 0, spFailed = -1, spOff = false, spSeen = 0;   // (THE STUTTER RULE's probe)
   const frames = new Float64Array(window), works = new Float64Array(window), sf = new Float64Array(window), sw = new Float64Array(window);
   let fn = 0, fh = 0, wn = 0, wh = 0;   // (how many are in · where the next one goes)
-  const clear = () => { fn = fh = wn = wh = 0; };
+  const clear = () => { fn = fh = wn = wh = 0; spSeen = 0; };
   const set = t => { tier = Math.max(0, Math.min(max, t)); if (apply) apply(tier); clear(); };
   /** a ring's values, oldest first, as a plain list (the tests' + a view's own reading — never asked in a frame) */
   const list = (a, n, h) => { const out = []; for (let i = 0; i < n; i++) out.push(a[(h - n + i + window) % window]); return out; };
@@ -39,8 +55,8 @@ export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamp
     /** Pass your own frame-time array if the renderer keeps one (e.g. scene.fps). */
     tick(now, frameTimes) {
       // (a renderer that hands its own list in is read the old way — nobody in a frame does; the ring is read through the scratch)
-      const n = frameTimes ? frameTimes.length : fn, probeDue = probeOn && now - probeAt > CAP_PROBE_MS && n >= 20;
-      if (!probeDue && (n < minSamples || now < cool)) return;
+      const n = frameTimes ? frameTimes.length : fn, probeDue = probeOn && now - probeAt > CAP_PROBE_MS && n >= 20, spDue = spOn && now - spAt > CAP_PROBE_MS && n >= 60;
+      if (!probeDue && !spDue && (n < minSamples || now < cool)) return;
       let p50, p75;
       if (frameTimes) { p50 = quantile(frameTimes, 0.5); p75 = quantile(frameTimes, 0.75); }
       else { for (let i = 0; i < n; i++) sf[i] = frames[i]; sortN(sf, n); p50 = n ? sf[Math.floor(n * 0.5)] : 99; p75 = n ? sf[Math.floor(n * 0.75)] : 99; }
@@ -55,13 +71,26 @@ export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamp
         if (capProbeSaysCapped(probeP50, p50) && work <= CAP_WORK_MS) { capped = true; probeOn = false; failed = -1; set(back); cool = now + 2500; goodSince = 0; return; }
         probeOn = false;
       }
+      const dropped = !stutter ? 0 : frameTimes ? dropsIn(frameTimes, n, n, n || 1, p50) : dropsIn(frames, fn, fh, window, p50);
+      if (spDue) {   // (the step gave nothing: not the tier's cost — back up, and this rule rests for the page)
+        spOn = false;
+        if (dropped > spCount * STUTTER.helped) { spOff = true; failed = spFailed; set(spFrom); cool = now + 2500; goodSince = 0; return; }
+      }
       if (n < minSamples || now < cool) return;
       if (p75 > 19.5 && tier > 0) {
         if (capped && work <= CAP_WORK_MS) return;
         if (!capped && !probeOn) { probeOn = true; probeFrom = tier; probeP50 = p50; probeAt = now; }
-        failed = tier; set(tier - 1); cool = now + 2500; goodSince = 0; return;
+        spOn = false; failed = tier; set(tier - 1); cool = now + 2500; goodSince = 0; return;
       }
-      if (p75 < 17.2 && work < 6 && tier < max && tier + 1 !== failed) {
+      if (stutter && !spOff && !spOn && !probeOn && !capped && tier > 0) {
+        if (dropped < STUTTER.count) { if (spSeen && now - spSeen >= STUTTER.again) spSeen = 0; }
+        else if (!spSeen || now - spSeen > STUTTER.again * 1.6) spSeen = now;
+        else if (now - spSeen >= STUTTER.again) {
+          spOn = true; spFrom = tier; spCount = dropped; spAt = now; spFailed = failed;
+          failed = tier; set(tier - 1); cool = now + 2500; goodSince = 0; return;
+        }
+      }
+      if (p75 < 17.2 && work < 6 && tier < max && tier + 1 !== failed && dropped <= 1) {
         if (!goodSince) goodSince = now;
         else if (now - goodSince > 8000) { set(tier + 1); cool = now + 4000; goodSince = 0; }
       } else goodSince = 0;

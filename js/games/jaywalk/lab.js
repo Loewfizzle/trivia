@@ -26,6 +26,8 @@ import { setNum, prepNums } from './numerals.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
+/** SMOOTH — `&smooth=0`: this pass's changes OFF (the stutter rule, the sun-shadow savings, the loading budget): the owner's A/B on the meter */
+const SMOOTH = Q.get('smooth') !== '0';
 /** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
 const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
 /** J4 — WINTER's lab switches: `&date=YYYY-MM-DD` (the season clock forced to that day) · `&snow=none|light|heavy` · `&wet=1` (WET NEON STREETS) —
@@ -114,7 +116,7 @@ async function mount() {
   const arrive = createArrival(app.querySelector('.jw-stage'), AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: the game's own, arrival.js)
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   let view;
-  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new', va: VA_Q }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
+  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new', va: VA_Q, smooth: SMOOTH }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
   // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
@@ -125,11 +127,10 @@ async function mount() {
  lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
-  let tierSteps = 0;   // (SMOOTH — the meter's STEPS: every automatic tier change on this page)
-  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); tierSteps++; }, initial: pin == null ? 2 : pin });
+  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin, stutter: SMOOTH });
   // SMOOTH — THE FRAME METER (`&hud=1`, lab-hud.js — lazy, this page only)
   let meter = null;
-  if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierSteps, smooth: Q.get('smooth') !== '0' }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
+  if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierPath.length - 1, smooth: SMOOTH }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
 
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
