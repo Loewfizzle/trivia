@@ -168,7 +168,7 @@ export function createView() {
     const had = unpark();
     play = had ? had.play : h('div.jw-play', { role: 'application', 'aria-label': 'Jaywalk — tap to hop, swipe to move' });
     root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, rosterEl, countEl, watchEl, hintEl, overEl);
-    el.replaceChildren(root);
+    el.replaceChildren(root); document.body.classList.add('jw-on');   // (SMOOTH 3: the app's animated background stops behind a full-screen stage)
     arriveEl = createArrival(root, AREA_LOOKS);
     if (isMatch) {
       mom = createMomentsView(root, { nameOf, colorOf: u => colorHex(((st.players && st.players[u]) || {}).color), sound: id => { if (sndOn) { try { SFX.play(id); } catch { /* silent */ } } } });
@@ -880,7 +880,7 @@ export function createView() {
     update(state) { st = state; if (matchLeft()) lateProof('seen');
       if (night) sync(); },
     unmount() {
-      gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
+      gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer); document.body.classList.remove('jw-on');
       if (offGL) offGL();
       document.removeEventListener('visibilitychange', onVis);
       awake(false);

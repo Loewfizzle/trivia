@@ -522,7 +522,12 @@
 /* VARIETY A — THE TIMES OF DAY on the band (night.js sets data-tod / data-wx from daylook.js): the DAY picture GRADED in code (a still filter +
    a gradient sky laid over it in `color` blend — its hue, the picture's own light) — never the night picture, never a cross-fade of the two (it
    ghosts); no stray lights. Night: untouched. Nothing here animates (a still filter only). */
-.jw-skyline[data-look='day']::after { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: clamp(13px, 1.9vh, 18px); pointer-events: none; opacity: 0; mix-blend-mode: color; }
+/* SMOOTH 3 — THE BLEND LAYER: it exists ONLY where a tint is set (never at a clear noon, never at opacity 0), and the band is its own blend group,
+   so the 3D canvas is never pulled into it (docs/jaywalk.md "SMOOTH 3"; the lab's &blend=old brings the old rule back) */
+.jw-skyline { isolation: isolate; }
+/* (the app's animated background has nothing to show behind a stage that fills the screen: it stops. A wider screen still shows it beside the stage) */
+@media (max-aspect-ratio: 62/100) { body.jw-on .bg { display: none; } }
+.jw-skyline[data-look='day'][data-tod='sunrise']::after, .jw-skyline[data-look='day'][data-tod='golden']::after, .jw-skyline[data-look='day'][data-tod='sunset']::after, .jw-skyline[data-look='day'][data-wx='overcast']::after { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: clamp(13px, 1.9vh, 18px); pointer-events: none; mix-blend-mode: color; }
 .jw-skyline[data-tod='sunrise'] .jw-skyline-img { filter: saturate(0.9) brightness(1.05); }
 .jw-skyline[data-tod='sunrise']::after { opacity: 0.6; background: linear-gradient(#b48ef0 0%, #f39ad0 40%, #ffb0c4 56%, #e4a0dc 66%, #b49af2 100%); }
 .jw-skyline[data-tod='golden'] .jw-skyline-img { filter: sepia(0.4) saturate(1.25) brightness(1.04); }

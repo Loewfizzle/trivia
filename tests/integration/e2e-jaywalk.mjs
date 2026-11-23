@@ -150,6 +150,7 @@ try {
   const tPlay = Date.now();
   await P.tap('.nd-card-solo');
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 25000), `PLAY NOW → the game's own screen (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
+  ok(await P.ev("getComputedStyle(document.querySelector('.bg')).display === 'none' && document.body.classList.contains('jw-on')"), 'SMOOTH 3: the app\'s animated background is off behind the full-screen stage');
   // ---- 2b. JT2 — TAP TO START: the kid waits on the start line; NOTHING ticks, nothing is written (no stamp, no GO) — a WAIT of 60 s
   // (THE PROOF's "GO within 5 s of the stamp" must hold however long the wait), then ONE tap starts the run — it counts (step 5's report)
   { ok(await P.waitFor(`${G}.state().waiting && !!document.querySelector('.jw-start .jw-start-go')`, 8000), 'TAP TO START: the start line, its words up');
@@ -515,6 +516,7 @@ try {
   await pastMoment(P);
   await P.tap('.final-city');
   ok(await P.waitFor(`!${S}.code && !!document.querySelector('.nd-tab-play')`, 20000), 'BACK TO THE CITY → the city');
+  ok(await P.ev("!document.body.classList.contains('jw-on')"), 'SMOOTH 3: the game\'s background switch is gone with the game');
   await sleep(1200);
   ok((await dbGet(`rooms/${g.code}`)) == null, '… the solo room is gone');
   ok(!P.errs.length, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);

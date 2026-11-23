@@ -8,7 +8,7 @@ export { DROP_MS, BIG_MS, frameStats, dropKinds };
 const RING = 1500, PAINT_MS = 1000, TEST_MS = 10000, KEEP = 3;
 
 /** the summary line a 10 s test leaves on screen */
-export const testLine = (s, w, k = { late: 0, bigJs: 0 }) => `${s.drops} DROPS ${s.big} BIG · W ${s.worst.toFixed(0)}\n${k.late} LATE · JS ${k.bigJs} · T${w.tier}${w.sun ? ' SUN' : ''}${w.smooth ? '' : ' OLD'}`;
+export const testLine = (s, w, k = { late: 0, bigJs: 0 }) => `${s.drops} DROPS ${s.big} BIG · W ${s.worst.toFixed(0)}\n${k.late} LATE · JS ${k.bigJs} · T${w.tier}${w.sun ? ' SUN' : ''}${w.smooth ? '' : ' OLD'}${w.blendOld ? ' B-OLD' : ''}`;
 
 /** read() → { tier, dpr, sun, loading, changes, smooth } (the lab's) */
 export function createFrameMeter(parent, read) {
@@ -40,7 +40,7 @@ export function createFrameMeter(parent, read) {
     big.textContent = `${s.fps.toFixed(0)} FPS`;
     l1.textContent = `10 S DROPS ${s.drops} · BIG ${s.big}`;
     l2.textContent = `p95 ${s.p95.toFixed(0)} · WORST ${s.worst.toFixed(0)} ms`;
-    l3.textContent = `T${w.tier} @${w.dpr} · SUN ${w.sun ? 'ON' : 'OFF'}${w.smooth ? '' : ' · OLD'}`;
+    l3.textContent = `T${w.tier} @${w.dpr} · SUN ${w.sun ? 'ON' : 'OFF'}${w.smooth ? '' : ' · OLD'}${w.blendOld ? ' · B-OLD' : ''}`;
     l4.textContent = `LOAD ${w.loading ? 'YES' : '—'} · STEPS ${w.changes}`;
     box.classList.toggle('is-drop', s.big > 0);
     api.now = { ...s, ...w };

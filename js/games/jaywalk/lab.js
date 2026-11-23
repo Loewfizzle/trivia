@@ -28,6 +28,10 @@ const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
 /** SMOOTH — `&smooth=0`: this pass's changes OFF (the stutter rule, the sun-shadow savings, the loading budget): the owner's A/B on the meter */
 const SMOOTH = Q.get('smooth') !== '0';
+/** SMOOTH 3 — `&blend=old`: the old sky-tint rule back (on every day look, at opacity 0 at noon, the whole stage its blend group): the owner's A/B on the meter.
+ *  Put BEFORE the game's css, so the tints' own opacity + colour still win exactly as they did. */
+const BLEND_OLD = Q.get('blend') === 'old';
+if (BLEND_OLD) { const s = document.createElement('style'); s.textContent = ".jw-skyline { isolation: auto !important; } .jw-skyline[data-look='day']::after { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: clamp(13px, 1.9vh, 18px); pointer-events: none; opacity: 0; mix-blend-mode: color; }"; document.head.prepend(s); }
 /** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
 const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
 /** J4 — WINTER's lab switches: `&date=YYYY-MM-DD` (the season clock forced to that day) · `&snow=none|light|heavy` · `&wet=1` (WET NEON STREETS) —
@@ -130,7 +134,7 @@ async function mount() {
   const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin, stutter: SMOOTH });
   // SMOOTH — THE FRAME METER (`&hud=1`, lab-hud.js — lazy, this page only)
   let meter = null;
-  if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierPath.length - 1, smooth: SMOOTH }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
+  if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierPath.length - 1, smooth: SMOOTH, blendOld: BLEND_OLD }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
 
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;

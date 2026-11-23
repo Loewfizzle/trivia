@@ -18,6 +18,9 @@ export const SEASON_SCENES = {
   autumn: '&tod=noon&weather=clear&date=2026-11-23', autumnNight: '&tod=night&weather=clear&date=2026-11-23', autumnGolden: '&tod=golden&weather=clear&date=2026-11-25',
   snowNight: '&tod=night&weather=clear&date=2026-12-24&snow=heavy', lightSnow: '&tod=noon&weather=clear&date=2027-01-20&snow=light', lightNight: '&tod=night&weather=clear&date=2027-01-20&snow=light',
   eve: '&tod=night&weather=clear&date=2026-12-31&clock=21:00',
+  // (SMOOTH 3: every tinted look, the band's blend layer)
+  sunrise: '&tod=sunrise&weather=clear&date=2026-07-15', sunset: '&tod=sunset&weather=clear&date=2026-07-15', overcast: '&tod=noon&weather=overcast&date=2026-07-15',
+  snowGolden: '&tod=golden&weather=clear&date=2026-12-24&snow=heavy', snowOvercast: '&tod=noon&weather=overcast&date=2026-12-24&snow=heavy',
 };
 const seasonIn = '(() => { const s = window.__jwLab.view.season(); return !!(s.pack || (s.sp && s.sp.pileModel)); })()';
 
@@ -107,6 +110,7 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     const diff = (A, B) => cmp.evaluate(async (a, c) => { const load = async u => { const i = new Image(); i.src = u; await i.decode(); const v = new OffscreenCanvas(i.width, i.height), x = v.getContext('2d', { willReadFrequently: true }); x.drawImage(i, 0, 0); return x.getImageData(0, 0, i.width, i.height).data; }; const P = await load(a), Q = await load(c); let n = 0, big = 0; for (let k = 0; k < P.length; k += 4) { const d = Math.max(Math.abs(P[k] - Q[k]), Math.abs(P[k + 1] - Q[k + 1]), Math.abs(P[k + 2] - Q[k + 2])); if (d > 2) n++; if (d > big) big = d; } return { pct: 100 * n / (P.length / 4), big }; }, `data:image/png;base64,${A}`, `data:image/png;base64,${B}`);
     const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth || abBase ? '' : '&smooth=0'}`, { reduce: true, ...(!smooth && abBase ? { base: abBase } : {}) }); await up(o.p); if (/snow=|date=2026-1[12]-(2[3-5]|31)/.test(sq)) await waitFor(o.p, seasonIn, 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
     const grab = async (o, t) => { await o.p.evaluate(tt => { const J = window.__jwLab; J.freeze(false); J.setT(tt); J.freeze(true); }, t); await sleep(1250); return o.p.screenshot({ encoding: 'base64' }); };
+    // (SMOOTH 3: the tinted bands now blend in their own group: 8-bit rounding moves a few pixels by at most 3 / 255, which is the allowance, on under 0.05 % of them)
     let worst = 0, count = 0;
     for (const lk of looks) for (const tier of [2, 1]) for (const [an, lane] of tier === 2 ? LANES : LANES.slice(0, 1)) {
       const A = await frozen(SEASON_SCENES[lk], tier, true, lane), B = await frozen(SEASON_SCENES[lk], tier, false, lane);
@@ -114,7 +118,7 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
       let w = 0, big = 0;
       for (const t of ticks) { const a = await grab(A, t), c = await grab(B, t), d = await diff(a, c); count++; if (d.pct > w) w = d.pct; if (d.big > big) big = d.big; if (out && t === ticks[0]) { const f = join(out, 'same', `${lk}-t${tier}-${an}.png`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(a, 'base64')); } }
       if (w > worst) worst = w;
-      ok(w < 0.01, `THE SAME PICTURE ${lk} tier ${tier} ${an}: ${ticks.length} frozen frames, at most ${w.toFixed(4)} % of pixels differ (largest difference ${big} / 255)`);
+      ok(w < 0.01 || (w < 0.05 && big <= 3), `THE SAME PICTURE ${lk} tier ${tier} ${an}: ${ticks.length} frozen frames, at most ${w.toFixed(4)} % of pixels differ (largest difference ${big} / 255)`);
       errs.push(...A.errs, ...B.errs); await A.close(); await B.close();
     }
     await cmpCtx.close();
@@ -227,6 +231,75 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
       errs.push(...o.errs); await o.close();
     }
     V.forEach((v, k) => console.log(`     AB ${look} t${tier} [${v || 'default'}]: work ${got[k].map(x => x.work.toFixed(1)).join(' ')} · drops ${got[k].map(x => x.drops).join(' ')} · calls ${got[k][0].calls} · tris ${got[k][0].tris} · models ${got[k][0].held} + ${got[k][0].props}`));
+  }
+
+  // passes — SMOOTH 3: the compositor's render passes a frame in every look (Chromium's viz trace, 390 @3, a played run), `--ab <base>` = the code before
+  // beside it. A look with no tint draws ONE pass; NO look may draw a screen-sized group besides the root (that group is the 3D canvas pulled into a blend).
+  if (what === 'passes') {
+    const LOOKS = { noon: '&tod=noon&weather=clear&date=2026-07-15', sunrise: '&tod=sunrise&weather=clear&date=2026-07-15', golden: '&tod=golden&weather=clear&date=2026-07-15', sunset: '&tod=sunset&weather=clear&date=2026-07-15', overcast: '&tod=noon&weather=overcast&date=2026-07-15', night: '&tod=night&weather=clear&date=2026-07-15', 'autumn noon': '&tod=noon&weather=clear&date=2026-11-23', 'snow noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy', 'snow golden': '&tod=golden&weather=clear&date=2026-12-24&snow=heavy', 'snow night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy' };
+    const TINTED = /sunrise|golden|sunset|overcast/;
+    const measure = async (sq, base) => {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`, base ? { base } : {});
+      await up(o.p);
+      if (/date=2026-1[12]/.test(sq)) await waitFor(o.p, seasonIn, 30000);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); window.__passT = setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
+      await sleep(2500);
+      await o.p.tracing.start({ categories: ['viz', 'cc', 'gpu', 'disabled-by-default-viz.quads'] });
+      await sleep(2000);
+      const ev = JSON.parse(Buffer.from(await o.p.tracing.stop()).toString('utf8')).traceEvents || [];
+      const count = n => ev.filter(e => e.name === n && (e.ph === 'X' || e.ph === 'B')).length;
+      const shots = ev.filter(e => e.name === 'LayerTreeHostImpl:snapshot' && e.args && e.args.snapshot && e.args.snapshot.frame && (e.args.snapshot.frame.render_passes || []).length);
+      const rects = shots.length ? shots[shots.length - 1].args.snapshot.frame.render_passes.map(r => r.output_rect) : [];
+      errs.push(...o.errs); await o.close();
+      return { passes: count('DirectRenderer::DrawRenderPass') / Math.max(1, count('DirectRenderer::DrawFrame')), groups: rects.slice(0, -1).filter(r => r[3] >= 844 * 0.9).length, sizes: rects.slice(0, -1).map(r => `${r[2]}×${r[3]}`).join(' + ') || 'none' };
+    };
+    const lines = ['| look | passes a frame, before | screen-sized groups, before | passes a frame, after | screen-sized groups, after | the extra passes, after |', '| --- | --- | --- | --- | --- | --- |'];
+    for (const [name, sq] of Object.entries(LOOKS)) {
+      const B = abBase ? await measure(sq, abBase) : null, A = await measure(sq);
+      lines.push(`| ${name} | ${B ? B.passes.toFixed(2) : '—'} | ${B ? B.groups : '—'} | ${A.passes.toFixed(2)} | ${A.groups} | ${A.sizes} |`);
+      ok(A.groups === 0, `${name}: the 3D canvas is in no blend group (${A.groups} screen-sized groups; extra passes: ${A.sizes})`);
+      if (!TINTED.test(name)) ok(Math.round(A.passes) === 1, `${name}: ONE compositor pass a frame (${A.passes.toFixed(2)})`);
+    }
+    console.log(lines.join('\n'));
+    if (out) { const f = join(out, 'passes', `passes-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }
+  }
+
+  // first — SMOOTH 3 (WINTER WARM-UP): a FRESH page (empty cache) straight into a run, the first 10 s: every frame + every shader link, compile and GPU upload,
+  // when it happened. `first:<reps>:<rate>`, `--ab <base>` = the code before, interleaved.
+  if (what === 'first' || what.startsWith('first:')) {
+    const [, r0, r1] = what.split(':'), reps = Number(r0) || 3, rate = Number(r1) || 4, SECS = 10;
+    const FIRST = { 'summer night': '&tod=night&weather=clear&date=2026-07-15', 'dec 24 heavy night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy', 'dec 24 heavy noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy' };
+    const spy = () => {
+      const S = window.__first = { on: 0, fr: [], gl: [] }, P = WebGL2RenderingContext.prototype;
+      const wrap = (name, size) => { const f = P[name]; P[name] = function (...a) { const t = performance.now(), r = f.apply(this, a), d = performance.now() - t; if (S.on) S.gl.push([name, Math.round(t - S.on), +d.toFixed(2), size ? size(a) : 0]); return r; }; };
+      for (const n of ['linkProgram', 'compileShader', 'getProgramParameter']) wrap(n);
+      wrap('bufferData', a => (typeof a[1] === 'number' ? a[1] : a[1] ? a[1].byteLength : 0));
+      for (const n of ['texImage2D', 'texSubImage2D', 'texStorage2D']) wrap(n, a => { const v = a[a.length - 1]; return v && v.byteLength ? v.byteLength : 0; });
+      let l = 0; const loop = t => { if (S.on && l) S.fr.push([Math.round(t - S.on), +(t - l).toFixed(1)]); l = t; requestAnimationFrame(loop); }; requestAnimationFrame(loop);
+    };
+    const one = async (sq, base) => {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`, { ...(base ? { base } : {}), pre: async p => { await p.evaluateOnNewDocument(spy); const c = await p.createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate }); } });
+      await up(o.p);
+      await o.p.evaluate(() => { const J = window.__jwLab; window.__first.on = performance.now(); J.restart('solo', 'perfseed7'); J.bot(true); setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
+      await sleep(SECS * 1000 + 300);
+      const r = await o.p.evaluate(s => { const F = window.__first; return { fr: F.fr.filter(x => x[0] <= s * 1000), gl: F.gl.filter(x => x[0] <= s * 1000), pack: !!window.__jwLab.view.season().pack }; }, SECS);
+      errs.push(...o.errs); await o.close();
+      const dts = r.fr.map(x => x[1]), S = stutterOf(dts), sum = n => r.gl.filter(x => x[0] === n), kb = r.gl.filter(x => /^(bufferData|tex)/.test(x[0])).reduce((a, x) => a + x[3], 0) / 1024;
+      const glMs = r.gl.reduce((a, x) => a + x[2], 0), worstGl = r.gl.reduce((w, x) => (x[2] > w[2] ? x : w), ['', 0, 0, 0]);
+      return { ...S, links: sum('linkProgram').length, compiles: sum('compileShader').length, kb, glMs, worstGl, bigAt: r.fr.filter(x => x[1] > 33.4).map(x => `${(x[0] / 1000).toFixed(1)}s:${x[1].toFixed(0)}`).slice(0, 12).join(' ') };
+    };
+    const lines = ['| scene | code | frames | dropped | BIG | worst ms | programs linked in the run | uploads KB | GL calls ms |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'];
+    for (const [name, sq] of Object.entries(FIRST)) {
+      const got = { before: [], after: [] };
+      for (let rep = 0; rep < reps; rep++) for (const which of (abBase ? (rep % 2 ? ['after', 'before'] : ['before', 'after']) : ['after'])) {
+        const R = await one(sq, which === 'before' ? abBase : null);
+        got[which].push(R);
+        console.log(`     FIRST ${which} ${name} (run ${rep + 1}): ${stutterLine(R)} · links ${R.links} · uploads ${R.kb.toFixed(0)} KB · GL ${R.glMs.toFixed(0)} ms (worst ${R.worstGl[0]} ${R.worstGl[2]} ms at ${(R.worstGl[1] / 1000).toFixed(1)} s) · BIG at ${R.bigAt || '—'}`);
+      }
+      for (const which of ['before', 'after']) { const L = got[which]; if (!L.length) continue; const av = f => L.reduce((a, x) => a + x[f], 0) / L.length; lines.push(`| ${name} | ${which} | ${Math.round(av('n'))} | ${av('drops').toFixed(1)} | ${av('big').toFixed(1)} | ${Math.max(...L.map(x => x.worst)).toFixed(0)} | ${av('links').toFixed(1)} | ${av('kb').toFixed(0)} | ${av('glMs').toFixed(0)} |`); }
+    }
+    console.log(lines.join('\n'));
+    if (out) { const f = join(out, 'first', `first-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }
   }
 
   // casters — what the sun's depth pass actually draws: every instanced draw into the map (triangles a model × instances), biggest first

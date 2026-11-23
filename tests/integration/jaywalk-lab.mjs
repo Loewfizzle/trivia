@@ -47,6 +47,7 @@ const open = async (w, h, dpr, q = '', o = {}) => {
   p.on('pageerror', e => errs.push(String(e.message || e)));
   p.on('request', r => { if (!r.url().startsWith('data:')) reqs.push(r.url()); });   // (a data: URI — the sea wall's inline tile — is no request: nothing leaves the page)
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr, isMobile: w < 700, hasTouch: w < 700 });
+  if (o.pre) await o.pre(p);   // (SMOOTH 3: before the page's first script — a spy, a CPU throttle)
   await p.goto(guardUrl(`${base}/jaywalk-lab?emu${q}`, 'jaywalk-lab'), { waitUntil: 'load' });
   return { p, errs, reqs, close: () => ctx.close() };
 };
