@@ -820,3 +820,6 @@
 
 ## JAYWALK SMOOTH — THE FRAME METER · STUTTER-AWARE TIERS · CHEAPER SUN SHADOWS · TIME-BOXED LOADING (approved Nov 23 — the owner)
 - (Nov 23) SMOOTH pass: the owner feels small stutters since the Variety passes (mainly day). Judge smoothness by DROPPED / WORST frames on the real iPhone, never by the median alone. A phone frame meter (&hud=1) is the proof tool. If drops remain after this pass, the next step is a visual trade-off (cheaper or no sun shadows on phones that can't hold them): the owner's call, with numbers.
+
+## JAYWALK SMOOTH 2 (Nov 23 2026 — the owner's iPhone measurements; the pass log: `docs/games/passes/jaywalk-smooth2.md`)
+- (Nov 23) The felt lag = the AUTUMN layer's periodic stall (BIG frames ~6 / 10 s at autumn noon vs ~2 in summer), proven on the owner's iPhone with the &hud=1 meter. Not resolution, not sun shadows. Seasonal layers must never add BIG frames: their spawning / recycling / updates must make no garbage and no per-frame rebuilds. Winter is checked the same way before Dec 1.
