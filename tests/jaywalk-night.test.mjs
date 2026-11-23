@@ -207,7 +207,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.doesNotMatch(n, /streak/, 'no streak is drawn behind a car, the truck or the train');
   assert.doesNotMatch(n, /back, tint, 1, 1,|0xff3a5a, 1, 1,/, 'no tapered ribbon (the glow shader\'s shape 1) in a vehicle\'s colour');
   assert.doesNotMatch(n, /2\.0 \+ L\.v \* 0\.045, 1, 0\.62, back, tint/, 'the one long trail is gone');
-  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*\}\s*tailBar\(X\(rear - p\.dir \* 0\.03\), ty \+ 0\.04, z, 0\.86, lt\);[^\n]*\s*LF\(X\(rear - p\.dir \* \(TAIL_LEN \* 0\.65 - 0\.2\)\), 0\.05, z, TAIL_LEN \* 1\.3, 1, 1\.0, p\.dir > 0 \? Math\.PI : 0, 0xff2a22, 1, -1, 0\.3 \* lt\);/, 'the train\'s front: two beams; its tail: the light bar + ONE red pool under it (the cars\' rule)');
+  assert.match(n, /for \(let es = -1; es <= 1; es \+= 2\) \{\s*const e = es \* tw;[^}]*0xfff2d0, 1, 6,[^}]*\}\s*tailBar\(X\(rear - p\.dir \* 0\.03\), ty \+ 0\.04, z, 0\.86, lt\);[^\n]*\s*LF\(X\(rear - p\.dir \* \(TAIL_LEN \* 0\.65 - 0\.2\)\), 0\.05, z, TAIL_LEN \* 1\.3, 1, 1\.0, p\.dir > 0 \? Math\.PI : 0, 0xff2a22, 1, -1, 0\.3 \* lt\);/, 'the train\'s front: two beams; its tail: the light bar + ONE red pool under it (the cars\' rule)');
   assert.doesNotMatch(n, /2\.6, 1, 1\.15|6\.6, 1, 2\.3|, 1, 2, 0\.\d+ \* (a1|lt)\)/, 'no single long spotlight is left');
   assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');
   assert.doesNotMatch(n + fxs, /PointLight|SpotLight/, 'still no real light');
@@ -218,7 +218,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   // THE BOX TRUCK: built in code (a cab + a box), its amber markers + lit tail lights; never the van + a bare box
   assert.match(m, /export function buildTruck\(\)/); assert.match(m, /roundBox\(0\.74, 0\.6, 0\.76, 0\.13\), color: 0xa6a6a6, paint: 1/, 'a cab in its own colour'); assert.match(m, /roundBox\(0\.8, 0\.8, 1\.9, 0\.1\), color: white/, 'a long white box'); assert.doesNotMatch(m + n, /buildTrailer|K\.trailers/);
   assert.match(n, /if \(truck\) K\.trucks\.put\(cx, 0, z, 0\.94, 0\.9, tz, ry, tint, 1, day \? dim \* 0\.8 : dim\);\s*else if \(q\) q\.put\(/, 'a 3-cell vehicle = the truck alone, as long as its rules length');
-  assert.match(n, /if \(truck\) for \(const m of \[0, 0\.34, 0\.67, 1\]\) K\.bill\.put\([^;]*0xff9a1c/, 'amber marker lights along its side');
+  assert.match(n, /if \(truck\) for \(let mi = 0; mi < 4; mi\+\+\) \{ const m = TRUCK_LAMPS\[mi\]; K\.bill\.put\([^;]*0xff9a1c/, 'amber marker lights along its side');
   // THE PROPS: no crate, no pale jersey barrier (THE BARRICADE is built in code); the files stay in the folder
   assert.match(m, /export const SCENE_MODELS = Object\.freeze\(\[\.\.\.KENNEY\.filter\(n => n !== 'crate-box' && n !== 'traffic-barrier'\), \.\.\.LANDMARK_MODELS\]\);/);
   assert.match(n, /loadKenney\(SCENE_MODELS\)/); assert.doesNotMatch(n, /crate-box|traffic-barrier/, 'the scene never places them');

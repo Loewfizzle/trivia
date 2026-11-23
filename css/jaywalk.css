@@ -141,7 +141,7 @@
 .jw-check.is-bad { color: #fff; background: #c8102e; padding: 8px 10px; font-weight: 700; }
 .jw-check.is-bad::before { content: '✕ '; }
 .jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
-.jw-meter { position: absolute; left: 6px; top: calc(env(safe-area-inset-top) + 34px); width: 158px; box-sizing: border-box; padding: 4px 6px 5px; background: rgba(7, 6, 11, 0.8); border-left: 2px solid #3dff8b; font: 500 10px/1.4 var(--font-mono); color: #eafff0; z-index: 30; touch-action: manipulation; }
+.jw-meter { will-change: transform; contain: layout paint style; position: absolute; left: 6px; top: calc(env(safe-area-inset-top) + 34px); width: 158px; box-sizing: border-box; padding: 4px 6px 5px; background: rgba(7, 6, 11, 0.8); border-left: 2px solid #3dff8b; font: 500 10px/1.4 var(--font-mono); color: #eafff0; z-index: 30; touch-action: manipulation; }
 .jw-meter.is-drop { border-left-color: #ffb02e; }
 .jw-m-big { font: 700 16px/1.1 var(--font-num); color: #fff; }
 .jw-m-l { white-space: nowrap; font-size: 9.5px; }
@@ -474,6 +474,7 @@
    NIGHT a neon sign (a dark board, a tube in the area's colour --c, a flicker on) · DAY a painted sign (the area's paint --p, darkened
    for the white letters; a white trim; a drop-in swing) · reduced motion: a plain fade. transform + opacity only; the glow is static */
 .jw-arrive { position: absolute; z-index: 4; left: 0; right: 0; top: min(calc(env(safe-area-inset-top) + 86px), calc(28% - 60px)); display: flex; justify-content: center; pointer-events: none; opacity: 0; visibility: hidden; }
+.jw-arrive.is-warm { visibility: visible; opacity: 0.004; }   /* (SMOOTH 2: its first paint, before anyone plays) */
 .jw-arrive.is-on { visibility: visible; animation: jw-arr-neon 2.5s linear both; }
 .jw-arrive[data-look='day'].is-on { animation-name: jw-arr-sign; }
 .jw-arrive-board { display: flex; flex-direction: column; align-items: center; gap: 5px; max-width: calc(100% - 32px); padding: 8px 20px 7px; border-radius: 6px;

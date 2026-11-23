@@ -155,6 +155,45 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     if (out) { const f = join(out, 'table', 'before-after.md'); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); writeFileSync(join(out, 'table', 'before-after.json'), JSON.stringify(got, null, 1)); }
   }
 
+  // season — SMOOTH 2 (Group 5): a played run (the bot) in every season, by day + by night, tiers 2 + 1, `season:<reps>:<rate>` — a season may not add BIG
+  // frames (> 33 ms) over SUMMER's, the same look + tier, interleaved. The cloud has no GPU: it only reports.
+  if (what === 'season' || what.startsWith('season:')) {
+    const [, r0, r1] = what.split(':'), reps = Number(r0) || 2, rate = Number(r1) || 4, SECS = Number(process.env.SMOOTH_SECS) || 12;
+    const DAYS = { summer: '&date=2026-07-15', autumn: '&date=2026-11-23', 'dec 24 heavy': '&date=2026-12-24&snow=heavy', 'jan 20 light': '&date=2027-01-20&snow=light', 'dec 31 finale': '&date=2026-12-31&clock=23:58' };
+    const LOOKS = { noon: '&tod=noon&weather=clear', night: '&tod=night&weather=clear' }, got = {};
+    for (let rep = 0; rep < reps; rep++) for (const [ln, lq] of Object.entries(LOOKS)) for (const tier of [2, 1]) {
+      const names = Object.keys(DAYS), order = rep % 2 ? [...names].reverse() : names;
+      for (const dn of order) {
+        const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${lq}${DAYS[dn]}`);
+        await up(o.p);
+        if (dn !== 'summer') await waitFor(o.p, "(() => { const s = window.__jwLab.view.season(); return !!(s.pack || (s.sp && (s.sp.pileModel || s.sp.fw))); })()", 30000);
+        await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); window.__seaT = setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
+        await sleep(3500);   // (V8 has optimized the frame's code before the throttle)
+        const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+        await sleep(600); await o.p.evaluate(() => window.__jwLab.clearFrames());
+        await sleep(SECS * 1000);
+        const r = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), co: window.__jwLab.cost(), sp: window.__jwLab.view.season().sp }));
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+        const S = stutterOf(r.fr), k = `${ln}|${tier}|${dn}`;
+        (got[k] = got[k] || []).push({ ...S, work: q(r.co, 0.5), workP99: q(r.co, 0.99), sparks: r.sp && r.sp.fw ? r.sp.fw.bursts : 0 });
+        console.log(`     SEASON ${ln} t${tier} ${dn} (run ${rep + 1}): ${stutterLine(S)} · work ${q(r.co, 0.5).toFixed(1)} (p99 ${q(r.co, 0.99).toFixed(1)}) ms`);
+        errs.push(...o.errs); await o.close();
+      }
+    }
+    const avg = (L, f) => L.reduce((a, x) => a + x[f], 0) / L.length, top = (L, f) => Math.max(...L.map(x => x[f]));
+    const lines = ['| look | tier | season | frames | BIG a run | dropped a run | p99 ms | worst ms | frame work ms (p50 / p99) |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'];
+    for (const ln of Object.keys(LOOKS)) for (const tier of [2, 1]) {
+      const base = got[`${ln}|${tier}|summer`];
+      for (const dn of Object.keys(DAYS)) {
+        const L = got[`${ln}|${tier}|${dn}`];
+        lines.push(`| ${ln} | ${tier} | ${dn} | ${Math.round(avg(L, 'n'))} | ${avg(L, 'big').toFixed(1)} | ${avg(L, 'drops').toFixed(1)} | ${avg(L, 'p99').toFixed(1)} | ${top(L, 'worst').toFixed(0)} | ${avg(L, 'work').toFixed(1)} / ${avg(L, 'workP99').toFixed(1)} |`);
+        if (dn !== 'summer' && !process.env.CI) ok(avg(L, 'big') <= avg(base, 'big') + 3, `${dn} adds no BIG frames over summer (${ln}, tier ${tier}: ${avg(L, 'big').toFixed(1)} a run, summer ${avg(base, 'big').toFixed(1)})`);
+      }
+    }
+    console.log(lines.join('\n'));
+    if (out) { const f = join(out, 'season', `season-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); writeFileSync(join(out, 'season', `season-${tag}.json`), JSON.stringify(got, null, 1)); }
+  }
+
   // ab — one scene, several URL variants, interleaved, each page's frame work + drops at 6× CPU (`ab:<look>:<tier>:<reps>`; SMOOTH_AB = variants split by |)
   if (what.startsWith('ab:')) {
     const [, look, tier, reps] = what.split(':'), V = (process.env.SMOOTH_AB || '|&smooth=0').split('|'), got = V.map(() => []);

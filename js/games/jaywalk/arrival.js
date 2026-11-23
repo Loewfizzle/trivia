@@ -22,14 +22,26 @@ export function createArrival(parent, LOOKS) {
   const nameEl = h('b.jw-arrive-n'), subEl = h('span.jw-arrive-s');
   const el = h('div.jw-arrive', { role: 'status', 'aria-live': 'polite' }, h('div.jw-arrive-board', nameEl, subEl));
   parent.append(el);
-  let t = 0, on = false;
+  let t = 0, on = false, warmF = 0;
   const hide = () => { clearTimeout(t); if (!on) return; on = false; el.classList.remove('is-on'); };
+  // SMOOTH 2 — THE ONE-OFF SPIKE: the FIRST banner of a page made the GPU build its paint (the glow, the board) at lane 50, mid-run: 83 ms here. It
+  // paints once now, all but invisible, in each look for a few frames, while nobody is playing yet
+  const L0 = LOOKS[0];
+  if (L0 && typeof requestAnimationFrame === 'function') {
+    nameEl.textContent = 'THE DOCKS'; subEl.textContent = 'LANE 50';
+    el.style.setProperty('--c', hex(L0.accent)); el.style.setProperty('--p', hex(shade(L0.paint, 0.72)));
+    el.dataset.look = 'night'; el.classList.add('is-warm');
+    let k = 0;
+    const step = () => { warmF = 0; if (on) { el.classList.remove('is-warm'); return; } k++; if (k === 4) el.dataset.look = 'day'; if (k >= 8) { el.classList.remove('is-warm'); return; } warmF = requestAnimationFrame(step); };
+    warmF = requestAnimationFrame(step);
+  }
   return {
     el,
     show(lane, look) {
       const w = arrivalWords(lane);
       if (!w) return false;
       const L = LOOKS[w.index] || LOOKS[0];
+      if (warmF) { cancelAnimationFrame(warmF); warmF = 0; } el.classList.remove('is-warm');
       nameEl.textContent = w.name; subEl.textContent = w.sub;
       el.dataset.look = look === 'day' ? 'day' : 'night';
       el.style.setProperty('--c', hex(L.accent)); el.style.setProperty('--p', hex(shade(L.paint, 0.72)));
@@ -40,6 +52,6 @@ export function createArrival(parent, LOOKS) {
     hide,
     on: () => on,
     text: () => (on ? `${nameEl.textContent} · ${subEl.textContent}` : ''),
-    destroy() { clearTimeout(t); el.remove(); },
+    destroy() { clearTimeout(t); if (warmF) cancelAnimationFrame(warmF); el.remove(); },
   };
 }

@@ -77,7 +77,7 @@ test('THE APPROACH SIGN: drawn again whenever it might be blank (a refused / wip
   const n = src('night.js');
   assert.match(n, /const c = ctx2d\(G\.cv\);\n    if \(!c\) return;   \/\/ \(refused — asked again next frame\)\n    G\.text = key;/, 'marked drawn only once it was drawn');
   assert.match(n, /const offLost = onCanvasLost\(\(\) => \{ G\.text = null; \}\);/, 'a wiped canvas is drawn again');
-  assert.match(n, /c\.getImageData\(512, 150, 1, 1\)\.data\[3\] === 0\) G\.text = null;/, 'a blank board found as it comes up is drawn again');
+  assert.match(n, /if \(o === '0'\) G\.text = null;/, 'SMOOTH 2: every approach draws it fresh, so a blank board heals itself (the read-back it replaced stalled the run)');
   assert.match(n, /document\.fonts\.load\('900 88px "Orbitron"'\)/);
   assert.match(n, /c\.fillStyle = css\(shade\(paint, 0\.72\)\);/, 'the day board: the area\'s paint darkened');
   assert.match(n, /offLost\(\);/, 'the subscription goes with the scene');

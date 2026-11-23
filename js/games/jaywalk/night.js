@@ -282,13 +282,9 @@ export function createNight(host, o = {}) {
   const gateShow = v => {
     const o = v < 0.01 ? '0' : v.toFixed(2);
     if (o === G.o) return;
-    if (G.o === '0' || G.o === '') gateCheck();
     G.o = o; G.cv.style.opacity = o; G.cv.style.transform = o === '0' ? '' : `scale(${(0.9 + 0.1 * Math.min(1, v)).toFixed(3)})`;
+    if (o === '0') G.text = null;   // (SMOOTH 2 — THE ONE-OFF SPIKE: a hidden sign is simply drawn again on its next approach, so a wiped canvas heals itself. It used to read a pixel back as it appeared: a synchronous GPU read in the middle of a run, 44 ms at 4× CPU)
   };
-  function gateCheck() {
-    if (!G.text) return;
-    try { const c = ctx2d(G.cv); if (!c || c.getImageData(512, 150, 1, 1).data[3] === 0) G.text = null; } catch { G.text = null; }
-  }
   const offLost = onCanvasLost(() => { G.text = null; });
   try { if (document.fonts && document.fonts.load) document.fonts.load('900 88px "Orbitron"').then(() => { if (!dead) G.text = null; }, NOP); } catch { /* no font API: the fallback face */ }
   const gateInfo = { on: false, text: '', y: 0, d: 0, a: 0 };
@@ -582,11 +578,24 @@ export function createNight(host, o = {}) {
   }
 
   /** THE START: a phone builds a program + uploads a mesh at its FIRST DRAW WITH SOMETHING IN IT — so each kind gets ONE instance … */
+  // SMOOTH 2 — THE FLYERS' PROGRAMS, warmed at the quiet frame: the UFO · the jet · its flame are fetched on demand, mid-run, and each brought a new
+  // shader to link right there. Three invisible stand-ins with the same material settings (three caches a program by its settings) link them first
+  const flyWarm = (() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.01, 0, 0, 0, 0, 0.01], 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute([1, 1, 1, 1, 1, 1, 1, 1, 1], 3));
+    const L = [new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true })),
+      new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide }), 1),
+      new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), 1)];
+    for (const m of L) { m.visible = false; m.frustumCulled = false; if (m.isInstancedMesh) m.setMatrixAt(0, new THREE.Matrix4()); scene.add(m); }
+    return { L, g };
+  })();
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM), ...(PR ? PR.kinds() : [])]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
     const seaBack = SP ? SP.warmIn() : null;
-    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }
+    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish, ...flyWarm.L]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     if (!otherWarm && lookSet) {
       otherWarm = true; day = !day;
@@ -1317,6 +1326,7 @@ export function createNight(host, o = {}) {
       dead = true; ro.disconnect(); VL.destroy(); if (PR) PR.destroy(); if (winterT) setWinterTraffic(false); taxiTex.dispose(); taxiCv.width = 0;
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
+      for (const m of flyWarm.L) { scene.remove(m); m.material.dispose(); if (m.dispose) m.dispose(); } flyWarm.g.dispose();
       curtain.material.dispose(); lip.geometry.dispose(); lip.material.dispose(); lipTex.dispose(); if (FL) FL.destroy();
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       if (SP) SP.destroy();

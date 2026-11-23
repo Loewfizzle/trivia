@@ -134,6 +134,7 @@ async function mount() {
 
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
+  let lastWork = 0;
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
   const FRIEND_Q = /^\d{1,2}$/.test(Q.get('friend') || '') ? Math.max(1, Number(Q.get('friend'))) : 0;
   const LANE_Q = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
@@ -211,7 +212,7 @@ async function mount() {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
     last = now;
-    if (meter) meter.frame(now);
+    if (meter) meter.frame(now, lastWork);   // (SMOOTH 2: + the JS work of the frame before: a BIG frame after a short one came from outside the page's JS)
     if (document.visibilityState === 'hidden' || sheetOpen) return;   // (the SOUNDS sheet holds the run still)
     const t0 = performance.now();
     if (bot && shown && now - overAt > 600) restart();   // (the measure's bot plays on)
@@ -237,7 +238,8 @@ async function mount() {
       sub.textContent = M.cap ? (M.cap - run.t > 10 * TICK_HZ ? `${mode.toUpperCase()} · ${clock(M.cap - run.t)}` : '') : 'ENDLESS';
     }
     if (markUntil && now > markUntil) { mark.textContent = ''; markUntil = 0; }
-    if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
+    lastWork = performance.now() - t0;
+    if (frames.length < 20000) { frames.push(dt); cost.push(lastWork); }
     if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}${i.tier == null ? '' : ` · tier ${tierPath.join('→')}`} · tick ${run.t}`; }
   }
   document.addEventListener('visibilitychange', () => { last = 0; acc = 0; if (meter) meter.gap(); if (document.visibilityState === 'hidden' && awakeAt) { awakeAt = 0; awake(false); } });
