@@ -204,7 +204,7 @@ try {
   await hopUp(P, 2);   // (two real taps on the calm opening lanes — nothing can hit there)
   await P.shot('line-friend-coming.png');
   // … THE NEXT FRIEND'S LINE crossed (the bot hops on through the same input path): a small burst + a quiet chime — then no friend ahead
-  await P.ev(`${G}.bot(true)`);
+  await P.ev(`${G}.bot(true, { steady: true })`);   // (B2 — THE FLAKE's second spot: the greedy bot died at lane 5, short of LIAM's 7 — and the YOU ROW's places follow this run's best)
   const crossedF = await P.waitFor(`${G}.state().best > 7`, 30000);
   await P.shot('line-friend-crossed.png');
   await P.ev(`${G}.bot(false)`);

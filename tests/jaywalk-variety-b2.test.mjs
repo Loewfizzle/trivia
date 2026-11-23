@@ -121,3 +121,11 @@ test('B2 — THE GAMEPLAY LOCK: the rules, the replay, the director, the server 
   const pg = src('js/games/preload-graph.js');
   assert.ok(!/props\.js|props-plan\.js|assets\/jaywalk\/(trees|edge)/.test(pg), 'the trees + edge pieces: never the start bundle (lazy, per area)');
 });
+
+test('B2 — THE TAPS: the extra passes see the same lights (three never re-resolves every program every frame); the review\'s three', () => {
+  const n = src('js/games/jaywalk/night.js'), p = src('js/games/jaywalk/props.js');
+  assert.match(n, /for \(const l of \[hemi, key, rim\]\) l\.layers\.enableAll\(\);/, 'the occluder, bloom + sun passes keep the light state');
+  assert.match(n, /const RWN = o\.rwNight === true;\n\s+setWinterTraffic\(false\);/, 'a new scene never inherits the last one\'s winter trucks');
+  assert.match(n, /VL\.destroy\(\); if \(PR\) PR\.destroy\(\); if \(winterT\) setWinterTraffic\(false\);/, 'the teardown stops both loaders + the winter flag');
+  assert.match(p, /sw = P\.sway && !A\.reduce \?/, 'the windsock holds still with reduce motion');
+});

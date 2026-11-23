@@ -168,12 +168,12 @@ export async function looksVB1({ open, up, ok, sleep, waitFor, out, what = '', b
     const AREAS = [['opening', -1], ['docks', 0], ['fish', 1], ['yard', 2], ['bridge', 3], ['downtown', 4], ['canal', 5], ['lighthouse', 6], ['airfield', 7]];
     const only = what.startsWith('perf:') ? what.slice(5).split('+') : null;
     const rows = [];
-    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) for (const [look, q] of [['night', '&tod=night&date=2026-07-15'], ['noon', '&tod=noon&weather=clear&date=2026-07-15'], ...(name === 'downtown' ? [['noon-snow', '&tod=noon&weather=clear&date=2026-12-24&snow=heavy'], ['night-snow', '&tod=night&date=2026-12-24&snow=heavy']] : [])]) for (const tier of [2, 1, 0]) {
+    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) for (const [look, q] of [['night', '&tod=night&date=2026-07-15'], ['noon', '&tod=noon&weather=clear&date=2026-07-15'], ...(name === 'downtown' || name === 'canal' ? [['noon-snow', '&tod=noon&weather=clear&date=2026-12-24&snow=heavy'], ['night-snow', '&tod=night&date=2026-12-24&snow=heavy']] : []), ...(name === 'airfield' || name === 'docks' ? [['night-jan', '&tod=night&date=2027-01-20&snow=light']] : [])]) for (const tier of [2, 1, 0]) {
       const o = await pg(q, { tier });
       if (/snow=/.test(q)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
       const L0 = ar < 0 ? 6 : 50 * (ar + 1) + 6;
       await o.p.evaluate((l, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500, safe: true }); J.ghosts(7); }, L0, look.startsWith('night') ? 'night' : 'day');
-      await waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
+      await waitFor(o.p, `(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && v.loading === 0 && v.queued === 0 && !v.staged && v.held.length > 0 && (!p || (p.loading === 0 && p.queued === 0 && !p.staged)); })()`, 30000);   // (VARIETY B2: the trees + the edge pieces in too)
       await sleep(1200);
       const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
       await o.p.evaluate(() => { const J = window.__jwLab; J.clearFrames(); window.__mc = 0; window.__go = true; const f = () => { if (!window.__go) return; const c = J.view.info().calls; if (c > window.__mc) window.__mc = c; if (J.state().st === 'out') { J.restart('solo', 'look3'); } requestAnimationFrame(f); }; requestAnimationFrame(f); });

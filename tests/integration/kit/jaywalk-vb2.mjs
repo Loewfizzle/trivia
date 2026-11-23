@@ -122,8 +122,7 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
   if (all || what === 'trees' || what === 'edge' || what.startsWith('trees:')) {
     const only = what.startsWith('trees:') ? what.slice(6).split('+') : null;
     const LOOKS = [['summer-day', '&tod=noon&weather=clear&date=2026-07-15', 'day'], ['summer-night', '&tod=night&date=2026-07-15', 'night'], ['autumn-day', '&tod=noon&weather=clear&date=2026-11-10', 'day'], ['winter-day', '&tod=noon&weather=clear&date=2027-01-20&snow=none', 'day'], ['winter-night', '&tod=night&date=2027-01-20&snow=none', 'night']];
-    const files = [], labels = [];
-    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) for (const [lk, q, look] of LOOKS) {
+    for (const [name, ar] of AREAS.filter(a => !only || only.includes(a[0]))) { const aF = [], aL = []; for (const [lk, q, look] of LOOKS) {
       const o = await pg(q);
       if (lk.startsWith('winter')) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
       await waitFor(o.p, '!!window.__jwLab.view.info().props', 20000);
@@ -134,10 +133,9 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
       await o.p.evaluate((l, lk2, side) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk2); J.setCamera(8, 'straight', true); J.warp(l, { x: side ? 8500 : 500 }); J.setT(2400); J.freeze(true); }, L0, look, side);
       await waitFor(o.p, `(() => { const i = window.__jwLab.view.info(), v = i.props; return v && v.loading === 0 && v.queued === 0 && !v.staged && i.variety.loading === 0 && i.variety.queued === 0; })()`, 30000);
       await sleep(1800);
-      files.push(await shotTo(o, `${what === 'edge' ? 'edge' : 'trees'}/${name}-${lk}-390.png`)); labels.push(`${name.toUpperCase()} · ${lk}`);
+      aF.push(await shotTo(o, `${what === 'edge' ? 'edge' : 'trees'}/${name}-${lk}-390.png`)); aL.push(`${name.toUpperCase()} · ${lk}`);
       errs.push(...o.errs); await o.close();
-    }
-    await compose(files, labels, `${what === 'edge' ? 'edge' : 'trees'}/sheet${only ? '-' + only.join('-') : ''}-390.png`, LOOKS.length, 220);
+    } await compose(aF, aL, `${what === 'edge' ? 'edge' : 'trees'}/sheet-${name}-390.png`, LOOKS.length, 220); }   // (a sheet an area: 45 full shots in one page ran it out of memory)
   }
 
   // GROUP 4 — THE WINTER TRUCKS: the snowplow + the salt truck close, day + night × light + heavy snow (a winter day), + the same run in summer
