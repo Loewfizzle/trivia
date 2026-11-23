@@ -20,6 +20,7 @@ export const SEASON_SCENES = {
   eve: '&tod=night&weather=clear&date=2026-12-31&clock=21:00',
   // (SMOOTH 3: every tinted look, the band's blend layer)
   sunrise: '&tod=sunrise&weather=clear&date=2026-07-15', sunset: '&tod=sunset&weather=clear&date=2026-07-15', overcast: '&tod=noon&weather=overcast&date=2026-07-15',
+  dec1: '&tod=noon&weather=clear&date=2026-12-01', dec1Night: '&tod=night&weather=clear&date=2026-12-01',
   snowGolden: '&tod=golden&weather=clear&date=2026-12-24&snow=heavy', snowOvercast: '&tod=noon&weather=overcast&date=2026-12-24&snow=heavy',
 };
 const seasonIn = '(() => { const s = window.__jwLab.view.season(); return !!(s.pack || (s.sp && s.sp.pileModel)); })()';
@@ -108,7 +109,7 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     const looks = what.startsWith('same:') ? what.slice(5).split('+') : ['noon', 'golden', 'night', 'snow'], LANES = [['downtown', 252], ['docks', 60], ['canal', 310], ['airfield', 410]];
     const cmpCtx = await b.createBrowserContext(), cmp = await cmpCtx.newPage();
     const diff = (A, B) => cmp.evaluate(async (a, c) => { const load = async u => { const i = new Image(); i.src = u; await i.decode(); const v = new OffscreenCanvas(i.width, i.height), x = v.getContext('2d', { willReadFrequently: true }); x.drawImage(i, 0, 0); return x.getImageData(0, 0, i.width, i.height).data; }; const P = await load(a), Q = await load(c); let n = 0, big = 0; for (let k = 0; k < P.length; k += 4) { const d = Math.max(Math.abs(P[k] - Q[k]), Math.abs(P[k + 1] - Q[k + 1]), Math.abs(P[k + 2] - Q[k + 2])); if (d > 2) n++; if (d > big) big = d; } return { pct: 100 * n / (P.length / 4), big }; }, `data:image/png;base64,${A}`, `data:image/png;base64,${B}`);
-    const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth || abBase ? '' : '&smooth=0'}`, { reduce: true, ...(!smooth && abBase ? { base: abBase } : {}) }); await up(o.p); if (/snow=|date=2026-1[12]-(2[3-5]|31)/.test(sq)) await waitFor(o.p, seasonIn, 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
+    const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth || abBase ? '' : '&smooth=0'}`, { reduce: true, ...(!smooth && abBase ? { base: abBase } : {}) }); await up(o.p); if (/snow=|date=2026-1[12]-(01|2[3-5]|31)/.test(sq)) await waitFor(o.p, seasonIn, 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
     const grab = async (o, t) => { await o.p.evaluate(tt => { const J = window.__jwLab; J.freeze(false); J.setT(tt); J.freeze(true); }, t); await sleep(1250); return o.p.screenshot({ encoding: 'base64' }); };
     // (SMOOTH 3: the tinted bands now blend in their own group: 8-bit rounding moves a few pixels by at most 3 / 255, which is the allowance, on under 0.05 % of them)
     let worst = 0, count = 0;
@@ -326,6 +327,46 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     }
     console.log(lines.join('\n'));
     if (out) { const f = join(out, 'first', `first-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }
+  }
+
+  // dec1 — SMOOTH 3 (THE DEC 1 CHECK): one page open on Nov 30's last autumn run, the run after the turn on Dec 1, by night + by day at 4× CPU, the switch itself inside
+  // the measured frames: winter on by itself, autumn's pile released, every winter piece seen, no stall. The shots = the same page with the day's heaviest fall.
+  if (what === 'dec1') {
+    const WD = 'd20261201';
+    for (const [look, lq] of [['night', '&tod=night&weather=clear'], ['day', '&tod=noon&weather=clear']]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2&date=2026-11-30${lq}`);
+      await up(o.p);
+      ok(await waitFor(o.p, '(() => { const s = window.__jwLab.view.season(); return s.autumn > 0 && !!s.sp && s.sp.pileModel; })()', 30000), `${look}: Nov 30 is autumn, its leaf pile in`);
+      ok(await o.p.evaluate(() => !window.__jwLab.view.season().pack), `${look}: no winter model on an autumn day`);
+      const cdp = await o.p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await o.p.evaluate(async d => {
+        const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.clearFrames();
+        await J.view.prepSeason(d); J.view.setSeason(d, {});
+        window.__dec = { xmas: 0, prints: 0, fall: 0, line: null };
+        setInterval(() => { const p = J.view.season().sp || {}, D = window.__dec; if (!D.line && J.state().t > 0) { D.line = [...J.frames()]; J.clearFrames(); } D.xmas = Math.max(D.xmas, p.xmas || 0); D.prints = Math.max(D.prints, p.prints || 0); D.fall = Math.max(D.fall, p.fall || 0); if (J.state().over) { J.restart('solo', 'perfseed7'); J.view.setSeason(d, {}); } }, 60);
+        J.bot(true);
+      }, WD);
+      await sleep(9000);
+      const r = await o.p.evaluate(() => { const J = window.__jwLab, s = J.view.season(), v = J.view.info().variety; let trucks = 0; for (let i = 50; i < 450; i++) for (const it of J.items(i).items || []) if (it.what === 'plow' || it.what === 'salt') trucks++; return { fr: J.frames(), s: { winter: s.winter, christmas: s.christmas, autumn: s.autumn, snowfall: s.snowfall, pack: s.pack, hat: s.sp.hat, pile: s.sp.pileModel }, D: window.__dec, trucks, held: v.held }; });
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      const F = stutterOf(r.fr), L = stutterOf(r.D.line || []); delete r.D.line;
+      console.log(`     DEC 1 ${look} — at the start line (the switch): ${L.n} frames, ${L.big} BIG, worst ${L.worst.toFixed(0)} ms · in play: ${stutterLine(F)} · ${JSON.stringify(r.s)} · ${JSON.stringify(r.D)} · ${r.trucks} winter trucks on the course`);
+      ok(r.s.winter > 0 && r.s.christmas > 0 && r.s.autumn === 0 && r.s.pack, `${look}: winter + Christmas on by themselves, autumn off (${JSON.stringify(r.s)})`);
+      ok(r.s.pile === false, `${look}: the autumn pile is released`);
+      ok(r.s.hat === 'santa', `${look}: the Santa hat is on`);
+      ok(r.D.xmas > 0, `${look}: Christmas trees drawn (up to ${r.D.xmas})`);
+      ok(r.D.prints > 0, `${look}: footprints in the snow (up to ${r.D.prints} pairs)`);
+      ok(r.trucks > 0, `${look}: snowplows + salt trucks on the course (${r.trucks})`);
+      ok(F.big <= 3 && F.worst < 120, `${look}: no stall in play after the switch (${F.big} BIG, worst ${F.worst.toFixed(0)} ms; the start line took ${L.worst.toFixed(0)} ms at worst)`);
+      // (the shots: Dec 1's own fall, on the opening's grass + among THE CANAL's trees — the ground's snow + the Christmas trees in view)
+      for (const [where, from] of [['grass', 6], ['trees', 312]]) {
+        await o.p.evaluate((d, l) => { const J = window.__jwLab; J.bot(false); J.restart('solo', 'perfseed7'); J.view.setSeason(d, {}); J.warp(J.find('grass', l)); }, WD, from);
+        await sleep(2600);
+        if (out) { const f = join(out, 'dec1', `dec1-${look}-${where}-390.png`); mkdirSync(dirname(f), { recursive: true }); await o.p.screenshot({ path: f }); }
+        console.log(`     DEC 1 shot ${look} ${where}: ${await o.p.evaluate(() => { const p = window.__jwLab.view.season().sp; return `${p.xmas} Christmas trees drawn, ${p.fall} flakes, sky snow ${p.skySnow || 'none'}`; })}`);
+      }
+      errs.push(...o.errs); await o.close();
+    }
   }
 
   // casters — what the sun's depth pass actually draws: every instanced draw into the map (triangles a model × instances), biggest first

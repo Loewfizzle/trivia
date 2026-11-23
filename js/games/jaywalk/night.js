@@ -236,7 +236,7 @@ export function createNight(host, o = {}) {
   // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models …
   let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null, winterT = false;
   const SPAPI = {
-    scene, kind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
+    scene, kind, unkind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
     lambert: () => lambert(), ground: null, part: (...a) => part(...a),
     kid: () => (KM.kid ? { kid: KM.kid, ghosts: KM.ghosts } : null), sky: () => skyImg, course: () => courseRef, area, dead: () => dead, rewarm() { needWarm = true; },
     sound: id => { if (onSound) { try { onSound(id); } catch { /* audio is polish */ } } },

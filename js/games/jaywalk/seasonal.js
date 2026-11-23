@@ -203,7 +203,7 @@ export function createSeasonal(A) {
   const burst = new Map();   // (lane × 16 + col → when it burst — this run; SMOOTH 2: a number, never a string a frame)
   function loadPile() {
     if (pileG || pileGP) return pileGP || Promise.resolve(true);
-    pileGP = loadPileGeo(A.parseGlb).then(g => { pileGP = null; if (!g || A.dead()) return false; pileG = g; if (SZ.autumn > 0) pileKind(); return true; });
+    pileGP = loadPileGeo(A.parseGlb).then(g => { pileGP = null; if (!g || A.dead()) return false; pileG = g; if (SZ.autumn > 0) pileKind(); else pileFree(); return true; });
     return pileGP;
   }
   function pileKind() {
@@ -212,6 +212,8 @@ export function createSeasonal(A) {
     KP.mesh.visible = false; seasonWarm = true;   // (warmed at a quiet frame with the rest)
     return KP;
   }
+  /** SMOOTH 3 — THE DEC 1 SWITCH: a page left open across the turn lets autumn's pile go (its draw, its buffers, its model) */
+  function pileFree() { if (KP) { A.unkind('s-pile'); KP = null; } if (pileG) { pileG.dispose(); pileG = null; } burst.clear(); }
   /** the pile on lane i (its column) or -1 — PURE from the course's seed + the run's day: the same on every phone */
   function pileAt(i, L, AR, vseed) {
     if (!(SZ.autumn > 0) || i < PILE.from || L.type !== 'grass' || L.mark || !PILE.areas.includes(AR)) return -1;
@@ -254,7 +256,7 @@ export function createSeasonal(A) {
       SZ = { ...s, any: packDay(s) || s.snowfall !== 'none' || !!o.wet };
       pileSeed = fnv(SZ.day || 'none'); burst.clear(); prN = 0;
       nowFn = o.now || null; labClock = o.clock >= 0 ? o.clock : -1; labT0 = performance.now();
-      if (SZ.autumn > 0) { loadPile(); pileKind(); }
+      if (SZ.autumn > 0) { loadPile(); pileKind(); } else if (KP || pileG) pileFree();
       hatsTo(o.hat === false ? '' : SZ.hat);
       if (FW) FW.on(SZ.fireworks);
       if (!SZ.any) skySnow('none', false);
@@ -368,7 +370,7 @@ export function createSeasonal(A) {
     /** the end screen covers the scene (JT2's add-on — THE FINAL SCREEN's MEMORY): nothing seasonal stays alive behind it — the fall's
      *  particles off, the footprints + the burst piles let go, the fireworks' canvas FREED (all made again by the next run's start) */
     rest(on) { resting = !!on; if (SKS) SKS.rest(on); if (on) { fall.show(0); prN = 0; burst.clear(); } if (FW) FW.rest(on); },
-    info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, pileModel: !!pileG, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null, skySnow: SKS ? SKS.info() : '' }),
+    info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, pileModel: !!pileG, xmas: KM['w-xmas'] ? KM['w-xmas'].mesh.count : 0, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null, skySnow: SKS ? SKS.info() : '' }),
     destroy() {
       A.scene.remove(fall.mesh); fall.dispose(); U.snow.value = 0; U.aut.value = 0; LIGHTS.n.value = 0;
       for (const g of HG.made) g.dispose();

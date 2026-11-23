@@ -54,3 +54,12 @@ test('THE WARM-UP: shaders link in the background at a quiet frame, one paint st
   assert.match(view, /if \(startAsk && !night\.warming\(\)\)/);
   assert.match(lab, /if \(view\.warming && view\.warming\(\)\) acc = -dt;/);
 });
+
+test('THE DEC 1 SWITCH: winter comes with the game\'s own day, the 4 am Eastern turn of Dec 1, and the autumn pile is let go', async () => {
+  const { seasonAt } = await import('../js/games/jaywalk/season.js');
+  const at = iso => seasonAt(Date.parse(iso));   // (Eastern Standard = UTC - 5)
+  for (const t of ['2026-12-01T04:59:00Z', '2026-12-01T05:01:00Z', '2026-12-01T08:59:00Z']) { assert.ok(at(t).autumn > 0, t); assert.equal(at(t).winter, 0, t); }
+  const w = at('2026-12-01T09:01:00Z');
+  assert.ok(w.winter > 0 && w.christmas > 0); assert.equal(w.autumn, 0); assert.equal(w.hat, 'santa');
+  assert.match(read('js/games/jaywalk/seasonal.js'), /else if \(KP \|\| pileG\) pileFree\(\);/);
+});
