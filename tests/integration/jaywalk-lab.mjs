@@ -826,8 +826,8 @@ try {
     const { p, errs, reqs, close } = await open(390, 844, 2, '&debug=1');
     ok(await up(p), 'a STRANGER gets THE LAB (a fresh browser, no profile, no key): the night look opens');
     ok(await p.evaluate(() => !document.querySelector('.jw-deny') && !!document.querySelector('.jw-stage canvas.jw-canvas')), '… no door, no "for the owner"');
-    await touch(p, [[195, 500]]); await sleep(350);
-    ok((await st(p)).y === 1, '… and it plays: a tap hops');
+    await touch(p, [[195, 500]]);   // (SMOOTH 3: a first tap during the page's warm-up is kept and played as soon as it ends)
+    ok(await waitFor(p, 'window.__jwLab.state().y === 1', 6000), '… and it plays: a tap hops');
     await sleep(1500);
     const own = new URL(BASE).host, okHost = u => { try { const h = new URL(u).host; return h === own || h === 'cdn.jsdelivr.net' || h === 'fonts.googleapis.com' || h === 'fonts.gstatic.com'; } catch { return /^(data|blob):/.test(u); } };
     const calls = reqs.filter(u => /\/api\/|firebase|identitytoolkit|securetoken|googleapis\.com\/(?!css)/i.test(u)), away = reqs.filter(u => !okHost(u));

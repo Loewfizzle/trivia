@@ -318,7 +318,7 @@ try {
   { const [away, mg] = await Promise.all([   // (both at once: ALICE + CHARLIE are off BOB's screen within a few seconds)
       until(async () => { const s = await state(pages[0]), q = s.ghosts.find(x => x.name === 'BOB'); return q && q.shown && q.text === 'BOB' && q.fade < 0.2 ? q : null; }, 12000, 60),
       // (JT2: the merged tag is a MOMENT — the phone keeps the last one it SHOWED (view.js `merged`); polled from here under load it was missed)
-      until(async () => { const m = (await state(pages[1])).merged; return /^(ALICE|CHARLIE|DANA) \+\d$/.test(m) ? m : null; }, 12000, 60)]);
+      until(async () => { const seen = (await state(pages[1])).merged, up = seen ? null : (await state(pages[1])).ghosts.find(q => q.tag && /\+\d$/.test(q.text || '')), m = seen || (up ? up.text : ''); return /^(ALICE|CHARLIE|DANA) \+\d$/.test(m) ? m : null; }, 12000, 60)]);   // (SMOOTH 3: a merge already up when `merged` was cleared counts: `merged` only records a CHANGE of the tag)
     if (!away || !mg) { const [a, b] = await Promise.all([state(pages[0]), state(pages[1])]); log('  (the tags, as the two phones have them) ALICE y ' + a.y + ': ' + JSON.stringify(a.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st])) + ' · BOB y ' + b.y + ': ' + JSON.stringify(b.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st]))); }
     ok(!!away, 'a ghost AWAY from you is itself again and carries its own name (BOB, behind ALICE)');
     ok(!!mg, `STACKED TAGS MERGE: two ghosts on the same / touching squares share ONE tag on BOB's phone — "${mg || 'none seen'}"`);
