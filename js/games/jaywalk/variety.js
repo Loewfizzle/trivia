@@ -23,7 +23,7 @@ export const VARIETY = Object.freeze({
   bendy: { slot: 3, w: 0.88, h: 0.95 },
   // VARIETY B2 — THE WINTER TRUCKS (winter runs only — setWinterTraffic): built from the dump / delivery truck + parts in code; an AMBER
   // beacon (flashing at night, unlit by day) + one shared spray (`spray`: the plow's snow off its blade · the salt fanned from the spinner)
-  plow: { slot: 2, w: 0.92, h: 0.82, light: 'beacon', bar: [0.319, 1.0], spray: 'snow' },
+  plow: { slot: 2, w: 0.92, h: 0.82, light: 'beacon', bar: [0.319, 0.995], spray: 'snow' },   // (JAYWALK FINAL: rebuilt from the turned dump truck — the blade + beacon at its cab)
   salt: { slot: 2, w: 0.8, h: 0.92, dayK: 0.88, light: 'beacon', bar: [0.154, 0.778], spray: 'salt' },
 });
 export const VARIETY_IDS = Object.freeze(Object.keys(VARIETY));
@@ -72,7 +72,7 @@ export const varietyKnown = id => KNOWN.has(id);
 export const knowAll = (on = true) => { if (on) for (const id of VARIETY_IDS) KNOWN.add(id); else KNOWN.clear(); };
 
 const DIR = new URL('../../../assets/jaywalk/variety/', import.meta.url);
-export const VARIETY_REV = 2;
+export const VARIETY_REV = 3;   // (JAYWALK FINAL: the dump truck turned + the snowplow rebuilt — every phone fetches them fresh)
 /** the OPENING's files into the HTTP cache (the cartridge's preload, during the walk inside — its 1.5 MB line: THE DOCKS' come in from the … */
 export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL(`${id}.glb?v=${VARIETY_REV}`, DIR)).catch(() => null)));
 

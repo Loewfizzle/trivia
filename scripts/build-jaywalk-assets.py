@@ -686,7 +686,9 @@ VARIETY_SRC = [
      '"SchoolBus" from Quaternius Public Transport Pack (quaternius.com) — CC0 1.0', '"SchoolBus" — Quaternius Public Transport Pack (quaternius.com), CC0 1.0'),
     ('tanker', 'round2/fuel-tanker.glb', 90, False, {'Material.001': 0xc8352b, 'Material': 0xc9cfd6},
      '"Truck Tank" by KolosStudios (https://poly.pizza/m/64ayx6pW3O) — CC BY 3.0', '"Truck Tank" by KolosStudios — https://poly.pizza/m/64ayx6pW3O (CC BY 3.0)'),
-    ('dump', 'round2/dump-truck.glb', 0, False, {}, '"Dump truck" by jeremy (https://poly.pizza/m/1BpGYg14QGD) — CC BY 3.0', '"Dump truck" by jeremy — https://poly.pizza/m/1BpGYg14QGD (CC BY 3.0)'),
+    # (JAYWALK FINAL — the owner, Nov 24: the dump truck drove BACKWARDS — its cab is at the file's −z; turned 180°, the snowplow built from it
+    #  takes its blade + beacon at the cab end)
+    ('dump', 'round2/dump-truck.glb', 180, False, {}, '"Dump truck" by jeremy (https://poly.pizza/m/1BpGYg14QGD) — CC BY 3.0', '"Dump truck" by jeremy — https://poly.pizza/m/1BpGYg14QGD (CC BY 3.0)'),
     ('forklift', 'round2/forklift.glb', 0, False, {}, '"Forklift" by KolosStudios (https://poly.pizza/m/DTQBuenKJY) — CC BY 3.0', '"Forklift" by KolosStudios — https://poly.pizza/m/DTQBuenKJY (CC BY 3.0)'),
     ('tug', 'round2/airport-tug.glb', 0, False, {}, '"Pushback Tug" by Polyfork (https://polyfork.dev/asset/pushback-tug-8eab46) — CC BY 4.0', '"Pushback Tug" by Polyfork — https://polyfork.dev/asset/pushback-tug-8eab46 (CC BY 4.0)'),
     ('semi', 'long/semi-trailer.glb', 90, False, {}, '"18 Wheeler" by Teh_Bucket (https://opengameart.org/content/semi-trailer-truck-lowpoly) — CC0 1.0', '"18 Wheeler" by Teh_Bucket — https://opengameart.org/content/semi-trailer-truck-lowpoly (CC0 1.0)'),

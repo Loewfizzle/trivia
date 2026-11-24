@@ -61,7 +61,7 @@ test('B2 — SLIMMER DOWNLOADS: every area\'s traffic set under its line (the op
   const setKb = ar => areaIds(ar).reduce((a, id) => a + kb(`assets/jaywalk/variety/${id}.glb`), 0);
   const LINE = { '-1': 205, 4: 205, 0: 130, 1: 130, 2: 100, 3: 105, 5: 95, 6: 95, 7: 125 };
   for (const [ar, max] of Object.entries(LINE)) assert.ok(setKb(Number(ar)) < max, `area ${ar}: ${setKb(Number(ar)).toFixed(1)} KB < ${max}`);
-  assert.equal(VARIETY_REV, 2, 'the files replaced: the rev bumped');
+  assert.equal(VARIETY_REV, 3, 'the files replaced: the rev bumped (JAYWALK FINAL: the dump truck turned, the snowplow rebuilt)');
 });
 
 test('B2 — THE AREA TREES: a tree cell stays ONE tree cell — only WHICH model draws it; every model + file exists', () => {

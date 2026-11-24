@@ -74,3 +74,39 @@ test('GROUP 3 — THE LOAD SNAP: a fresh scene shows ONCE in its final look (≤
   assert.ok(v.includes('if (shown) n.fadeLook(put); else put();') && l.includes('if (lookIn && view.fadeLook) view.fadeLook(put); else put();'), 'a later pack eases in (the game + the lab)');
   assert.ok(/\.jw-cover \{ position: absolute; inset: 0; pointer-events: none;/.test(css) && /\.jw-fadelook \{/.test(css));
 });
+
+test('GROUP 4 — EVERY VEHICLE FACES ITS TRAVEL: each model\'s front at +z as built (the scene turns +z to the lane\'s direction); the dump truck turned, the snowplow\'s blade at its cab', async () => {
+  const { readVehicle, zProfile } = await import('./fixtures/vehicle-fronts.mjs');
+  // THE PINNED PROFILES — each model's z-profile [all · upper · lower] as shipped, every one checked by eye driving both ways, day + night
+  // (`jaywalk-lab.mjs --vb2=dirs` → Downloads\NEON\jaywalk-final\dirs\). A model rebuilt turned round flips every sign → red here
+  const PIN = {
+    'variety/police': [0.175, -0.024, 0.175], 'variety/suv': [0.123, -0.031, 0.067], 'variety/sports': [-0.04, -0.403, 0.001], 'variety/forklift': [0.003, 0.049, -0.039],
+    'variety/ambulance': [0.028, -0.122, 0.061], 'variety/firetruck': [0.164, -0.151, 0.202], 'variety/delivery': [0.138, -0.073, 0.126], 'variety/garbage': [0.053, -0.019, 0.096],
+    'variety/citybus': [-0.061, 0.039, -0.059], 'variety/tanker': [0.119, -0.088, 0.16], 'variety/dump': [0.114, 0.025, 0.021], 'variety/tug': [0.103, 0.597, -0.14],
+    'variety/schoolbus': [0.223, 0.156, 0.14], 'variety/semi': [0.271, 0, 0.252], 'variety/bendy': [0.018, 0, 0.022], 'variety/plow': [-0.05, -0.119, -0.098], 'variety/salt': [0.138, 0.006, 0.132],
+    'models/car-sedan': [0.003, -0.196, -0.002], 'models/car-hatchback': [0.001, -0.254, 0.002], 'models/car-taxi': [0.009, -0.098, 0.002], 'models/car-van': [0.021, -0.102, 0.005],
+  };
+  const { VARIETY_IDS } = await import('../js/games/jaywalk/variety.js');
+  for (const id of VARIETY_IDS) assert.ok(PIN[`variety/${id}`], `${id}: every variety vehicle is pinned (a new one: check it both ways, then pin it)`);
+  for (const [f, pin] of Object.entries(PIN)) {
+    const got = zProfile(readVehicle(new URL(`../assets/jaywalk/${f}.glb`, import.meta.url)));
+    const strong = pin.map((x, k) => [x, got[k]]).filter(([x]) => Math.abs(x) >= 0.015);
+    assert.ok(strong.length > 0, `${f}: a profile to judge by`);
+    for (const [x, g] of strong) assert.equal(Math.sign(g), Math.sign(x), `${f}: faces its travel (z-profile ${JSON.stringify(got)} against the checked ${JSON.stringify(pin)})`);
+  }
+  // the scene: a variety model's +z turned to the lane's direction; its nose, headlamps + tail lamps placed from the lane's direction
+  const n = src('night.js');
+  assert.ok(n.includes('ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;') && n.includes('const nose = left + (L.dir > 0 ? len - 0.02 : 0.02)'));
+  // the asset table: the dump truck turned round (its cab was at the file's −z) — the snowplow is built from it, so its blade + beacon go to the cab
+  const py = readFileSync(new URL('../scripts/build-jaywalk-assets.py', import.meta.url), 'utf8');
+  assert.ok(py.includes("('dump', 'round2/dump-truck.glb', 180, False, {},"), 'the dump truck turned 180° in the vehicle table');
+  assert.ok(/zb = hi\[2\] \+ 0\.07 \* L/.test(py), 'the plow\'s blade at the front (+z) of the turned dump truck');
+  // the snowplow = the dump truck's vertices first (the builder appends its parts): that body must face the same way as the turned dump truck
+  const dump = readVehicle(new URL('../assets/jaywalk/variety/dump.glb', import.meta.url)), plow = readVehicle(new URL('../assets/jaywalk/variety/plow.glb', import.meta.url));
+  const raw = plow.pos.slice(0, dump.pos.length), zs = raw.map(q => q[2]), mid = (Math.min(...zs) + Math.max(...zs)) / 2;   // (centred on its own box: the blade made the plow's longer)
+  const body = { ...plow, pos: raw.map(q => [q[0], q[1], q[2] - mid]), col: plow.col.slice(0, dump.pos.length) };
+  const pb = zProfile(body), pd = zProfile(dump);
+  assert.ok(Math.sign(pb[0]) === Math.sign(pd[0]) && Math.sign(pb[2]) === Math.sign(pd[2]), `the snowplow's body faces as the dump truck (${JSON.stringify(pb)} · ${JSON.stringify(pd)}) — its blade leads`);
+  const { VARIETY } = await import('../js/games/jaywalk/variety.js');
+  assert.deepEqual(VARIETY.plow.bar, [0.319, 0.995], 'the plow\'s beacon where the rebuilt file puts it (on the cab)');
+});

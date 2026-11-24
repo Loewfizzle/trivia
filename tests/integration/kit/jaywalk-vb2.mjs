@@ -32,18 +32,18 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
   };
   const varietyIn = o => waitFor(o.p, `(() => { const v = window.__jwLab.view.info().variety; return v && v.loading === 0 && v.queued === 0 && v.held.length > 0; })()`, 30000);
   // a close-up: the vehicle `id` found on screen in area `ar` (its lane + the moment), the kid two lanes below, the world frozen → a crop round it
-  const close = async (id, ar, q, look, file, span = 40) => {
-    const o = await pg(q);
+  const close = async (id, ar, q, look, file, span = 40, dir = 0, seed = 'look3', quiet = false) => {
+    const o = await pg(q, { seed });
     if (/snow=/.test(q)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
-    await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'look3'); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); }, lane0(ar));
+    await o.p.evaluate((l, sd) => { const J = window.__jwLab; J.restart('solo', sd); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); }, lane0(ar), seed);
     await varietyIn(o);
-    const at = await o.p.evaluate((idd, l0, sp) => {
+    const at = await o.p.evaluate((idd, l0, sp, dr) => {
       const J = window.__jwLab;
-      for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + sp; i++) { const I = J.items(i); for (const it of I.items || []) { if (it.what !== idd) continue; for (const k of [-1, 0, 1]) { const lf = it.left + k * (I.per || 0); if (lf > 1.2 && lf + it.len < 7.8) return { lane: i, t, c: lf + it.len / 2, len: it.len, left: it.left }; } } } }
+      for (let t = 2400; t < 2400 + 60 * 40; t += 40) { J.setT(t); for (let i = l0; i < l0 + sp; i++) { const I = J.items(i); if (dr && I.dir !== dr) continue; for (const it of I.items || []) { if (it.what !== idd) continue; for (const k of [-1, 0, 1]) { const lf = it.left + k * (I.per || 0); if (lf > 1.2 && lf + it.len < 7.8) return { lane: i, t, c: lf + it.len / 2, len: it.len, left: it.left }; } } } }
       return null;
-    }, id, lane0(ar), span);
-    if (!at) { ok(false, `CLOSE ${file}: a ${id} found on screen`); await o.close(); return null; }
-    await o.p.evaluate((a, lk) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look);
+    }, id, lane0(ar), span, dir);
+    if (!at) { if (!quiet) ok(false, `CLOSE ${file}: a ${id} found on screen`); await o.close(); return null; }
+    await o.p.evaluate((a, lk, sd) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', sd); J.setLook(lk); J.setCamera(8, 'straight', true); J.warp(a.lane - 2, { x: 4500 }); J.setT(a.t); J.freeze(true); }, at, look, seed);
     await varietyIn(o);
     await sleep(1600);
     const [sx, sy] = await o.p.evaluate(a => window.__jwLab.project(a.c, a.lane + 0.5), at);
@@ -53,6 +53,26 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
     return f;
   };
 
+  // dirs — JAYWALK FINAL (VEHICLE DIRECTIONS): every vehicle in BOTH directions of travel, day + night — the front leading, the headlamps at
+  // the front, the tail lamps at the back → dirs/sheet-<look>.png (a row a vehicle: → · ←). `dirs:<id>+<id>` for some
+  if (what === 'dirs' || what.startsWith('dirs:')) {
+    const W = '&date=2026-12-24&snow=light', V = [['police', 4], ['suv', 4], ['sports', 4], ['taxi', 4], ['sedan', 4], ['hatchback', 4], ['van', 4], ['truck', 4], ['citybus', 4], ['bendy', 4], ['delivery', 4],
+      ['forklift', 0], ['garbage', 0], ['tanker', 0], ['semi', 0], ['dump', 2], ['ambulance', 5], ['schoolbus', 5], ['firetruck', 7], ['tug', 7], ['plow', 4, W], ['salt', 4, W]];
+    const only = what.startsWith('dirs:') ? what.slice(5).split('+') : null;
+    for (const [look, lq] of [['day', '&tod=noon&weather=clear'], ['night', '&tod=night&weather=clear']]) {
+      const files = [], labels = [];
+      for (const [id, ar, wq] of V) {
+        if (only && !only.includes(id)) continue;
+        for (const dir of [1, -1]) {
+          let f = null;
+          for (const sd of ['look3', 'dirs1', 'dirs2', 'dirs3', 'dirs4', 'dirs5']) { f = await close(id, ar, `${lq}${wq || '&date=2026-07-15'}`, look, `dirs/${id}-${look}-${dir > 0 ? 'right' : 'left'}-390.png`, 45, dir, sd, sd !== 'dirs5'); if (f) break; }
+          files.push(f);
+          labels.push(`${id.toUpperCase()} · ${look} · ${dir > 0 ? 'DRIVING →' : '← DRIVING'}`);
+        }
+      }
+      await compose(files, labels, `dirs/sheet-${look}.png`, 4, 260, 150 / 300);
+    }
+  }
   // 1.1 — WHITE VEHICLES BY DAY: the white-bodied ones × every day look + overcast + snow (the close-ups — a sheet a row a vehicle)
   if (all || what === 'white') {
     const TIMES = [['noon', '&tod=noon&weather=clear&date=2026-07-15', 'day'], ['sunrise', '&tod=sunrise&weather=clear&date=2026-07-15', 'day'], ['golden', '&tod=golden&weather=clear&date=2026-07-15', 'day'], ['sunset', '&tod=sunset&weather=clear&date=2026-07-15', 'day'], ['overcast', '&tod=noon&weather=overcast&date=2026-07-15', 'day'], ['snow', '&tod=noon&weather=clear&date=2027-01-20&snow=heavy', 'day'], ['night', '&tod=night&date=2026-07-15', 'night']];
