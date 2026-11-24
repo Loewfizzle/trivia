@@ -827,3 +827,6 @@
 ## JAYWALK SMOOTH 3 + WINTER READY (Nov 23 2026 — the owner, after the Fable review; the pass log: `docs/games/passes/jaywalk-smooth3.md`)
 - (Nov 23) Fable review: the day choppiness since Variety A is most likely the `mix-blend-mode: color` ::after layer over the skyline (css/jaywalk.css ~line 525) on every DAY look, even at opacity 0. It forces the whole stage (3D canvas included) into an extra compositor pass every frame (Chromium: 2 passes vs 1). Rule from now on: no blend-mode / filter / backdrop layer may sit over or group with the 3D canvas unless it is visibly doing something, and then isolated from the canvas.
 - The day GPU diet (Fable #2) and the upload diet (#3) happen ONLY if the owner's meter still shows day worse than night after this pass.
+
+## JAYWALK SMOOTH 4 — WARM START + THE MATCH-START TIMEOUT (Nov 23 2026 — the owner's iPhone numbers after SMOOTH 3; the pass log: `docs/games/passes/jaywalk-smooth4.md`)
+- (Nov 23) SMOOTH 3 confirmed on the owner's iPhone: the blend layer was the day chop (noon BIG 6 → 2). New rule: ALL loading + warm-up (shader programs, area sets, season pack, buffers) happens while a still screen is up (TAP TO START, the match countdown / lobby), never spread over the first seconds of play.
