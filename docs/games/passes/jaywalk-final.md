@@ -57,12 +57,13 @@ GL calls a frame (`--smooth=gl --ab` the code before, tier 2, 390 @3, the bot pl
 - Shots: `Downloads\NEON\jaywalk-final\dirs\` (`dump-*`, `plow-*`, the sheets `review-day-*.png` / `review-night-*.png`).
 
 ## GROUP 5 — THE FINAL RUN (local, the Beelink, fresh emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`)
-- unit **2,649 / 2,649** · `e2e-jaywalk` FAST today **122 / 122**, Dec 24 **123 / 123** · `e2e-jaywalk-match` today **107 / 107** (the three side by side)
+- unit **2,649 / 2,649** (before the add-on) · `e2e-jaywalk` FAST today **122 / 122**, Dec 24 **123 / 123** · `e2e-jaywalk-match` today **107 / 107** (the three side by side)
 - **THE SAME PICTURE** (`--smooth=same:noon+autumn+snowNight+golden+night --ab` the code before): 70 frozen frames. **68 within the allowance, 63 at 0.0000 %.** Two cases differ:
   - **Dec 24 snow night, THE AIRFIELD:** 0.058 % (a 46 × 52 px patch at the frame's right edge, where a winter truck enters). It is the turned snowplow, a change made on purpose; the old code against itself there is 0.0000 %.
   - **Noon DOWNTOWN tick 2401–2405:** 0.26 % in some runs and 0.0000 % in others. The new code's six frames are pixel-identical to the old code's frames from a run where they matched, so the frame that differs comes and goes in the old code's page too; not this pass.
 - `--smooth=snap` **20 / 20** · `--smooth=warm:1` and `--smooth=first` (the tables above) · `--smooth=gl` (Group 1's table)
-- `jaywalk-lab.mjs --perf`: see "THE PERF RUN" below
+- `jaywalk-lab.mjs --perf` on the final code **166 / 166** (tiers 2 · 1 · 0 at 4× CPU: 60 fps, worst 17 ms, 0 dropped; 65 / 32 / 32 calls; the new GL line at tier 2 4×: bufferSubData 80 · 79 KB · draws 67.5 · useProgram 24 a frame). One process note: the `--perf` run stopped for the add-on kept running behind its stopped shell, wrote a second summary into the same log (164 / 166: tiers 1 + 0 dropped frames while the GL and unit runs shared the machine) and overlapped this run's first ~10 min; this run stayed green with that load on it.
+- `tests/highrise-zero-garbage.test.mjs` **8 / 8** (the add-on) · unit after the add-on **2,650 / 2,650**
 - rules: not touched · `/api`: not touched
 
 ## OPEN FOR BEN
