@@ -190,6 +190,7 @@ export function createView() {
     }
     night.setReveal(0, true); watchGL();
     try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }
+    if (!had && !isMatch) coverUntilLook();   // (JAYWALK FINAL — THE LOAD SNAP: a fresh scene shows once, in its final look)
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier(), stutter: true });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
@@ -223,6 +224,32 @@ export function createView() {
     offGL = () => { offGL = null; clearTimeout(t); cv.removeEventListener('webglcontextlost', lost); cv.removeEventListener('webglcontextrestored', remake); };
   }
 
+  // ---- JAYWALK FINAL — THE LOAD SNAP (the owner, Nov 24): a fresh solo / daily scene stays under its look's haze until its FINAL look is in — the
+  // models, the time of day on the phone's sun, today's season (THE SEASONAL PACK applied on the start screen: the run's own day is the same
+  // one) — then shows ONCE, LOOK_WAIT_MS at most. A pack later than that eases in (night.js#fadeLook) while the start screen is still up.
+  // A match keeps its own path (the host's time of day, its season at the count); a parked scene (PLAY AGAIN) is already right
+  const LOOK_WAIT_MS = 2000;
+  function coverUntilLook() {
+    const n = night, t0 = performance.now(), day = dayOfRun(serverNow());
+    if (!n || !n.cover) return;
+    n.cover(true);
+    let models = false, season = !seasonWindow(day), shown = false;
+    const onStart = () => !gone && night === n && mode === 'wait' && course === START;
+    Promise.resolve(n.ready).then(() => { models = true; }, () => { models = true; });
+    if (!season) Promise.resolve(n.prepSeason(day)).then(ok => {
+      season = true;
+      if (!ok || !onStart()) return;
+      const put = () => { try { seasonRun = n.setSeason(day, { wet: WET_LIVE, now: srvNow }); } catch { /* polish */ } };
+      if (shown) n.fadeLook(put); else put();
+    }, () => { season = true; });
+    const chk = () => {
+      if (gone || night !== n) return;
+      const sun = lookChoice() !== 'auto' || !!SUNV;
+      if ((models && season && sun && !todDirty) || performance.now() - t0 >= LOOK_WAIT_MS) { shown = true; n.cover(false); return; }
+      setTimeout(chk, 50);
+    };
+    chk();
+  }
   // ---- J4 — THE SEASON (season.js — a VIEW: the run's own day → the winter look; the rules never see it): a solo run + the daily = their GO's …
   let seasonRun = null;
   function seasonFor(at) { const d = at > 0 ? dayOfRun(at) : ''; seasonRun = null; if (night) { try { seasonRun = night.setSeason(d, { wet: WET_LIVE, now: srvNow }); seasonSounds(d); } catch { /* polish */ } } }

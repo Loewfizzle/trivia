@@ -124,7 +124,15 @@ async function mount() {
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
   // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
-  if (view.prepSeason) Promise.resolve(view.prepSeason(SZ0.day, { force: SEA_FORCE })).then(ok => { if (ok && !started && view.setSeason) view.setSeason(SZ0.day, SEA_SET); }, () => {});
+  // (JAYWALK FINAL — THE LOAD SNAP, as the game: the scene under its look's haze until the models + the season are in, ≤ 2 s; a later pack eases in)
+  let lookIn = false, seaIn = !view.prepSeason, modelsIn = false;
+  const showLook = () => { if (!lookIn && modelsIn && seaIn) { lookIn = true; if (view.cover) view.cover(false); } };
+  if (view.cover) { view.cover(true); setTimeout(() => { if (!lookIn) { lookIn = true; view.cover(false); } }, 2000); }
+  Promise.resolve(view.ready).then(() => { modelsIn = true; showLook(); }, () => { modelsIn = true; showLook(); });
+  if (view.prepSeason) Promise.resolve(view.prepSeason(SZ0.day, { force: SEA_FORCE })).then(ok => {
+    if (ok && !started && view.setSeason) { const put = () => view.setSeason(SZ0.day, SEA_SET); if (lookIn && view.fadeLook) view.fadeLook(put); else put(); }
+    seaIn = true; showLook();
+  }, () => { seaIn = true; showLook(); });
   if (view.onSeasonSound) view.onSeasonSound(id => { if (snd) { try { snd.play(id); } catch { /* silent */ } } });   // (JT1 — a pile's crunch, the fireworks)
   // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
   if (/^(splits9?|moments|graves)$/.test(Q.get('j1') || ''))   // (+ graves — THE GRAVESTONES: 8 players, 4 out)

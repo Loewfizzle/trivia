@@ -400,6 +400,37 @@ export function createNight(host, o = {}) {
   seaWall.className = 'jw-seawall'; farHaze.className = 'jw-farhaze'; wallDay.className = 'is-day'; seaWall.append(wallStone, wallDay);
   for (const x of [8, 29, 50, 71, 92]) { const l = document.createElement('b'); l.style.left = `${x}%`; seaWall.append(l); }
   sky.append(skyImg, seaWall); host.append(sky, farHaze);
+  // JAYWALK FINAL — THE LOAD SNAP (the owner, Nov 24: the game never shows the scene before its final look — season, time of day, weather):
+  // cover(true) lays the look's own haze over the scene (no black flash by day); cover(false) lifts it ONCE, a short fade. A look that lands
+  // later on a still screen eases in through fadeLook (the old picture fading out over FADE_LOOK_MS) — never a one-frame snap
+  const coverEl = document.createElement('div'); coverEl.className = 'jw-cover'; coverEl.setAttribute('aria-hidden', 'true');
+  let covered = false, coverT = 0, fadeAsk = null;
+  const FADE_LOOK_MS = 1000, UNCOVER_MS = 280;
+  function cover(on) {
+    clearTimeout(coverT);
+    if (on) { covered = true; coverEl.style.transition = 'none'; coverEl.style.opacity = '1'; host.append(coverEl); return; }
+    if (!covered) return;
+    covered = false;
+    if (reduce) { coverEl.remove(); return; }
+    coverEl.style.transition = `opacity ${UNCOVER_MS}ms ease-out`; void coverEl.offsetWidth; coverEl.style.opacity = '0';
+    coverT = setTimeout(() => { if (!covered) coverEl.remove(); }, UNCOVER_MS + 80);
+  }
+  /** apply `fn` (a look change: the season, the time of day) behind a still of the picture before it, faded out over FADE_LOOK_MS — a still
+   *  screen's (the view's / the lab's call): the still is read right after the next frame is drawn, once */
+  function fadeLook(fn) {
+    if (covered || reduce || dead || !w || !h) { fn(); return; }
+    fadeAsk = fn;
+  }
+  function fadeNow(fn) {
+    let cv = null;
+    try { cv = grab(Math.min(el.width, 1080)); } catch { cv = null; }
+    try { fn(); } catch { /* polish */ }
+    if (!cv) return;
+    cv.className = 'jw-fadelook'; cv.setAttribute('aria-hidden', 'true');
+    el.after(cv);
+    void cv.offsetWidth; cv.style.transition = `opacity ${FADE_LOOK_MS}ms ease-in-out`; cv.style.opacity = '0';
+    setTimeout(() => { cv.remove(); cv.width = 0; cv.height = 0; }, FADE_LOOK_MS + 80);
+  }
   let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0, skyMax = 99, skyMin = -99, skyMatch = false;
   const skyHold = new Map();
   const skyS = { now: '', over: false, want: '', fades: 0, until: 0, ms: 0 };
@@ -447,7 +478,7 @@ export function createNight(host, o = {}) {
   function lookGL() {
     const g = day && VA ? GR || GRADE.noon : null, U = ground.uniforms;
     const fogHex = g ? g.fog : day ? DAY_FOG_HEX : FOG_HEX;
-    scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex);
+    scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex); coverEl.style.backgroundColor = `#${fogHex.toString(16).padStart(6, '0')}`;
     U.uFogCol.value.set(...rgb(fogHex)); U.uDay.value = day ? 1 : 0;
     hemi.color.setHex(g ? g.hemi[0] : day ? 0xd6e9ff : 0x8fa0ff); hemi.groundColor.setHex(g ? g.hemi[1] : day ? 0xc2ab84 : 0x1a1030); hemi.intensity = g ? g.hemi[2] : day ? 2.1 : 1.5;
     key.color.setHex(g ? g.key[0] : day ? 0xffe6b4 : 0xdfe4ff); key.intensity = g ? g.key[1] : day ? 2.7 : 1.55;   // (… under a WARMER sun key)
@@ -1283,6 +1314,7 @@ export function createNight(host, o = {}) {
     renderer.render(scene, cam);
     if (bloomNow) bloomNow.composite();
     if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW, snapR)); } catch { ask(null); } }
+    if (fadeAsk) { const fn = fadeAsk; fadeAsk = null; fadeNow(fn); }
     if (ghosts) for (const g of ghosts) {
       if (!g.tag) continue;
       v3.set(g.wx, g.wy, g.wz).project(cam);
@@ -1372,6 +1404,8 @@ export function createNight(host, o = {}) {
     },
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
+    /** JAYWALK FINAL — THE LOAD SNAP: the scene under its look's haze until its final look is in · a late look eased in (a still screen's) */
+    cover, covered: () => covered, fadeLook,
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0, stillBusy: () => stillGot > 0 || !!warmQ || warmStage > 0,
     /** JAYWALK FINAL — THE FIRST-TAP HOLD: true while a warm-up is owed or running (links in flight, its draws, the loaders' last steps) — a
      *  first tap then waits on the still screen (view.js#startGate, the lab the same: START_HOLD_MS at most), never a freeze mid-hop */
@@ -1397,7 +1431,7 @@ export function createNight(host, o = {}) {
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
     /** (the lab's measure) the ground reads no sun map: what its four samples cost */
     sunSampleOff(v) { shOff = !!v; },
-    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, warming: !!warmQ || warmStage > 0, stillGot, warmHeld, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ cover: covered, sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, warming: !!warmQ || warmStage > 0, stillGot, warmHeld, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1429,7 +1463,7 @@ export function createNight(host, o = {}) {
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.width = 0; el.height = 0;
-      el.remove(); sky.remove(); farHaze.remove(); skyHold.clear();
+      el.remove(); sky.remove(); farHaze.remove(); skyHold.clear(); clearTimeout(coverT); coverEl.remove(); fadeAsk = null;
     },
   };
 }

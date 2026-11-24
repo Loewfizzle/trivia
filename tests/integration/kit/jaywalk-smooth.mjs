@@ -286,6 +286,37 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     if (out) { const f = join(out, 'gl', `gl-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }
     return;
   }
+  // snap — JAYWALK FINAL (THE LOAD SNAP): a cold page per look, every painted frame logged (the cover · the pack applied · a fade running); the scene
+  // is never seen before its final look, and a pack held 3 s (`slow`) eases in, never a one-frame snap. Shots of the first uncovered frame → snap/
+  if (what === 'snap' || what.startsWith('snap:')) {
+    const SNAP = { autumnNoon: '&tod=noon&weather=clear&date=2026-11-24', golden: '&tod=golden&weather=clear&date=2026-11-24', snowDay: '&tod=noon&weather=clear&date=2026-12-24&snow=heavy', snowNight: '&tod=night&weather=clear&date=2026-12-24&snow=heavy', summer: '&tod=noon&weather=clear&date=2026-07-15' };
+    const names = what.startsWith('snap:') ? what.slice(5).split('+') : [...Object.keys(SNAP), 'slow:autumnNoon', 'slow:snowNight'];
+    for (const nm of names) {
+      const slow = nm.startsWith('slow:'), key = slow ? nm.slice(5) : nm, inSeason = key !== 'summer';
+      const pre = async p => {
+        await p.evaluateOnNewDocument(() => { const L = window.__snap = []; const t0 = performance.now(); const loop = () => { const J = window.__jwLab; if (J && J.view && J.view.info) { const i = J.view.info(), s = J.view.season(); L.push([Math.round(performance.now() - t0), i.cover ? 1 : 0, s.winter > 0 || s.autumn > 0 ? 1 : 0, document.querySelector('.jw-fadelook') ? 1 : 0, i.kid ? 1 : 0]); } requestAnimationFrame(loop); }; requestAnimationFrame(loop); });
+        if (slow) { await p.setRequestInterception(true); p.on('request', r => { if (/seasonal|\/winter\/|\/autumn\//.test(r.url())) setTimeout(() => r.continue().catch(() => {}), 3000); else r.continue().catch(() => {}); }); }
+      };
+      const o = await open(390, 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&cv=2${SNAP[key]}`, { pre });
+      await up(o.p);
+      await waitFor(o.p, '!window.__jwLab.view.info().cover', 6000);
+      await sleep(400);   // (the cover's own fade)
+      if (out) { const f = join(out, 'snap', `${nm.replace(':', '-')}-reveal.png`); mkdirSync(dirname(f), { recursive: true }); await o.p.screenshot({ path: f }); }
+      await sleep(slow ? 9000 : 1500);
+      const L = await o.p.evaluate(() => window.__snap);
+      const first = L.findIndex(r => !r[1]), rev = first >= 0 ? L[first] : null;
+      const snapped = L.slice(Math.max(1, first)).some((r, k, A) => { const prev = k ? A[k - 1] : L[first - 1]; return prev && !prev[1] && !r[1] && prev[2] !== r[2] && !r[3] && !prev[3]; });
+      const faded = L.some(r => r[3]);
+      if (process.env.SNAP_LOG) console.log("     ROWS", JSON.stringify(L.filter((r, k) => k && (r[1] !== L[k - 1][1] || r[2] !== L[k - 1][2] || r[3] !== L[k - 1][3]))));
+      console.log(`     SNAP ${nm}: uncovered at ${rev ? rev[0] : '—'} ms · models in ${rev ? !!rev[4] : '—'} · pack at the reveal ${rev ? !!rev[2] : '—'} · a fade ran ${faded} · the pack in by the end ${!!(L.length && L[L.length - 1][2])}`);
+      ok(!!rev && rev[0] <= 2600 && !!rev[4], `THE LOAD SNAP ${nm}: the scene shows once its models are in, ${rev ? rev[0] : '—'} ms after the page (≤ 2 s after the scene)`);
+      if (inSeason && !slow) ok(!!rev && !!rev[2], `… ${nm}: in its season at the reveal (never plain first)`);
+      if (slow) ok(!!rev && !rev[2] && faded, `… ${nm} with the pack held 3 s: shown without it, then EASED in (a fade ran)`);
+      ok(!snapped, `… ${nm}: no one-frame snap of the season after the reveal`);
+      errs.push(...o.errs); await o.close();
+    }
+    return;
+  }
   // warm — SMOOTH 4 (WARM START): a fresh page's first 40 s of play, second by second (kit/jaywalk-warm.mjs; `--webkit` = Playwright WebKit's JavaScriptCore)
   if (what === 'warm' || what.startsWith('warm:')) { const W = await import('./jaywalk-warm.mjs'); await W.warmStart({ what, out, tag, abBase, chromium: process.argv[2], webkit: process.argv.includes('--webkit'), sleep, waitFor, errs }); return; }
   if (what === 'first' || what.startsWith('first:')) {

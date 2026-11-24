@@ -63,3 +63,14 @@ test('GROUP 2 — THE FIRST-TAP HOLD: the stamp at the tap, the GO behind the wa
   // Grok's P0-4: the daily's veiled start never parks a warm-up behind its twice-a-second throttle
   assert.ok(v.includes("!(night.startBusy && night.startBusy())) return; veilAt = now; }"), 'the veil throttle counts a warm-up owed');
 });
+
+test('GROUP 3 — THE LOAD SNAP: a fresh scene shows ONCE in its final look (≤ 2 s); a later pack eases in; a match + PLAY AGAIN keep their own path', () => {
+  const n = src('night.js'), v = src('view.js'), l = src('lab.js'), css = readFileSync(new URL('../css/jaywalk.css', import.meta.url), 'utf8');
+  assert.ok(n.includes('const FADE_LOOK_MS = 1000, UNCOVER_MS = 280;') && n.includes('cover, covered: () => covered, fadeLook,'), 'the scene: cover + fadeLook');
+  assert.ok(n.includes("coverEl.style.backgroundColor = `#${fogHex.toString(16).padStart(6, '0')}`;"), 'the cover is the look\'s own haze (no black flash by day)');
+  assert.ok(n.includes('if (fadeAsk) { const fn = fadeAsk; fadeAsk = null; fadeNow(fn); }'), 'the still is read right after a drawn frame');
+  assert.ok(v.includes('if (!had && !isMatch) coverUntilLook();') && v.includes('const LOOK_WAIT_MS = 2000;'), 'the game: a fresh solo / daily scene only');
+  assert.ok(/if \(\(models && season && sun && !todDirty\) \|\| performance\.now\(\) - t0 >= LOOK_WAIT_MS\)/.test(v), 'the models + the season + the sun\'s time of day, 2 s at most');
+  assert.ok(v.includes('if (shown) n.fadeLook(put); else put();') && l.includes('if (lookIn && view.fadeLook) view.fadeLook(put); else put();'), 'a later pack eases in (the game + the lab)');
+  assert.ok(/\.jw-cover \{ position: absolute; inset: 0; pointer-events: none;/.test(css) && /\.jw-fadelook \{/.test(css));
+});
