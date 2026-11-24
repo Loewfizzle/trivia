@@ -78,6 +78,9 @@ export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL
 
 /** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step; … */
 export const PUMP = Object.freeze({ budget: 7, starve: 24 });
+/** SMOOTH 4 — THE STILL SCREEN: `chunk` ms of loading steps a frame while nothing moves (TAP TO START, a match before GO); `areas` = the opening + the first
+ *  area + the next one, wanted from the start screen and kept for the page (areaIndex: −1 the opening, 0 THE DOCKS, 1 the one after) */
+export const STILL = Object.freeze({ chunk: 24, areas: Object.freeze([-1, 0, 1]) });
 /** … */
 export function createVariety({ parseGlb, parseSteps = null, add, drop, now = () => performance.now(), ids = areaWants, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
   const held = new Map(), queue = [];

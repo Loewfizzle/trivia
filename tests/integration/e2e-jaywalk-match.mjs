@@ -90,7 +90,23 @@ const warmPack = async n => { if (!process.env.JW_DAY) return; for (let i = 0; i
 async function start(host, n) {
   await warmPack(n);
   ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK');
-  for (let i = 0; i < n; i++) await waitFor(pages[i], s => s.game && s.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
+  for (let i = 0; i < n; i++) await startWait(i);
+}
+/** SMOOTH 4 — THE MATCH-START TIMEOUT: one phone's wait for its match screen, with its route + the start's state logged at every change (a red
+ *  then says WHERE the phone stood: the walk inside, the old screen held, a screen that failed to mount, no GL) */
+async function startWait(i) {
+  const seen = [], end = Date.now() + 40000;
+  const look = () => evalIn(pages[i], s => { const A = window.__arcade, g = s.game, m = s.meta || {}, now = A.serverNow(), cv = document.querySelector('.jw-game canvas.jw-canvas');
+    return { on: !!(g && g.id === 'jaywalk' && cv && !!window.__jwGame), key: `${A.route()} · ${m.status} · ${g ? `${g.id}:${g.matchId}:${g.phase}` : 'no game'} · go ${m.go ? `${m.go.m} ${Math.round(now - m.go.at)} ms` : '—'} · quit ${s.quit || '—'} · hold ${globalThis.__nsRunHold ? `${globalThis.__nsRunHold.on ? 'ON' : 'off'}${globalThis.__nsRunHold.wait ? ' wait' : ''}` : '?'} · ${document.querySelector('.jw-nogl') ? 'NO GL' : ''}${document.querySelector('.gb-card, .game-broke') ? 'BROKE' : ''} · ${document.visibilityState}` }; });
+  while (Date.now() < end) {
+    let r = null; const q0 = Date.now(); try { r = await look(); } catch (e) { r = { on: false, key: `(busy: ${String(e.message || e).slice(0, 60)})` }; }
+    if (Date.now() - q0 > 1500) seen.push([q0, `(the page answered only after ${Date.now() - q0} ms — its main thread was blocked)`]);
+    if (!seen.length || seen[seen.length - 1][1] !== r.key) seen.push([Date.now(), r.key]);
+    if (r.on) return true;
+    await sleep(150);
+  }
+  console.log(`  ${NAMES[i]}'s start, step by step:`); const t0 = seen[0][0]; for (const [t, k] of seen) console.log(`    +${((t - t0) / 1000).toFixed(1)} s  ${k}`);
+  throw new Error(`timeout: ${NAMES[i]}: the match screen`);
 }
 const all = (n, fn) => Promise.all(Array.from({ length: n }, (_, i) => fn(pages[i], i)));
 
@@ -213,6 +229,8 @@ try {
     await pages[1].setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
     cdpB = await pages[1].target().createCDPSession();
     await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    // (SMOOTH 4: every shader link on BOB's phone from here — its program + the run's tick when it came)
+    await pages[1].evaluate(() => { const P = WebGL2RenderingContext.prototype, f = P.linkProgram, L = window.__links = []; P.linkProgram = function (pg) { const t = performance.now(), r = f.call(this, pg); let k = '?'; try { const s = (this.getAttachedShaders(pg) || []).map(o => this.getShaderSource(o) || '').join(''), m = /#define SHADER_TYPE (\S+)/.exec(s), u = (s.match(/uniform \S+ (u[A-Z]\w+)/g) || []).slice(0, 3).map(x => x.split(' ').pop()).join('+'); k = `${m ? m[1] : '?'}[${u}]${/USE_INSTANCING/.test(s) ? '+inst' : ''}`; } catch { /* a name only */ } const J = window.__jwGame; let tk = null; try { const q = J ? J.state() : null; tk = q && q.go > 0 ? `${Math.round(window.__arcade.serverNow() - q.go)}ms` : null; } catch { /* no game yet */ } L.push([Math.round(t), tk, k]); return r; }; });
   }
   await warmPack(N);
   ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK — a plain host (THE GO-LIVE PASS)');
@@ -220,7 +238,7 @@ try {
     await waitFor(pages[1], st => st.game && st.game.id === 'jaywalk', 'BOB: the match is in the state', 20000);
     await cdpB.send('Profiler.enable'); await cdpB.send('Profiler.setSamplingInterval', { interval: 500 }); await cdpB.send('Profiler.start');
   }
-  for (let i = 0; i < N; i++) await waitFor(pages[i], st => st.game && st.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
+  for (let i = 0; i < N; i++) await startWait(i);
   const g0 = await evalIn(host, s => ({ m: s.game.matchId, mode: s.game.mode, phase: s.game.phase, seed: s.game.seed, n: Object.keys(s.game.participants).length }));
   ok(g0.mode === 'match' && g0.n === N, `a room of three = THE MATCH (${g0.m}); the course is not known at the start (seed "${g0.seed || ''}")`);
   ok(await until(async () => /^[123]$|^GO$/.test((await state(pages[1])).count), 8000), `the count is on a guest's screen ("${(await state(pages[1])).count}")`);
@@ -265,8 +283,17 @@ try {
     const tl = await G(pages[1], 'window.__jwGame.timeline()');
     const part = (a, b) => tl.filter(f => f[0] >= a && f[0] < b), worst = fs => fs.reduce((w, f) => (f[1] > w[1] ? f : w), [0, 0, 0]), slow = fs => fs.filter(f => f[1] > 34);
     const cnt = part(-3000, 0), go = part(0, 3000), w1 = worst(cnt), w2 = worst(go);
+    { const L = await pages[1].evaluate(() => window.__links || []); log('START LINKS (BOB: page ms · the run tick · the program)', L.map(x => `${x[1] == null ? 'before the course' : `GO${x[1][0] === '-' ? '' : '+'}${x[1]}`} ${x[2]}`).join(' | ')); }
+    { const T0 = await G(pages[1], 'window.__jwGame.timeline()'); for (const f of T0.filter(x => x[0] >= 0 && x[0] < 10000 && x[1] > 33)) { const k = T0.indexOf(f); log('START BIG', T0.slice(Math.max(0, k - 3), k + 2).map(x => `+${x[0]}: ${x[1]} ms (JS ${x[2]})`).join(' · ')); } }
     log('START', JSON.stringify({ count: { frames: cnt.length, worst: w1[1], at: w1[0], work: w1[2], over34: slow(cnt).map(f => `${f[0]}:${f[1]}/${f[2]}`) }, first3s: { frames: go.length, worst: w2[1], at: w2[0], work: w2[2], over34: slow(go).map(f => `${f[0]}:${f[1]}/${f[2]}`) } }));
     ok(go.length > 120 && w2[1] <= 50, `THE START (BOB: 390 × 844 @3, 4× CPU, a cold scene): the first 3 s after GO — worst frame ${w2[1]} ms at +${w2[0]} ms (${go.length} frames, ${slow(go).length} over 34 ms); the count's worst ${w1[1]} ms at ${w1[0]} ms`);
+    // SMOOTH 4 — WARM START in a match: the first 10 s after GO against the third 10 s (DROPS > 20 ms · BIG > 33 ms), + the loaders still busy after GO
+    { const busy = []; const t1 = Date.now();
+      while (Date.now() - t1 < 31000) { const i = await G(pages[1], 'window.__jwGame.state().info'); const v = (i && i.variety) || {}, p = (i && i.props) || {}; busy.push(((v.loading || 0) + (v.queued || 0) + (v.staged || 0) + (p.loading || 0) + (p.queued || 0) + (p.staged || 0)) > 0 ? 1 : 0); await sleep(500); }
+      const T = await G(pages[1], 'window.__jwGame.timeline()'), ten = (a, b) => { const f = T.filter(x => x[0] >= a && x[0] < b).map(x => x[1]); return { n: f.length, drops: f.filter(v => v > 20).length, big: f.filter(v => v > 33).length }; };
+      const A = ten(0, 10000), C = ten(20000, 30000), lb = busy.slice(0, 20).reduce((a, b) => a + b, 0) / 2;
+      log('WARM START (match)', JSON.stringify({ first10: A, third10: C, loadersBusyFirst10s: lb }));
+      ok(lb <= 1, `WARM START in a match (BOB, @3, 4× CPU): the first 10 s after GO ${A.drops} drops · ${A.big} BIG against the third 10 s ${C.drops} · ${C.big} (a report); the loaders busy ${lb} s of the first 10`); }
     await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     await pages[1].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });
   }

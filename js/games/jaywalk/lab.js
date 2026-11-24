@@ -220,7 +220,7 @@ async function mount() {
     if (document.visibilityState === 'hidden' || sheetOpen) return;   // (the SOUNDS sheet holds the run still)
     const t0 = performance.now();
     if (bot && shown && now - overAt > 600) restart();   // (the measure's bot plays on)
-    if (!started) { if (queue.length || bot) { if (view.warming && view.warming()) acc = -dt; else { started = true; mark.textContent = ''; } } else acc = -dt; }
+    if (!started) { if (queue.length || bot) { started = true; mark.textContent = ''; } else acc = -dt; }   // (SMOOTH 4: the first touch is never held — as the game)
     acc += dt;
     let n = 0;
     const held = () => frozen || (holdAt != null && run.st === 'hop' && run.k >= holdAt);   // (a look check: the kid held mid-hop for a shot)

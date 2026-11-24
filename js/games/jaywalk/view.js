@@ -53,6 +53,7 @@ export const GO_WAIT_MS = 4000;
 export const GO_EARLY_MS = 1800;
 /** the most ticks one frame catches up (a long stall is spread over a few frames; the rules never skip one) */
 const CATCH_UP = 900;
+const VEIL_WARM = 3000;   // (SMOOTH 4: the daily's veiled start draws every frame this long — warm frames of the real scene — then twice a second)
 const ZERO = Object.freeze([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 /** THE START (before the course is known): plain calm ground — what lanes 0–3 are on EVERY course */
 const START = Object.freeze({ seed: 'start', lane: i => ({ i, type: 'grass', heat: 0, mark: null, ufo: null, obs: ZERO }) });
@@ -128,7 +129,7 @@ export function createView() {
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
   // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
-  let waitTap = false, startEl = null, firstHop = '', veilAt = 0, offPad = null;
+  let waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null;
   let mergedSeen = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
@@ -354,7 +355,6 @@ export function createView() {
   }
   const tickNow = () => { const x = (srvNow() - go) * TICK_HZ / 1000, t = Math.floor(x); return { t, a: x - t }; };
 
-  let startAsk = null;
   function hop(d) {
     if (waitTap) { begin(d); return; }
     if (mode !== 'run' || (run && isOver(run)) || queue.length >= 2 || tickNow().t < 0) return;
@@ -367,14 +367,13 @@ export function createView() {
     const sub = h('div.jw-start-l', 'TAP TO HOP · SWIPE TO STEP');
     startEl = h('div.jw-start', { 'aria-live': 'polite' }, h('div.jw-start-go', 'TAP TO START'), sub, D ? h('div.jw-start-l', 'YOUR TRY STARTS AT THE TAP') : null);
     root.append(startEl); root.classList.add('is-waiting');
-    if (D) { root.classList.add('is-veiled'); veilAt = 0; }
+    if (D) { root.classList.add('is-veiled'); veilAt = 0; veilFrom = performance.now(); }
   }
   function hideStart() { if (startEl) { startEl.remove(); startEl = null; } if (root) root.classList.remove('is-waiting', 'is-veiled'); }
   /** the FIRST hop / tap / A: the run starts NOW — a solo run asks its GO (the stamp first), the daily opens its try; a hop is carried to tick 0 */
   function begin(d) {
     if (!waitTap || gone) return;
-    if (night && night.warming && night.warming()) { startAsk = { d }; return; }   // (SMOOTH 3: the first tap waits for the shaders to finish, so the run never starts on a stall)
-    startAsk = null; waitTap = false; hideStart();
+    waitTap = false; hideStart();   // (SMOOTH 4: never held — the warm-up is the still screen's; what is left of it finishes in the background)
     if (d && !D) firstHop = d;
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
     sync();
@@ -681,7 +680,7 @@ export function createView() {
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;
-    if (waitTap && D) { if (now - veilAt < 500) return; veilAt = now; }
+    if (waitTap && D) { if (now - veilAt < 500 && performance.now() - veilFrom > VEIL_WARM && !(night.stillBusy && night.stillBusy())) return; veilAt = now; }   // (SMOOTH 4: every frame while it warms + loads, then twice a second)
     const t0 = performance.now(), g = st.game;
     let a = 0, c = null;
     if (isMatch && now - lastPump > 100) { lastPump = now; syncMatch(g); }
@@ -722,7 +721,6 @@ export function createView() {
     if (isMatch || D) drawCount(g);
     drawLines(mine(g) && drawRun === run);
     night.draw(drawRun, course, a, dt, extra); duckMoment();
-    if (startAsk && !night.warming()) { const q = startAsk; startAsk = null; begin(q.d); }
     if (shotAt && performance.now() >= shotAt) takeShot();
     // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward …
     const placed = [], counting = !!rosterEl && rosterEl.classList.contains('is-on');

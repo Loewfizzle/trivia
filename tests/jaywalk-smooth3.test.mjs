@@ -43,16 +43,15 @@ test('the app\'s animated background stops behind a full-screen stage, and comes
   assert.match(view, /unmount\(\) \{[\s\S]{0,260}document\.body\.classList\.remove\('jw-on'\)/);
 });
 
-test('THE WARM-UP: shaders link in the background at a quiet frame, one paint stage a frame, and the first tap waits for it', () => {
+test('THE WARM-UP: shaders link in the background at a quiet frame, one paint stage a frame (SMOOTH 4: the first tap no longer waits for it)', () => {
   const night = read('js/games/jaywalk/night.js'), view = read('js/games/jaywalk/view.js'), lab = read('js/games/jaywalk/lab.js');
   assert.match(night, /KHR_parallel_shader_compile/);
   assert.match(night, /const WARM_MAX = 4000/);                                    // (a stuck link never holds the picture for long)
   assert.match(night, /if \(bg && !calm\) \{ try \{ renderer\.compile\(scene, cam\);/);   // (mid-run: no full paint)
   assert.match(night, /if \(calm && !snapAsk && performance\.now\(\) < warmQ\.until && warmBusy\(warmQ\.mats\)\)/);
-  assert.match(night, /warming: \(\) => !!warmQ \|\| warmStage > 0 \|\| warmCalm > 0/);
-  assert.match(view, /if \(night && night\.warming && night\.warming\(\)\) \{ startAsk = \{ d \}; return; \}/);
-  assert.match(view, /if \(startAsk && !night\.warming\(\)\)/);
-  assert.match(lab, /if \(view\.warming && view\.warming\(\)\) acc = -dt;/);
+  assert.match(night, /warming: \(\) => !!warmQ \|\| warmStage > 0,/);
+  assert.doesNotMatch(view, /startAsk/);                                           // (SMOOTH 4 — the first tap is never held: tests/jaywalk-smooth4.test.mjs)
+  assert.doesNotMatch(lab, /view\.warming\(\)\) acc = -dt/);
 });
 
 test('THE DEC 1 SWITCH: winter comes with the game\'s own day, the 4 am Eastern turn of Dec 1, and the autumn pile is let go', async () => {

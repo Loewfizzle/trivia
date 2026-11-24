@@ -15,7 +15,7 @@ import { LINE_HEX, friendFade } from './lines.js';
 import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
 import { hsh, strSeed, vehicleAt, plainAt } from './causes.js';
-import { VARIETY, createVariety, setWinterTraffic } from './variety.js';
+import { VARIETY, STILL, createVariety, setWinterTraffic } from './variety.js';
 import { GRADE, gradeOf, lightsOf } from './daylook.js';
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;
@@ -618,10 +618,9 @@ export function createNight(host, o = {}) {
   // last picture is held until they are in: the winter ground's link blocked the page for 1.1 s here when it was first drawn. The first draws then go ONE STAGE A
   // FRAME (the scene · the glow · the other look), not all in one. Never mid-run, never past WARM_MAX; a phone without the extension warms as before.
   const WARM_MAX = 4000;
-  let warmQ = null, warmHeld = 0, warmStage = 0, warmLater = false, warmCalm = 0;   // (warmCalm: frames the first tap still waits, until the GPU has caught up)
+  let warmQ = null, warmHeld = 0, warmStage = 0, warmLater = false;
   const warmBusy = mats => { for (const m of mats) { const P = renderer.properties.get(m).currentProgram; if (!P || P.isReady()) mats.delete(m); } return mats.size > 0; };
-  function warmStep(calm) {
-    if (!calm) { warmStage = 0; warmPaint(); return; }   // (the first hop came: the rest at once, as before)
+  function warmStep() {
     const w0 = warmOpen();
     try {
       if (warmStage === 1) renderer.render(scene, cam);
@@ -629,10 +628,10 @@ export function createNight(host, o = {}) {
       else if (!otherWarm && lookSet) { otherWarm = true; day = !day; lookGL(); renderer.render(scene, cam); day = !day; lookGL(); }
     } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     warmShut(w0);
-    if (++warmStage > 3) { warmStage = 0; warmed++; warmCalm = 30; }
+    if (++warmStage > 3) { warmStage = 0; warmed++; }
   }
   function warm(calm) {
-    warmQ = null; warmStage = 0; warmCalm = 0;
+    warmQ = null; warmStage = 0;
     const bg = SMOOTH && renderer.extensions.has('KHR_parallel_shader_compile');
     // (a piece that lands MID-RUN — the flyers, the shops, the props: its shaders start linking in the background, and the full warm waits for the next quiet frame)
     if (bg && !calm) { try { renderer.compile(scene, cam); } catch { /* as above */ } warmLater = true; return; }
@@ -650,6 +649,19 @@ export function createNight(host, o = {}) {
       return;
     }
     warmPaint();
+  }
+  // SMOOTH 4 — THE STILL SCREEN LOADS IN BIG CHUNKS (TAP TO START, a match before GO — docs/jaywalk.md "SMOOTH 4"): a hitch on a still screen is invisible,
+  // so the opening + the next two areas' models come in STILL.chunk ms of steps a frame, never spread over the first seconds of play. All in → one more warm:
+  // every new kind drawn once (its buffers up) behind the start screen
+  let stillGot = 0, stillWanted = 0, stillWinter = false, nearNow = STILL.areas;
+  function stillPump() {
+    // (the first frames hold for the links: ask already — the traffic at once (again when winter's trucks join), the props the moment their module is in)
+    if (!stillWanted || stillWinter !== winterT) { stillWanted = 1; stillWinter = winterT; VL.want(nearNow); if (!prAsk) prGet(); }
+    if (stillWanted === 1 && PR) { stillWanted = 2; PR.want(nearNow); }
+    const t1 = performance.now();
+    let n = 0;
+    while (performance.now() - t1 < STILL.chunk && (VL.pump(0) || (PR && PR.pump(0)))) n++;
+    if (n) stillGot += n; else if (stillGot) { stillGot = 0; needWarm = true; }
   }
 
   /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (a match): … */
@@ -800,11 +812,15 @@ export function createNight(host, o = {}) {
     const areaOn = !day || TL.lamps > 0.5;
     if (SP) fogCheck();
     if (SP && (run.t === 0 || run.st === 'out' || run.st === 'taken')) SP.quiet();
-    { const calm = run.t === 0 || run.st === 'out' || run.st === 'taken';
+    const still = run.t === 0;   // (SMOOTH 4: the start screen, a match before GO)
+    { const calm = still || run.st === 'out' || run.st === 'taken';
       if (warmLater && calm) needWarm = true;
       if (needWarm && w && h) { needWarm = false; warm(calm); }
-      if (warmQ) { if (calm && !snapAsk && performance.now() < warmQ.until && warmBusy(warmQ.mats)) { warmHeld++; return; } warmQ = null; warmStage = 1; }
-      if (warmStage) warmStep(calm); else if (warmCalm) warmCalm = (dt < 22 ? Math.min(warmCalm, 3) : warmCalm) - 1; }
+      if (warmQ) {
+        if (calm && !snapAsk && performance.now() < warmQ.until && warmBusy(warmQ.mats)) { warmHeld++; if (still) stillPump(); return; }
+        // (SMOOTH 4 — THE FIRST TAP IS NEVER HELD: a run that begins with links in flight lets them finish in the background; its full warm waits for the next quiet frame)
+        warmQ = null; if (calm) warmStage = 1; else warmLater = true; }
+      if (warmStage) { if (calm) warmStep(); else { warmStage = 0; warmLater = true; } } }
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
     if (run.st === 'out' || run.st === 'taken') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
@@ -917,7 +933,7 @@ export function createNight(host, o = {}) {
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
-    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due() || (PR && PR.due())) { vwKey = vk; const near = [...new Set([a0, a1, a2])]; VL.want(near); if (PR) PR.want(near); } if (!prAsk) prGet(); }
+    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due() || (PR && PR.due())) { vwKey = vk; const near = nearNow = [...new Set([...STILL.areas, a0, a1, a2])]; stillWinter = winterT; stillWanted = PR ? 2 : 1; VL.want(near); if (PR) PR.want(near); } if (!prAsk) prGet(); }   // (SMOOTH 4: the start's areas stay in for the page — PLAY AGAIN never loads them in play)
     for (const k in K) K[k].reset();   // (SMOOTH 2: no array a frame)
     for (const k in KM) KM[k].reset();
     if (PR) for (const q of PR.kinds()) q.reset();
@@ -1256,7 +1272,8 @@ export function createNight(host, o = {}) {
       g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
     }
     // VARIETY B2 — THE TAPS: ONE loading step a frame (a parse OR a kind made), at the END — none in a busy frame or the one a hop starts in
-    { const busy = run.st === 'hop' && run.k < 2 ? Infinity : performance.now() - fT0; if (!VL.pump(busy) && PR) PR.pump(busy); }
+    if (still) stillPump();
+    else { const busy = run.st === 'hop' && run.k < 2 ? Infinity : performance.now() - fT0; if (!VL.pump(busy) && PR) PR.pump(busy); }
   }
   // VARIETY A — THE SUN's SHADOWS (tier 2 only, a DAY look with sun): ONE depth pass of the casters (their own layer — the kid + the rivals
   // keep their contact shadows: the depth pass knows nothing of their skinning) from the sun, up the course from the camera; the ground reads it
@@ -1337,7 +1354,7 @@ export function createNight(host, o = {}) {
     },
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
-    el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0 || warmCalm > 0,
+    el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0, stillBusy: () => stillGot > 0 || !!warmQ || warmStage > 0,
     /** J4 — THE SEASON: prepSeason(s) starts THE SEASONAL PACK (in season only) · setSeason(s, { wet }) for the run starting now → what it applied */
     prepSeason, setSeason, season: () => ({ ...SZ, wet: wetOn ? SZ.wet : 0, pack: !!KM['w-pine'], sp: SP ? SP.info() : null }),
     /** JT1 — the pack's sounds (a leaf pile's crunch · the fireworks): fn(id) — the view plays them through its own sfx (the switches kept) */
@@ -1359,14 +1376,14 @@ export function createNight(host, o = {}) {
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
     /** (the lab's measure) the ground reads no sun map: what its four samples cost */
     sunSampleOff(v) { shOff = !!v; },
-    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, warming: !!warmQ || warmStage > 0 || warmCalm > 0, warmHeld, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, sunF, sunCut, variety: VL.info(), props: PR ? PR.info() : null, binCap: K.bill.left(), warmed, warming: !!warmQ || warmStage > 0, stillGot, warmHeld, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
     setLook, look: () => (day ? 'day' : 'night'),
     /** VARIETY A — THE TIME OF DAY (daylook.js#resolveTod) · what it shows now · the fog check's amount */
     /** (the lab's tap measure — VARIETY B2) every area model let go + the near areas wanted again: an area's arrival, the kid in place */
-    varietyAgain() { VL.want([]); vwKey = -1; },
+    varietyAgain() { VL.want([]); vwKey = -1; stillWanted = 0; nearNow = STILL.areas; },
     /** (the lab's look checks — B2) lane i's dressing: [{ c, k, tk, deco }] */
     decorAt(i) { const L = courseRef ? courseRef.lane(i) : null; return L && L.type === 'grass' ? decorOf(i, L).obs.map(q => ({ c: q.c, k: q.k, tk: q.tk || '', deco: q.deco || 0 })) : []; },
     setTod, tod: () => (TD ? { ...TD, grade: !!GR, sun: sunReal, fogDark } : null), fogDark: () => fogDark,

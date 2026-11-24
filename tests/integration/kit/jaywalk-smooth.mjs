@@ -267,6 +267,8 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
 
   // first — SMOOTH 3 (WINTER WARM-UP): a FRESH page (empty cache) straight into a run, the first 10 s: every frame + every shader link, compile and GPU upload,
   // when it happened. `first:<reps>:<rate>`, `--ab <base>` = the code before, interleaved.
+  // warm — SMOOTH 4 (WARM START): a fresh page's first 40 s of play, second by second (kit/jaywalk-warm.mjs; `--webkit` = Playwright WebKit's JavaScriptCore)
+  if (what === 'warm' || what.startsWith('warm:')) { const W = await import('./jaywalk-warm.mjs'); await W.warmStart({ what, out, tag, abBase, chromium: process.argv[2], webkit: process.argv.includes('--webkit'), sleep, waitFor, errs }); return; }
   if (what === 'first' || what.startsWith('first:')) {
     const [, r0, r1] = what.split(':'), reps = Number(r0) || 3, rate = Number(r1) || 4, SECS = 10;
     const FIRST = { 'summer night': '&tod=night&weather=clear&date=2026-07-15', 'dec 24 heavy night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy', 'dec 24 heavy noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy' };
