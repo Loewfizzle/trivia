@@ -830,3 +830,9 @@
 
 ## JAYWALK SMOOTH 4 — WARM START + THE MATCH-START TIMEOUT (Nov 23 2026 — the owner's iPhone numbers after SMOOTH 3; the pass log: `docs/games/passes/jaywalk-smooth4.md`)
 - (Nov 23) SMOOTH 3 confirmed on the owner's iPhone: the blend layer was the day chop (noon BIG 6 → 2). New rule: ALL loading + warm-up (shader programs, area sets, season pack, buffers) happens while a still screen is up (TAP TO START, the match countdown / lobby), never spread over the first seconds of play.
+
+## JAYWALK FINAL — GROK'S FIXES · THE FIRST-TAP FREEZE · THE LOAD SNAP · VEHICLE DIRECTIONS (Nov 24 2026 — the owner; the pass log: `docs/games/passes/jaywalk-final.md`)
+- (Nov 24) SMOOTH 4 confirmed on the owner's iPhone: first-run drops back to normal (24–34). Left: one ~150–190 ms freeze right after a fast first tap (shader links finishing mid-play). Rule: if the first tap arrives before warm-up is done, hold the start on the still screen (≤ 0.5 s, the tap remembered), never freeze mid-hop.
+- Grok code review (Nov 24) adopted: no uploads for empty kinds, fog early-out, the bloom split, a GL-call counter in --perf. Its &dpr / &suncast / &sunhz switches were declined; its three.min.js + immutable-cache boot wins went to the city chat (site-wide files).
+- The game never shows the scene before its final look (season, time of day, weather) is applied.
+- Every vehicle model faces its direction of travel (a test guards it).
