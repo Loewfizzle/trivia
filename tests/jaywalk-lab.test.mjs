@@ -49,7 +49,7 @@ test('NO ROOM, NO DATABASE WRITES: the lab + its view + its controls never impor
   assert.match(lab, /replay\(\{ seed, mode, log(, cv: CV)? \}\)/, 'the run replayed after each end …');
   assert.match(lab, /REPLAY ≠ LIVE/, '… and a red line if the replay ≠ the live run');
   assert.match(lab, /Q\.get\('fps'\) === '1'/, 'the fps readout only with &fps=1');
-  assert.match(lab, /if \(!started\) \{ if \(queue\.length \|\| bot\)/, 'tick 0 = the first touch');
+  assert.match(lab, /if \(!started\) \{\n\s+if \(queue\.length \|\| bot\) \{/, 'tick 0 = the first touch (JAYWALK FINAL: held on the still screen while a warm-up is owed)');
 });
 
 test('THE CONTROLS (PURE): a tap fires on RELEASE (under ~12 px) · a swipe fires THE MOMENT it crosses its threshold, once · swipe down = back · a short flick still acts', () => {

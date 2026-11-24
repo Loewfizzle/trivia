@@ -23,11 +23,11 @@ test('THE STILL SCREEN: the opening + the first area + the next one, in big chun
   assert.match(night, /stillWinter !== winterT/);                                      // (winter's trucks join the start's ask)
 });
 
-test('THE FIRST TAP IS NEVER HELD: the run starts at the tap; links still in flight finish in the background', () => {
+test('THE FIRST TAP (SMOOTH 4 → JAYWALK FINAL): the tap starts the run unless a warm-up is owed — then it is HELD on the still screen (tests/jaywalk-final.test.mjs); a link landing mid-run still finishes in the background', () => {
   const night = read('js/games/jaywalk/night.js'), view = read('js/games/jaywalk/view.js'), lab = read('js/games/jaywalk/lab.js');
   assert.match(view, /function begin\(d\) \{\n\s+if \(!waitTap \|\| gone\) return;\n\s+waitTap = false; hideStart\(\);/);
   assert.doesNotMatch(view, /startAsk/);
-  assert.match(lab, /if \(!started\) \{ if \(queue\.length \|\| bot\) \{ started = true;/);
+  assert.match(lab, /else \{ started = true; heldMs = Math\.round\(el\); mark\.textContent = ''; \}/);   // (JAYWALK FINAL: the owner's new rule — the hold)
   assert.match(night, /warmQ = null; if \(calm\) warmStage = 1; else warmLater = true; \}/);
   assert.match(night, /if \(warmStage\) \{ if \(calm\) warmStep\(\); else \{ warmStage = 0; warmLater = true; \} \}/);
   assert.doesNotMatch(night, /warmCalm/);
@@ -37,7 +37,7 @@ test('THE FIRST TAP IS NEVER HELD: the run starts at the tap; links still in fli
 test('THE DAILY\'s veiled start draws every frame while it warms + loads, then twice a second', () => {
   const view = read('js/games/jaywalk/view.js');
   assert.match(view, /const VEIL_WARM = 3000;/);
-  assert.match(view, /if \(now - veilAt < 500 && performance\.now\(\) - veilFrom > VEIL_WARM && !\(night\.stillBusy && night\.stillBusy\(\)\)\) return;/);
+  assert.match(view, /if \(now - veilAt < 500 && performance\.now\(\) - veilFrom > VEIL_WARM && !\(night\.startBusy && night\.startBusy\(\)\)\) return;/);   // (JAYWALK FINAL — Grok's P0-4: a warm-up OWED counts too)
   assert.match(read('js/games/jaywalk/night.js'), /stillBusy: \(\) => stillGot > 0 \|\| !!warmQ \|\| warmStage > 0,/);
 });
 
