@@ -5,20 +5,31 @@ import { readFileSync } from 'node:fs';
 import { uploadRange } from '../js/games/jaywalk/gl-upload.js';
 
 const src = f => readFileSync(new URL(`../js/games/jaywalk/${f}`, import.meta.url), 'utf8');
-/** a stand-in for three r160's BufferAttribute: `needsUpdate = true` bumps its version (what makes the renderer upload) */
-const attr = () => ({ version: 0, updateRanges: [], set needsUpdate(v) { if (v) this.version++; }, clearUpdateRanges() { this.updateRanges.length = 0; }, addUpdateRange(start, count) { this.updateRanges.push({ start, count }); } });
+/** a stand-in for three r160's BufferAttribute: its kept `_updateRange` record; `needsUpdate = true` bumps its version (what makes the renderer upload) */
+const attr = () => ({ version: 0, _updateRange: { offset: 0, count: -1 }, set needsUpdate(v) { if (v) this.version++; } });
 
 test('GROUP 1 — EMPTY UPLOADS: an empty kind does not bump its attribute version (nothing goes to the GPU)', () => {
-  const a = attr();
-  assert.equal(uploadRange(a, 0), false);
-  assert.equal(uploadRange(a, -3), false);
+  const a = attr(), u = a._updateRange;
+  uploadRange(a, 0); uploadRange(a, -3);
   assert.equal(a.version, 0, 'no upload asked for an empty kind');
-  assert.deepEqual(a.updateRanges, []);
-  assert.equal(uploadRange(a, 48), true);
+  assert.equal(u.count, -1, '… and its range untouched');
+  uploadRange(a, 48);
   assert.equal(a.version, 1);
-  assert.deepEqual(a.updateRanges, [{ start: 0, count: 48 }], 'only the instances in use — through three r160\'s own ranges');
-  uploadRange(a, 16);
-  assert.deepEqual(a.updateRanges, [{ start: 0, count: 16 }], 'a second ask before the draw replaces the range, never piles one up');
+  assert.equal(a._updateRange, u, 'the SAME kept record (never a new one)');
+  assert.deepEqual([u.offset, u.count], [0, 48], 'only the instances in use');
+});
+
+test('GROUP 1 — ZERO GARBAGE (the owner\'s add-on): uploadRange makes no object — never addUpdateRange / clearUpdateRanges (a record each call, every frame)', () => {
+  const g = readFileSync(new URL('../js/games/jaywalk/gl-upload.js', import.meta.url), 'utf8');
+  const noComments = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const code = noComments(g), fn = code.slice(code.indexOf('export const uploadRange'));
+  assert.doesNotMatch(fn, /addUpdateRange|clearUpdateRanges|updateRanges/, 'three\'s allocating range calls');
+  assert.doesNotMatch(fn.slice(fn.indexOf('=>') + 2), /=>|\bnew\b|\[|\.\.\.|`|push\(|\{\s*\w+\s*:/, 'no closure, list, spread, string or record inside');
+  for (const f of ['night.js', 'night-fx.js']) assert.doesNotMatch(noComments(src(f)), /addUpdateRange|clearUpdateRanges/, `${f}: no allocating range call`);
+  // and running it: the same kept record, 200,000 calls (a phone's hour of one kind's frames), the heap does not climb by a record a call
+  const a = attr(), before = process.memoryUsage().heapUsed;
+  for (let k = 0; k < 200000; k++) uploadRange(a, (k % 7) * 16);
+  assert.ok(process.memoryUsage().heapUsed - before < 2 * 1024 * 1024, 'no garbage per call');
 });
 
 test('GROUP 1 — the kinds: an empty kind is hidden + uploads nothing; only the emptiness it hid is shown again', () => {

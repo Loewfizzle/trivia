@@ -155,8 +155,8 @@ export function createNight(host, o = {}) {
   }
   const UP = new THREE.Vector3(0, 1, 0);
   // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three …
-  // (JAYWALK FINAL: through three r160's own ranges — the old `_updateRange` reset itself to −1 after an upload, so a kind left EMPTY sent its
-  //  WHOLE array every frame; an empty kind now sends nothing: gl-upload.js)
+  // (JAYWALK FINAL: three's kept `_updateRange` reset itself to −1 after an upload, so a kind left EMPTY sent its WHOLE array every frame; an
+  //  empty kind now sends nothing — gl-upload.js, the same write, zero garbage)
   const upRange = uploadRange;
   /** THE TAIL LIGHT BAR: a thin red bar across a vehicle's rear, `vw` wide — it glows by night */
   function tailBar(x, y, z, vw, a) {
