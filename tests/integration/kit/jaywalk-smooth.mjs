@@ -117,7 +117,7 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
       const A = await frozen(SEASON_SCENES[lk], tier, true, lane), B = await frozen(SEASON_SCENES[lk], tier, false, lane);
       const ticks = tier === 2 && an === 'downtown' ? [2400, 2401, 2402, 2403, 2404, 2405] : [2400, 3100];
       let w = 0, big = 0;
-      for (const t of ticks) { const a = await grab(A, t), c = await grab(B, t), d = await diff(a, c); count++; if (d.pct > w) w = d.pct; if (d.big > big) big = d.big; if (out && t === ticks[0]) { const f = join(out, 'same', `${lk}-t${tier}-${an}.png`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(a, 'base64')); } }
+      for (const t of ticks) { const a = await grab(A, t), c = await grab(B, t), d = await diff(a, c); count++; if (d.pct > w) w = d.pct; if (d.big > big) big = d.big; if (out && (t === ticks[0] || process.env.SAME_ALL)) { const f = join(out, 'same', `${lk}-t${tier}-${an}${t === ticks[0] ? '' : `-${t}`}.png`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(a, 'base64')); } }
       if (w > worst) worst = w;
       ok(w < 0.01 || (w < 0.05 && big <= 3), `THE SAME PICTURE ${lk} tier ${tier} ${an}: ${ticks.length} frozen frames, at most ${w.toFixed(4)} % of pixels differ (largest difference ${big} / 255)`);
       errs.push(...A.errs, ...B.errs); await A.close(); await B.close();
