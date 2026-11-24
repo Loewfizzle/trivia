@@ -55,3 +55,17 @@ SMOOTH 3's one red: `e2e-jaywalk-match` on Dec 24, the third start (8d, right af
 **The runs (local, the Beelink, `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`):** Dec 24 **20 / 20 green** (108 / 108 each; the context retry in from run 5) + 4 more on Dec 24 + 2 after the fix below + today **5 / 5** (107 / 107). **The match-start timeout came back in none of 31 runs.**
 
 **One other red, found + fixed (a test race):** an extra Dec 24 run went red in "a ghost AWAY from you" and the four call / watch checks after it. BOB's bot was switched off on the first grass lane he stood on, which this time was the wall's own lane: he was out at once, before ALICE's phone could show his ghost behind her. He now stops on grass with 4+ lanes before the wall (the test hook's `wall`, waiting on state). 2 / 2 green after.
+
+## GROUP 3 — THE FINAL RUN (local, the Beelink, fresh emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`, one suite at a time)
+- unit **2,642 / 2,642** · `e2e-jaywalk` FAST today **122 / 122**, Dec 1 **123 / 123**, Dec 24 **123 / 123** (each with 8a, THE REFUSED CONTEXT; the final-screen memory guard inside) · `e2e-jaywalk-daily-run` **69 / 69** on all three · `e2e-jaywalk-match` Dec 1 **108 / 108** (today + Dec 24: the Group 2 runs above) · `e2e-daily` **153 / 153**
+- `jaywalk-lab.mjs` **108 / 108** · `--perf` 166 / 166 · `--j4perf` 32 / 32 · `--jt1perf` 24 / 24 · `--va=perf` 81 / 81 · `--vb1=perf` 216 / 216 · `--smooth=hud` 24 / 24 · `tiers` 3 / 3 · `season` 16 / 16 · `passes` 15 / 15 · `dec1` 18 / 18 · `first` (a report)
+- **THE SAME PICTURE** (`--smooth=same:noon+autumn+snowNight+golden --ab` the code before, on its own server): **56 frozen frames, 0.0000 % of pixels differ.**
+- smoke **24 / 24** · `/api` **76 / 76** · rules: not touched
+
+**The cost, measured:** SMOOTH 3's own cold-page check (`--smooth=first`, the tap 1.5 s after the page is up) now sees **1.3 BIG frames in play on Dec 24, worst 100 ms**, where SMOOTH 3 had 0 (it held the tap ~1–2 s instead). When the tap beats the shader links, the rest of the links now finish in play. That is the owner's call in this prompt ("start at once"); on a page left up a few seconds, nothing is left by the tap.
+
+## OPEN FOR BEN
+1. RE-PUBLISH: nothing (no rules change).
+2. **The phone check:** open each link FRESH, test straight away, three 10 S TESTs: the first 10 s should read about like the third (DROPS ~20–35, BIG ~0–3), and the first tap starts at once. If the first 10 s are still worse, what is left is beyond what the Beelink can show: JavaScriptCore's own warm-up or the GPU waking. The next step would then be to run the game's frame code on the start screen.
+3. **A match's first second** still has 2–4 BIG frames at GO (first-time JS at GO + one ~250 ms pause), the same on the old code. Not fixed: the next JAYWALK pass can run those code paths during the count.
+4. **SMOOTH 3's match-start red** did not come back in 31 runs. The gap found on its path (a refused WebGL context = a dead match screen) is fixed; if the red comes back, its log now says where the phone stood.
