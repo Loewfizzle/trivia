@@ -26,7 +26,7 @@ import { liveOf, finalPatch } from './director.js';
 import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
 import { wireControls } from './controls.js';
-import { createNight } from './night.js';
+import { createNight, START_HOLD_MS, START_HOLD_MAX } from './night.js';
 import { resolveTod, sunAt, sunOfStamp, lookChoice } from './daylook.js';
 import { seasonWindow, dayKeyIn } from './season-gate.js';
 import { turnDay } from '../../core/week.js';
@@ -130,7 +130,7 @@ export function createView() {
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
   // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
-  let glTries = 0, waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null;
+  let glTries = 0, waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null, tapAt = 0, heldMs = -1;
   let mergedSeen = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
@@ -276,7 +276,8 @@ export function createView() {
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
     // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js; THE CONSOLE FIX: the GO behind its answer)
-    stampT0(treePath(), 'jaywalk').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
+    // (JAYWALK FINAL — THE FIRST-TAP HOLD: the stamp at the tap as before; the GO behind it AND the scene's warm-up — START_HOLD_MS at most)
+    Promise.all([stampT0(treePath(), 'jaywalk'), startGate()]).then(() => { if (mode === 'wait' && m === matchId) { clearTimeout(goTimer); goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS); } return dbSet(dbRef(path), serverTimestamp()); }).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
       if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); }); }
@@ -376,10 +377,26 @@ export function createView() {
     if (D) { root.classList.add('is-veiled'); veilAt = 0; veilFrom = performance.now(); }
   }
   function hideStart() { if (startEl) { startEl.remove(); startEl = null; } if (root) root.classList.remove('is-waiting', 'is-veiled'); }
+  /** JAYWALK FINAL — THE FIRST-TAP HOLD: resolves once the scene owes no warm-up (night.js#startBusy) — the loaders' last steps only inside
+   *  START_HOLD_MS; a link still in flight past it shows GETTING READY and holds on, START_HOLD_MAX at most. The frames keep drawing (the still
+   *  screen warms them); a hidden page or a gone view lets go at once */
+  function startGate() {
+    const t0 = tapAt || performance.now();
+    let note = null;
+    return new Promise(res => {
+      const chk = () => {
+        const el = performance.now() - t0;
+        if (gone || !night || !night.startBusy || !night.startBusy(el < START_HOLD_MS) || el >= START_HOLD_MAX || document.visibilityState === 'hidden') { heldMs = Math.round(el); if (note) note.remove(); res(); return; }
+        if (!note && el >= START_HOLD_MS && root) { note = h('div.jw-start.is-ready', { 'aria-live': 'polite' }, h('div.jw-start-l', 'GETTING READY…')); root.append(note); }
+        setTimeout(chk, 16);
+      };
+      chk();
+    });
+  }
   /** the FIRST hop / tap / A: the run starts NOW — a solo run asks its GO (the stamp first), the daily opens its try; a hop is carried to tick 0 */
   function begin(d) {
     if (!waitTap || gone) return;
-    waitTap = false; hideStart();   // (SMOOTH 4: never held — the warm-up is the still screen's; what is left of it finishes in the background)
+    waitTap = false; hideStart(); tapAt = performance.now(); heldMs = -1;   // (JAYWALK FINAL: the words go at the tap; a warm-up still owed holds the GO ≤ START_HOLD_MS — askGo)
     if (d && !D) firstHop = d;
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
     sync();
@@ -686,7 +703,7 @@ export function createView() {
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;
-    if (waitTap && D) { if (now - veilAt < 500 && performance.now() - veilFrom > VEIL_WARM && !(night.stillBusy && night.stillBusy())) return; veilAt = now; }   // (SMOOTH 4: every frame while it warms + loads, then twice a second)
+    if (waitTap && D) { if (now - veilAt < 500 && performance.now() - veilFrom > VEIL_WARM && !(night.startBusy && night.startBusy())) return; veilAt = now; }   // (SMOOTH 4: every frame while it warms + loads, then twice a second · JAYWALK FINAL — Grok's P0-4: a warm-up OWED counts too — never parked behind the throttle)
     const t0 = performance.now(), g = st.game;
     let a = 0, c = null;
     if (isMatch && now - lastPump > 100) { lastPump = now; syncMatch(g); }
@@ -868,7 +885,7 @@ export function createView() {
       addEventListener('gamepadconnected', onPad);
       try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padOn(); } catch { /* no pads */ }
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, waiting: waitTap, veiled: !!root && root.classList.contains('is-veiled'), pad: !!offPad, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, x: run.x, y: run.y, wall: run.wall / FP, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, waiting: waitTap, heldMs, veiled: !!root && root.classList.contains('is-veiled'), pad: !!offPad, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, x: run.x, y: run.y, wall: run.wall / FP, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, merged: mergedSeen, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),

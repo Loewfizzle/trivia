@@ -62,6 +62,12 @@ const SUN_LAYER = 5, SUN_MAP = [1024, 2048], NO_DEPTH = [36096];   // (gl.DEPTH_
 /** VARIETY A — THE FOG CHECK: the fog bank's DARK palette (where white fog would vanish — white over snow by day) [ground, top, under, curtain] */
 const FOG_DARK = Object.freeze({ ground: [0.25, 0.27, 0.30], top: 0x4b5058, under: 0x2c3038, curtain: 0x353a42, wisp: 0x5a6068 });
 
+/** JAYWALK FINAL — THE FIRST-TAP HOLD (the owner, Nov 24): a first tap that beats the warm-up waits on the still screen, the tap remembered —
+ *  never a freeze mid-hop (startBusy; view.js#startGate — THE STAMP still at the tap, only the GO waits; the lab the same). START_HOLD_MS
+ *  silent (the loaders' last steps too); a shader link still in flight past it keeps the hold, a quiet GETTING READY line up, to
+ *  START_HOLD_MAX (the GO stays well inside the stamp's 5 s) */
+export const START_HOLD_MS = 500, START_HOLD_MAX = 2500;
+
 export function createNight(host, o = {}) {
   // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never …
   const RWN = o.rwNight === true;
@@ -1367,6 +1373,9 @@ export function createNight(host, o = {}) {
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0, stillBusy: () => stillGot > 0 || !!warmQ || warmStage > 0,
+    /** JAYWALK FINAL — THE FIRST-TAP HOLD: true while a warm-up is owed or running (links in flight, its draws, the loaders' last steps) — a
+     *  first tap then waits on the still screen (view.js#startGate, the lab the same: START_HOLD_MS at most), never a freeze mid-hop */
+    startBusy: (loads = true) => (needWarm && !!(w && h)) || warmLater || (loads && stillGot > 0) || !!warmQ || warmStage > 0,
     /** J4 — THE SEASON: prepSeason(s) starts THE SEASONAL PACK (in season only) · setSeason(s, { wet }) for the run starting now → what it applied */
     prepSeason, setSeason, season: () => ({ ...SZ, wet: wetOn ? SZ.wet : 0, pack: !!KM['w-pine'], sp: SP ? SP.info() : null }),
     /** JT1 — the pack's sounds (a leaf pile's crunch · the fireworks): fn(id) — the view plays them through its own sfx (the switches kept) */

@@ -289,8 +289,11 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
   // warm — SMOOTH 4 (WARM START): a fresh page's first 40 s of play, second by second (kit/jaywalk-warm.mjs; `--webkit` = Playwright WebKit's JavaScriptCore)
   if (what === 'warm' || what.startsWith('warm:')) { const W = await import('./jaywalk-warm.mjs'); await W.warmStart({ what, out, tag, abBase, chromium: process.argv[2], webkit: process.argv.includes('--webkit'), sleep, waitFor, errs }); return; }
   if (what === 'first' || what.startsWith('first:')) {
-    const [, r0, r1] = what.split(':'), reps = Number(r0) || 3, rate = Number(r1) || 4, SECS = 10;
-    const FIRST = { 'summer night': '&tod=night&weather=clear&date=2026-07-15', 'dec 24 heavy night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy', 'dec 24 heavy noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy' };
+    // (JAYWALK FINAL: `first:<reps>:<rate>:<tap ms>:<scene>+<scene>` — a FAST tap (e.g. 150 ms after the page is up) + the tap → first tick)
+    const [, r0, r1, r2, r3] = what.split(':'), reps = Number(r0) || 3, rate = Number(r1) || 4, TAP_MS = r2 ? Number(r2) : 1500, SECS = 10;
+    const ALL = { 'summer night': '&tod=night&weather=clear&date=2026-07-15', 'dec 24 heavy night': '&tod=night&weather=clear&date=2026-12-24&snow=heavy', 'dec 24 heavy noon': '&tod=noon&weather=clear&date=2026-12-24&snow=heavy', 'autumn noon': '&tod=noon&weather=clear&date=2026-11-23' };
+    const KEYS = { summerNight: 'summer night', dec24Night: 'dec 24 heavy night', dec24Noon: 'dec 24 heavy noon', autumnNoon: 'autumn noon' };
+    const FIRST = r3 ? Object.fromEntries(r3.split('+').map(k => [KEYS[k] || k, ALL[KEYS[k] || k]])) : { 'summer night': ALL['summer night'], 'dec 24 heavy night': ALL['dec 24 heavy night'], 'dec 24 heavy noon': ALL['dec 24 heavy noon'] };
     const spy = () => {
       const S = window.__first = { on: performance.now() || 1, hop: 0, fr: [], gl: [] }, P = WebGL2RenderingContext.prototype;
       const wrap = (name, size) => { const f = P[name]; P[name] = function (...a) { const t = performance.now(), r = f.apply(this, a), d = performance.now() - t; if (S.on) S.gl.push([name, Math.round(t - S.on), +d.toFixed(2), size ? size(a) : 0]); return r; }; };
@@ -324,27 +327,27 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
         const c = await p.createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate });
         await p.goto(guardUrl(`${base || process.env.E2E_BASE || 'http://localhost:5173'}/jaywalk-lab?emu&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${sq}`, 'jaywalk-lab'), { waitUntil: 'load' });
         await up(p);
-        await sleep(1500);
-        await p.evaluate(() => { const J = window.__jwLab, F = window.__first; J.bot(true); const w = setInterval(() => { if (J.state().t > 0) { F.hop = performance.now() - F.on; clearInterval(w); } }, 8); setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
+        await sleep(TAP_MS);
+        await p.evaluate(() => { const J = window.__jwLab, F = window.__first; F.tap = performance.now() - F.on; J.bot(true); const w = setInterval(() => { if (J.state().t > 0) { F.hop = performance.now() - F.on; clearInterval(w); } }, 8); setInterval(() => { if (J.state().over) J.restart('solo', 'perfseed7'); }, 150); });
         await waitFor(p, 'window.__first.hop > 0', 8000);   // (play = the run's first tick: the first tap waits for the warm-up)
         await sleep(8800);
-        r = await p.evaluate(() => { const F = window.__first, i = window.__jwLab.view.info(), end = F.hop + 8500; return { fr: F.fr.filter(x => x[0] <= end), inPlay: F.fr.filter(x => x[0] > F.hop && x[0] <= end).map(x => x[1]), gl: F.gl.filter(x => x[0] <= end), late: F.late.filter(x => x[0] > F.hop), pre: F.pre, held: i.warmHeld || 0, pack: !!window.__jwLab.view.season().pack }; });
+        r = await p.evaluate(() => { const F = window.__first, i = window.__jwLab.view.info(), end = F.hop + 8500; return { fr: F.fr.filter(x => x[0] <= end), inPlay: F.fr.filter(x => x[0] > F.hop && x[0] <= end).map(x => x[1]), gl: F.gl.filter(x => x[1] <= end), late: F.late.filter(x => x[0] > F.hop), pre: F.pre, held: i.warmHeld || 0, pack: !!window.__jwLab.view.season().pack, tapHop: F.hop - F.tap, startHeld: window.__jwLab.state().heldMs }; });
       } finally { await br.close(); }
       const dts = r.fr.map(x => x[1]), S = stutterOf(dts), sum = n => r.gl.filter(x => x[0] === n), kb = r.gl.filter(x => /^(bufferData|tex)/.test(x[0])).reduce((a, x) => a + x[3], 0) / 1024;
       const glMs = r.gl.reduce((a, x) => a + x[2], 0), worstGl = r.gl.reduce((w, x) => (x[2] > w[2] ? x : w), ['', 0, 0, 0]);
       const P = stutterOf(r.inPlay);
-      return { ...S, playN: P.n, playBig: P.big, playDrops: P.drops, playWorst: P.worst, held: r.held, late: r.late, pre: r.pre, links: sum('linkProgram').length, compiles: sum('compileShader').length, kb, glMs, worstGl, bigAt: r.fr.filter(x => x[1] > 33.4).map(x => `${(x[0] / 1000).toFixed(1)}s:${x[1].toFixed(0)}`).slice(0, 12).join(' ') };
+      return { ...S, playN: P.n, playBig: P.big, playDrops: P.drops, playWorst: P.worst, held: r.held, tapHop: r.tapHop, startHeld: r.startHeld, late: r.late, pre: r.pre, links: sum('linkProgram').length, compiles: sum('compileShader').length, kb, glMs, worstGl, bigAt: r.fr.filter(x => x[1] > 33.4).map(x => `${(x[0] / 1000).toFixed(1)}s:${x[1].toFixed(0)}`).slice(0, 12).join(' ') };
     };
-    const lines = ['| scene | code | worst frame from page load, ms | BIG from page load | BIG in play (first hop on) | worst in play, ms | pipelines first drawn in play |', '| --- | --- | --- | --- | --- | --- | --- |'];
+    const lines = [`(the tap ${TAP_MS} ms after the page is up, ${rate}× CPU, ${reps} new browsers a scene)`, '| scene | code | worst frame from page load, ms | BIG from page load | BIG in play (first hop on) | worst in play, ms | pipelines first drawn in play | tap → first tick, ms |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
     for (const [name, sq] of Object.entries(FIRST)) {
       const got = { before: [], after: [] };
       for (let rep = 0; rep < reps; rep++) for (const which of (abBase ? (rep % 2 ? ['after', 'before'] : ['before', 'after']) : ['after'])) {
         const R = await one(sq, which === 'before' ? abBase : null);
         got[which].push(R);
-        console.log(`     FIRST ${which} ${name} (run ${rep + 1}): ${stutterLine(R)} · links ${R.links} · uploads ${R.kb.toFixed(0)} KB · GL ${R.glMs.toFixed(0)} ms (worst ${R.worstGl[0]} ${R.worstGl[2]} ms at ${(R.worstGl[1] / 1000).toFixed(1)} s) · BIG at ${R.bigAt || '—'} · held ${R.held} · IN PLAY: ${R.playBig} big, worst ${R.playWorst.toFixed(0)} ms · pipelines first drawn in play ${R.late.length}`);
+        console.log(`     FIRST ${which} ${name} (run ${rep + 1}): ${stutterLine(R)} · links ${R.links} · uploads ${R.kb.toFixed(0)} KB · GL ${R.glMs.toFixed(0)} ms (worst ${R.worstGl[0]} ${R.worstGl[2]} ms at ${(R.worstGl[1] / 1000).toFixed(1)} s) · BIG at ${R.bigAt || '—'} · held ${R.held} · IN PLAY: ${R.playBig} big, worst ${R.playWorst.toFixed(0)} ms · pipelines first drawn in play ${R.late.length} · TAP → FIRST TICK ${R.tapHop.toFixed(0)} ms (held ${R.startHeld} ms)`);
         if (process.env.FIRST_LIST) for (const [t, k] of R.late) console.log(`        LATE ${(t / 1000).toFixed(2)} s  ${k}`);
       }
-      for (const which of ['before', 'after']) { const L = got[which]; if (!L.length) continue; const av = f => L.reduce((a, x) => a + x[f], 0) / L.length; lines.push(`| ${name} | ${which} | ${Math.max(...L.map(x => x.worst)).toFixed(0)} | ${av('big').toFixed(1)} | ${av('playBig').toFixed(1)} | ${Math.max(...L.map(x => x.playWorst)).toFixed(0)} | ${(L.reduce((c, x) => c + x.late.length, 0) / L.length).toFixed(1)} |`); }
+      for (const which of ['before', 'after']) { const L = got[which]; if (!L.length) continue; const av = f => L.reduce((a, x) => a + x[f], 0) / L.length; lines.push(`| ${name} | ${which} | ${Math.max(...L.map(x => x.worst)).toFixed(0)} | ${av('big').toFixed(1)} | ${av('playBig').toFixed(1)} | ${Math.max(...L.map(x => x.playWorst)).toFixed(0)} | ${(L.reduce((c, x) => c + x.late.length, 0) / L.length).toFixed(1)} | ${L.map(x => x.tapHop.toFixed(0)).join(' · ')} |`); }
     }
     console.log(lines.join('\n'));
     if (out) { const f = join(out, 'first', `first-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }

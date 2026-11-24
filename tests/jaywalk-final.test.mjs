@@ -47,3 +47,19 @@ test('GROUP 1 — THE BLOOM SPLIT: the glow\'s offscreen passes before the main 
   const fx = src('night-fx.js');
   assert.ok(fx.includes('render(scene, cam) { this.prepare(scene, cam); this.composite(); }'), 'the warm-up still draws the whole glow at once');
 });
+
+test('GROUP 2 — THE FIRST-TAP HOLD: the stamp at the tap, the GO behind the warm-up; silent ≤ 0.5 s, GETTING READY past it, 2.5 s at most', async () => {
+  const n = src('night.js'), v = src('view.js'), l = src('lab.js');
+  assert.match(n, /export const START_HOLD_MS = 500, START_HOLD_MAX = 2500;/);
+  assert.match(n, /startBusy: \(loads = true\) => \(needWarm && !!\(w && h\)\) \|\| warmLater \|\| \(loads && stillGot > 0\) \|\| !!warmQ \|\| warmStage > 0,/);
+  // THE STAMP: still the first write, started at the tap (askGo runs from begin → sync); only the GO waits for the gate
+  assert.ok(v.includes("Promise.all([stampT0(treePath(), 'jaywalk'), startGate()]).then(() => {") && v.includes('return dbSet(dbRef(path), serverTimestamp()); })'), 'the GO after the stamp AND the gate');
+  assert.ok(/waitTap = false; hideStart\(\); tapAt = performance\.now\(\);/.test(v), 'the tap is remembered at the tap');
+  assert.ok(/el >= START_HOLD_MAX/.test(v) && /night\.startBusy\(el < START_HOLD_MS\)/.test(v) && v.includes("'GETTING READY…'"), 'the game: the loaders only inside 0.5 s, a link past it holds on with a quiet line, 2.5 s at most');
+  assert.ok(/view\.startBusy\(el < START_HOLD_MS\) && el < START_HOLD_MAX/.test(l) && l.includes("mark.textContent = 'GETTING READY…'"), 'the lab the same');
+  // GO within the stamp's 5 s: the longest hold + the GO's own wait stay inside it
+  const { GO_WINDOW_MS } = await import('../js/core/proof.js');
+  assert.ok(2500 < GO_WINDOW_MS, `the hold (2.5 s) is inside the GO window (${GO_WINDOW_MS} ms)`);
+  // Grok's P0-4: the daily's veiled start never parks a warm-up behind its twice-a-second throttle
+  assert.ok(v.includes("!(night.startBusy && night.startBusy())) return; veilAt = now; }"), 'the veil throttle counts a warm-up owed');
+});

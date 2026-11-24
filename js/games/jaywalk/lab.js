@@ -78,7 +78,7 @@ async function mount() {
   if (Q.get('poster') === '1') { const P = await lazyImport(import('./poster.js'), './poster.js'); return P.mountPoster(app); }
   // THE NIGHT LOOK (H2 — night.js); `?gray=1` keeps H1's graybox for comparison (the same engine, the same camera — camera.js)
   const GRAY = Q.get('gray') === '1';
-  const [{ createGraybox, createNight }, { greedyBot }] = await Promise.all([
+  const [{ createGraybox, createNight, START_HOLD_MS = 500, START_HOLD_MAX = 2500 }, { greedyBot }] = await Promise.all([
     GRAY ? lazyImport(import('./graybox.js'), './graybox.js') : lazyImport(import('./night.js'), './night.js'), lazyImport(import('./bot.js'), './bot.js')]);
   let kidColor = '#00f0ff';
   try { const p = JSON.parse(localStorage.getItem('na:1:profile') || 'null'); const C = { cyan: '#00f0ff', magenta: '#ff2bd6', yellow: '#f3ff3a', green: '#3dff8b', orange: '#ff8c1a', violet: '#a66bff', red: '#ff3355', blue: '#3d7bff' }; if (p && C[p.color]) kidColor = C[p.color]; } catch { /* the default */ }
@@ -142,7 +142,7 @@ async function mount() {
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
   const FRIEND_Q = /^\d{1,2}$/.test(Q.get('friend') || '') ? Math.max(1, Number(Q.get('friend'))) : 0;
   const LANE_Q = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
-  let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
+  let steps = 0, slow = 0, warped = false, started = false, safe = false, tapAt = 0, heldMs = -1;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   /** J2 — the `k`th Blackbird runway from a lane (v2: 3–4 lanes, a jet each · v1: a band of 2 sharing one): { y0, n, period, tell, pass,
    *  trail, lanes: [{ phase, dir }] } | null */
   function runwayFrom(from = 0, k = 1) {
@@ -157,7 +157,7 @@ async function mount() {
     return null;
   }
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
-    mode = m; seed = s; course = createCourse(seed, { cv: CV }); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
+    mode = m; seed = s; course = createCourse(seed, { cv: CV }); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false; tapAt = 0;
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
@@ -220,7 +220,15 @@ async function mount() {
     if (document.visibilityState === 'hidden' || sheetOpen) return;   // (the SOUNDS sheet holds the run still)
     const t0 = performance.now();
     if (bot && shown && now - overAt > 600) restart();   // (the measure's bot plays on)
-    if (!started) { if (queue.length || bot) { started = true; mark.textContent = ''; } else acc = -dt; }   // (SMOOTH 4: the first touch is never held — as the game)
+    // (JAYWALK FINAL — THE FIRST-TAP HOLD, as the game: a first touch that beats the warm-up waits on the still screen ≤ START_HOLD_MS, remembered)
+    if (!started) {
+      if (queue.length || bot) {
+        if (!tapAt) tapAt = now;
+        const el = now - tapAt;
+        if (view.startBusy && view.startBusy(el < START_HOLD_MS) && el < START_HOLD_MAX) { acc = -dt; if (el >= START_HOLD_MS) mark.textContent = 'GETTING READY…'; }
+        else { started = true; heldMs = Math.round(el); mark.textContent = ''; }
+      } else acc = -dt;
+    }
     acc += dt;
     let n = 0;
     const held = () => frozen || (holdAt != null && run.st === 'hop' && run.k >= holdAt);   // (a look check: the kid held mid-hop for a shot)
@@ -253,7 +261,7 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, line: endT.textContent, hitBy: run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '', wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, line: endT.textContent, hitBy: run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '', wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, heldMs, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
     setCamera, setLook: pickLook, look: () => look, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
