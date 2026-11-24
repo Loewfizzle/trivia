@@ -17,6 +17,7 @@ import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFis
 import { hsh, strSeed, vehicleAt, plainAt } from './causes.js';
 import { VARIETY, STILL, createVariety, setWinterTraffic } from './variety.js';
 import { GRADE, gradeOf, lightsOf } from './daylook.js';
+import { uploadRange } from './gl-upload.js';
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7ff, 0xb8264a, 0x8a96a6];
@@ -105,7 +106,7 @@ export function createNight(host, o = {}) {
     if (cast) m.layers.enable(SUN_LAYER);
     scene.add(m); made.push({ m, g });
     const col = m.instanceColor.array;
-    let i = 0, vis = true, reach = 0;
+    let i = 0, vis = true, reach = 0, hid = false;
     if (cast) { if (!g.boundingSphere) g.computeBoundingSphere(); reach = g.boundingSphere.center.length() + g.boundingSphere.radius; }
     const q = {
       mesh: m,
@@ -134,7 +135,13 @@ export function createNight(host, o = {}) {
         if (ax) { const q = i * aux[1]; ax.array[q] = a0; if (aux[1] > 1) ax.array[q + 1] = a1; if (aux[1] > 2) { ax.array[q + 2] = a2; ax.array[q + 3] = a3; } }
         i++;
       },
-      done() { m.count = i; upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); },
+      // (JAYWALK FINAL — Grok's review: an EMPTY kind uploads nothing and is hidden — no program bound, no draw; only the emptiness this
+      //  kind hid is ever shown again here: a kind its owner hid (the pack's, until its quiet frame) stays hidden)
+      done() {
+        m.count = i;
+        if (i > 0) { if (hid) { hid = false; m.visible = true; } upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); }
+        else if (m.visible) { hid = true; m.visible = false; }
+      },
       left: () => n - i,
     };
     if (cast) casters.push(q);
@@ -142,7 +149,9 @@ export function createNight(host, o = {}) {
   }
   const UP = new THREE.Vector3(0, 1, 0);
   // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three …
-  const upRange = (a, cnt) => { const u = a._updateRange; if (u && cnt > 0) { u.offset = 0; u.count = cnt; } a.needsUpdate = true; };
+  // (JAYWALK FINAL: through three r160's own ranges — the old `_updateRange` reset itself to −1 after an upload, so a kind left EMPTY sent its
+  //  WHOLE array every frame; an empty kind now sends nothing: gl-upload.js)
+  const upRange = uploadRange;
   /** THE TAIL LIGHT BAR: a thin red bar across a vehicle's rear, `vw` wide — it glows by night */
   function tailBar(x, y, z, vw, a) {
     K.flat.put(x, y, z, vw, 1, day ? 0.09 + 0.05 * TL.cars : 0.15, Math.PI / 2, day ? (TL.cars > 0.3 ? 0xff2434 : 0xd81828) : 0xff2030, 1, 4, (day ? 1 : 1.3) * a);
@@ -1262,8 +1271,11 @@ export function createNight(host, o = {}) {
     if (sunReal) sunPass(camY); else if (SHD && tier < 2) sunFree();
     ground.uniforms.uShK.value = sunReal ? GR.sun * 0.9 * ease(sunF) : 0;
     if (shOff) ground.uniforms.uShK.value = 0;
+    // (JAYWALK FINAL — THE BLOOM SPLIT: the glow's offscreen passes first, then the canvas in ONE pass, its glow added right after)
+    const bloomNow = bloom && !day ? bloom : null;
+    if (bloomNow) bloomNow.prepare(scene, cam);
     renderer.render(scene, cam);
-    if (bloom && !day) bloom.render(scene, cam);
+    if (bloomNow) bloomNow.composite();
     if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW, snapR)); } catch { ask(null); } }
     if (ghosts) for (const g of ghosts) {
       if (!g.tag) continue;

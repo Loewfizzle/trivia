@@ -1,6 +1,7 @@
 // JAYWALK — THE NIGHT LOOK's SHADERS + small pieces (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the lanes' ground (ONE instanced plane a lane,
 // The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
+import { uploadRange } from './gl-upload.js';
 
 export const FOG_HEX = 0x0b0716;
 /** H5B — THE DAY LOOK's haze (the far lanes fade into it; the day skyline's water meets it) */
@@ -95,6 +96,11 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
   return c;
 }
 void main() {
+  // (JAYWALK FINAL — Grok's review: THE FOG EARLY-OUT. A pixel that ends as pure fog, or under the day's fog bank (its colour is all it keeps),
+  //  skips the ground's work. The same result: mix() at 0.9999+ is the fog colour to well under a step of 8 bits. The night's blackout keeps
+  //  the ground under it, so it stays as it is.)
+  if (vFog > 0.9999) { gl_FragColor = vec4(uFogCol, 1.0); return; }
+  if (uDay > 0.5 && uWall - (vLane + vP.y) > 3.4) { gl_FragColor = vec4(mix(uFogBank * 0.98, uFogCol, vFog), 1.0); return; }
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
   vec3 c; float sig = 0.0;   // (VARIETY A: a WARNING's own paint — the rails' red flash, the runway's racing chevrons — is never graded or clouded)
   if (type < 0.5 || type > 4.5) {
@@ -260,7 +266,7 @@ export function createGround(n, fog) {
     /** JT1 — THE SEASONAL PACK's ground (its GLSL in place of the stubs) · '' = back to the stubs */
     setSea(glsl) { const f = glsl ? GROUND_F.replace(SEA_STUB, glsl) : GROUND_F; if (mesh.material.fragmentShader !== f) { mesh.material.fragmentShader = f; mesh.material.needsUpdate = true; } },
     lay(k, i, t, dn, up, seed, dark, fx, ar = 0) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; kind[k * 4 + 2] = up; kind[k * 4 + 3] = seed; state[k * 3] = dark; state[k * 3 + 1] = fx; state[k * 3 + 2] = ar; },
-    done(c) { g.instanceCount = c; aL.needsUpdate = aK.needsUpdate = aS.needsUpdate = true; },
+    done(c) { g.instanceCount = c; uploadRange(aL, c); uploadRange(aK, c * 4); uploadRange(aS, c * 3); },   // (JAYWALK FINAL: only the lanes laid)
     dispose() { g.dispose(); base.dispose(); mesh.material.dispose(); },
   };
 }
@@ -451,8 +457,12 @@ export function createBloom(renderer) {
   const occOn = !(typeof location !== 'undefined' && /[?&]occ=0(?:&|$)/.test(location.search || ''));
   return {
     size(w, h) { a.setSize(Math.max(2, w >> 1), Math.max(2, h >> 1)); b.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); c.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); },
-    /** after the main picture: the SOLID scene as black depth (J1 — OCC_LAYER), the lights again (layer 1) depth-tested → blur → add */
-    render(scene, cam) {
+    /** the whole glow at once (the warm-up's) = prepare + composite */
+    render(scene, cam) { this.prepare(scene, cam); this.composite(); },
+    /** JAYWALK FINAL — THE BLOOM SPLIT (Grok's review): every offscreen pass BEFORE the main picture — the SOLID scene as black depth (J1 —
+     *  OCC_LAYER), the lights again (layer 1) depth-tested, the two blurs — so the canvas's own pass is never broken off for a target on a
+     *  tiled GPU; composite() then adds the glow right after the main picture */
+    prepare(scene, cam) {
       const bg = scene.background, auto = renderer.autoClear, over = scene.overrideMaterial;
       renderer.getClearColor(keep); const alpha = renderer.getClearAlpha();
       scene.background = null; renderer.setClearColor(black, 1);
@@ -466,6 +476,10 @@ export function createBloom(renderer) {
       blur.uniforms.tMap.value = a.texture; blur.uniforms.uStep.value.set(1 / b.width, 0); renderer.setRenderTarget(b); renderer.render(qs, qc);
       blur.uniforms.tMap.value = b.texture; blur.uniforms.uStep.value.set(0, 1 / c.height); renderer.setRenderTarget(c); renderer.render(qs, qc);
       renderer.setRenderTarget(null); renderer.setClearColor(keep, alpha);
+    },
+    /** the blurred lights ADDED over the canvas — right after the main picture */
+    composite() {
+      const auto = renderer.autoClear;
       quad.material = add; add.uniforms.tMap.value = c.texture;
       renderer.autoClear = false; renderer.render(qs, qc); renderer.autoClear = auto;
     },

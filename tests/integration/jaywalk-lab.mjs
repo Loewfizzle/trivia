@@ -27,6 +27,7 @@ import { looksH6A } from './kit/jaywalk-h6a.mjs';
 import { looksH6B } from './kit/jaywalk-h6b.mjs';
 import { looksPreflip, flashScan } from './kit/jaywalk-preflip.mjs';
 import { frameCheck } from './kit/frame-report.mjs';   // (SMOOTH — p95 · p99 · worst · dropped frames, with a budget, in every perf run)
+import { glCount, glReset, glRead, glLine } from './kit/gl-count.mjs';   // (JAYWALK FINAL — Grok's review: the GL calls a frame in every --perf row)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 import { callsMax } from '../../js/games/jaywalk/daylook.js';   // (VARIETY A — THE TIERS: the draw-call line per tier — 64 · 64 · 96)
@@ -1061,12 +1062,12 @@ try {
       const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=turned`);
       await up(o.p); await o.p.emulateCPUThrottling(rate);
       await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
-      await sleep(3000); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(15000);
-      const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), co: window.__jwLab.cost(), s: window.__jwLab.state() }));
+      await sleep(3000); await glCount(o.p); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(15000);
+      const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), co: window.__jwLab.cost(), s: window.__jwLab.state() })), gl = await glRead(o.p);
       await o.p.emulateCPUThrottling(1);
       const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length, co = f.co.slice().sort((a, c) => a - c);
-      const row = { tier, cpu: `${rate}×`, frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), over33: fr.filter(x => x > 33.4).length, calls: f.s.info.calls, tris: f.s.info.tris, canvas: `${f.s.info.w}×${f.s.info.h} @${f.s.info.dpr}`, bloom: f.s.info.bloom, workMedianMs: +co[co.length >> 1].toFixed(2), workP95Ms: +co[Math.floor(co.length * 0.95)].toFixed(2), workWorstMs: +co[co.length - 1].toFixed(1) };
-      console.log('PERF', JSON.stringify(row)); rows2.push(row);
+      const row = { tier, cpu: `${rate}×`, frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), over33: fr.filter(x => x > 33.4).length, calls: f.s.info.calls, tris: f.s.info.tris, canvas: `${f.s.info.w}×${f.s.info.h} @${f.s.info.dpr}`, bloom: f.s.info.bloom, workMedianMs: +co[co.length >> 1].toFixed(2), workP95Ms: +co[Math.floor(co.length * 0.95)].toFixed(2), workWorstMs: +co[co.length - 1].toFixed(1), gl };
+      console.log('PERF', JSON.stringify(row)); console.log(`     GL tier ${tier} ${rate}×: ${glLine(gl)}`); rows2.push(row);
       frameCheck(ok, `tier ${tier} pinned, ${rate}× CPU`, fr, rate > 4 ? null : undefined);
       ok(f.s.info.tier === tier && !o.errs.length, `tier ${tier} pinned (CPU ${rate}×): ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ${row.calls} calls · ${row.tris} tris · ${row.canvas}${row.bloom ? ' · bloom' : ''}`);
       await o.close();
@@ -1078,19 +1079,19 @@ try {
       const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&look=${look}`);
       await up(o.p); await o.p.emulateCPUThrottling(4);
       await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
-      await sleep(1500);
+      await sleep(1500); await glCount(o.p);
       const fr = [], calls = [], tris = [];
       for (const off of [2, 14, 26, 38]) {
         await o.p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'perfseed7'); J.bot(true); } J.warp(J.find('grass', l)); }, g + off);
-        await sleep(700); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(3600);
+        await sleep(700); await o.p.evaluate(() => window.__jwLab.clearFrames()); if (off === 2) await glReset(o.p); await sleep(3600);
         const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info, y: window.__jwLab.state().y }));
         fr.push(...f.fr); calls.push(f.i.calls); tris.push(f.i.tris);
       }
       await o.p.emulateCPUThrottling(1);
       fr.sort((a, c) => a - c);
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
-      const row = { area: name, look, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris) };
-      console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: `4× ${name} ${look}` });
+      const row = { area: name, look, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris), gl: await glRead(o.p) };
+      console.log('PERF', JSON.stringify(row)); console.log(`     GL ${name} ${look} tier ${tier}: ${glLine(row.gl)}`); rows2.push({ ...row, cpu: `4× ${name} ${look}` });
       frameCheck(ok, `${name} by ${look} tier ${tier}, 4× CPU`, fr);
       ok(row.fps >= 57 && !o.errs.length, `${name} BY ${look.toUpperCase()} at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ≤ ${row.calls} calls · ≤ ${row.tris} tris`);
       await o.close();

@@ -58,7 +58,7 @@ test('A VIEW ONLY: no rule file, no replay, no server file knows the look — th
 test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind; the tells stay bold (the rails flash red, the runway\'s chevrons race); THE FOG BANK where the blackout is; the lights that only glow are off, the ones that must read are paint; no bloom', () => {
   const fx = read('js/games/jaywalk/night-fx.js'), n = code('night.js');
   assert.match(fx, /#define DN\(n, d\) mix\(n, d, uDay\)/); assert.match(fx, /uDay: \{ value: 0 \}, uWall: \{ value: -99 \},/);   // (J4: + the season's uniforms after it)
-  const main = fx.slice(fx.indexOf('void main() {\n  float type = vKind.x'), fx.indexOf('gl_FragColor = vec4(c, 1.0);'));
+  const main = fx.slice(fx.indexOf('  float type = vKind.x, dn'), fx.indexOf('gl_FragColor = vec4(c, 1.0);'));
   for (const [kind, re] of [['grass', /c = mix\(DN\(vec3\(0\.064, 0\.192, 0\.092\), vec3\(/], ['the gate lane', /c = DN\(vec3\(0\.105, 0\.10, 0\.15\), vec3\(/], ['the road', /c = DN\(vec3\(0\.062, 0\.062, 0\.086\), vec3\(/], ['the water', /c = mix\(DN\(vec3\(0\.102, 0\.435, 0\.878\), vec3\(/], ['the rails', /c = DN\(vec3\(0\.088, 0\.078, 0\.09\), vec3\(/], ['the flight path', /c = DN\(vec3\(0\.088, 0\.086, 0\.104\), vec3\(/]]) assert.match(main, re, `${kind}: its night colour + its day colour`);
   // the day water: bright + saturated blue; the day road: a clean mid grey with white + yellow paint
   const w = /c = mix\(DN\(vec3\([\d., ]+\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\), DN\(vec3\([\d., ]+\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\), w \* w/.exec(main).slice(1).map(Number);
@@ -120,7 +120,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(n, /put0\(x \+ SUN\.x \* 0\.05, y, z \+ SUN\.z \* 0\.05, sx \* 0\.9, 1, sz \* 0\.9, ry, hex, k, a0, a \* \(VA \? 0\.98 : 0\.9\), rx, rz, a2, a3\);/, '… + a tight contact shadow under it');
   assert.match(n, /if \(!day\) \{ put0\(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, rx, rz, a2, a3\); return; \}/, 'by night: the one blob shadow, as before');
   assert.match(fx, /gl_FragColor = vec4\(vec3\(0\.03, 0\.07, 0\.17\) \* uDay, a \* vFx\.y \* \(1\.0 - vFog\)\);/, 'a day shadow is cool, never plain black');
-  assert.match(n, /if \(bloom && !day\) bloom\.render\(scene, cam\);/);
+  assert.match(n, /const bloomNow = bloom && !day \? bloom : null;/);   // (JAYWALK FINAL — THE BLOOM SPLIT: still never by day)
   // the gate by day: painted — never neon
   assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.flat\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 0\.05, zf \+ 0\.06, \(xr - xl\) \/ 10 \+ 0\.02, 1, 0\.38, 0, k % 2 \? wh : pc, 1, 4, 1\);/, 'a striped PAINTED line on the ground between the two posts (H6B: the raised crossbar is gone — nothing stands over a lane)');
   assert.match(n, /if \(day\) \{[^}]*c\.strokeText\(text, 0, 0\); c\.fillStyle = '#ffffff'; c\.fillText\(text, 0, 0\);/, 'the name: white paint, a dark edge');
@@ -183,7 +183,7 @@ test('BLUE ON THE GROUND = WATER, NOTHING ELSE: no gateway neon / paint, no line
   assert.match(flight, /c \+= \(vec3\(1\.0, 0\.66, 0\.14\) \* band/, 'the runway\'s tell is AMBER by night'); assert.doesNotMatch(flight, /vec3\(0\.20, 0\.55, 1\.0\)|vec3\(0\.05, 0\.12, 0\.34\)/);
   assert.doesNotMatch(fx, /vec3\(0\.6, 0\.9, 1\.0\)/, 'no cyan lane dashes on the road');
   // the only blue ground is the water: its lane's colours are the only blue-led base in the shader's main()
-  const main = fx.slice(fx.indexOf('void main() {\n  float type = vKind.x'), fx.indexOf('gl_FragColor = vec4(c, 1.0);'));
+  const main = fx.slice(fx.indexOf('  float type = vKind.x, dn'), fx.indexOf('gl_FragColor = vec4(c, 1.0);'));
   const bases = [...main.matchAll(/c = (?:mix\()?DN\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map(m => m.slice(1).map(Number));
   assert.equal(bases.filter(c => c[2] > c[0] * 1.6 && c[2] > c[1] * 1.3).length, 1, `one blue ground: the water (${bases.map(c => c.join(' ')).join(' | ')})`);
   // THE FRIEND LINE: neon pink, a tape a little above the ground between two posts at the play's edges; YOUR BEST stays the gold band

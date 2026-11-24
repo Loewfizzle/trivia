@@ -267,6 +267,25 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
 
   // first — SMOOTH 3 (WINTER WARM-UP): a FRESH page (empty cache) straight into a run, the first 10 s: every frame + every shader link, compile and GPU upload,
   // when it happened. `first:<reps>:<rate>`, `--ab <base>` = the code before, interleaved.
+  // gl — JAYWALK FINAL (Grok's review): the GL calls a frame (kit/gl-count.mjs) — bufferSubData + KB, draws, program switches — per look, tier 2,
+  // the bot playing DOWNTOWN + THE DOCKS; with `--ab <base>` the code before on its own server, side by side (`gl:<look>+<look>`)
+  if (what === 'gl' || what.startsWith('gl:')) {
+    const { glCount, glReset, glRead, glLine } = await import('./gl-count.mjs');
+    const looks = what.startsWith('gl:') ? what.slice(3).split('+') : ['noon', 'autumn', 'night', 'snowNight'], lines = ['| look | area | code | bufferSubData a frame | KB a frame | draws | useProgram |', '| --- | --- | --- | --- | --- | --- | --- |'];
+    for (const lk of looks) for (const [an, lane] of [['downtown', 252], ['docks', 60]]) for (const which of abBase ? ['before', 'after'] : ['after']) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&cv=2${SEASON_SCENES[lk]}`, which === 'before' ? { base: abBase } : {});
+      await up(o.p); if (/snow=|date=2026-1[12]/.test(SEASON_SCENES[lk])) await waitFor(o.p, seasonIn, 30000);
+      await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); J.warp(J.find('grass', l)); }, lane);
+      await sleep(2500); await glCount(o.p); await glReset(o.p); await sleep(5000);
+      const g = await glRead(o.p);
+      console.log(`     GL ${lk} ${an} ${which}: ${glLine(g)}`);
+      lines.push(`| ${lk} | ${an} | ${which} | ${g.sub} | ${g.subKB} | ${g.draws} | ${g.progs} |`);
+      errs.push(...o.errs); await o.close();
+    }
+    console.log(lines.join('\n'));
+    if (out) { const f = join(out, 'gl', `gl-${tag}.md`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, lines.join('\n') + '\n'); }
+    return;
+  }
   // warm — SMOOTH 4 (WARM START): a fresh page's first 40 s of play, second by second (kit/jaywalk-warm.mjs; `--webkit` = Playwright WebKit's JavaScriptCore)
   if (what === 'warm' || what.startsWith('warm:')) { const W = await import('./jaywalk-warm.mjs'); await W.warmStart({ what, out, tag, abBase, chromium: process.argv[2], webkit: process.argv.includes('--webkit'), sleep, waitFor, errs }); return; }
   if (what === 'first' || what.startsWith('first:')) {
