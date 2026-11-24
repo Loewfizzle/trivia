@@ -523,6 +523,16 @@ try {
   await P.close();
   await dropRunCards([pid]);
 
+  // ---- 8a. SMOOTH 4 — A CONTEXT THAT DID NOT START: the first two WebGL contexts refused (a busy GPU) → the view asks again and the run screen comes up
+  { const Q = await phone(`jwg${Date.now() % 100000}`), warns = [];
+    Q.p.on('console', m => { if (/the WebGL context did not start/.test(m.text())) warns.push(m.text()); });
+    await pidOf(Q);
+    await Q.ev('globalThis.__jwGlFail = 2');
+    await Q.ev("import('/js/host.js').then(m => m.playSolo('jaywalk'))");
+    const up = await Q.waitFor(`!!${G} && !!document.querySelector('.jw-game canvas.jw-canvas') && ${G}.state().waiting && !document.querySelector('.jw-nogl')`, 30000);
+    ok(up && warns.length === 2, `SMOOTH 4 — A REFUSED WebGL CONTEXT is asked again: the run screen up after ${warns.length} refusals (never a dead match screen)`);
+    await Q.close(); }
+
   // ---- 8b. THE DROPPED SIGNAL (H4 — `--drop`): a REAL offline gap mid-run — the phone's database line cut, the run played on, the
   // queued chunks landing together when it is back → the server's own replay counts the FULL honest run (never cut, never refused)
   if (DROP) {

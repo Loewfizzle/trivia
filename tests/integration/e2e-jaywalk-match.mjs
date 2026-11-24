@@ -337,8 +337,9 @@ try {
   await H.shot(pages[0], 'ghosts-3-two-seconds-in');
   // (H5C — the step's own race: BOB's bot was switched off wherever he stood — on a ROAD lane a car flattened him before ALICE was two
   //  lanes ahead, and Call the Winner's window had passed by the time the script looked. He now stops on a GROUND lane: he stands
-  //  until the wall takes him, as the step means)
-  await until(() => pages[1].evaluate(async () => { const J = window.__jwGame, s = J.state(), C = await import('/js/games/jaywalk/course.js'); if (s.st === 'idle' && C.createCourse(s.seed).lane(s.y).type === 'grass') { J.bot(false); return true; } return false; }), 20000, 40);
+  //  until the wall takes him, as the step means. SMOOTH 4: with 4+ lanes before the wall — on the wall's own lane he was out at once, before
+  //  ALICE's phone could show his ghost AWAY, and the call / watch checks after it went red with it: 1 run of 24)
+  await until(() => pages[1].evaluate(async () => { const J = window.__jwGame, s = J.state(), C = await import('/js/games/jaywalk/course.js'); if (s.st === 'idle' && s.y - s.wall >= 4 && C.createCourse(s.seed).lane(s.y).type === 'grass') { J.bot(false); return true; } return false; }), 20000, 40);
   await G(pages[1], 'window.__jwGame.bot(false)'); await G(pages[1], 'window.__jwGame.clearMerged()');   // (JT2: only a merge from here on counts)
   // H5B's add-on, in the real match: BOB stands still — on ALICE's phone his ghost falls behind her: AWAY from her, itself again, its
   // own tag "BOB"; on BOB's phone ALICE + CHARLIE hop on ahead on the same squares: ONE tag — the leader's name + "+1"

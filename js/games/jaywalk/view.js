@@ -53,7 +53,8 @@ export const GO_WAIT_MS = 4000;
 export const GO_EARLY_MS = 1800;
 /** the most ticks one frame catches up (a long stall is spread over a few frames; the rules never skip one) */
 const CATCH_UP = 900;
-const VEIL_WARM = 3000;   // (SMOOTH 4: the daily's veiled start draws every frame this long — warm frames of the real scene — then twice a second)
+const VEIL_WARM = 3000;
+const GL_TRIES = 4, GL_AGAIN_MS = 600;   // (SMOOTH 4: a scene whose WebGL context did not start is asked again — never a dead match screen for one refusal)   // (SMOOTH 4: the daily's veiled start draws every frame this long — warm frames of the real scene — then twice a second)
 const ZERO = Object.freeze([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 /** THE START (before the course is known): plain calm ground — what lanes 0–3 are on EVERY course */
 const START = Object.freeze({ seed: 'start', lane: i => ({ i, type: 'grass', heat: 0, mark: null, ufo: null, obs: ZERO }) });
@@ -129,7 +130,7 @@ export function createView() {
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
   // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
-  let waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null;
+  let glTries = 0, waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null;
   let mergedSeen = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
@@ -178,10 +179,15 @@ export function createView() {
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
+      if (TEST && !had && globalThis.__jwGlFail > 0) { globalThis.__jwGlFail--; throw new Error('test: the context did not start'); }   // (SMOOTH 4's E2E: a refused context)
       night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: ZOOM, angle: ANGLE, tier: tierMem(), look: lookNow() });
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
       look = lookNow(); night.setLook(look); root.dataset.look = look;
-    } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
+    } catch {   // (SMOOTH 4 — A CONTEXT THAT DID NOT START: a busy GPU can refuse one for a moment; mount() asks again, GL_TRIES in all, before this line stays)
+      night = null; console.warn(`game view: jaywalk — the WebGL context did not start (try ${glTries + 1} of ${GL_TRIES})`);
+      if (glTries + 1 >= GL_TRIES) root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).'));
+      return;
+    }
     night.setReveal(0, true); watchGL();
     try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
@@ -851,14 +857,18 @@ export function createView() {
       D = state.jwDaily || null; isMatch = !D && !!g && !soloGame(g);
       if (D) D.stop = () => { if (mode === 'run' && !isOver(run)) onOver(); };
       build(el);
-      if (!night) return;
+      if (!night) {
+        if (++glTries < GL_TRIES) setTimeout(() => { if (gone || night) return; if (arriveEl) { arriveEl.destroy(); arriveEl = null; } if (mom) { mom.destroy(); mom = null; } if (offSize) { offSize(); offSize = null; } this.mount(el, st); }, GL_AGAIN_MS);
+        else lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error('JAYWALK: no WebGL context after every try'), 'jaywalk')).catch(() => {});
+        return;
+      }
       reset();
       if (isMatch) root.classList.add('is-match');
       else if (!(performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000)) showStart();
       addEventListener('gamepadconnected', onPad);
       try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padOn(); } catch { /* no pads */ }
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, waiting: waitTap, veiled: !!root && root.classList.contains('is-veiled'), pad: !!offPad, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, x: run.x, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, waiting: waitTap, veiled: !!root && root.classList.contains('is-veiled'), pad: !!offPad, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, x: run.x, y: run.y, wall: run.wall / FP, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, merged: mergedSeen, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),

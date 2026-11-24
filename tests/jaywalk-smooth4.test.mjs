@@ -40,3 +40,11 @@ test('THE DAILY\'s veiled start draws every frame while it warms + loads, then t
   assert.match(view, /if \(now - veilAt < 500 && performance\.now\(\) - veilFrom > VEIL_WARM && !\(night\.stillBusy && night\.stillBusy\(\)\)\) return;/);
   assert.match(read('js/games/jaywalk/night.js'), /stillBusy: \(\) => stillGot > 0 \|\| !!warmQ \|\| warmStage > 0,/);
 });
+
+test('A CONTEXT THAT DID NOT START is asked again (GL_TRIES), never a dead match screen; the line only after the last try', () => {
+  const view = read('js/games/jaywalk/view.js');
+  assert.match(view, /const GL_TRIES = 4, GL_AGAIN_MS = 600;/);
+  assert.match(view, /if \(\+\+glTries < GL_TRIES\) setTimeout\(\(\) => \{ if \(gone \|\| night\) return;[^\n]*this\.mount\(el, st\); \}, GL_AGAIN_MS\);/);
+  assert.match(view, /if \(glTries \+ 1 >= GL_TRIES\) root\.append\(h\('p\.jw-nogl'/);
+  assert.match(view, /console\.warn\(`game view: jaywalk — the WebGL context did not start/);   // ("game view" = the E2E harness's warn pattern: a red says so)
+});
