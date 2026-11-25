@@ -230,5 +230,5 @@ test('THE INITIATE MESSAGE (game-options.js): a start that comes back false havi
   assert.match(g, /function saidNothing\(before\) \{ const now = msgNow\(\); if \(!now \|\| now === before\) toast\(COULDNT_START, 'err'\); \}/, 'only when host.js showed no message of its own (THE MESSAGE is one at a time)');
   assert.match(g, /if \(ok\) closeAllSheets\(\); else saidNothing\(before\);/);
   assert.match(g, /else \{ startBtn\.classList\.remove\('is-busy'\); startBtn\.firstChild\.textContent = 'INITIATE'; saidNothing\(before\); \}/);
-  assert.match(hst, /toast\('COULDN’T START — TAP PLAY AGAIN', 'err'\); if \(state\.code === room\) await leaveRoom\(\)\.catch\(\(\) => \{\}\);/, 'PLAY NOW: the same line before its leave');
+  assert.ok(hst.includes("if (state.code === room) { toast('COULDN’T START — TAP PLAY AGAIN', 'err'); await leaveRoom().catch(() => {}); }"), 'PLAY NOW: the same line before its leave — and ONLY while the phone is still in that start’s room (a start the player left was dropped, not failed: no red line over the next run — e2e-play-bounce quick on WebKit)');
 });

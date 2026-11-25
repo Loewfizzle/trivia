@@ -418,7 +418,8 @@ async function playSoloNow(gameId, settings) {
     const mine = () => state.code === room && !!state.game && state.game.id === gameId && state.game.matchId !== was;
     if (ok && !mine()) ok = state.code === room && await until(mine, 1500);
     if (!ok) {   // (THE PLAY BOUNCE: never a silent bounce — and a cartridge a deploy broke = the ONE reload now, the next tap plays)
-      toast('COULDN’T START — TAP PLAY AGAIN', 'err'); if (state.code === room) await leaveRoom().catch(() => {});
+      // (HIGH RISE PAD + GO — THE BOUNCE CHECK: a start whose room the player LEFT meanwhile was dropped, not failed — no message over the next run)
+      if (state.code === room) { toast('COULDN’T START — TAP PLAY AGAIN', 'err'); await leaveRoom().catch(() => {}); }
       if (!GAME_MODULES[gameId]) await reloadNowIfQueued().catch(() => false);
       return false;
     }

@@ -11,7 +11,9 @@
 //   quick     LAST MILE — THE REUSED START: PLAY NOW → the game → leave → PLAY NOW again inside 500 ms (inside the first start's ~2 s walk)
 //             → game:jaywalk:* in the NEW room, a NEW match — QUICK times in a row (red on the old code: the last room's start reused, no game
 //             written, the title in an orphan solo room)
-//   node tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--base http://localhost:5173] [--only bounce,newphone,deploy,quick] [--rounds 4] [--quick 10] [--latency ms]
+//   HIGH RISE PAD + GO: `--game highrise` runs bounce + quick for HIGH RISE (the fix is the console's — host.js: proven for the second proof game;
+//             newphone + deploy stay JAYWALK's: they patch its cartridge)
+//   node tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--base http://localhost:5173] [--only bounce,newphone,deploy,quick] [--game jaywalk|highrise] [--rounds 4] [--quick 10] [--latency ms]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -22,7 +24,8 @@ import { startLine } from './kit/line-proxy.mjs';
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
 const BASE = guardUrl(opt('base', 'http://localhost:5173'), 'e2e-play-bounce'), BROWSER = opt('browser', 'chromium');
-const ONLY = (opt('only', '') || '').split(',').filter(Boolean), ROUNDS = Number(opt('rounds', 4)), CPU = Number(opt('cpu', 4)), LAT = Number(opt('latency', 0));
+const GAME = opt('game', 'jaywalk') === 'highrise' ? 'highrise' : 'jaywalk', NAME = GAME === 'highrise' ? 'HIGH RISE' : 'JAYWALK';
+const ONLY = (opt('only', '') || (GAME === 'highrise' ? 'bounce,quick' : '')).split(',').filter(Boolean), ROUNDS = Number(opt('rounds', 4)), CPU = Number(opt('cpu', 4)), LAT = Number(opt('latency', 0));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const pw = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
 const browser = await pw[BROWSER].launch(BROWSER === 'chromium' ? { executablePath: process.env.CHROME || 'C:/Users/benja/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe', args: ['--mute-audio'] } : {});
@@ -69,7 +72,7 @@ async function tapPlayNow(P, game = 'jaywalk') {
 }
 // (a wake at the start's gate: host.js#justWoke — true for 30 s after any wake; the old code woke at every second room's first tick)
 const wakes = P => P.ev("import('/js/host.js').then(h => ({ woke: h.justWoke(), why: (h.wakeState() || {}).why || '' }))").catch(() => ({ woke: null }));
-const inGame = (P, ms = 30000) => P.waitFor(`${ROUTE}.startsWith('game:jaywalk') && !!(${S}.game && ${S}.game.id === 'jaywalk')`, ms);
+const inGame = (P, ms = 30000) => P.waitFor(`${ROUTE}.startsWith('game:${GAME}') && !!(${S}.game && ${S}.game.id === '${GAME}')`, ms);
 async function leave(P) {
   await P.ev('globalThis.__nsPlayNow && globalThis.__nsPlayNow.leave()').catch(() => {});
   return P.waitFor(`!${S}.code && ${ROUTE} === 'title'`, 20000);
@@ -82,11 +85,11 @@ try {
     for (let i = 1; i <= ROUNDS; i++) {
       const w0 = await wakes(P);
       const t0 = Date.now();
-      await tapPlayNow(P);
+      await tapPlayNow(P, GAME);
       const landed = await inGame(P, 30000);
       const w1 = await wakes(P), red = await P.red();
       if (!landed || red.length || w1.woke !== false) bounced++;
-      ok(landed && red.length === 0 && w1.woke === false && w0.woke === false, `try ${i}: PLAY NOW → JAYWALK landed on ${await P.ev(ROUTE)} in ${((Date.now() - t0) / 1000).toFixed(1)} s · red messages ${red.length ? JSON.stringify(red) : 'none'} · a wake at the gate: ${w1.woke}${w1.why ? ` (${w1.why})` : ''}`);
+      ok(landed && red.length === 0 && w1.woke === false && w0.woke === false, `try ${i}: PLAY NOW → ${NAME} landed on ${await P.ev(ROUTE)} in ${((Date.now() - t0) / 1000).toFixed(1)} s · red messages ${red.length ? JSON.stringify(red) : 'none'} · a wake at the gate: ${w1.woke}${w1.why ? ` (${w1.why})` : ''}`);
       if (landed) await sleep(2500);   // (into the run's own start — then out, as the nephew did)
       ok(await leave(P), `try ${i}: left → the city`);
       await sleep(6500);   // (past STALL_GAP_MS on the city: the old clock read this as a stall)
@@ -99,24 +102,24 @@ try {
     // (the start's promise is held through THE SOLO START's ~2 s walk — the game screen comes up as it ends — so the leave falls INSIDE the walk:
     //  the moment the match is written; then PLAY NOW's own call (title-taps.js: the card's solo tube → host.js#playSolo), no sheet in between)
     const P = await phone({ name: 'QUICK' }), N = Number(opt('quick', 10));
-    const PLAY = "import('/js/host.js').then(h => { window.__pbSolo = null; h.playSolo('jaywalk').then(v => { window.__pbSolo = v; }, () => { window.__pbSolo = 'threw'; }); return true; })";
+    const PLAY = `import('/js/host.js').then(h => { window.__pbSolo = null; h.playSolo('${GAME}').then(v => { window.__pbSolo = v; }, () => { window.__pbSolo = 'threw'; }); return true; })`;
     let good = 0;
     for (let i = 1; i <= N; i++) {
       const t0 = Date.now();
       await P.ev(PLAY);
-      const wrote = await P.waitFor(`!!${S}.code && !!(${S}.game && ${S}.game.id === 'jaywalk')`, 15000);
+      const wrote = await P.waitFor(`!!${S}.code && !!(${S}.game && ${S}.game.id === '${GAME}')`, 15000);
       const was = await P.ev(`({ code: ${S}.code, m: (${S}.game || {}).matchId || '' })`), tWrote = Date.now();
       await P.ev('globalThis.__nsPlayNow.leave().then(() => true)').catch(() => {});
       const out = await P.waitFor(`!${S}.code`, 8000), tLeft = Date.now();
       await P.ev(PLAY);
       const gap = Date.now() - tLeft;
-      const landed = await P.waitFor(`${ROUTE}.startsWith('game:jaywalk:') && !!${S}.code && ${S}.code !== ${JSON.stringify(was.code)} && !!(${S}.game && ${S}.game.id === 'jaywalk' && ${S}.game.matchId !== ${JSON.stringify(was.m)})`, 10000);
+      const landed = await P.waitFor(`${ROUTE}.startsWith('game:${GAME}:') && !!${S}.code && ${S}.code !== ${JSON.stringify(was.code)} && !!(${S}.game && ${S}.game.id === '${GAME}' && ${S}.game.matchId !== ${JSON.stringify(was.m)})`, 10000);
       const now = await P.ev(`({ route: ${ROUTE}, code: ${S}.code, m: (${S}.game || {}).matchId || '', solo: window.__pbSolo })`), red = await P.red();
       if (wrote && landed && !red.length) good++;
       ok(wrote && out && landed && gap <= 500 && red.length === 0, `quick ${i}: play (written ${tWrote - t0} ms) → left ${tLeft - tWrote} ms later → PLAY NOW again ${gap} ms after → ${now.route || 'the title'} · room ${was.code} → ${now.code || 'none'} · match ${now.m || 'NONE'} · playSolo → ${now.solo} · red ${red.length ? JSON.stringify(red) : 'none'}`);
       await leave(P);   // (out of the game — or out of the old code's orphan room — and straight into the next round)
     }
-    ok(good === N, `quick: ${good} of ${N} landed on game:jaywalk:* in a row`);
+    ok(good === N, `quick: ${good} of ${N} landed on game:${GAME}:* in a row`);
     ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
     await P.ctx.close();
   }
