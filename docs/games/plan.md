@@ -836,3 +836,7 @@
 - Grok code review (Nov 24) adopted: no uploads for empty kinds, fog early-out, the bloom split, a GL-call counter in --perf. Its &dpr / &suncast / &sunhz switches were declined; its three.min.js + immutable-cache boot wins went to the city chat (site-wide files).
 - The game never shows the scene before its final look (season, time of day, weather) is applied.
 - Every vehicle model faces its direction of travel (a test guards it).
+
+## JAYWALK — LAST MILE (Nov 24 2026 — the owner; the pass log: `docs/games/passes/jaywalk-lastmile.md`)
+- (Nov 24) LAST MILE, from Grok's front-to-back review (verified against the code). Adopted: the reused-start fix (host.js), tier switches only at quiet moments, the lighter match sync, the winter ground baked per lane, cheaper sun shadows (only if invisible), the GO + visibility guards, the crouch on touch. Declined: merging all props per area (big rebuild, modest gain), any DPR change (the owner's call stands).
+- The Nov 24 7:40 pm inbox entry for THE CITY POLISH PASS (the reused start) was LOST in the inbox cut; it's built here as Group 0.
