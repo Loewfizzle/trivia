@@ -840,3 +840,10 @@
 ## JAYWALK — LAST MILE (Nov 24 2026 — the owner; the pass log: `docs/games/passes/jaywalk-lastmile.md`)
 - (Nov 24) LAST MILE, from Grok's front-to-back review (verified against the code). Adopted: the reused-start fix (host.js), tier switches only at quiet moments, the lighter match sync, the winter ground baked per lane, cheaper sun shadows (only if invisible), the GO + visibility guards, the crouch on touch. Declined: merging all props per area (big rebuild, modest gain), any DPR change (the owner's call stands).
 - The Nov 24 7:40 pm inbox entry for THE CITY POLISH PASS (the reused start) was LOST in the inbox cut; it's built here as Group 0.
+
+## HIGH RISE PAD + GO (owner, Nov 24)
+- THE CONTROLLER in HIGH RISE (the shared kit, one wiring): A = the drop (= a tap; also TAP TO START + a held daily run's RESUME) · end cards: A = PLAY AGAIN / REMATCH, B = HOME / BACK TO THE ROOM (ui/final.js's marks) · B never acts mid-run · Start does NOTHING in HIGH RISE (no pause in solo / match; a daily hold is never spent by a button) · "🎮 CONNECTED" on the first press · lazy-loaded on the first gamepadconnected, never in the start bundle · metas.js CONTROLLER: true (the PLAY sheet's mark).
+- EXACT PAD TIMING: a pad drop is stamped at the press's own time (the Gamepad's timestamp, mapped to the run clock), not the frame it was noticed — a pad player is never a frame behind touch; the tick the engine logs is the same one the server replays.
+- THE SOLO GO: retries (the match's pattern, ~7 tries) over ~8–10 s instead of one 4 s wait; still no answer → the run says plainly it is NOT COUNTED (on screen during the run once it's known, and on the end card).
+- THE BOUNCE: fixed already (CITY POLISH stall clock + JAYWALK LAST MILE reused start) — this pass only proves it for HIGH RISE + adds the INITIATE message.
+- &dpr=2 + &stutter=1 on the test page only (lab); live defaults unchanged until Ben compares night + day on his iPhone.
