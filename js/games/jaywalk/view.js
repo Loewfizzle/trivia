@@ -3,7 +3,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
-import { createProofWriter } from '../kit/proof-writer.js';
+import { createProofWriter, goBehind } from '../kit/proof-writer.js';
 import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { colorHex } from '../../config.js';
@@ -196,7 +196,8 @@ export function createView() {
     if (!had && !isMatch) coverUntilLook();   // (JAYWALK FINAL — THE LOAD SNAP: a fresh scene shows once, in its final look)
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier(), stutter: true, quiet: () => quietNow });
-    offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
+    // (LAST MILE — THE CROUCH ON TOUCH: the kid squashes while a finger is down — visual only; the hop still fires on the release)
+    offControls = wireControls(play, { onHop: hop, onAny: nextFollow, onPress: on => { if (night) night.press(on && !watching && (waitTap || (mode === 'run' && !!run && !isOver(run)))); } });
     // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish …
     try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
@@ -277,7 +278,7 @@ export function createView() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false; cvAsked = false; cvMine = 0;
     newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset(); everProven = false;
-    cues = createCues(); quiet(); if (night) night.rest(false);
+    cues = createCues(); quiet(); if (night) night.rest(false); if (night) night.press(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
     // THE LINES: the best the server last told this phone at once; the table (the server's own, ONE call a run at most) right behind it
@@ -307,8 +308,11 @@ export function createView() {
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
     // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js; THE CONSOLE FIX: the GO behind its answer)
     // (JAYWALK FINAL — THE FIRST-TAP HOLD: the stamp at the tap as before; the GO behind it AND the scene's warm-up — START_HOLD_MS at most)
-    Promise.all([stampT0(treePath(), 'jaywalk'), startGate()]).then(() => { if (mode === 'wait' && m === matchId) { clearTimeout(goTimer); goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS); } return dbSet(dbRef(path), serverTimestamp()); }).then(() => dbGet(dbRef(path))).then(snap => {
-      if (gone || m !== matchId || mode !== 'wait') return;
+    // (LAST MILE — THE GO GUARD: no GO once the run stopped waiting — the player left, or it went unproven meanwhile — kit/proof-writer.js#goBehind)
+    goBehind({ stamp: () => stampT0(treePath(), 'jaywalk'), gate: startGate, waiting: () => !gone && m === matchId && mode === 'wait',
+      rearm() { clearTimeout(goTimer); goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS); },
+      write: () => dbSet(dbRef(path), serverTimestamp()), read: () => dbGet(dbRef(path)) }).then(snap => {
+      if (!snap || gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
       if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); }); }
       else unproven('no go');

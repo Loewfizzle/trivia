@@ -14,6 +14,8 @@ export const createView = lazyView(() => lazyImport(import('./view.js'), './view
 
 // THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop — …
 export const livePaths = g => ({ runs: `jw/${g.matchId}` });
+/** LAST MILE — THE LIGHTER MATCH SYNC: the tree grows by a chunk from every phone ~8 times a second — mirrored in place, never rebuilt whole */
+export const liveTrees = ['runs'];
 
 /** (a stand-in only: a SOLO run's course is picked AFTER its GO, a MATCH's after THE FIRST GO — logic.js#seedOf / matchStart — never this) */
 function newSeed() {

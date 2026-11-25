@@ -26,14 +26,22 @@ export function touchStory(x0, y0) {
   };
 }
 
-/** wire a play area: onHop(dir) for every hop, onAny() for any finished touch (the end screen's HOP AGAIN). → off() */
-export function wireControls(el, { onHop, onAny }) {
-  const touches = new Map();
+/** LAST MILE — THE CROUCH ON TOUCH (visual only): how many touches are still ARMED — down, and not yet spent on a hop. PURE. */
+export function pressCount() {
+  const armed = new Set();
+  return { down(id) { armed.add(id); return armed.size; }, spent(id) { armed.delete(id); return armed.size; }, n: () => armed.size };
+}
+
+/** wire a play area: onHop(dir) for every hop, onAny() for any finished touch (the end screen's HOP AGAIN), onPress(on) while a touch is
+ *  down and unspent (the kid's crouch — it ends when the touch fires its hop, lifts, or is cancelled). → off() */
+export function wireControls(el, { onHop, onAny, onPress }) {
+  const touches = new Map(), P = pressCount();
+  const press = n => { if (onPress) onPress(n > 0); };
   el.setAttribute('data-tap-own', '');
-  const down = e => { if (e.pointerType === 'mouse' && e.button !== 0) return; touches.set(e.pointerId, touchStory(e.clientX, e.clientY)); try { el.setPointerCapture(e.pointerId); } catch { /* fine */ } e.preventDefault(); };
-  const move = e => { const t = touches.get(e.pointerId); if (!t) return; const d = t.move(e.clientX, e.clientY); if (d) onHop(d); };
-  const up = e => { const t = touches.get(e.pointerId); if (!t) return; touches.delete(e.pointerId); const d = t.end(e.clientX, e.clientY); if (d) onHop(d); if (onAny) onAny(); e.preventDefault(); };
-  const cancel = e => { touches.delete(e.pointerId); };
+  const down = e => { if (e.pointerType === 'mouse' && e.button !== 0) return; touches.set(e.pointerId, touchStory(e.clientX, e.clientY)); press(P.down(e.pointerId)); try { el.setPointerCapture(e.pointerId); } catch { /* fine */ } e.preventDefault(); };
+  const move = e => { const t = touches.get(e.pointerId); if (!t) return; const d = t.move(e.clientX, e.clientY); if (d) { press(P.spent(e.pointerId)); onHop(d); } };
+  const up = e => { const t = touches.get(e.pointerId); if (!t) return; touches.delete(e.pointerId); press(P.spent(e.pointerId)); const d = t.end(e.clientX, e.clientY); if (d) onHop(d); if (onAny) onAny(); e.preventDefault(); };
+  const cancel = e => { touches.delete(e.pointerId); press(P.spent(e.pointerId)); };
   const no = e => e.preventDefault();
   const KEYS = { ArrowUp: 'u', ArrowLeft: 'l', ArrowRight: 'r', ArrowDown: 'd', w: 'u', a: 'l', d: 'r', s: 'd', ' ': 'u' };
   const key = e => { const d = KEYS[e.key]; if (!d || e.repeat) return; e.preventDefault(); onHop(d); if (onAny) onAny(); };

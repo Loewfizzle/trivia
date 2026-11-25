@@ -11,7 +11,7 @@
 //   JT1 — NEW YEAR'S: fireworks over the skyline (fireworks.js — fetched only on Dec 31 / Jan 1)
 import * as THREE from 'three';
 import { seasonOf, modelsDay, packDay } from './season.js';
-import { SEA_GLSL, seaPatch, createFall } from './seasonal-fx.js';
+import { SEA_GLSL, seaPatch, createFall, bakeHashTable } from './seasonal-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
 // ---- J4 — WINTER (moved from night.js VERBATIM): the sizes of the pack's models on the lane (native metres → cells)
@@ -59,12 +59,18 @@ function loadWinter(parseGlb) {
   return winterP;
 }
 
+/** LAST MILE — THE WINTER GROUND's HASH TABLE (seasonal-fx.js#bakeHashTable): built + OFF — the same picture here, its speed is the owner's
+ *  iPhone to judge (`&snowht=1` on the lab's Dec 24 link against the plain link); true = on for everyone */
+export const HASH_TABLE_LIVE = false;
+
 export function createSeasonal(A) {
   const { kind, K, KM, X, Z, COLS, hsh, reduce } = A;
   // the season's ground uniforms (J4 — the snow, THE LIGHTS: the ≤ 16 nearest the kid this frame — x + 4.5, lane y, strength + their colours,
   // the wet streets' streaks + the snow's catch-light · JT1 — autumn), added to the ground's own before its GLSL comes in
   const LIGHTS = { n: { value: 0 }, pos: Array.from({ length: 16 }, () => new THREE.Vector4()), col: Array.from({ length: 16 }, () => new THREE.Vector3()) };
   const U = { snow: { value: 0 }, aut: { value: 0 } };
+  let HT = null;
+  const HT_ON = HASH_TABLE_LIVE || (typeof location !== 'undefined' && /[?&]snowht=1(?:&|$)/.test(location.search || ''));
   Object.assign(A.ground.uniforms, { uSnow: U.snow, uAut: U.aut, uLN: LIGHTS.n, uL: { value: LIGHTS.pos }, uLC: { value: LIGHTS.col } });
   const LQ = { n: 0, x: new Float32Array(16), z: new Float32Array(16), k: new Float32Array(16), c: new Int32Array(16), p: new Float32Array(16) };
   let lkx = 0, lkz = 0;
@@ -97,7 +103,9 @@ export function createSeasonal(A) {
   function shadersOn() {
     if (shaders) return;
     shaders = true;
-    A.ground.setSea(SEA_GLSL);
+    // (LAST MILE — THE WINTER GROUND: the snow's noises through THE HASH TABLE where this phone can bake it — HASH_TABLE_LIVE, or `&snowht=1`: the A/B)
+    if (!HT && A.renderer && HT_ON) { HT = bakeHashTable(A.renderer); if (HT) A.ground.uniforms.uHashT = { value: HT.texture }; }
+    A.ground.setSea(HT ? SEA_GLSL.replace('//SEA{', '//SEA{\n#define JW_HT 1') : SEA_GLSL);
     for (const [m, leaf] of A.mats) seaPatch(m, U, leaf);
     A.rewarm();
   }
@@ -113,7 +121,7 @@ export function createSeasonal(A) {
       models = gs;
       KM['w-pine'] = kind(gs['snow-pine'], A.lambert(), 150); KM['w-xmas'] = kind(gs['xmas-tree'], A.lambert(), 60);
       KM['w-snowman'] = kind(gs.snowman, A.lambert(), 70);
-      for (const k of WK) KM[k].mesh.visible = false;   // (the review: hidden — nothing of theirs is built until the quiet frame shows them)
+      for (const k of WK) KM[k].show(false);   // (the review: hidden — nothing of theirs is built until the quiet frame shows them)
       seasonWarm = true;   // (their programs + buffers made at the next quiet frame — never mid-run)
       return true;
     });
@@ -209,7 +217,7 @@ export function createSeasonal(A) {
   function pileKind() {
     if (KP || !pileG) return KP;
     KP = KM['s-pile'] = kind(pileG, A.lambert(), PILE.max);   // (in KM: the scene resets + uploads it with its own kinds each frame)
-    KP.mesh.visible = false; seasonWarm = true;   // (warmed at a quiet frame with the rest)
+    KP.show(false); seasonWarm = true;   // (warmed at a quiet frame with the rest)
     return KP;
   }
   /** SMOOTH 3 — THE DEC 1 SWITCH: a page left open across the turn lets autumn's pile go (its draw, its buffers, its model) */
@@ -233,7 +241,7 @@ export function createSeasonal(A) {
   /** a QUIET moment (a run's start · its tick 0 · its end — never mid-run) brings in what came: the shaders, the kinds, the hats */
   function quiet() {
     if (SZ.any && !shaders) shadersOn();
-    if (seasonWarm) { seasonWarm = false; for (const k of WK) if (KM[k]) KM[k].mesh.visible = true; if (KP) KP.mesh.visible = true; A.rewarm(); }   // (J4 — the pack's kinds warmed at a quiet frame, never mid-run)
+    if (seasonWarm) { seasonWarm = false; for (const k of WK) if (KM[k]) KM[k].show(true); if (KP) KP.show(true); A.rewarm(); }   // (J4 — the pack's kinds warmed at a quiet frame, never mid-run)
     if (HG.want !== HG.on) hatsTo(HG.want);   // (the kid model landed after the start)
   }
 
@@ -372,7 +380,7 @@ export function createSeasonal(A) {
     rest(on) { resting = !!on; if (SKS) SKS.rest(on); if (on) { fall.show(0); prN = 0; burst.clear(); } if (FW) FW.rest(on); },
     info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, pileModel: !!pileG, xmas: KM['w-xmas'] ? KM['w-xmas'].mesh.count : 0, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null, skySnow: SKS ? SKS.info() : '' }),
     destroy() {
-      A.scene.remove(fall.mesh); fall.dispose(); U.snow.value = 0; U.aut.value = 0; LIGHTS.n.value = 0;
+      A.scene.remove(fall.mesh); fall.dispose(); U.snow.value = 0; U.aut.value = 0; LIGHTS.n.value = 0; if (HT) { HT.dispose(); HT = null; }
       for (const g of HG.made) g.dispose();
       HG.made = [];
       if (FW) FW.destroy();

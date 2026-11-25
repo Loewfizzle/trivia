@@ -216,11 +216,11 @@ test('`pipe` (JAYWALK\'s DAILY — its own node + rules): the old way, exactly �
 test('BOTH GAMES USE THE ONE WRITER — and the screens never write a chunk themselves; the kit\'s GO stamps the tree first', () => {
   const jw = read('js/games/jaywalk/view.js'), hr = read('js/games/highrise/view.js'), io = read('js/games/kit/proof-io.js'), wr = read('js/games/kit/proof-writer.js');
   for (const [name, v] of [['jaywalk', jw], ['highrise', hr]]) {
-    assert.ok(v.includes("import { createProofWriter } from '../kit/proof-writer.js';") && v.includes("import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';"), `${name}: the kit's writer`);
+    assert.ok(v.includes(name === 'jaywalk' ? "import { createProofWriter, goBehind } from '../kit/proof-writer.js';" : "import { createProofWriter } from '../kit/proof-writer.js';") && v.includes("import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';"), `${name}: the kit's writer`);
     assert.doesNotMatch(v, /\/c\/\$\{/, `${name}: no chunk path of its own`);
     assert.doesNotMatch(v, /dbUpdate|runTransaction/, `${name}: the end + the GO transaction are the kit's`);
     // (JAYWALK FINAL — THE FIRST-TAP HOLD: JAYWALK's solo GO waits for the stamp AND the scene's warm-up gate — the stamp still first, at the tap)
-    const soloGo = name === 'jaywalk' ? v.includes("Promise.all([stampT0(treePath(), 'jaywalk'), startGate()]).then(() => {") && v.includes('return dbSet(dbRef(path), serverTimestamp()); })') : v.includes(`stampT0(treePath(), '${name}').then(() => dbSet(dbRef(path), serverTimestamp()))`);
+    const soloGo = name === 'jaywalk' ? v.includes("goBehind({ stamp: () => stampT0(treePath(), 'jaywalk'), gate: startGate,") && v.includes('write: () => dbSet(dbRef(path), serverTimestamp()), read: () => dbGet(dbRef(path)) })') && wr.includes('return Promise.all([stamp(), gate()]).then(() => { if (!waiting()) return null; rearm(); return Promise.resolve(write()).then(read); });') : v.includes(`stampT0(treePath(), '${name}').then(() => dbSet(dbRef(path), serverTimestamp()))`);
     assert.ok(soloGo && v.includes(`writeMatchGo(treePath(), uid, '${name}', runs)`), `${name}: the stamp ahead of a solo GO; the kit's GO in a match`);
     assert.ok(v.includes('W.close();'), `${name}: the writer is closed with the view`);
   }

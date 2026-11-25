@@ -10,18 +10,28 @@ uniform float uSnow; uniform float uAut; uniform float uLN; uniform vec4 uL[16];
 // J4 — THE SNOW on a ground lane (uSnow: 0 none · a dusting → 1 full · the melt = patchy, the grass back): procedural (no texture), soft
 // drifts; DAY crisp white + STRONG BLUE SHADOWS in the drifts + along the banks (never white-on-white); NIGHT blue-lavender + a faint sparkle
 // (the neon / headlight pools are the glow quads' own light over it). bank = how near a road / water / rail edge (0 … 1).
+// LAST MILE — THE WINTER GROUND: the snow's five value noises (20 sin-hashes a pixel) read their lattice from THE HASH TABLE — hash() of every
+// lattice point they can reach, baked ONCE on the GPU by this same hash (bakeHashTable below: 256 × 256 half floats), a texel a corner. The
+// SAME noise (a half float keeps it to under 1 / 255 of the picture); a phone that can't bake it keeps the sin path (JW_HT undefined).
+#ifdef JW_HT
+uniform highp sampler2D uHashT;
+float hT(vec2 i) { return texelFetch(uHashT, clamp(ivec2(i) + ivec2(128, 8), ivec2(0), ivec2(255)), 0).r; }
+float snoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hT(i), hT(i + vec2(1.0, 0.0)), f.x), mix(hT(i + vec2(0.0, 1.0)), hT(i + vec2(1.0, 1.0)), f.x), f.y); }
+#else
+#define snoise vnoise
+#endif
 vec3 snowOn(vec3 c, float x, float lw, float bank, float k) {
   if (uSnow < 0.001) return c;
-  float n = 0.62 * vnoise(vec2(x * 0.55, lw * 0.7) + 11.0) + 0.38 * vnoise(vec2(x * 1.9, lw * 2.3) + 5.0);
+  float n = 0.62 * snoise(vec2(x * 0.55, lw * 0.7) + 11.0) + 0.38 * snoise(vec2(x * 1.9, lw * 2.3) + 5.0);
   float thr = 1.12 - uSnow * 1.18, cov = smoothstep(thr - 0.1, thr + 0.1, n) * k;
   float dust = uSnow * 0.35 * (0.5 + 0.5 * hash(floor(vec2(x * 22.0, lw * 22.0)))) * k;
-  float dr = vnoise(vec2(x * 0.5 + lw * 0.13, lw * 0.95) + 2.0), rip = vnoise(vec2(x * 2.6 - lw * 0.7, lw * 1.4));
-  float sas = smoothstep(0.2, 1.0, sin((x * 0.9 + lw * 2.4 + vnoise(vec2(x * 0.7, lw * 1.1)) * 3.5) * 3.1416)) * smoothstep(0.35, 0.7, dr);   // (wind ridges in the drifts)
+  float dr = snoise(vec2(x * 0.5 + lw * 0.13, lw * 0.95) + 2.0), rip = snoise(vec2(x * 2.6 - lw * 0.7, lw * 1.4));
+  float sas = smoothstep(0.2, 1.0, sin((x * 0.9 + lw * 2.4 + snoise(vec2(x * 0.7, lw * 1.1)) * 3.5) * 3.1416)) * smoothstep(0.35, 0.7, dr);   // (wind ridges in the drifts)
   vec3 lite = DN(vec3(0.40, 0.41, 0.60), vec3(0.975, 0.985, 1.0)), shad = DN(vec3(0.16, 0.17, 0.36), vec3(0.52, 0.64, 0.90));
   float sh = clamp((1.0 - smoothstep(0.22, 0.72, dr)) * 0.72 + bank * 1.05 + (rip - 0.5) * 0.2 + sas * 0.12, 0.0, 1.0);
   vec3 sn = mix(lite, shad, sh);
   sn *= 0.985 + 0.03 * hash(floor(vec2(x * 30.0, lw * 30.0)));
-  if (uQ > 0.5) {   // (the sparkle: a few tiny glints, twinkling gently — brighter by night)
+  if (uQ > 1.5) {   // (the sparkle: a few tiny glints, twinkling gently — brighter by night; LAST MILE: tier 2 only)
     vec2 gq = vec2(x * 34.0, lw * 34.0); float gh = hash(floor(gq) + 1.3);
     sn += vec3(1.0) * step(0.986, gh) * smoothstep(0.32, 0.0, length(fract(gq) - 0.5)) * (0.55 + 0.45 * sin(uTime * 2.2 + gh * 60.0)) * mix(0.55, 0.25, uDay) * cov;
   }
@@ -217,4 +227,27 @@ export function createFall(max, fog, LIGHTS) {
   const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: SNOW_V2, fragmentShader: SNOW_F, uniforms, transparent: true, depthWrite: false }));
   mesh.frustumCulled = false; mesh.renderOrder = 1.5; mesh.visible = false;   // (after the shadows, BEFORE every light: the lights draw over the snow)
   return { mesh, uniforms, show(n) { g.instanceCount = Math.min(max, n); mesh.visible = n > 0; }, dispose() { g.dispose(); base.dispose(); mesh.material.dispose(); } };
+}
+
+/**
+ * LAST MILE — THE HASH TABLE (the winter ground's — SEA_GLSL `JW_HT`): hash(i) for i.x −128 … 127, i.y −8 … 247 (every lattice point the
+ * snow's noises reach: x −18.5 … 27.5 cells, the ground's lane coordinate 0 … 101), drawn ONCE into a 256 × 256 half-float target by the
+ * ground's own hash — the same GPU, the same expression, so the same numbers. → { texture, dispose } | null (no half-float target here:
+ * the ground keeps its sin path).
+ */
+export function bakeHashTable(renderer) {
+  let rt = null;
+  try {
+    rt = new THREE.WebGLRenderTarget(256, 256, { type: THREE.HalfFloatType, format: THREE.RedFormat, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: false, generateMipmaps: false });
+    const mat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, vertexShader: 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: 'precision highp float;\nfloat hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\nvoid main() { gl_FragColor = vec4(hash(floor(gl_FragCoord.xy) - vec2(128.0, 8.0)), 0.0, 0.0, 1.0); }' });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat), sc = new THREE.Scene(), cam = new THREE.Camera();
+    quad.frustumCulled = false; sc.add(quad);
+    const was = renderer.getRenderTarget(), gl = renderer.getContext();
+    renderer.setRenderTarget(rt); renderer.render(sc, cam);
+    const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    renderer.setRenderTarget(was); quad.geometry.dispose(); mat.dispose();
+    if (!ok) { rt.dispose(); return null; }
+    return { texture: rt.texture, dispose() { rt.dispose(); } };
+  } catch { if (rt) rt.dispose(); return null; }
 }

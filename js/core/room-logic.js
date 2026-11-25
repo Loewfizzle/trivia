@@ -201,3 +201,37 @@ export const proofUnlocked = (tree, uid, now) => {
   const t0 = tree && typeof tree.t0 === 'number' ? tree.t0 : 0, go = t0 > 0 ? t0 : Number(tree && tree[uid] && tree[uid].go);
   return go > 0 && go < now - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS;
 };
+
+/** LAST MILE — THE LIGHTER MATCH SYNC (`liveTrees`): a proof tree mirrored IN PLACE — leaves re-read, `c` appended (its last two re-read);
+ *  anything odd = that player's `c` whole. Deep-equals `s.val() || {}` after every event. PURE — docs/games/passes/jaywalk-lastmile.md */
+export function mirrorTree(s, prev) {
+  if (!s || !s.exists()) return {};
+  if (typeof s.forEach !== 'function' || typeof s.child !== 'function') return s.val() || {};
+  const tree = prev && typeof prev === 'object' && !Array.isArray(prev) ? prev : {};
+  let n = 0;
+  s.forEach(us => {
+    n++;
+    const u = us.key;
+    if (!us.hasChildren()) { tree[u] = us.val(); return; }
+    let node = tree[u], k = 0;
+    if (!node || typeof node !== 'object' || Array.isArray(node)) node = tree[u] = {};
+    us.forEach(ch => {
+      k++;
+      if (ch.key !== 'c') { node[ch.key] = ch.val(); return; }
+      const have = node.c, size = ch.size;
+      if (Array.isArray(have) && size >= have.length && size > 0) {
+        let i = have.length > 2 ? have.length - 2 : 0;
+        for (; i < size; i++) { const x = ch.child(String(i)); if (!x.exists()) break; have[i] = x.val(); }
+        if (i === size) return;
+      }
+      node.c = ch.val();
+    });
+    let m = 0;
+    for (const key in node) m++;
+    if (m !== k) for (const key of Object.keys(node)) if (!us.hasChild(key)) delete node[key];
+  });
+  let m = 0;
+  for (const u in tree) m++;
+  if (m !== n) for (const u of Object.keys(tree)) if (!s.hasChild(u)) delete tree[u];
+  return tree;
+}

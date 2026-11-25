@@ -184,7 +184,7 @@ async function mount() {
   }
   const findLane = (kind, from = 0) => { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; };
   const hop = d => { if (!isOver(run) && queue.length < 2) queue.push(d); };
-  wireControls(play, { onHop: hop, onAny: () => { if (isOver(run) && shown && performance.now() - overAt > 300) restart(); } });
+  wireControls(play, { onPress: on => { if (view.press) view.press(on && !isOver(run)); }, onHop: hop, onAny: () => { if (isOver(run) && shown && performance.now() - overAt > 300) restart(); } });
 
   function tick() {
     let d = '';

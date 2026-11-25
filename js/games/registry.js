@@ -66,6 +66,9 @@ export function livePathsFor(game) {
   return paths;
 }
 
+const NO_TREES = Object.freeze([]);
+export const liveTreesFor = game => { const mod = game && GAME_MODULES[game.id]; return (mod && mod.liveTrees) || NO_TREES; };
+
 export function liveKeyFor(game) {
   const p = livePathsFor(game);
   return p ? `${game.id}|${JSON.stringify(p)}` : null;

@@ -119,3 +119,171 @@ test('QUIET TIERS: JAYWALK\'s view + lab opt in, tick on the final screen too; t
   assert.match(n, /sunFree\(\); SUN_MAT\.dispose\(\); if \(sunWarmRT\) sunWarmRT\.dispose\(\);/);
   assert.match(n, /const DPR_AT = \[1\.5, 2, 3\];/, 'DPR_AT unchanged (the owner\'s decision)');
 });
+
+// ---- GROUP 2 — THE LIGHTER MATCH SYNC (core/room-logic.js#mirrorTree)
+/** a DataSnapshot stand-in over plain JSON, with the SDK's `val()` (a list for dense integer keys) + a counter of how much `val()` built */
+function snapOf(v, key = null, cost = { leaves: 0 }) {
+  const isObj = v != null && typeof v === 'object';
+  const keys = isObj ? Object.keys(v).sort((a, b) => (/^\d+$/.test(a) && /^\d+$/.test(b) ? a - b : a < b ? -1 : 1)) : [];
+  const val = x => {
+    if (x == null || typeof x !== 'object') { cost.leaves++; return x; }
+    const ks = Object.keys(x), ints = ks.every(k => /^(0|[1-9]\d*)$/.test(k)), max = ints ? Math.max(...ks.map(Number)) : -1;
+    if (ints && ks.length && max < 2 * ks.length) { const a = []; for (const k of ks) a[Number(k)] = val(x[k]); return a; }
+    return Object.fromEntries(ks.map(k => [k, val(x[k])]));
+  };
+  return {
+    key, exists: () => v != null, val: () => (v == null ? null : val(v)), size: keys.length, hasChildren: () => keys.length > 0,
+    hasChild: k => isObj && v[k] != null, child: k => snapOf(isObj ? v[k] : null, k, cost),
+    forEach: fn => { for (const k of keys) fn(snapOf(v[k], k, cost)); },
+  };
+}
+test('THE LIGHTER MATCH SYNC: the mirror kept in place deep-equals `val()` after every event of a 4-player match — and builds a fraction of it', async () => {
+  const { mirrorTree } = await import('../js/core/room-logic.js');
+  const db = {}, cost = { leaves: 0 };
+  let mirror, total = 0, built = 0, events = 0;
+  const event = () => {
+    events++;
+    const before = cost.leaves; mirror = mirrorTree(snapOf(db, null, cost), mirror); built += cost.leaves - before;
+    const full = snapOf(db).val() || {};
+    assert.deepEqual(mirror, full, `event ${events}`);
+    const c2 = { leaves: 0 }; snapOf(db, null, c2).val(); total += c2.leaves;
+    return mirror;
+  };
+  assert.deepEqual(mirrorTree(snapOf(null), undefined), {}, 'no tree yet');
+  const uids = ['alice', 'bob', 'carl', 'dee'];
+  db.t0 = 1764000000000; event();                                   // the stamp: a plain leaf beside the players
+  for (const u of uids) { db[u] = { go: 1764000001000 }; event(); db[u].cv = 2; event(); }
+  const first = mirror;
+  for (let i = 0; i < 60; i++) for (const u of uids) {               // 60 chunks each, one event a chunk
+    (db[u].c ||= {})[i] = { s: `U${i.toString(36)}R${(i + 3).toString(36)}`, at: 1764000002000 + i * 120 + 7 };   // this phone's own: an estimated `at` first …
+    event();
+    if (u === 'alice') { db[u].c[i].at -= 7; event(); }              // … then the server's
+  }
+  assert.equal(mirror, first, 'the SAME object throughout (mirrored in place)');
+  assert.ok(Array.isArray(mirror.alice.c) && mirror.alice.c.length === 60, 'chunks as the SDK gives them: a list');
+  db.bob.e = { w: 'car', l: 31, t: 2400 }; db.bob.k = 'k1'; event();   // an end
+  // the odd cases fall back to that player's whole list: a hole (a chunk refused behind a later one), a chunk taken back, a node gone
+  db.carl.c[61] = { s: 'U1', at: 5 }; event();
+  delete db.carl.c[61]; event();
+  delete db.carl.c[59]; event();
+  delete db.dee.cv; event();
+  delete db.dee; event();
+  delete db.t0; event();
+  assert.ok(built < total / 6, `built ${built} values where rebuilding the whole tree each time builds ${total} (${(total / built).toFixed(0)}× less)`);
+  // a snapshot without the walk (a fake database in a preview): the old way
+  assert.deepEqual(mirrorTree({ exists: () => true, val: () => ({ a: 1 }) }, null), { a: 1 });
+});
+
+test('THE LIGHTER MATCH SYNC: only a cartridge\'s `liveTrees` are mirrored in place; the write side is untouched', () => {
+  const r = src('js/room.js'), ix = src('js/games/jaywalk/index.js'), reg = src('js/games/registry.js'), tu = src('js/games/jaywalk/tuning.js');
+  assert.match(ix, /export const liveTrees = \['runs'\];/);
+  assert.match(reg, /export const liveTreesFor = game => \{ const mod = game && GAME_MODULES\[game\.id\]; return \(mod && mod\.liveTrees\) \|\| NO_TREES; \};/);
+  assert.match(r, /const tree = trees\.includes\(name\);/);
+  assert.match(r, /if \(tree && !\(T && T\.old\)\) \{ try \{ live\[name\] = mirrorTree\(s, live\[name\]\); \} catch \{ live\[name\] = s\.val\(\) \|\| \{\}; \} \}\n      else live\[name\] = s\.val\(\) \|\| \{\};/, 'every other path: `val()` as before');
+  assert.match(tu, /flushMatchMs: 120\b/, 'flushMatchMs unchanged');
+  assert.doesNotMatch(src('js/games/highrise/index.js'), /liveTrees/, 'HIGH RISE keeps the old mirror');
+});
+
+// ---- GROUP 5 — SMALL GUARDS
+test('THE GO GUARD: a 2 s stamp + a 2.4 s start hold still adopt a PROVEN run; no GO is written once the run stopped waiting', async t => {
+  const { goBehind } = await import('../js/games/kit/proof-writer.js');
+  const GO_WAIT_MS = 4000;
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const later = (ms, v) => new Promise(r => setTimeout(() => r(v), ms));
+  /** the view's wiring around the helper (view.js#askGo): the no-answer timer from the ask, re-armed behind the gate */
+  const ask = ({ stampMs, holdMs, writeMs, leaveAt = -1 }) => {
+    const S = { mode: 'wait', gone: false, wrote: 0, adopted: null, unproven: '' };
+    let goTimer = setTimeout(() => { if (!S.gone && S.mode === 'wait') { S.mode = 'run'; S.unproven = 'no answer'; } }, GO_WAIT_MS);
+    if (leaveAt >= 0) setTimeout(() => { S.gone = true; }, leaveAt);
+    goBehind({ stamp: () => later(stampMs), gate: () => later(holdMs), waiting: () => !S.gone && S.mode === 'wait',
+      rearm() { clearTimeout(goTimer); goTimer = setTimeout(() => { if (!S.gone && S.mode === 'wait') { S.mode = 'run'; S.unproven = 'no answer'; } }, GO_WAIT_MS); },
+      write: () => { S.wrote++; return later(writeMs); }, read: () => ({ val: () => 1764000000000 }) })
+      .then(snap => { if (!snap || S.gone || S.mode !== 'wait') return; S.adopted = snap.val(); S.mode = 'run'; clearTimeout(goTimer); });
+    return S;
+  };
+  const run = async ms => { for (let i = 0; i < ms; i += 50) { t.mock.timers.tick(50); await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); } };
+  // the slow start: the stamp answers after 2 s, the hold lasts 2.4 s, the GO's own round trip 1.8 s — 4.2 s after the tap, past the first 4 s timer
+  const A = ask({ stampMs: 2000, holdMs: 2400, writeMs: 1800 });
+  await run(2300); assert.equal(A.wrote, 0, 'the GO waits for the stamp AND the hold');
+  await run(200); assert.equal(A.wrote, 1, 'the GO goes up behind both');
+  await run(2500);
+  assert.equal(A.adopted, 1764000000000, 'adopted — PROVEN'); assert.equal(A.unproven, '', 'never the no-answer line (the wait counts from the GO\'s own write)');
+  // the player left while the hold was in the air: NO stray GO
+  const B = ask({ stampMs: 2000, holdMs: 2400, writeMs: 100, leaveAt: 1000 });
+  await run(6000); assert.equal(B.wrote, 0, 'no GO after the player left'); assert.equal(B.adopted, null);
+  // the run went unproven meanwhile (a stamp that never answered inside the wait): no GO behind it either
+  const C = ask({ stampMs: 4500, holdMs: 100, writeMs: 100 });
+  await run(7000); assert.equal(C.unproven, 'no answer'); assert.equal(C.wrote, 0, 'no GO once mode !== wait');
+  t.mock.timers.reset();
+  const v = src('js/games/jaywalk/view.js');
+  assert.match(v, /goBehind\(\{ stamp: \(\) => stampT0\(treePath\(\), 'jaywalk'\), gate: startGate, waiting: \(\) => !gone && m === matchId && mode === 'wait',/);
+  assert.match(v, /if \(!snap \|\| gone \|\| m !== matchId \|\| mode !== 'wait'\) return;/);
+});
+
+test('THE VISIBILITY GUARD: done() re-shows only the emptiness it hid itself, and never once the owner set the visibility', async () => {
+  const { emptyHide } = await import('../js/games/jaywalk/gl-upload.js');
+  const m = { visible: true }; let hid = false;
+  hid = emptyHide(m, 0, hid); assert.deepEqual([m.visible, hid], [false, true], 'empty: hidden, the hide remembered');
+  hid = emptyHide(m, 3, hid); assert.deepEqual([m.visible, hid], [true, false], 'filled again: shown');
+  // the owner hides it (the pack, until its quiet frame) — instances put meanwhile never show it
+  hid = emptyHide(m, 0, hid); assert.equal(hid, true);
+  hid = false; m.visible = false;                                    // kind().show(false): the owner's call resets `hid`
+  hid = emptyHide(m, 5, hid); assert.deepEqual([m.visible, hid], [false, false], 'the owner\'s hide stays');
+  hid = emptyHide(m, 0, hid); assert.deepEqual([m.visible, hid], [false, false], 'an empty frame of an owner-hidden kind is not "its own hide"');
+  hid = emptyHide(m, 5, hid); assert.equal(m.visible, false);
+  hid = false; m.visible = true;                                     // kind().show(true)
+  hid = emptyHide(m, 0, hid); hid = emptyHide(m, 2, hid); assert.equal(m.visible, true, 'the usual cycle again');
+  // someone showed the mesh directly after done() hid it, then hid it again: the stale flag is dropped the moment it is seen shown
+  hid = emptyHide(m, 0, hid); assert.equal(hid, true);
+  m.visible = true; hid = emptyHide(m, 4, hid); assert.equal(hid, false);
+  m.visible = false; hid = emptyHide(m, 4, hid); assert.equal(m.visible, false, 'never re-shown on a stale flag');
+  const n = src('js/games/jaywalk/night.js'), se = src('js/games/jaywalk/seasonal.js');
+  assert.match(n, /show\(v\) \{ hid = false; m\.visible = !!v; \},/);
+  assert.doesNotMatch(se, /KM\[k\]\.mesh\.visible = |KP\.mesh\.visible = /, 'the pack sets its kinds\' visibility through show()');
+});
+
+// ---- GROUP 6 — THE CROUCH ON TOUCH
+test('THE CROUCH ON TOUCH: a press is on from the touch\'s start until it is spent (its hop fired, lifted, cancelled); visual only', async () => {
+  const { pressCount, touchStory } = await import('../js/games/jaywalk/controls.js');
+  const P = pressCount();
+  assert.equal(P.down(1), 1); assert.equal(P.spent(1), 0, 'a tap: down → up');
+  assert.equal(P.down(1), 1); assert.equal(P.down(2), 2); assert.equal(P.spent(2), 1, 'two fingers: the crouch holds while one is still armed'); assert.equal(P.spent(1), 0);
+  assert.equal(P.spent(9), 0, 'an unknown touch (a cancel after the hop fired) changes nothing');
+  // the hop still fires exactly as before: a tap on the release, a swipe at 18 px
+  const T = touchStory(100, 100); assert.equal(T.move(104, 103), null); assert.equal(T.end(104, 103), 'u');
+  const c = src('js/games/jaywalk/controls.js'), n = src('js/games/jaywalk/night.js'), v = src('js/games/jaywalk/view.js');
+  assert.match(c, /const down = e => \{[^\n]*press\(P\.down\(e\.pointerId\)\);/, 'the crouch starts at pointerdown');
+  assert.match(c, /const cancel = e => \{ touches\.delete\(e\.pointerId\); press\(P\.spent\(e\.pointerId\)\); \};/, 'a cancelled touch lets go');
+  assert.match(c, /if \(d\) \{ press\(P\.spent\(e\.pointerId\)\); onHop\(d\); \}/, 'a swipe that fired its hop is spent');
+  assert.match(n, /const want = pressOn && !reduce && run\.st === 'idle' && \(!o \|\| o\.own !== false\) \? 1 : 0;/, 'the player\'s own standing kid only; never with reduce motion');
+  assert.match(n, /if \(crouch && run\.st !== 'hop'\) sy \*= 1 - CROUCH \* crouch;/, 'a scale on the drawn kid — the run, the log and the replay never see it');
+  assert.doesNotMatch(src('js/games/jaywalk/engine.js') + src('js/games/jaywalk/replay.js'), /crouch|press/i);
+  assert.match(v, /onPress: on => \{ if \(night\) night\.press\(/);
+});
+
+// ---- GROUP 3 — THE WINTER GROUND · GROUP 4 — SUN SHADOWS
+test('THE WINTER GROUND: the sparkle is tier 2\'s; THE HASH TABLE is built + OFF (the same picture here — its speed is the iPhone\'s to judge)', () => {
+  const fx = src('js/games/jaywalk/seasonal-fx.js'), se = src('js/games/jaywalk/seasonal.js'), n = src('js/games/jaywalk/night.js'), nf = src('js/games/jaywalk/night-fx.js');
+  assert.match(fx, /if \(uQ > 1\.5\) \{   \/\/ \(the sparkle:/, 'the snow\'s sparkle: tier 2 only');
+  assert.match(n, /ground\.uniforms\.uQ\.value = tier;/, 'uQ carries the tier (0 · 1 · 2)');
+  assert.match(nf, /if \(uQ > 0\.5\) \{/, '… and the ground\'s own tier ≥ 1 check reads it as before');
+  // the table: the SAME hash expression in the bake and in the ground, the snow's five noises through it only when JW_HT is defined
+  const hash = 'fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)';
+  assert.ok(nf.includes(`float hash(vec2 p) { return ${hash}; }`) && fx.includes(`float hash(vec2 p) { return ${hash}; }`), 'one hash, to the letter');
+  assert.match(fx, /#ifdef JW_HT\nuniform highp sampler2D uHashT;\nfloat hT\(vec2 i\) \{ return texelFetch\(uHashT, clamp\(ivec2\(i\) \+ ivec2\(128, 8\), ivec2\(0\), ivec2\(255\)\), 0\)\.r; \}/);
+  assert.match(fx, /#else\n#define snoise vnoise\n#endif/, 'without the table: the sin path, to the letter');
+  assert.equal([...fx.slice(fx.indexOf('vec3 snowOn('), fx.indexOf('// J4 — WET NEON STREETS')).matchAll(/snoise\(/g)].length, 5, 'the snow\'s five noises');
+  assert.match(fx, /hash\(floor\(gl_FragCoord\.xy\) - vec2\(128\.0, 8\.0\)\)/, 'the bake\'s offset = the lookup\'s');
+  assert.match(fx, /if \(!ok\) \{ rt\.dispose\(\); return null; \}/, 'no half-float target: the ground keeps its sin path');
+  assert.match(se, /export const HASH_TABLE_LIVE = false;/);
+  assert.match(se, /const HT_ON = HASH_TABLE_LIVE \|\| \(typeof location !== 'undefined' && \/\[\?&\]snowht=1\(\?:&\|\$\)\/\.test\(location\.search \|\| ''\)\);/);
+  assert.match(se, /A\.ground\.setSea\(HT \? SEA_GLSL\.replace\('\/\/SEA\{', '\/\/SEA\{\\n#define JW_HT 1'\) : SEA_GLSL\);/);
+  // the wet-road loop is untouched (wet roads are off)
+  assert.match(fx, /float mot = vnoise\(vec2\(x \* 1\.6, ly \* 0\.9\)\) \* 0\.6 \+ 0\.4 \* vnoise\(vec2\(x \* 5\.0, ly \* 3\.0\)\);/);
+});
+
+test('SUN SHADOWS: nothing kept — the map is 1024 × 2048, drawn every frame (a 512 map moved ~1 % of pixels; a half-rate map lags a moving car)', () => {
+  const n = src('js/games/jaywalk/night.js');
+  assert.match(n, /const SUN_LAYER = 5, SUN_MAP = \[1024, 2048\], NO_DEPTH = \[36096\];/);
+  assert.match(n, /if \(sunReal\) sunPass\(camY\); else if \(SHD && tier < 2\) sunFree\(\);/, 'every frame the sun is real');
+});

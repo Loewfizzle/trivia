@@ -54,7 +54,7 @@ let tickCode = null;
 function syncStallClock() {
   if (state.code === tickCode) return;
   tickCode = state.code; lastTickWall = 0; hiddenAt = 0;
-  starting.drop(state.code);   // (LAST MILE — THE REUSED START: a start is its own room's)
+  starting.drop(state.code);
   if (wake && wake.code !== state.code) { wake = null; wokeAt = 0; }
 }
 export const justWoke = () => wokeAt > 0 && Date.now() - wokeAt < WAKE_QUIET_MS;
@@ -307,7 +307,7 @@ export function onlineCount() {
 // twice — two stamps, two start()s, two whole matches a second apart (every phone mounted match 1 then remounted match 2). Every caller (the
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
-// (LAST MILE — THE REUSED START: the promise is THIS ROOM's — core/room-show.js#startLock; a leave + a new room code drop it)
+// (LAST MILE — THE REUSED START: this room's only — room-show.js#startLock)
 const starting = startLock();
 onRoomLeft(() => starting.drop());
 // THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): the moment THIS phone moved the room on
@@ -414,7 +414,7 @@ async function playSoloNow(gameId, settings) {
     const meta = metaOf(gameId) || await loadGame(gameId).catch(() => null);
     const room = state.code, was = state.game && state.game.matchId;
     let ok = await startGame(gameId, soloSettings(meta, settings), { solo: true });   // (PD-6: the button's mode, cleaned for one player)
-    // (LAST MILE — THE REUSED START: a start counts only as THIS room's NEW match on screen — never a `true` with no game: the title in an orphan room)
+    // (LAST MILE: only THIS room's NEW match counts as started)
     const mine = () => state.code === room && !!state.game && state.game.id === gameId && state.game.matchId !== was;
     if (ok && !mine()) ok = state.code === room && await until(mine, 1500);
     if (!ok) {   // (THE PLAY BOUNCE: never a silent bounce — and a cartridge a deploy broke = the ONE reload now, the next tap plays)

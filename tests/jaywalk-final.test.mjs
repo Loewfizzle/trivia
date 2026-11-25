@@ -36,8 +36,9 @@ test('GROUP 1 — the kinds: an empty kind is hidden + uploads nothing; only the
   const n = src('night.js'), done = /done\(\) \{\n([\s\S]*?)\n      \},/.exec(n);
   assert.ok(done, 'kind().done() found');
   const body = done[1];
-  assert.match(body, /if \(i > 0\) \{ if \(hid\) \{ hid = false; m\.visible = true; \} upRange\(m\.instanceMatrix, i \* 16\); upRange\(m\.instanceColor, i \* 3\); if \(ax\) upRange\(ax, i \* aux\[1\]\); \}/);
-  assert.match(body, /else if \(m\.visible\) \{ hid = true; m\.visible = false; \}/);
+  // (LAST MILE: the hide / show step is gl-upload.js#emptyHide — tests/jaywalk-lastmile.test.mjs drives it)
+  assert.match(body, /hid = emptyHide\(m, i, hid\);/);
+  assert.match(body, /if \(i > 0\) \{ upRange\(m\.instanceMatrix, i \* 16\); upRange\(m\.instanceColor, i \* 3\); if \(ax\) upRange\(ax, i \* aux\[1\]\); \}/);
   assert.ok(n.includes('const upRange = uploadRange;') && !n.includes('a._updateRange'), 'no more three\'s deprecated _updateRange (it reset to −1: a whole-array upload)');
   assert.ok(src('night-fx.js').includes('done(c) { g.instanceCount = c; uploadRange(aL, c); uploadRange(aK, c * 4); uploadRange(aS, c * 3); }'), 'the ground sends only the lanes laid');
 });
@@ -64,7 +65,10 @@ test('GROUP 2 — THE FIRST-TAP HOLD: the stamp at the tap, the GO behind the wa
   assert.match(n, /export const START_HOLD_MS = 500, START_HOLD_MAX = 2500;/);
   assert.match(n, /startBusy: \(loads = true\) => \(needWarm && !!\(w && h\)\) \|\| warmLater \|\| \(loads && stillGot > 0\) \|\| !!warmQ \|\| warmStage > 0,/);
   // THE STAMP: still the first write, started at the tap (askGo runs from begin → sync); only the GO waits for the gate
-  assert.ok(v.includes("Promise.all([stampT0(treePath(), 'jaywalk'), startGate()]).then(() => {") && v.includes('return dbSet(dbRef(path), serverTimestamp()); })'), 'the GO after the stamp AND the gate');
+  // (LAST MILE — THE GO GUARD: the same order through kit/proof-writer.js#goBehind — the stamp + the gate, THEN the GO, only while still waiting)
+  const pw = readFileSync(new URL('../js/games/kit/proof-writer.js', import.meta.url), 'utf8');
+  assert.ok(v.includes("goBehind({ stamp: () => stampT0(treePath(), 'jaywalk'), gate: startGate,") && v.includes('write: () => dbSet(dbRef(path), serverTimestamp()),')
+    && pw.includes('return Promise.all([stamp(), gate()]).then(() => { if (!waiting()) return null; rearm(); return Promise.resolve(write()).then(read); });'), 'the GO after the stamp AND the gate');
   assert.ok(/waitTap = false; hideStart\(\); tapAt = performance\.now\(\);/.test(v), 'the tap is remembered at the tap');
   assert.ok(/el >= START_HOLD_MAX/.test(v) && /night\.startBusy\(el < START_HOLD_MS\)/.test(v) && v.includes("'GETTING READY…'"), 'the game: the loaders only inside 0.5 s, a link past it holds on with a quiet line, 2.5 s at most');
   assert.ok(/view\.startBusy\(el < START_HOLD_MS\) && el < START_HOLD_MAX/.test(l) && l.includes("mark.textContent = 'GETTING READY…'"), 'the lab the same');

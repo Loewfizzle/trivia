@@ -223,7 +223,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
 
 test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read back before the course is built; the chunks stamped by the server; the run on the server\'s clock; never a phone\'s clock or a claim', () => {
   const v = read('js/games/jaywalk/view.js').replace(/^\s*\/\/[^\n]*$/gm, '');
-  assert.match(v, /return dbSet\(dbRef\(path\), serverTimestamp\(\)\); \}\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO written as the server\'s time, then READ BACK (JAYWALK FINAL: after the stamp + the first-tap hold)');
+  assert.match(v, /write: \(\) => dbSet\(dbRef\(path\), serverTimestamp\(\)\), read: \(\) => dbGet\(dbRef\(path\)\) \}\)\.then\(snap => \{/, 'GO written as the server\'s time, then READ BACK (JAYWALK FINAL: after the stamp + the first-tap hold)');
   assert.match(v, /const seed = ds \|\| isProof \? ds \|\| seedOf\(code, matchId, go\) :/, 'the course from GO (THE DAILY: the day\'s seed from its START — DAILY B)');
   assert.match(v, /course = START;/, 'THE START stands until it lands'); assert.match(v, /night\.setReveal\(0, true\)/); assert.match(v, /night\.setReveal\(1\)/);
   // (THE PROOF PASS: the chunks + the end go up through THE PROOF WRITER — kit/proof-writer.js + proof-io.js, HIGH RISE's too)

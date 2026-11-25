@@ -4,13 +4,13 @@ import {
   runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode, loadQueue } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode, ROOM_SIDE_NODES } from './core/room-logic.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode, ROOM_SIDE_NODES, mirrorTree } from './core/room-logic.js';
 import { MAX_PLAYERS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
 import { hostSeed } from './audio/lobby-music.js';
 import { toast } from './ui/toast.js';
-import { livePathsFor, liveKeyFor, onGameLoaded } from './games/registry.js';
+import { livePathsFor, liveKeyFor, liveTreesFor, onGameLoaded } from './games/registry.js';
 import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict, myPid } from './seat.js';
@@ -408,14 +408,19 @@ function watchLive(code, game) {
   liveUnsubs = [];
   setState({ live: {}, liveKey: null });
   if (!key) return;
-  const paths = livePathsFor(game);
+  const paths = livePathsFor(game), trees = liveTreesFor(game);
   const live = {};
   const loaded = new Set();
   for (const [name, path] of Object.entries(paths)) {
+    const tree = trees.includes(name);   // (LAST MILE: a proof tree is mirrored in place — room-logic.js#mirrorTree)
     // (a path starting with '/' is absolute — THE SEAL's envelopes, outside rooms/)
     liveUnsubs.push(onValue(dbRef(path.startsWith('/') ? path.slice(1) : `${R(code)}/${path}`), s => {
       if (state.code !== code || liveWanted !== key) return;
-      live[name] = s.val() || {};
+      // (`__nsLiveStat` = the E2E's measure; `old` = the whole tree rebuilt)
+      const T = globalThis.__nsLiveStat, t0 = T ? performance.now() : 0;
+      if (tree && !(T && T.old)) { try { live[name] = mirrorTree(s, live[name]); } catch { live[name] = s.val() || {}; } }
+      else live[name] = s.val() || {};
+      if (T) { T.ms += performance.now() - t0; T.n++; }
       loaded.add(name);
       setState({ live: { ...live }, liveKey: loaded.size === Object.keys(paths).length ? key : null });
     }));
@@ -487,7 +492,7 @@ function stopListening() {
 // SPEED PASS B — HOW this phone left its last room: { code, how: 'leave' | 'lost' | 'kick' | 'closed' } (the city: only a LEAVE waves goodbye;
 // screens/room-city.js reads it as the room's figures go) · leavingCode: a leave in flight (its own players event is not a disconnect)
 let lastExit = null, leavingCode = null;
-// (LAST MILE — THE REUSED START: host.js drops its start-in-flight when this phone leaves a room — a hook: host.js imports this file)
+// (LAST MILE: host.js drops its start-in-flight at a leave)
 let roomLeft = null;
 export const onRoomLeft = fn => { roomLeft = fn; };
 export const exitHow = () => lastExit;

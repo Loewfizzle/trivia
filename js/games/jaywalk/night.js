@@ -17,7 +17,7 @@ import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFis
 import { hsh, strSeed, vehicleAt, plainAt } from './causes.js';
 import { VARIETY, STILL, createVariety, setWinterTraffic } from './variety.js';
 import { GRADE, gradeOf, lightsOf } from './daylook.js';
-import { uploadRange } from './gl-upload.js';
+import { uploadRange, emptyHide } from './gl-upload.js';
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xf1eee8, 0xff8a3d, 0x2fd6a0, 0xc9a7ff, 0xb8264a, 0x8a96a6];
@@ -145,9 +145,11 @@ export function createNight(host, o = {}) {
       //  kind hid is ever shown again here: a kind its owner hid (the pack's, until its quiet frame) stays hidden)
       done() {
         m.count = i;
-        if (i > 0) { if (hid) { hid = false; m.visible = true; } upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); }
-        else if (m.visible) { hid = true; m.visible = false; }
+        hid = emptyHide(m, i, hid);   // (LAST MILE: only a hide still this kind's own is undone — gl-upload.js)
+        if (i > 0) { upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); }
       },
+      /** its OWNER sets the visibility (the pack hides its kinds until their quiet frame): from here an empty frame's hide is no longer undone */
+      show(v) { hid = false; m.visible = !!v; },
       left: () => n - i,
     };
     if (cast) casters.push(q);
@@ -251,7 +253,7 @@ export function createNight(host, o = {}) {
   // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models …
   let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null, winterT = false;
   const SPAPI = {
-    scene, kind, unkind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
+    scene, renderer, kind, unkind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
     lambert: () => lambert(), ground: null, part: (...a) => part(...a),
     kid: () => (KM.kid ? { kid: KM.kid, ghosts: KM.ghosts } : null), sky: () => skyImg, course: () => courseRef, area, dead: () => dead, rewarm() { needWarm = true; },
     sound: id => { if (onSound) { try { onSound(id); } catch { /* audio is polish */ } } },
@@ -570,7 +572,7 @@ export function createNight(host, o = {}) {
   ro.observe(host);
   function setTier(t) {
     tier = t < 0 ? 0 : t > 2 ? 2 : t | 0;
-    ground.uniforms.uQ.value = tier > 0 ? 1 : 0;
+    ground.uniforms.uQ.value = tier;   // (0 · 1 · 2 — the ground's `uQ > 0.5` checks as ever; LAST MILE: the snow's sparkle asks for 2)
     if (tier === 2 && !bloom && !resting) { try { bloom = bloomKeep || (bloomKeep = createBloom(renderer)); } catch { bloom = null; } }
     if (tier < 2) bloomPark();
     fit(true);
@@ -619,6 +621,10 @@ export function createNight(host, o = {}) {
 
   const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0, endT: -1, after: 0 };
   let clock = 0, kidH = 0;
+  // LAST MILE — THE CROUCH ON TOUCH (visual only — no rule, no replay reads it): a finger down squashes the kid (eased in ~45 ms), a lift fires the
+  // hop as ever (its own first frame is the same squash), a cancelled touch eases him back up (~110 ms); never with reduce motion
+  const CROUCH = 0.15;
+  let pressOn = false, crouch = 0;
   // (SMOOTH 2 — THE POOL: a particle's record is reused, every optional field written each time: a burst makes no garbage)
   const partFree = [], NO_PART = Object.freeze({});
   const part = (kindOf, x, y, z, life, a = NO_PART) => { if (fx.parts.length >= 60) return; const q = partFree.pop() || {}; q.k = kindOf; q.x = x; q.y = y; q.z = z; q.t0 = clock; q.life = life; q.hex = a.hex; q.vx = a.vx; q.vy = a.vy; q.vz = a.vz; q.r0 = a.r0; q.r1 = a.r1; q.sz = a.sz; q.al = a.al; q.g = a.g; q.sh = a.sh; fx.parts.push(q); };
@@ -913,6 +919,9 @@ export function createNight(host, o = {}) {
     if (run.st === 'hop') { sy = 1 + 0.2 * Math.sin(Math.PI * f) - 0.17 * Math.exp(-f * 13); tilt = 0.3 * Math.sin(Math.PI * f); }
     else if (since < 150) sy = 1 - 0.2 * (1 - since / 150) * (1 - since / 150);
     else if (!reduce) sy = 1 + 0.022 * Math.sin(clock / 270);
+    { const want = pressOn && !reduce && run.st === 'idle' && (!o || o.own !== false) ? 1 : 0;
+      crouch += (want - crouch) * (1 - Math.exp(-dt / (want ? 18 : 45))); if (crouch < 0.002) crouch = 0;
+      if (crouch && run.st !== 'hop') sy *= 1 - CROUCH * crouch; }
     if (hopDir) fx.dir = hopDir;
     if (fx.seen) yawT = fx.dir === 'l' ? Math.PI / 2 : fx.dir === 'r' ? -Math.PI / 2 : fx.dir === 'd' ? Math.PI : 0;
     let dy = yawT - fx.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
@@ -1418,7 +1427,9 @@ export function createNight(host, o = {}) {
       part('ring', kidPos.x, 0.06, Z(lane + 0.93), 520, { hex: LINE_HEX[k], r0: 0.3, r1: k === 'best' ? 2.6 : 1.6 });
     },
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
-    resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
+    /** LAST MILE — THE CROUCH ON TOUCH: a finger is down (and unspent) on the play area */
+    press(on) { pressOn = !!on; },
+    resetKid() { crouch = 0; fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     /** JAYWALK FINAL — THE LOAD SNAP: the scene under its look's haze until its final look is in · a late look eased in (a still screen's) */
     cover, covered: () => covered, fadeLook,
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier, warming: () => !!warmQ || warmStage > 0, stillBusy: () => stillGot > 0 || !!warmQ || warmStage > 0,

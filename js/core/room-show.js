@@ -29,14 +29,12 @@ export const START_MS = START.full.len;
 export const startKind = m => (typeof m !== 'string' ? 'full' : m[0] === 'q' ? 'quick' : m[0] === 's' ? 'solo' : m[0] === 'r' ? 'inplace' : 'full');
 export const startOf = m => START[startKind(m)];
 /** a new match id: 'q…' the ring's rematch · 's…' a solo room's start · 'r…' THE REMATCH IN PLACE (CITY G) · else never a leading q / s / r */
-/** LAST MILE — THE REUSED START (Nov 24): ONE START AT A TIME is THIS ROOM's. The start in flight (+ its walk inside, `lenOf()` ms after it
- *  resolved) is reused only for the SAME room code — play → leave → play inside ~2 s got the LAST room's `true` and wrote no game. PURE. */
+/** LAST MILE — THE REUSED START: the start in flight (+ its walk, `lenOf()` ms) is reused only for the SAME room code. PURE. */
 export function startLock(later = setTimeout) {
   let cur = null;
   return {
     of: code => (cur && cur.code === code ? cur.p : null),
     hold(code, p, lenOf) { const s = { code, p }; cur = s; p.then(ok => later(() => { if (cur === s) cur = null; }, ok ? lenOf() : 0), () => { if (cur === s) cur = null; }); return p; },
-    /** a leave (no code given) · the room code moved (a start for another code goes) */
     drop(code) { if (cur && (code === undefined || cur.code !== code)) cur = null; },
   };
 }

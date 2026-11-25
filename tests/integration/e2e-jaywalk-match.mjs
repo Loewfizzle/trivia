@@ -425,6 +425,11 @@ try {
   }
   await G(pages[0], 'window.__jwGame.bot(false)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final .final'), `${NAMES[i]}: the podium`, 60000));
+  // (LAST MILE — THE LIGHTER MATCH SYNC: every phone's mirror of the proof tree — appended chunk by chunk through the whole match — IS the database's tree)
+  { const norm = v => (v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x != null).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, norm(x)])) : v);
+    const m0 = (await G(host, 'window.__arcade.state.game.matchId')), want = JSON.stringify(norm(await dbGet(`rooms/${code}/jw/${m0}`)));
+    const got = await all(N, p => p.evaluate(() => JSON.stringify(window.__arcade.state.live.runs)));
+    got.forEach((j, i) => ok(JSON.stringify(norm(JSON.parse(j))) === want, `THE LIGHTER MATCH SYNC: ${NAMES[i]}'s mirror of the proof tree = the database's (${j.length} chars, chunks ${Object.values(JSON.parse(j)).map(n => (n.c ? Object.keys(n.c).length : 0)).join(' · ')})`)); }
   await sleep(3200);
   const fin = await evalIn(host, s => s.game), nodes = await dbGet(`rooms/${code}/jw/${m}`);
   const rank = Object.entries(fin.results).sort((a, b) => b[1].l - a[1].l || a[1].t - b[1].t).map(([u]) => u);
@@ -708,6 +713,16 @@ try {
       log('PERF', JSON.stringify({ tier, fps: +r.fps.toFixed(1), frame: +r.avg.toFixed(1), p95: +r.p95.toFixed(1), worst: +r.worst.toFixed(1), work: +r.work.toFixed(2), calls: r.calls, dpr: r.dpr, ghosts: r.ghosts }));
       ok(r.tier === tier && r.n > 150 && r.fps > 50, `4 players (3 ghosts), 4× CPU, tier ${tier} (@${r.dpr}): ${r.fps.toFixed(1)} fps · ${r.avg.toFixed(1)} ms a frame (p95 ${r.p95.toFixed(1)}, worst ${r.worst.toFixed(1)}) · ${r.work.toFixed(2)} ms of work · ${r.calls} draw calls`);
     }
+    // (LAST MILE — THE LIGHTER MATCH SYNC: the proof tree's listener on the host's phone, 4 players flushing ~8 times a second each, 4× CPU —
+    //  the whole tree rebuilt on every chunk (as before: `old`) against the mirror kept in place; the same page, the same match, the tree still growing)
+    await G(host, 'window.__jwGame.setTier(2)');
+    for (const old of [true, false]) {
+      await host.evaluate(o => { window.__nsLiveStat = { ms: 0, n: 0, old: o }; }, old);
+      await sleep(8000);
+      const r = await host.evaluate(() => { const T = window.__nsLiveStat, runs = window.__arcade.state.live.runs || {}; return { ms: T.ms, n: T.n, kb: JSON.stringify(runs).length / 1024, chunks: Object.values(runs).reduce((a, n) => a + (n.c ? Object.keys(n.c).length : 0), 0), live: Object.values(runs).filter(n => n.e == null).length }; });
+      log('LIVE SYNC', JSON.stringify({ way: old ? 'the whole tree (before)' : 'in place (after)', msPerSec: +(r.ms / 8).toFixed(2), eventsPerSec: +(r.n / 8).toFixed(1), msPerEvent: +(r.ms / Math.max(1, r.n)).toFixed(3), treeKB: +r.kb.toFixed(1), chunks: r.chunks, stillRunning: r.live }));
+    }
+    await host.evaluate(() => { delete window.__nsLiveStat; });
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   }
   }   // (the 3-phone flow — not with --eight)

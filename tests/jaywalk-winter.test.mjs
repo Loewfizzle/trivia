@@ -97,7 +97,7 @@ test('THE SEASONAL PACK: its own folder (≤ 150 KB), never in JAYWALK\'s preloa
   assert.match(P, /if \(modelsDay\(s\)\) ps\.push\(loadModels\(\)\);/, 'the winter models only on a winter / Christmas day');
   assert.match(P, /if \(modelsDay\(s\) && !models\) s = \{ \.\.\.s, winter: 0, christmas: 0,/, 'the models not in by the run\'s start = that run\'s normal winter look (no swap mid-run)');
   assert.match(N, /if \(SP && \(run\.t === 0 \|\| run\.st === 'out' \|\| run\.st === 'taken'\)\) SP\.quiet\(\);/, 'the new kinds are warmed at a quiet frame — never mid-run');
-  assert.match(P, /for \(const k of WK\) KM\[k\]\.mesh\.visible = false;/, '… built hidden');
+  assert.match(P, /for \(const k of WK\) KM\[k\]\.show\(false\);/, '… built hidden');
   assert.match(read('js/ui/credits.js'), /Holiday Kit 2\.0/); assert.match(read('assets/jaywalk/models/CREDITS.md'), /Holiday Kit 2\.0/);
   assert.ok(existsSync(join(dir, 'LICENSE-kenney-holiday-kit.txt')));
 });

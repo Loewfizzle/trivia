@@ -145,3 +145,13 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
     owes: () => !closed && !dead && (endState === 1 || endState === 2),
   };
 }
+
+/**
+ * JAYWALK LAST MILE — THE GO GUARD (a SOLO run's GO: view.js#askGo): the GO goes up behind THE STAMP and the start hold — and ONLY while the
+ * run still waits for it (`waiting()`: the view not gone, the same match, still on the start line). A player who left, or a run that went
+ * UNPROVEN while the stamp / the hold were in the air, writes NO stray GO. `rearm()` = the caller's no-answer timer started over (the wait
+ * counts from the GO's own write, never from the tap). → the GO read back, or null (nothing written). PURE.
+ */
+export function goBehind({ stamp, gate, waiting, rearm, write, read }) {
+  return Promise.all([stamp(), gate()]).then(() => { if (!waiting()) return null; rearm(); return Promise.resolve(write()).then(read); });
+}
