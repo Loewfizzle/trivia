@@ -377,7 +377,9 @@ async function neonPass5Panel() {
 // 1.0. Now: the title holds the boot screen through the retry (1.5 s), then a plain card + RELOAD; nothing throws; a reload with the
 // module back is the Harbor again.
 G('citydown', async () => {
-  const Q = await open({ slot: 'cdn', qs: NIGHT, view: [402, 874], wait: false }), p = Q.page;
+  // (THE HOUSEKEEPING PASS, Nov 25: &nobundle — since THE FIX PASS the bundle boots every Chromium visit and SUPPLIES scene.js: the module was
+  //  "asked 0×" and this check had been red in the cloud since. The failing-module path is the modules' path: boot from them here)
+  const Q = await open({ slot: 'cdn', qs: `${NIGHT}&nobundle`, view: [402, 874], wait: false }), p = Q.page;
   await p.setRequestInterception(true);
   let blocked = 0, block = true;
   p.on('request', r => { if (block && /\/js\/screens\/harbor\/scene\.js/.test(r.url())) { blocked++; r.abort(); } else r.continue(); });

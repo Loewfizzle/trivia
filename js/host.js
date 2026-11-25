@@ -172,7 +172,8 @@ function watchHand() {
 let clearedGo = null;
 function clearDeadStart(now) {
   const age = goWaiting(state.meta, state.game, now), go = state.meta.go;
-  if (age == null || age < GO_ORPHAN_MS || starting || clearedGo === go.m || !hostWriteOk()) return;
+  // (Nov 25: `starting` is the LOCK since LAST MILE — always there; asked for THIS room's start in flight, or a dead start never came down)
+  if (age == null || age < GO_ORPHAN_MS || starting.of(state.code) || clearedGo === go.m || !hostWriteOk()) return;
   clearedGo = go.m;
   update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {});
   toast('THE START DIDN’T GO THROUGH — TAP PLAY TO TRY AGAIN', 'warn', 4500);

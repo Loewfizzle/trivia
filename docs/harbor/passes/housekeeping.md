@@ -2,9 +2,14 @@
 
 Four groups: the boot bundle BUILT AT DEPLOY (the one narrow exception to "no build step"), screenshots out of git, the CLAUDE.md trim, the
 audio fixes of an outside review. No rules change, no `/api` change. Commits: Group 1 `4f7f60c4` · Group 2 `260d0378` · Group 3 `119ced11` ·
-Group 4 `7e7cfa27` · the docs `2a7c5e6d` · the close `53e3b6d8` (the tagged push) · the deploy hotfix `2331ca25`.
+Group 4 `7e7cfa27` · the docs `2a7c5e6d` · the close `53e3b6d8` (the tagged push) · the deploy hotfix `2331ca25` · THE DEAD START's fix (the last commit — pushed with NO deploy tag: **not live yet**).
 
 ## OPEN FOR BEN
+0. **ONE FIX IS ON main BUT NOT LIVE — yours to release:** A START THAT DIES SAYS SO (the section "THE CLOUD's RUN … + THE DEAD START").
+   Since JAYWALK LAST MILE's deploy (Nov 24) a start whose host drops out between the stamp and the match never comes down: the guests
+   stay under the veil with no message until someone leaves. The fix is one line in `js/host.js`, tested, committed and pushed WITHOUT a
+   deploy tag — a third production deploy in one pass was not this pass's to make. It goes live with the next tagged push of any pass, or
+   say "deploy the dead-start fix" and it is one empty commit carrying the deploy tag.
 1. **RE-PUBLISH: nothing** (no rules change).
 2. **THE FIRST DEPLOY-BUILT BUNDLE IS LIVE** (2331ca25 — the section "THE FIRST REAL DEPLOY" below). What you see: on Vercel's page
    for a deployment the Build step now shows `Running "node scripts/deploy-build.mjs --prune"` and ONE line from it — `THE DEPLOY BUILD:
@@ -122,6 +127,27 @@ THE BOOT BUDGET was 3 KB over after the engine fixes (6,503 of 6,500 KB — it h
   `sw.js` has THE SONG CAP · `/scripts/*`, `/package.json`, `/package-lock.json`, `/tests/*`, `/CLAUDE.md`, `/node_modules/*` → 404 ·
   `/board`, `/admin`, `/lab`, `/sw.js`, the manifest, a sound file → 200, `/api` answers.
 - New on the site since the build step (named in OPEN FOR BEN 2): `/vercel.json`, `/.vercelignore`, `/.gitignore`, `/.gitattributes` → 200.
+
+## THE CLOUD's RUN ON THE TAGGED PUSH + THE DEAD START (found there, fixed here)
+- GitHub's `tests` job: **GREEN** on 53e3b6d8.
+- The cloud's harbor run: 5 of 15 jobs red, ONE check each. Four are the SAME four that were red on THE CITY POLISH PASS's cloud run
+  (d6c0afb5, Nov 24): `citydown` (the city job) · the `crew` timeout "D back in the lobby" (models) · THE ROOF BOARD "ONE face from the
+  reveal" (show) · A7 "a preview link keeps its clock + flags in a room" (speed). The fifth was NEW: the audio job's `gameflows` **B2 — A
+  START THAT DIES SAYS SO**.
+- **B2 was a real bug, and not this pass's:** it reproduced locally 2 of 2 on the code BEFORE this pass (a worktree at 3e5b798b) and
+  bisected to cf3d7271 — JAYWALK LAST MILE's THE REUSED START (Nov 24; that pass + HIGH RISE PAD + GO pushed with the ci tag, so no cloud
+  harbor run saw it). `host.js#clearDeadStart` asked `|| starting ||` — `starting` had been "the start's promise, or null" and LAST MILE
+  made it THE LOCK (`core/room-show.js#startLock`, an object that is always there): the cleanup never ran, so a start whose host died
+  between the stamp and the match NEVER CAME DOWN — every guest stayed under the veil, no message. **Fixed on main, NOT DEPLOYED (OPEN FOR BEN 0):** the cleanup asks the lock for
+  THIS ROOM's start in flight (`starting.of(state.code)`). `tests/dead-start.test.mjs` (new) + the harbor `gameflows` group: B2 **4/4
+  twice** (the note after ~3.3 s on both phones), was 3/4.
+- **`citydown` was a stale test** (red in the cloud since THE FIX PASS made the bundle boot every Chromium visit: the bundle SUPPLIES
+  `scene.js`, so blocking its URL blocked nothing — "the module asked 0×"): its page now boots `&nobundle` — the failing-module path is
+  the modules' path. Green locally.
+- The guards after the fix: unit **2,714** · harbor `citydown,gameflows,gamestart,newstart,core` **47/47** · `e2e-play-bounce` JAYWALK
+  **30/30**, HIGH RISE **22/22** (the reused start still holds) · smoke **24/24** · `e2e-bundle` all green.
+- Left for the next city pass (not built — three cloud-only reds, none reproduced or looked at here): the `crew` timeout, THE ROOF BOARD's
+  ONE face on a returning phone, A7.
 
 ## THE REPO's SIZE
 - `.git` on the Beelink: 670 MB (the pack 575 MB); GitHub ≈ 586 MB.
