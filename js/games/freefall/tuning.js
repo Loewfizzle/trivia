@@ -1,0 +1,154 @@
+// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — docs/freefall.md "THE NUMBERS" · "THE RULE-SET TABLE"): EVERY NUMBER OF THE RULES lives
+// HERE, in ONE table — HIGH RISE's rules.js pattern (docs/highrise.md "THE RULE-SET TABLE"). A RULE SET = one row; today's only one is
+// "classic" (set by the bot sims — docs/games/passes/freefall-f1.md "THE TUNING"). A run is played on ONE rule set and RECORDS it
+// (engine.js: `run.rules`, the judge's answer); THE JUDGE replays a log on the set it names and REFUSES one it does not know — so a future
+// tuning is a NEW row, and every run ever recorded still replays to the tick on the row it was played on.
+// PURE, no imports, no DOM. THE RULES' MATH IS CROSS-ENGINE SAFE: integers and + − × % + Math.floor / Math.imul only — never a float,
+// never Math.sin / cos / pow / sqrt, never Date / Math.random / performance (the phone's run and the server's replay must agree landing
+// for landing). The view may use anything.
+
+/** THE FIXED STEP: the rules count TICKS, never milliseconds — 60 a second. (The view turns its clock into ticks; the rules never read one.) */
+export const TICK_HZ = 60;
+export const TICK_MS = 1000 / TICK_HZ;
+
+// ---- THE TOWER's SHAPE (the same for every rule set: the input log's angles are written in these units)
+/** ONE TURN of the tower = 4096 angle units: the tower angle A is an integer 0 … 4095 */
+export const TURN = 4096;
+/** a floor = a ring of 12 slices round the pillar */
+export const SLICES = 12;
+/** the ball sits at a FIXED angle — the front */
+export const BALL = 0;
+/** a slice's kind */
+export const SAFE = 0, GAP = 1, RED = 2;
+
+/** a curve by floor: knots [floor, value], straight lines between them (integers), held before the first + after the last */
+export function rampOf(K, x) {
+  if (x <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) {
+    if (x <= K[i][0]) {
+      const a = K[i - 1], b = K[i];
+      return a[1] + Math.floor((b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]));
+    }
+  }
+  return K[K.length - 1][1];
+}
+
+const freezeKnots = K => Object.freeze(K.map(k => Object.freeze(k.slice())));
+/** the rows made by makeRuleSet (THE TABLE's own + a sim's what-if row) — createRun plays on nothing else */
+const ROWS = new WeakSet();
+/** is this a rule-set row (made by makeRuleSet)? */
+export const isRuleRow = r => r !== null && typeof r === 'object' && ROWS.has(r);
+/**
+ * a rule-set ROW from its numbers (frozen, its derived numbers worked out). THE TABLE below is made of these; the SIMS make a what-if row
+ * to try a number (scripts/freefall-sim.mjs) — a run can be played on one, but THE JUDGE only ever takes a row's ID that THE TABLE holds.
+ */
+export const makeRuleSet = r => {
+  // (derived — never tuned by hand)
+  // THE FALL WINDOW's reach: the angle a HUMAN-PACED spin covers between a gap and the landing below it (after the reaction)
+  const reach = (r.fall > r.human.react ? r.fall - r.human.react : 0) * r.human.spin;
+  // THE HOP: the longest run of red slices a human-paced spin crosses inside ONE bounce (after the reaction), a slice of slack kept
+  const sliceMax = Math.floor((TURN + SLICES - 1) / SLICES);
+  const hop = Math.floor(((r.bounce > r.human.react ? r.bounce - r.human.react : 0) * r.human.spin) / sliceMax) - 1;
+  const row = Object.freeze({
+    ...r,
+    dark: Object.freeze({ ...r.dark }),
+    human: Object.freeze({ ...r.human }),
+    gen: Object.freeze({ ...r.gen, gaps: freezeKnots(r.gen.gaps), wide: freezeKnots(r.gen.wide), red: freezeKnots(r.gen.red), hug: freezeKnots(r.gen.hug), lap: Object.freeze({ ...r.gen.lap }) }),
+    modes: Object.freeze(Object.fromEntries(Object.entries(r.modes).map(([k, v]) => [k, Object.freeze({ ...v })]))),
+    reach, hop: hop < 1 ? 1 : hop,
+  });
+  ROWS.add(row);
+  return row;
+};
+
+/**
+ * THE TABLE. A row:
+ *   maxSpin     MAX SPIN: the most the tower may turn in ONE tick (angle units; 171 ≈ 2.5 turns a second) — the phone clamps, the judge refuses more
+ *   first       the tick of the FIRST landing (the ball drops in onto floor 0)
+ *   bounce      a BOUNCE: the ticks from a landing on a SAFE slice to the next landing on the SAME floor — it never changes with depth
+ *   fall        a FALL: the ticks from passing a floor (a gap, or a shatter) to the landing on the next one — it never changes with depth
+ *   blaze       THE BLAZE: this many floors fallen in a row without a bounce light it
+ *   dark        THE LIGHTS GO OUT: `grace` ticks of rest, then one floor every `pace` ticks; never more than `lead` floors above the ball's floor
+ *   human       THE HUMAN PACE the fairness proofs are written for: a reaction of `react` ticks, then at most `spin` units a tick (1 turn a second)
+ *   gen         THE LAYOUT (tower-gen.js) — difficulty comes from here only. Curves by floor (rampOf), each value in 256ths:
+ *                 gaps  the gaps a floor has (512 = 2; the fraction = the chance of one more) · wide  the chance a gap is 2 slices wide (else 1)
+ *                 red   the red slices a floor aims for · hug  the chance a slice BESIDE a gap turns red
+ *               redFrom (no red above it) · hugFrom (red never beside a gap above it) · belowUntil (above it the slices straight below a gap are never red)
+ *               redMax · safeMin · gapSlicesMax (the hard bounds) · lap { from, every, red, hug } (THE TRENCH: past `from`, every `every` floors
+ *               the red aim grows by `red` 256ths and the hug chance by `hug`)
+ *   modes       each mode's `finish` (the floor that ends the run as MADE IT; null = endless) + `capTicks` (the tick the run ends where it stands)
+ *   (derived)   reach = THE FALL WINDOW's human reach in angle units · hop = the longest red run (slices) a human-paced bounce crosses
+ */
+export const RULE_SETS = Object.freeze({
+  classic: makeRuleSet({
+    id: 'classic',
+    maxSpin: 171,
+    first: 18, bounce: 36, fall: 18,
+    blaze: 3,
+    dark: { grace: 4 * TICK_HZ, pace: 150, lead: 6 },
+    human: { react: 12, spin: 68 },
+    gen: {
+      gaps: [[0, 512], [80, 448], [120, 384], [160, 300], [200, 256]],
+      wide: [[0, 256], [40, 256], [80, 192], [120, 128], [160, 48], [200, 0]],
+      red: [[10, 384], [40, 768], [80, 960], [120, 1152], [160, 1408], [200, 1664]],
+      hug: [[40, 56], [80, 88], [120, 128], [160, 200], [200, 240]],
+      redFrom: 10, hugFrom: 40, belowUntil: 120,
+      redMax: 8, safeMin: 3, gapSlicesMax: 6,
+      lap: { from: 200, every: 40, red: 128, hug: 8 },
+    },
+    modes: {
+      solo: { finish: null, capTicks: 30 * 60 * TICK_HZ },
+      match: { finish: 200, capTicks: 3 * 60 * TICK_HZ },
+      daily: { finish: 200, capTicks: 3 * 60 * TICK_HZ },
+    },
+  }),
+});
+/** the rule set a run is played on when it names none */
+export const RULES_DEFAULT = 'classic';
+/** a rule set's id is short + plain (F4's proof node `rs` — the rules will allow nothing else) */
+export const RULES_ID_MAX = 16;
+/** an id → its row, or null (an unknown id · anything that is not a plain id: never 'constructor' / '__proto__') */
+export const ruleSet = id => (typeof id === 'string' && id.length <= RULES_ID_MAX && /^[a-z0-9-]+$/.test(id) && Object.prototype.hasOwnProperty.call(RULE_SETS, id) ? RULE_SETS[id] : null);
+
+// ---- THE CLASSIC ROW BY NAME (for the views, the sims + the tests — never a second copy; THE ENGINE + THE JUDGE read `run.R`)
+const C = RULE_SETS.classic;
+export const MAX_SPIN = C.maxSpin;
+export const FIRST = C.first;
+export const BOUNCE = C.bounce;
+export const FALL = C.fall;
+export const BLAZE = C.blaze;
+export const DARK = C.dark;
+export const HUMAN = C.human;
+export const GEN = C.gen;
+export const REACH = C.reach;
+export const HOP = C.hop;
+/** THE MODES: `finish` = the floor that ends the run as MADE IT (null = endless) · `capTicks` = the tick the run ends where it stands */
+export const MODES = C.modes;
+export const MODE_IDS = Object.freeze(Object.keys(MODES));
+
+// ---- THE AREAS (by floor — pure, for the views; logic.js#areaOf reads them): THE TRENCH = everything past THE BOTTOM (solo only — the
+// other modes end ON floor 200), the deep's palettes cycled, one LAP every `GEN.lap.every` floors
+export const AREAS = Object.freeze([
+  Object.freeze({ id: 'rooftop', from: 0, name: 'THE ROOFTOP' }),
+  Object.freeze({ id: 'offices', from: 40, name: 'THE OFFICES' }),
+  Object.freeze({ id: 'speakeasy', from: 80, name: 'THE SPEAKEASY' }),
+  Object.freeze({ id: 'harbor', from: 120, name: 'UNDER THE HARBOR' }),
+  Object.freeze({ id: 'deep', from: 160, name: 'THE DEEP' }),
+  Object.freeze({ id: 'bottom', from: 200, name: 'THE BOTTOM' }),
+  Object.freeze({ id: 'trench', from: 201, name: 'THE TRENCH' }),
+]);
+
+// ---- THE FEATS (from the replay only — F3's cards)
+/** SPLASHDOWN: the ball reached floor 120 (UNDER THE HARBOR) */
+export const HARBOR_FLOOR = 120;
+/** ROCK BOTTOM: the ball reached floor 200 (THE BOTTOM) */
+export const BOTTOM_FLOOR = 200;
+/** TERMINAL VELOCITY: this many floors in a row without a bounce (gaps + shatters) */
+export const TERMINAL_RUN = 15;
+
+// ---- THE INPUT LOG's BOUNDS
+export const SEED_MAX = 64;
+/** a run's whole log at most: ONE entry a tick (the ticks rise) — so never more entries than the longest mode has ticks */
+export const MAX_LOG = Object.values(C.modes).reduce((m, v) => (v.capTicks > m ? v.capTicks : m), 0);
+/** the longest a packed entry is: '.' + a gap (≤ 4 base-36 digits: 108000 = "2bc0") + a sign + a turn (≤ 3 digits: 2048 = "1kw") */
+export const ENTRY_CHARS_MAX = 9;
