@@ -182,7 +182,11 @@ the standard mapping), the left stick (deadzone 0.5, re-armed under 0.3) → ONE
 the page's newest visible `[data-pad="a" | "b"]` control (an end card) else call `a()` / `b()`. A pad's first frame (Safari shows it only after
 a press) only LEARNS what is held and says "🎮 CONNECTED" once a page (`say`); a disconnect says CONTROLLER DISCONNECTED. Lazy-load it (the
 game's `gamepadconnected` listener — JAYWALK's `view.js#padOn`), never in a start bundle. `ui/final.js` marks REMATCH / PLAY AGAIN `a` and ROOM /
-CITY `b`. Plugged in: JAYWALK (JT2). HIGH RISE + the next games: one line each, later. Test: `e2e-jaywalk.mjs` 6d — a FAKE pad on the API.
+CITY `b`. Plugged in: JAYWALK (JT2) · HIGH RISE (HIGH RISE PAD + GO — in its stage, `docs/highrise.md` "THE CONTROLLER"). The next games:
+one line each. **EXACT TIMING (HIGH RISE PAD + GO)**: `a()` / `b()` are handed `(gp.timestamp, the time of the kit's previous poll)` — a game
+on a clock stamps the press itself (the press lies between the two; HIGH RISE's `logic.js#padTime`); a game may ignore both (JAYWALK does).
+Nothing is mapped to Start / Back / the bumpers. Tests: `e2e-jaywalk.mjs` 6d — a FAKE pad on the API · `kit/highrise-pad.mjs` — a fake
+pad ON ITS OWN CLOCK (a press planned for a moment shows up at the next poll with that moment as its timestamp — true at any frame rate).
 
 ## The E2E harness (`tests/integration/kit/harness.mjs`)
 ```js

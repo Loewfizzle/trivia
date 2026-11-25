@@ -1141,6 +1141,35 @@ night + day, both dailies' SHARE TODAY sections; HIGH RISE's own daily poster ge
 THE ONE RULE kept; the share code stays LAZY (nothing in the preload). Proof: `tests/integration/pb-share.mjs` (9 — gold on a PB, never on a
 normal card; the words lit + readable at 360 / 390) · shots `Downloads\NEON\pb-share\`.
 
+## THE CONTROLLER (HIGH RISE PAD + GO, Nov 24 — `stage.js` · `logic.js#padTime` · the kit: `docs/match-kit.md` "THE CONTROLLER"; the pass log `docs/games/passes/highrise-pad-go.md`)
+- **ONE WIRING, IN THE STAGE**: `kit/gamepad.js`'s `wirePad({ a, say })`, fetched lazily on the first `gamepadconnected` (or a pad already
+  there) — the cartridge (solo + match), the daily and `/highrise-play` all get it from `stage.js`. Never in a start bundle / a preload graph.
+- **A = A TAP** through `touch` itself (the drop · TAP TO START · a held daily run's RESUME · the stage's own PLAY AGAIN). The podium's
+  PLAY AGAIN / REMATCH = A, HOME / ROOM = B (`ui/final.js`'s `data-pad` marks — armed `view.js#PAD_ARM_MS` 600 ms after it shows); the
+  stage's own way out + the daily's BACK TO THE DAILIES = B. **B does nothing in a run; Start, the D-pad + the stick are not mapped** (no
+  pause; a daily hold is never spent by a button). No pad action while WATCHING, or with a sheet open over the game (`o.padOk`).
+- **EXACT TIMING**: the kit hands `a()` the pad's own `timestamp` + the time of its previous poll; `padTime(stamp, prev, now, floor)` takes
+  the stamp only between the two (+ 34 ms), never in the future, never before the last logged tap — else `now` (the frame it was
+  noticed: an older Safari's pad clock). That time goes to `touch()` as a finger's `event.timeStamp` does — the same tick, the same log,
+  the same replay. `?fps=1` on the test page ends its line `PAD −n ms` / `PAD = FRAME`.
+- "🎮 CONNECTED" once a page on `.hi-padl` (the row between the corner buttons; in a run: left, 164 px down). `metas.js` `CONTROLLER: true`.
+- Tests: `tests/highrise-pad-go.test.mjs` · `kit/highrise-pad.mjs` (a fake pad on its own clock) in `e2e-highrise.mjs` step 7 (Chromium),
+  `wk-highrise-pad.mjs` (WebKit), `e2e-highrise-daily.mjs` (the daily: A starts + resumes, Start spends no hold, B = BACK TO THE DAILIES).
+
+## THE SOLO GO (HIGH RISE PAD + GO, Nov 24 — `go.js#soloGo`, PURE; `view.js#askGo`)
+- THE MATCH's PATTERN instead of one 4 s wait: up to `GO_TRIES` 7 writes `GO_TRY_MS` 420 apart when REFUSED, THE SERVER's copy of the node
+  read again every `GO_LOOK_MS` 1250 while an answer is owed, `GO_WAIT_MS` 9 s in all. **A late answer still PROVES the run.** A write
+  in the air is never sent twice; a refusal that took ≥ `GO_LATE_MS` 4.5 s is the rules' 5 s window after THE STAMP — never retried,
+  never the re-publish alarm ("no answer").
+- An UNPROVEN run SAYS SO: `o.go()`'s answer carries `note` → the stage's `.hi-nc`, on screen for the whole run (two plain lines, left,
+  164 px down — under the console's SIGNAL LOST banner) — **NOT COUNTED — NO CONNECTION** when the line gave no answer, NOT COUNTED — NO
+  LINE TO THE BOARD otherwise (`view.js#notCounted`) — and the same words as its end card's reason. The match's one GO is SPENT with it:
+  PLAY AGAIN on that card starts at once, never a second wait. THE DAILY's GO is untouched.
+- Tests: `tests/highrise-pad-go.test.mjs` (a fake line) · `e2e-highrise.mjs` step 8 (the line dead 5.5 s → PROVEN + COUNTED; dead for
+  the whole wait → the line on screen + the end card).
+- **LAB ONLY** (`/highrise-play`): `&dpr=2` (the pixel ratio capped at every tier — `night.js` `dprMax`) · `&stutter=1` (`kit/tiers.js`'s
+  STUTTER half). The live defaults are unchanged until the owner compares them on his iPhone.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 22 — THE FIX PASS, THE FABLE REVIEW's M3: the text CLAUDE.md held, verbatim)
 
 - HIGH RISE (PLAYABLE since Nov 20): the rules PURE + INTEGERS ONLY, a result = THE REPLAY of the tap log from THE PROOF NODE (`hr` — `proof.js#judgeNode`) · /highrise-play: zero server calls (THE DOOR) · THE SWITCH: `api/_lib/highrise.js#HIGHRISE_COUNTS` ON (false = the KILL SWITCH: judged, WOULD COUNT, nothing written) · THE SIGN HOLD lifted (CITY PART 1): the roof HIGH / RISE, the speakeasy blade, the tri-vision's OPEN NOW face (`core/harbor-neon.js#SIGN_HOLD` = [], the next game's switch) · THE STAGE (`stage.js`) is the page's AND the cartridge's — it never counts anything itself · THE LAG RULES (nothing decoded / compiled / thrown away in a frame; ZERO GARBAGE IN PLAY: a live frame makes NO objects — the guard `tests/integration/highrise-alloc.mjs`; three.js = its READABLE build on every page) · THE TWO LOOKS = ONE set of programs (`uDay`) · THE FLYERS lazy, in the sky band only · THE RULE-SET TABLE (S4B): every rule number in `rules.js#RULE_SETS` — the engine + the judge read the run's own row, a run records its rule set, an unknown one is refused · THE MATCH (S4B): THE FIRST GO's seed, a rival = their LANDED taps only, never a rival pixel in the play zone (`highrise-rivals.mjs`) · THE DAILY (DAILY A — ships OFF): ONE SHOT, THE HELD RUN in LEGS — a hold = a LOGGED event the judge replays (`engine.js#hold`), the server's leg closed first (THE UNDO GUARD) · THE BAKED HUD (S5): text over the 3D view that changes in play = bitmaps baked ONCE a style from its own CSS (`bakedtext.js`), never a re-rasterised blur · SPECTATE = A PLAYBACK (REVIEW FIX A): a watched tower is drawn `stage.js#WATCH_DELAY_MS` late, each tap at its own tick — never past a tap · YOUR BEST = the server's record of COUNTED runs only · THE SHARE CARD = THE POSTER (REVIEW FIX B): pre-rendered hero shots (`assets/highrise/share/`, `?poster=hero`), NEVER the run's live frame → docs/highrise.md.

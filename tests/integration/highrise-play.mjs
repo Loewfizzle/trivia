@@ -513,7 +513,7 @@ async function perf() {
   for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
     const d = await open(390, 844, 3, `?seed=perf&tier=${tier}${process.env.PERF_Q || ''}`);   // (PERF_Q='&look=day': the day look's measure)
     await ready(d.p); await sleep(300);
-    await climb(d.p, 62, 'i => (i % 9 === 8 ? 2 : 0)');
+    await climb(d.p, process.env.PERF_CLIMB != null ? Number(process.env.PERF_CLIMB) : 62, 'i => (i % 9 === 8 ? 2 : 0)');   // (HIGH RISE PAD + GO: PERF_Q='&floor=80&dpr=2' + PERF_CLIMB=0 = the lab's own start at floor 80)
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     // the bot plays in the page for 10 s: a drop at each slab's perfect moment — every third one late (a cut, its sparks, a falling piece)
     const r = await d.p.evaluate(() => new Promise(res => {

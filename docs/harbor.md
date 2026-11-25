@@ -1723,6 +1723,7 @@ The pass log: [passes/city-part1.md](harbor/passes/city-part1.md).
   — the city, no sheet, no match, logged as ever), so the next tap plays on the live build.
 - The mid-match WAKE HOLD is exactly as strict (a tick gap / a ≥ 5 s hide WHILE host of the SAME room).
 - **THE REUSED START (JAYWALK LAST MILE, Nov 24 — docs/games/passes/jaywalk-lastmile.md):** ONE START AT A TIME's promise was module-global too, and
+- **… THE DROPPED START SAYS NOTHING (HIGH RISE PAD + GO, Nov 24 — docs/games/passes/highrise-pad-go.md):** `host.js#playSoloNow`'s failed-start path (COULDN'T START + the leave) runs only while the phone is still in THAT start's room — play → leave → play inside the walk landed the new game on WebKit, with the dropped start's red line over it (JAYWALK 1 of 6, HIGH RISE 3 of 6; `e2e-play-bounce.mjs --browser webkit --only quick`). INITIATE + MOST WANTED say COULDN'T START — TAP PLAY AGAIN when a start comes back false having said nothing (`game-options.js#saidNothing`).
   stays held for the start's walk inside (~2 s solo) after it resolves — PLAY NOW → leave → PLAY NOW inside that window got the LAST room's `true`
   and wrote no game (the title in an orphan solo room). The start is now its ROOM's (`core/room-show.js#startLock`: reused only for the same room
   code; dropped at a leave — `room.js#onRoomLeft` — and at a code change, beside the stall clock's reset); PLAY NOW counts a start only as THIS

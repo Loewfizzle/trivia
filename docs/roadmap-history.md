@@ -2877,3 +2877,9 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - TIER SWITCHES ONLY AT QUIET MOMENTS (`kit/tiers.js` `quiet` — opt-in, JAYWALK only) + tier 2's programs kept warm (`--smooth=tier`).
 - THE LIGHTER MATCH SYNC (`liveTrees` → `core/room-logic.js#mirrorTree`): the proof tree mirrored in place, chunk by chunk.
 - THE WINTER GROUND: the sparkle on tier 2 only; THE HASH TABLE built + OFF. SUN SHADOWS: nothing kept. THE GO GUARD, THE VISIBILITY GUARD, THE CROUCH ON TOUCH.
+
+## HIGH RISE PAD + GO (Nov 24–25, 2026 — docs/games/passes/highrise-pad-go.md; no rules change)
+- THE CONTROLLER (`kit/gamepad.js` → `highrise/stage.js`, lazy): A = a tap through `touch` itself; the podium's marks (armed after 600 ms), the stage's own way out + the daily's BACK TO THE DAILIES = B; B / Start / the D-pad nothing in a run; `metas.js` CONTROLLER. EXACT PAD TIMING: the kit hands `a()` the pad's timestamp + its previous poll's time → `logic.js#padTime` → the unchanged touch path.
+- THE SOLO GO (`highrise/go.js#soloGo`): 7 tries 420 ms apart when refused, the server's copy read again, 9 s in all; a late answer proves; no answer → NOT COUNTED — NO CONNECTION on screen (`.hi-nc`) + the end card; the match's one GO spent with it.
+- THE BOUNCE CHECK: `e2e-play-bounce.mjs --game highrise` (Chromium 34/34, WebKit 22/22) + `host.js#playSoloNow`: the failed-start message + leave only while the phone is still in that start's room. THE INITIATE MESSAGE (`game-options.js#saidNothing`).
+- Lab only: `/highrise-play` `&dpr=2` · `&stutter=1`; `night.js#upRange` skips an empty range.

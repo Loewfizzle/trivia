@@ -589,7 +589,7 @@ export function createStage(app, o = {}) {
   // is never a frame behind a finger; the tick logged is the one the server replays.
   // Lazy: the kit is fetched on the first pad this page sees (`gamepadconnected`, or one already there) — never in the start bundle.
   const padSeen = { n: 0, stamp: 0, prev: 0, at: 0, ts: 0, tick: -1, dropped: false };   // (the pass's check reads the last press — ONE record, written in place)
-  let offPad = null, padHide = 0;
+  let offPad = null, padHide = 0, padWords = '';
   function padPress(stamp, prev) {
     if (watchW || document.visibilityState === 'hidden' || (o.padOk && !o.padOk())) return;
     const now = performance.now(), n0 = taps.length, was = taps;
@@ -597,6 +597,8 @@ export function createStage(app, o = {}) {
     touch(ts);
     const dropped = taps === was && taps.length > n0;
     padSeen.n++; padSeen.stamp = stamp; padSeen.prev = prev; padSeen.at = now; padSeen.ts = ts; padSeen.dropped = dropped; padSeen.tick = dropped ? taps[taps.length - 1] : -1;
+    // (`?fps=1` — the owner's phone reads it: was the last press counted at the pad's own stamp (how long before the frame that noticed it), or at the frame?)
+    if (fps) padWords = ts < now ? ` · PAD −${Math.round((now - ts) * 10) / 10} ms` : ' · PAD = FRAME';
   }
   function padSay(text, ms) {
     padT.data = text; padL.classList.add('is-on'); clearTimeout(padHide);
@@ -832,7 +834,7 @@ export function createStage(app, o = {}) {
     let sum = 0, worst = 0;
     for (let i = 0; i < n; i++) { const g = frames[(frameN - 1 - i) % FRAMES_KEPT]; sum += g; if (g > worst) worst = g; }
     const avg = n ? sum / n : TICK_MS, i = view.stat();
-    fpsA.data = `${Math.round(1000 / avg)} fps · ${Math.round(avg * 10) / 10} ms · worst ${Math.round(worst)}`;
+    fpsA.data = `${Math.round(1000 / avg)} fps · ${Math.round(avg * 10) / 10} ms · worst ${Math.round(worst)}${padWords}`;
     if (i && (i.tier !== SEEN.tier || i.bloom !== SEEN.bloom || i.calls !== SEEN.calls || i.tris !== SEEN.tris || i.w !== SEEN.w || i.h !== SEEN.h || i.dpr !== SEEN.dpr)) {
       SEEN.tier = i.tier; SEEN.bloom = i.bloom; SEEN.calls = i.calls; SEEN.tris = i.tris; SEEN.w = i.w; SEEN.h = i.h; SEEN.dpr = i.dpr;
       fpsB.data = ` · tier ${i.tier}${i.bloom ? ' bloom' : ''} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}`;

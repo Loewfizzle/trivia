@@ -1302,6 +1302,11 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   first E2E round ran on the server code from before its groups).
 
 ## THE CITY POLISH PASS (Nov 24) — the new checks
+- **HIGH RISE PAD + GO (Nov 24):** `tests/integration/e2e-play-bounce.mjs --game highrise [--browser webkit]` = bounce + quick for HIGH RISE (newphone + deploy stay
+  JAYWALK's) · `wk-highrise-pad.mjs [--browser webkit|chromium] [--shots dir]` = THE CONTROLLER's fake-pad case in WebKit (the same checks as `e2e-highrise.mjs`
+  step 7 — `kit/highrise-pad.mjs`: a fake pad ON ITS OWN CLOCK; SKIPPED where ~/wk is not installed) · `HI_ONLY=padgo e2e-highrise.mjs` = steps 7 + 8 alone (the pad +
+  THE SOLO GO, each on a new phone; `HI_LOOK=day` works with it) · `PERF_CLIMB=0 PERF_Q='&look=day&floor=80&dpr=2' highrise-play.mjs --perf` = the lab's flags measured
+  (the Beelink is pinned at 60: it shows a flag takes effect, never a phone's frame rate).
 - `tests/integration/e2e-play-bounce.mjs --only quick [--quick 10] --cpu 1` — LAST MILE's THE REUSED START: PLAY NOW → the match written → leave → PLAY NOW again inside 500 ms (inside the first start's ~2 s walk) → `game:jaywalk:*` in the NEW room, 10 in a row (0 of 10 on the code before). `jaywalk-lab.mjs --smooth=tier[:noon+snowNight]` — QUIET TIERS: a step asked mid-run waits, lands at the start line, a step back up links nothing in play (`&tierq=0` = at once). `e2e-jaywalk-match.mjs --perf` also prints LIVE SYNC (the proof tree's listener, the whole tree against the mirror in place).
 - `tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--only bounce,newphone,deploy] [--rounds 4] [--base …]` — THE PLAY BOUNCE
   (a wake at a solo start's gate = red), a brand-new phone → the name page → the game, and PLAY NOW across a deploy (THE LINE's two builds).
