@@ -133,5 +133,8 @@ The biggest files: `passes/buzzed-lightyear/buzzed-motion-402.png` 3.9 MB · `pa
 - the harbor GROUPS (local): `core,load,bootfloor,weakstart` **63/63** · `gamestart,newstart` **23/23** ·
   `music,mediacut,sounds,tape,musiccache,rebuild` **157/157** on its second run — the first run's `tape` group timed out once
   ("the tape gives the song back after the jets"; its other 150 checks green), then `tape` alone **16/16** twice: a one-off, named.
-- THE DEPLOY, SIMULATED on the committed tree: see "GROUP 1 — Proven" + the close's commit message.
+- THE DEPLOY, SIMULATED once more on the pass's committed tree (a clean tree = the commit): `deploy-sim.mjs` all green (2,021 of 3,769
+  tracked files uploaded; the build 3.0 s — `boot-bundle.json` 306 modules, 6,669 KB, v `4c010e6eb4a17769`; `file-hashes.json` 1,404 rows,
+  every one = the output's own bytes; a broken checkout exits 1 and writes nothing) → that output served raw → `e2e-bundle` all green
+  (Chromium + WebKit) + smoke **24/24**.
 - Screenshots of this pass: `C:\Users\benja\Downloads\NEON\housekeeping\` (none in the repo).
