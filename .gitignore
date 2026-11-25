@@ -71,6 +71,18 @@ docs/games/**/*.jpg
 docs/games/**/*.jpeg
 docs/games/**/*.webp
 /screenshots/
+# THE HOUSEKEEPING PASS (Nov 25): SCREENSHOTS OUT OF GIT — a pass's screenshots go to C:\Users\benja\Downloads\NEON\<pass>\, never the repo
+# (docs/ + screenshots/ already hold 328 pictures / 125 MB). EVERY picture anywhere under docs/ is ignored now; the ones already tracked stay
+# (deleting does not shrink history). A picture a doc truly needs = a JPEG / WebP at 1×, ≤ 150 KB, `git add -f` + its row in
+# tests/repo-growth.test.mjs#REFERENCE (the test fails on any other new picture).
+docs/**/*.png
+docs/**/*.jpg
+docs/**/*.jpeg
+docs/**/*.webp
+docs/**/*.gif
+docs/**/*.avif
+docs/**/*.bmp
+docs/**/*.heic
 
 # CITY E — THE NIGHTLY BACKUP: a backup file / folder / token NEVER enters this public repo (they live in the PRIVATE repo's artifacts + the
 # mini PC's C:\Users\benja\NeonBackups — docs/backup.md; tests/repo-growth.test.mjs checks the rule holds)

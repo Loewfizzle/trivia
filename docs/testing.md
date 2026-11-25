@@ -664,9 +664,12 @@ load problem, not a flake to patch.
   `force=billboard-holdem,work-billposter&speed=20 --wait 34000`).
 
 ## FR7 FIXES B (Nov 12)
-- **PASS SCREENSHOTS STAY ON THE PC** (D4): `.gitignore` keeps every picture under `docs/harbor/passes/`, `docs/games/`, `screenshots/` out of git —
-  shoot into the pass's folder or `shots.mjs`'s default `./shots-review/` as before; a picture a doc must carry = a JPEG at 1×, ≤ 150 KB, `git add -f`,
-  named in the pass log (`tests/repo-growth.test.mjs`).
+- **PASS SCREENSHOTS STAY ON THE PC** (D4; tightened by THE HOUSEKEEPING PASS, Nov 25 — SCREENSHOTS OUT OF GIT): a pass's screenshots go to
+  `C:\Users\benja\Downloads\NEON\<pass>\` (`shots.mjs --out`, an E2E's shots argument) or `shots.mjs`'s default `./shots-review/` — NEVER the
+  repo. `.gitignore` keeps EVERY picture under `docs/` + `screenshots/` out of git; `tests/repo-growth.test.mjs` fails on ANY new tracked
+  picture there unless it is a named row of its `REFERENCE` list (a picture a doc truly needs: a JPEG / WebP at 1×, ≤ 150 KB, `git add -f`, the
+  doc named beside it). The 328 pictures committed before Nov 25 (125 MB) are the frozen LEGACY list (`tests/fixtures/repo-images-before.txt` —
+  it only shrinks); deleting them would not shrink history — they go with THE PRIVATE FLIP's history rewrite (docs/launch.md).
 - New scripts: `wk-edge.mjs` (THE EDGE CACHE's proof for THE LAUNCH — its checks fail on today's worker BY DESIGN until docs/launch.md step 8 ships; its counts are today's numbers — the requests a visit sends, cold / warm / after a deploy, WebKit through THE LINE with production's
   headers `prod` + a build id `build`; each visit a NEW TAB — WebKit's reload reuses its memory cache), `wk-twotabs.mjs` (THE TWO-TAB HANG — two pages
   on one context, a stuck store, a hung boot's TAP TO TRY AGAIN + "other tabs open"), `prism-nowebgl.mjs` (PRISM DROP with WebGL off, 390 / 402 / 430),
