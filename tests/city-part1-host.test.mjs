@@ -16,7 +16,7 @@ test('the quiet rule: a room / chat refusal just after a stall wake = QUIET_WOKE
   assert.equal(quietRoomRefusal('profiles/x', { woke: () => true }), null, 'only room / chat paths');
   const fb = read('js/firebase.js');
   assert.match(fb, /if \(quiet === QUIET_WOKE\) quietFor\(\{ kind: 'not-host' \}\); else countGone\(\);/);
-  assert.match(read('api/log.js'), /QUIET_KINDS = \[[^\]]*'not-host'/);
+  assert.match(read('js/core/quiet-kinds.js'), /QUIET_KINDS = Object\.freeze\(\[[^\]]*'not-host'/);   // (THE CITY POLISH PASS: ONE list)
 });
 
 test('THE WAKE HOLD + THE ONE GATE: a tick gap >= 5 s (or a 5 s hide) holds every host write until a fresh read of meta/hostId + the seat; every host write passes hostWriteOk', () => {

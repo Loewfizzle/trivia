@@ -5,6 +5,7 @@
 // screen was up. Installed by importing it (first import of js/app.js and js/board/public.js, so it sees boot errors).
 
 import { quietBot } from './core/bot-ua.js';
+import { QUIET_KINDS } from './core/quiet-kinds.js';   // (THE CITY POLISH PASS: the quiet kinds, ONE list with api/log.js)
 const MAX_PER_PAGE = 8;
 const SEND_AFTER_MS = 1500;
 
@@ -139,8 +140,8 @@ function record(input, label = '') {
 // CITY A — THE QUIET COUNTS (api/log.js#QUIET_KINDS): a kind of noise that is COUNTED, never a row — once a page per kind (a page that saw it,
 // not every write): 'gone' = a room write the rules refused after this phone left / lost the host / saw its room close (firebase.js), 'ext' = a
 // browser extension's error. /admin's errors shows the two numbers.
-const QUIET = new Set(['gone', 'ext', 'snd', 'slow', 'dead', 'late-proof', 'slow-boot', 'late-vote', 'not-host']), quietSent = new Set();   // (CITY PART 1: + late-vote · not-host — room.js / host.js / firebase.js; slow-boot is index.html's own)   // (CITY G: + snd · slow; CITY H2: + dead — NEVER A DEAD SCREEN, app.js)
-const quietN = { gone: 0, ext: 0, snd: 0, slow: 0, dead: 0, 'late-proof': 0, 'slow-boot': 0, 'late-vote': 0, 'not-host': 0 };
+const QUIET = new Set(QUIET_KINDS), quietSent = new Set();   // (THE CITY POLISH PASS: ONE list — js/core/quiet-kinds.js, the server's too)   // (CITY PART 1: + late-vote · not-host — room.js / host.js / firebase.js; slow-boot is index.html's own)   // (CITY G: + snd · slow; CITY H2: + dead — NEVER A DEAD SCREEN, app.js)
+const quietN = Object.fromEntries(QUIET_KINDS.map(k => [k, 0]));
 export function countQuiet(kind) {
   try {
     if (!QUIET.has(kind)) return;
