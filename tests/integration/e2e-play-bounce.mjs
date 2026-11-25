@@ -8,7 +8,10 @@
 //   deploy    the same new phone across a deploy (ONE DEPLOY AT A TIME's two builds through THE LINE + the worker): build A boots, build B goes
 //             live with a JAYWALK cartridge that needs a NEW export of a boot module (the worst case) → PLAY NOW is never a dead tap: the game,
 //             or COULDN'T START + ONE reload, and the tap after it plays on B
-//   node tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--base http://localhost:5173] [--only bounce,newphone,deploy] [--rounds 4] [--latency ms]
+//   quick     LAST MILE — THE REUSED START: PLAY NOW → the game → leave → PLAY NOW again inside 500 ms (inside the first start's ~2 s walk)
+//             → game:jaywalk:* in the NEW room, a NEW match — QUICK times in a row (red on the old code: the last room's start reused, no game
+//             written, the title in an orphan solo room)
+//   node tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--base http://localhost:5173] [--only bounce,newphone,deploy,quick] [--rounds 4] [--quick 10] [--latency ms]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -89,6 +92,31 @@ try {
       await sleep(6500);   // (past STALL_GAP_MS on the city: the old clock read this as a stall)
     }
     ok(bounced === 0, `no bounce in ${ROUNDS} tries (${bounced} bounced)`);
+    ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
+    await P.ctx.close();
+  }
+  if (!ONLY.length || ONLY.includes('quick')) {
+    // (the start's promise is held through THE SOLO START's ~2 s walk — the game screen comes up as it ends — so the leave falls INSIDE the walk:
+    //  the moment the match is written; then PLAY NOW's own call (title-taps.js: the card's solo tube → host.js#playSolo), no sheet in between)
+    const P = await phone({ name: 'QUICK' }), N = Number(opt('quick', 10));
+    const PLAY = "import('/js/host.js').then(h => { window.__pbSolo = null; h.playSolo('jaywalk').then(v => { window.__pbSolo = v; }, () => { window.__pbSolo = 'threw'; }); return true; })";
+    let good = 0;
+    for (let i = 1; i <= N; i++) {
+      const t0 = Date.now();
+      await P.ev(PLAY);
+      const wrote = await P.waitFor(`!!${S}.code && !!(${S}.game && ${S}.game.id === 'jaywalk')`, 15000);
+      const was = await P.ev(`({ code: ${S}.code, m: (${S}.game || {}).matchId || '' })`), tWrote = Date.now();
+      await P.ev('globalThis.__nsPlayNow.leave().then(() => true)').catch(() => {});
+      const out = await P.waitFor(`!${S}.code`, 8000), tLeft = Date.now();
+      await P.ev(PLAY);
+      const gap = Date.now() - tLeft;
+      const landed = await P.waitFor(`${ROUTE}.startsWith('game:jaywalk:') && !!${S}.code && ${S}.code !== ${JSON.stringify(was.code)} && !!(${S}.game && ${S}.game.id === 'jaywalk' && ${S}.game.matchId !== ${JSON.stringify(was.m)})`, 10000);
+      const now = await P.ev(`({ route: ${ROUTE}, code: ${S}.code, m: (${S}.game || {}).matchId || '', solo: window.__pbSolo })`), red = await P.red();
+      if (wrote && landed && !red.length) good++;
+      ok(wrote && out && landed && gap <= 500 && red.length === 0, `quick ${i}: play (written ${tWrote - t0} ms) → left ${tLeft - tWrote} ms later → PLAY NOW again ${gap} ms after → ${now.route || 'the title'} · room ${was.code} → ${now.code || 'none'} · match ${now.m || 'NONE'} · playSolo → ${now.solo} · red ${red.length ? JSON.stringify(red) : 'none'}`);
+      await leave(P);   // (out of the game — or out of the old code's orphan room — and straight into the next round)
+    }
+    ok(good === N, `quick: ${good} of ${N} landed on game:jaywalk:* in a row`);
     ok(P.errs.length === 0, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
     await P.ctx.close();
   }

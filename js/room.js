@@ -487,6 +487,9 @@ function stopListening() {
 // SPEED PASS B — HOW this phone left its last room: { code, how: 'leave' | 'lost' | 'kick' | 'closed' } (the city: only a LEAVE waves goodbye;
 // screens/room-city.js reads it as the room's figures go) · leavingCode: a leave in flight (its own players event is not a disconnect)
 let lastExit = null, leavingCode = null;
+// (LAST MILE — THE REUSED START: host.js drops its start-in-flight when this phone leaves a room — a hook: host.js imports this file)
+let roomLeft = null;
+export const onRoomLeft = fn => { roomLeft = fn; };
 export const exitHow = () => lastExit;
 // THE CHAT FALSE ALARM (Nov 13 — /admin's errors): a room / chat write the rules refuse once this phone is no longer in that room (it left or is
 // leaving, the host removed it, the room closed) is the leave's race — firebase.js logs it quietly, "no longer in the room", never the alarm
@@ -520,6 +523,7 @@ export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'close
     return;
   }
   heldExit = null;
+  if (roomLeft) roomLeft();
   // CITY D — NO MESSAGES A SOLO PLAYER NEVER NEEDED: a SOLO room (PLAY NOW's one-seat room — the player never saw a room) leaves without a word
   // ("ROOM CLOSED", "YOU WERE DISCONNECTED…", a leave's reason); the messages stay for real rooms with other people
   const solo = !!code && (isSoloMeta(state.meta) || soloRejoin(code));
@@ -544,6 +548,7 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
   const uid = state.uid;
   myConn = null;   // leaving: the self-heal must not write us back while the node goes
   leavingCode = code;
+  if (roomLeft) roomLeft();
   try {
     const others = Object.keys(state.players).filter(u => u !== uid);
     if (state.meta && state.meta.hostId === uid) {

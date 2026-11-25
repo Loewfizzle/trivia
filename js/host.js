@@ -5,12 +5,12 @@
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow, firebaseReady } from './firebase.js';
-import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
+import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting, startLock } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf, frameProblems } from './games/cartridge.js';
 import { state, isHost, onlineMap, setState, subscribe } from './store.js';
 import { setHostGone, setWoke, expectRefusal } from './firebase.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, REPORT_LOCK_NODES, isSoloMeta, soloSettings } from './core/room-logic.js';
-import { closeIdleRoom, createSoloRoom, leaveRoom } from './room.js';
+import { closeIdleRoom, createSoloRoom, leaveRoom, onRoomLeft } from './room.js';
 import { loadProfile } from './identity.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, LOCKED_PROOF_NODES, loadGame, metaOf } from './games/registry.js';
@@ -54,6 +54,7 @@ let tickCode = null;
 function syncStallClock() {
   if (state.code === tickCode) return;
   tickCode = state.code; lastTickWall = 0; hiddenAt = 0;
+  starting.drop(state.code);   // (LAST MILE — THE REUSED START: a start is its own room's)
   if (wake && wake.code !== state.code) { wake = null; wokeAt = 0; }
 }
 export const justWoke = () => wokeAt > 0 && Date.now() - wokeAt < WAKE_QUIET_MS;
@@ -306,21 +307,22 @@ export function onlineCount() {
 // twice — two stamps, two start()s, two whole matches a second apart (every phone mounted match 1 then remounted match 2). Every caller (the
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
-let starting = null;
+// (LAST MILE — THE REUSED START: the promise is THIS ROOM's — core/room-show.js#startLock; a leave + a new room code drop it)
+const starting = startLock();
+onRoomLeft(() => starting.drop());
 // THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): the moment THIS phone moved the room on
 // itself (a start, a rematch, END GAME / back to the room) — the router's RUN HOLD (app.js) never holds a phone against its own tap
 let movedAt = -1e9;
 export const movedByMe = () => Date.now() - movedAt < 8000;
 const markMove = () => { movedAt = Date.now(); };
 export function startGame(gameId, settings, { quick = false, solo = false, inPlace = false } = {}) {
-  if (starting) return starting;
+  syncStallClock();
+  const going = starting.of(state.code);
+  if (going) return going;
   markMove();
   // (PLAY NOW: a SOLO room's every start is THE SOLO START — the match id's leading 's', ~2 s — core/room-show.js#START.solo)
   const kind = solo || isSoloMeta(state.meta) ? 'solo' : inPlace ? 'inplace' : quick;
-  const p = startGameNow(gameId, settings, kind);
-  starting = p;
-  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(kind === 'solo' ? 's' : kind === 'inplace' ? 'r' : kind ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
-  return p;
+  return starting.hold(state.code, startGameNow(gameId, settings, kind), () => startOf(kind === 'solo' ? 's' : kind === 'inplace' ? 'r' : kind ? 'q' : '').len);
 }
 async function startGameNow(gameId, settings, quick = false) {
   lazyImport(import('./games/preload.js'), './games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (FRIENDS C — THE SLOW-3G START: its whole graph at once)
@@ -410,9 +412,13 @@ async function playSoloNow(gameId, settings) {
     const ready = await until(() => !!state.code && isHost() && !!(state.players && state.players[state.uid]) && isOnline(state.presence, state.uid), 8000);
     if (!ready) throw new Error('network');
     const meta = metaOf(gameId) || await loadGame(gameId).catch(() => null);
-    const ok = await startGame(gameId, soloSettings(meta, settings), { solo: true });   // (PD-6: the button's mode, cleaned for one player)
+    const room = state.code, was = state.game && state.game.matchId;
+    let ok = await startGame(gameId, soloSettings(meta, settings), { solo: true });   // (PD-6: the button's mode, cleaned for one player)
+    // (LAST MILE — THE REUSED START: a start counts only as THIS room's NEW match on screen — never a `true` with no game: the title in an orphan room)
+    const mine = () => state.code === room && !!state.game && state.game.id === gameId && state.game.matchId !== was;
+    if (ok && !mine()) ok = state.code === room && await until(mine, 1500);
     if (!ok) {   // (THE PLAY BOUNCE: never a silent bounce — and a cartridge a deploy broke = the ONE reload now, the next tap plays)
-      toast('COULDN’T START — TAP PLAY AGAIN', 'err'); await leaveRoom().catch(() => {});
+      toast('COULDN’T START — TAP PLAY AGAIN', 'err'); if (state.code === room) await leaveRoom().catch(() => {});
       if (!GAME_MODULES[gameId]) await reloadNowIfQueued().catch(() => false);
       return false;
     }

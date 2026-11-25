@@ -29,7 +29,7 @@ test('a start held ONLY by a pending wake waits for the round trip (one retry); 
   assert.match(w, /for \(let round = 0; round < 2; round\+\+\)/, 'two rounds of ~3 s');
   assert.match(w, /if \(!wakePending\(\)\) return false;/, 'not the host (or the wake answered "no") → no wait');
   assert.match(h, /if \(!mod\) return false;\n  if \(!hostWriteOk\(\) && !\(await writeOkSoon\(\)\)\) return false;/);
-  assert.match(h, /toast\('COULDN’T START — TAP PLAY AGAIN', 'err'\); await leaveRoom\(\)\.catch\(\(\) => \{\}\);\n      if \(!GAME_MODULES\[gameId\]\) await reloadNowIfQueued\(\)/, 'the toast FIRST, then the leave, then a deploy\'s queued reload');
+  assert.match(h, /toast\('COULDN’T START — TAP PLAY AGAIN', 'err'\); if \(state\.code === room\) await leaveRoom\(\)\.catch\(\(\) => \{\}\);\n      if \(!GAME_MODULES\[gameId\]\) await reloadNowIfQueued\(\)/, 'the toast FIRST, then the leave, then a deploy\'s queued reload');
   const li = readFileSync(new URL('../js/ui/lazy-import.js', import.meta.url), 'utf8');
   const fn = li.slice(li.indexOf('export async function reloadNowIfQueued()'), li.indexOf('// PLAY NOW — Group 0a: ONE BUILD PER PAGE'));
   assert.match(fn, /if \(holding \|\| gated\) return false;/, 'never mid-match, never with a sheet open or a finger down');
