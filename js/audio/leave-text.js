@@ -12,7 +12,11 @@ export function leaveReportText(e) {
   const sig = Array.isArray(e.sig) ? e.sig : [];
   const order = sig.filter(x => !/^media after|^cut:/.test(x.s)).map((x, i) => (i ? `${x.s} +${x.ms} ms` : x.s)).join(' → ') || 'no signal';
   const back = e.back ? `back after ${(e.back.ms / 1000).toFixed(1)} s (${e.back.why} · ctx ${e.back.st})` : 'NEVER CAME BACK (frozen or killed — sent at the next load)';
-  const media = sig.find(x => /^media after/.test(x.s));
+  // (THE AUDIO FIXES, Nov 25 — THE LEAVE CUT ORDER: "media after:" = right after the cut's first step (the unrouted elements paused, a
+  //  routed voice still UNDER THE RAMP); "media after the ramp:" = once the routed voices were paused under silence — shown when it differs)
+  const m0 = sig.find(x => /^media after:/.test(x.s)), m1 = sig.find(x => /^media after the ramp:/.test(x.s));
+  const late = m1 ? m1.s.replace(/^media after the ramp: /, '') : '';
+  const media = m0 ? { s: late && late !== m0.s.replace(/^media after: /, '') ? `${m0.s} → after the ramp: ${late}` : m0.s } : m1;
   // (CITY I: the context's state at the FIRST signal up front — the owner's phone test reads it at a glance; THE GARDEN PARTY PASS: + the sound
   //  state's name — MUSIC ON · HEAR THE HARBOR · ALL OFF, sound-state.js#SOUND_TABLE)
   const at = e.first && e.first.ctx ? String(e.first.ctx) : '?';

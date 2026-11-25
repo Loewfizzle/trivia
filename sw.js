@@ -47,7 +47,7 @@ let lastMode = null;          // (a request with no client id — or a browser w
 // than ?v= (a real version) is never kept; the cache is capped (the oldest copies trimmed). Still network-first, same-origin static only,
 // never /api or /audio; offline = the last good copy (tests/integration/sw-cache.mjs).
 const MAX_ENTRIES = 700;
-const stats = { puts: 0, same: 0, notKept: 0, trimmed: 0, hits: 0, misses: 0, net: 0, build: null, mode: null, fresh: 0, gone: 0, refused: 0, dropped: 0, carried: 0, carryMs: 0, audioHits: 0, audioKept: 0 };
+const stats = { puts: 0, same: 0, notKept: 0, trimmed: 0, hits: 0, misses: 0, net: 0, build: null, mode: null, fresh: 0, gone: 0, refused: 0, dropped: 0, carried: 0, carryMs: 0, audioHits: 0, audioKept: 0, audioEvicted: 0 };
 const keepable = url => [...url.searchParams.keys()].every(k => k === 'v');
 const keyOf = (req, url) => (req.mode === 'navigate' ? `${url.origin}${url.pathname}` : keepable(url) ? req : null);
 const sameCopy = (a, b) => {
@@ -376,6 +376,47 @@ self.addEventListener('fetch', event => {
 // name + its ?v= REV); a range request (the media element) is answered from that copy (a 206 slice); a miss is the network's, as before. Any
 // failure here = the network's answer: audio is polish, never a dependency.
 const RANGE_RE = /^bytes=(\d*)-(\d*)$/, audioWhole = new Set();
+// THE HOUSEKEEPING + AUDIO PASS (Nov 25) — THE SONG CAP (docs/audio.md): this cache kept EVERY song a phone ever heard, for good (the catalog is
+// ~242 MB). The SONGS (/audio/music/) are now capped at AUDIO_SONG_MAX bytes, the least recently USED out first; the AUDIO_KEEP_NEWEST most
+// recently used are never evicted whatever their size (the song playing — each of its range requests is a use — and the station's next, kept
+// whole by music.js's prefetch). The effects (/audio/* but music: ~35 MB in all, each game's small set) are not capped. The index — href →
+// { t: last use, z: bytes } — lives in META (/__ause), saved a moment after a change; a song kept before this rule is counted by its
+// Content-Length and is the oldest.
+const SONG_RE = /^\/audio\/music\//;
+let AUDIO_SONG_MAX = 60 * 1048576, AUDIO_KEEP_NEWEST = 3;
+let ause = null, auseT = 0;
+async function auseRead() {
+  if (ause) return ause;
+  try { const m = await within(caches.open(META), STORE_WAIT_MS, null), r = m ? await within(m.match('/__ause'), STORE_WAIT_MS, null) : null; ause = (r ? await r.json() : null) || {}; } catch { ause = {}; }
+  return ause;
+}
+function auseSave() { clearTimeout(auseT); auseT = setTimeout(async () => { try { const m = await within(caches.open(META), STORE_WAIT_MS, null); if (m && ause) await m.put('/__ause', new Response(JSON.stringify(ause))); } catch { /* polish */ } }, 1200); }
+/** a song was USED (answered from its copy, or just kept): its time (+ its size when known) */
+async function audioTouch(href, size) { try { const A = await auseRead(), e = A[href] || (A[href] = { t: 0, z: 0 }); e.t = Date.now(); if (size > 0) e.z = size; auseSave(); } catch { /* polish */ } }
+/** PURE: the index → the hrefs to evict: newest use first, the first `keep` always stay, then whatever no longer fits in `max` bytes */
+function audioEvictions(index, max, keep) {
+  const rows = Object.keys(index).map(href => ({ href, t: Number(index[href].t) || 0, z: Number(index[href].z) || 0 })).sort((a, b) => b.t - a.t || (a.href < b.href ? -1 : 1));
+  const out = [];
+  let total = 0;
+  for (let i = 0; i < rows.length; i++) { total += rows[i].z; if (i >= keep && total > max) out.push(rows[i].href); }
+  return out;
+}
+/** after a song was kept: every kept song has its row, the rows of songs no longer kept go, the cap is applied */
+async function audioTrim(c) {
+  try {
+    const A = await auseRead(), have = new Set();
+    for (const k of await c.keys()) {
+      const u = new URL(k.url);
+      if (!SONG_RE.test(u.pathname)) continue;
+      have.add(u.href);
+      // (its size: the response's Content-Length; none (a chunked answer) → the kept copy's own bytes, read once)
+      if (!A[u.href] || !A[u.href].z) { const r = await c.match(k); let z = Number(r && r.headers.get('content-length')) || 0; if (!z && r) { try { z = (await r.blob()).size; } catch { z = 0; } } A[u.href] = { t: (A[u.href] && A[u.href].t) || 0, z: z || 3e6 }; }
+    }
+    for (const h of Object.keys(A)) if (!have.has(h)) delete A[h];
+    for (const h of audioEvictions(A, AUDIO_SONG_MAX, AUDIO_KEEP_NEWEST)) { await c.delete(h); delete A[h]; stats.audioEvicted++; }
+    auseSave();
+  } catch { /* polish: the next kept song trims */ }
+}
 /** has this song + REV been asked for by an EARLIER page load? (META /__aseen/… holds the page that first asked — another page = a return) */
 async function audioSeenBefore(url, cid) {
   try {
@@ -385,6 +426,12 @@ async function audioSeenBefore(url, cid) {
     return (await was.text()) !== String(cid || '');
   } catch { return false; }
 }
+/** a whole /audio file kept under its URL; a SONG is then a use + the cap is applied (THE SONG CAP) */
+async function keptSong(c, url, res) {
+  const size = Number(res.headers.get('content-length')) || 0;
+  await c.put(url.href, res); stats.audioKept++;
+  if (SONG_RE.test(url.pathname)) { await audioTouch(url.href, size); await audioTrim(c); }
+}
 async function audioFetch(req, url, event) {
   try {
     const c = await within(caches.open(AUDIO), STORE_WAIT_MS, null);
@@ -392,6 +439,7 @@ async function audioFetch(req, url, event) {
     const range = req.headers.get('range');
     if (hit) {
       stats.audioHits++;
+      if (SONG_RE.test(url.pathname)) event.waitUntil(audioTouch(url.href, 0));   // (THE SONG CAP: a use)
       if (!range) return hit;
       const m = RANGE_RE.exec(range.trim()), blob = await hit.blob(), size = blob.size;
       if (!m || (!m[1] && !m[2])) return fetch(req);
@@ -403,11 +451,11 @@ async function audioFetch(req, url, event) {
     // (a range miss — the media element playing a song this phone hasn't kept: on the song's SECOND visit (a returning phone — a one-time
     //  visitor never pays twice for it) the WHOLE file is fetched once in the background + kept, so every later visit / deploy answers its
     //  ranges here; one copy a song + REV, never twice at once)
-    if (range && c && !audioWhole.has(url.href) && res.ok && await audioSeenBefore(url, event.clientId)) { audioWhole.add(url.href); event.waitUntil(fetch(url.href).then(full => (full.status === 200 && full.type === 'basic' ? c.put(url.href, full).then(() => { stats.audioKept++; }) : null)).catch(() => {}).finally(() => audioWhole.delete(url.href))); }
+    if (range && c && !audioWhole.has(url.href) && res.ok && await audioSeenBefore(url, event.clientId)) { audioWhole.add(url.href); event.waitUntil(fetch(url.href).then(full => (full.status === 200 && full.type === 'basic' ? keptSong(c, url, full) : null)).catch(() => {}).finally(() => audioWhole.delete(url.href))); }
     if (!range && res.status === 200 && res.type === 'basic' && c) {
       const copy = res.clone();
       event.waitUntil((async () => {
-        await c.put(url.href, copy); stats.audioKept++;
+        await keptSong(c, url, copy);
         for (const k of await c.keys()) { const u = new URL(k.url); if (u.pathname === url.pathname && u.href !== url.href) await c.delete(k); }   // (a new REV replaces the old copy)
       })().catch(() => {}));
     }
@@ -426,6 +474,11 @@ self.addEventListener('message', e => {
   if (d.t === 'ns:build-gone-ans') { const a = asks.get(src.id); if (a) a.r(!!d.mix); else if (d.mix) mixOk.add(src.id); }
   // (THE BOOT HANG's rig — wk-edge.mjs --slowcarry: an iPhone's slow store, only ever on a local test host)
   if (d.t === 'ns:test-slow-carry' && /^(localhost|127\.0\.0\.1)$/.test(self.location.hostname)) slowCarry = { ms: Math.max(0, Number(d.ms) || 0), old: !!d.old };
+  // (THE SONG CAP's rig — tests/integration/sw-audio-cap.mjs: a small cap, only ever on a local test host; answers with the index)
+  if (d.t === 'ns:test-audio-cap' && /^(localhost|127\.0\.0\.1)$/.test(self.location.hostname)) {
+    if (d.max > 0) AUDIO_SONG_MAX = Number(d.max); if (d.keep >= 0) AUDIO_KEEP_NEWEST = Number(d.keep);
+    e.waitUntil(auseRead().then(A => src.postMessage({ t: 'ns:audio-cap', max: AUDIO_SONG_MAX, keep: AUDIO_KEEP_NEWEST, index: A, evicted: stats.audioEvicted })));
+  }
 });
 
 // CITY CONTROLS B — "A ROOM JUST OPENED" (the owner's phone only: api/_lib/push.js sends it — Web Push, a site added to the Home Screen on

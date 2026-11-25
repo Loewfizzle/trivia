@@ -741,13 +741,26 @@ onHush(on => hushMusic(on, 'hushed'));
 // the song's place is carried; the music back ON (a tap — its gesture) activates the elements again + the song goes on where the station is
 onMusicRest(on => { if (on) hushMusic(true, 'music off'); else if (!audioHushed()) hushMusic(false, 'music back'); });
 // CITY G — THE MEDIA CUT: EVERY element paused in the leave's own step (its place kept; a blob's next tap re-activates it); a blur back = heal
-onLeaveCut((left, why) => {
-  if (!left) { heal('back after a blur'); return; }
-  if (tape.active()) tape.abort(why);
-  if (current && !current.ended) positions[current.id] = current.voice.el.currentTime || positions[current.id] || 0;
-  for (const x of [...voices, ...(direct ? [direct] : [])]) { try { if (!x.el.paused) { x.el.pause(); if (x.el.src && x.el.src.startsWith('blob:')) x.armed = false; } } catch { /* fine */ } }
+// THE LEAVE CUT ORDER (Nov 25 — docs/audio.md): late = false AT ONCE — the direct element + a silent blob; late = true after the master's
+// ramp, while still left — the ROUTED voices (a pause mid-buffer under full gain clicked).
+let cutLate = false;
+onLeaveCut((left, why, late) => {
+  if (!left) { cutLate = false; heal('back after a blur'); return; }
+  if (!late) {
+    if (tape.active()) tape.abort(why);
+    if (current && !current.ended) positions[current.id] = current.voice.el.currentTime || positions[current.id] || 0;
+  }
+  cutLate = !late;
+  for (const x of [...voices, ...(direct ? [direct] : [])]) {
+    try {
+      if (x.el.paused) continue;
+      const blob = !!(x.el.src && x.el.src.startsWith('blob:'));
+      if (!late && !x.direct && !blob) continue;
+      x.el.pause(); if (blob) x.armed = false;
+    } catch { /* fine */ }
+  }
 });
-soundingHub('media', () => { const on = [...voices, ...(direct ? [direct] : [])].filter(x => x.el && !x.el.paused); return on.length ? on.map(x => `${x.direct ? 'direct' : 'voice'} ${x.el.src && x.el.src.startsWith('blob:') ? 'silent blob' : x.id || 'song'} PLAYING${x.el.muted ? ' (el muted)' : ''}`).join(', ') : 'none playing'; });
+soundingHub('media', () => { const on = [...voices, ...(direct ? [direct] : [])].filter(x => x.el && !x.el.paused); return on.length ? on.map(x => `${x.direct ? 'direct' : 'voice'} ${x.el.src && x.el.src.startsWith('blob:') ? 'silent blob' : x.id || 'song'} ${cutLate && !x.direct ? 'UNDER THE RAMP (routed — paused once the master is 0)' : 'PLAYING'}${x.el.muted ? ' (el muted)' : ''}`).join(', ') : 'none playing'; });
 onGesture(() => {
   if (audioHushed() || musicResting()) return;   // (CITY A: hushed — a tap restarts nothing) (HEAR THE HARBOR: + the music resting)
   // elements whose activation never settled (iOS refused it outside a gesture; a pause aborted it): activate them again, in this tap

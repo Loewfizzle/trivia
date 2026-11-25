@@ -75,12 +75,14 @@ export const holdMs = run => (run.st === 'taken' ? 4200 : run.cause === 'ufo' ? 
 // there). Audio is polish: locked, muted, a missing file → nothing plays, nothing throws.
 const bytes = new Map(), bufs = new Map();
 let bufCtx = null;
-function sfetch(n) { if (!bytes.has(n)) bytes.set(n, fetch(new URL(`${n}.mp3`, AUDIO)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)); return bytes.get(n); }
+// (THE AUDIO FIXES, Nov 25: a FAILED fetch / decode is not kept for the session — its null is forgotten SND_RETRY_MS later, the next ask loads again)
+const SND_RETRY_MS = 8000, sndRetry = (map, n, p) => setTimeout(() => { if (map.get(n) === p) map.delete(n); }, SND_RETRY_MS);
+function sfetch(n) { if (!bytes.has(n)) { const p = fetch(new URL(`${n}.mp3`, AUDIO)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null).then(a => { if (!a) sndRetry(bytes, n, p); return a; }); bytes.set(n, p); } return bytes.get(n); }
 function sbuf(n) {
   const ctx = getContext();
   if (!ctx) return Promise.resolve(null);
   if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
-  if (!bufs.has(n)) bufs.set(n, sfetch(n).then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null)).catch(() => null));
+  if (!bufs.has(n)) { const p = sfetch(n).then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null)).catch(() => null).then(b => { if (!b) { sndRetry(bufs, n, p); sndRetry(bytes, n, bytes.get(n)); } return b || null; }); bufs.set(n, p); }
   return bufs.get(n);
 }
 const played = [];   // (the test hook: every sound asked for)

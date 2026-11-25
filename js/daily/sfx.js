@@ -21,6 +21,7 @@ function hookUnlock() {
   try { onUnlock(() => { for (const e of engines) e.unlocked(); }); } catch { /* no engine */ }
 }
 
+const RETRY_MS = 8000, retryLater = (map, k, was) => setTimeout(() => { if (map.get(k) === was) map.delete(k); }, RETRY_MS);
 export function createDailySfx({ dir, sounds }) {
   const files = [...new Set(Object.values(sounds).map(s => s[0]))];
   const bytesOf = new Map();   // file → Promise<ArrayBuffer | null>
@@ -30,7 +31,8 @@ export function createDailySfx({ dir, sounds }) {
   const log = [];
 
   const fetchBytes = file => {
-    if (!bytesOf.has(file)) bytesOf.set(file, fetch(new URL(`${file}.mp3`, dir)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+    // (THE AUDIO FIXES, Nov 25: a FAILED fetch / decode is not kept for the session — forgotten RETRY_MS later, the next ask loads again)
+    if (!bytesOf.has(file)) { const p = fetch(new URL(`${file}.mp3`, dir)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null).then(a => { if (!a) retryLater(bytesOf, file, p); return a; }); bytesOf.set(file, p); }
     return bytesOf.get(file);
   };
   function buffer(file) {
@@ -38,8 +40,9 @@ export function createDailySfx({ dir, sounds }) {
     if (!ctx) return null;
     if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
     if (bufs.has(file)) return bufs.get(file);
-    const p = fetchBytes(file).then(a => (a ? new Promise((res, rej) => ctx.decodeAudioData(a.slice(0), res, rej)) : null))
-      .then(b => { bufs.set(file, b); return b; }, () => { bufs.set(file, null); return null; });
+    const p = fetchBytes(file).then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
+      .then(b => b || null, () => null)
+      .then(b => { if (bufs.get(file) === p) { bufs.set(file, b); if (!b) { retryLater(bufs, file, null); retryLater(bytesOf, file, bytesOf.get(file)); } } return b; });
     bufs.set(file, p);
     return p;
   }

@@ -51,8 +51,10 @@ const bufs = new Map();     // file → AudioBuffer | Promise | null (per contex
 let bufCtx = null;
 const last = {};
 
+const RETRY_MS = 8000, retryLater = (map, k, was) => setTimeout(() => { if (map.get(k) === was) map.delete(k); }, RETRY_MS);
 const fetchBytes = file => {
-  if (!bytes.has(file)) bytes.set(file, fetch(new URL(`${file}.mp3`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+  // (THE AUDIO FIXES, Nov 25: a FAILED fetch / decode is not kept for the session — forgotten RETRY_MS later, the next ask loads again)
+  if (!bytes.has(file)) { const p = fetch(new URL(`${file}.mp3`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null).then(a => { if (!a) retryLater(bytes, file, p); return a; }); bytes.set(file, p); }
   return bytes.get(file);
 };
 /** fetch these files' bytes now (the preload — no AudioContext needed) */
@@ -63,8 +65,9 @@ function buffer(file) {
   if (!ctx) return null;
   if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
   if (bufs.has(file)) return bufs.get(file);
-  const p = fetchBytes(file).then(a => (a ? new Promise((res, rej) => ctx.decodeAudioData(a.slice(0), res, rej)) : null))
-    .then(b => { bufs.set(file, b); return b; }, () => { bufs.set(file, null); return null; });
+  const p = fetchBytes(file).then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
+    .then(b => b || null, () => null)
+    .then(b => { if (bufs.get(file) === p) { bufs.set(file, b); if (!b) { retryLater(bufs, file, null); retryLater(bytes, file, bytes.get(file)); } } return b; });
   bufs.set(file, p);
   return p;
 }
@@ -76,16 +79,19 @@ export function ocLoop(name, { gain = 1, fadeMs = 400 } = {}) {
   try {
     const def = OC_SOUNDS[name];
     if (!def || !isUnlocked()) return none;
-    const ctx = getContext(), bus = getSfxBus();
+    let ctx = getContext();
     if (!ctx) return none;
-    const g = ctx.createGain();
+    let g = ctx.createGain();
     g.gain.value = 0;
-    g.connect(bus || ctx.destination);
+    g.connect(getSfxBus() || ctx.destination);
     let src = null, dead = false, want = def[1] * gain, held = false, theBuf = null;
     const b = buffer(def[0]);
     const start = buf => {
       theBuf = buf || theBuf;
       if (dead || held || !buf || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
+      // (THE AUDIO FIXES, Nov 25: the context may have been REPLACED while the loop was held (iOS's rebuild) — read again, the gain made on the live one)
+      const live = getContext();
+      if (live && live !== ctx) { try { g.disconnect(); } catch { /* the old context */ } ctx = live; g = ctx.createGain(); g.gain.value = 0; g.connect(getSfxBus() || ctx.destination); }
       src = ctx.createBufferSource();
       src.buffer = buf; src.loop = true; src.loopStart = 0; src.loopEnd = buf.duration;
       src.connect(g);
@@ -99,7 +105,8 @@ export function ocLoop(name, { gain = 1, fadeMs = 400 } = {}) {
     });
     if (b && typeof b.then === 'function') b.then(start); else start(b);
     return {
-      stop(ms = 500) { dead = true; release(); try { g.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); if (src) src.stop(ctx.currentTime + ms / 1000 + 0.1); } catch { /* gone */ } },
+      // (THE AUDIO FIXES: its gain LEAVES the graph once the fade is through — a loop a race stayed wired to the bus for the page's life)
+      stop(ms = 500) { dead = true; release(); const gg = g; try { gg.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); if (src) src.stop(ctx.currentTime + ms / 1000 + 0.1); } catch { /* gone */ } setTimeout(() => { try { gg.disconnect(); } catch { /* gone */ } }, ms + 250); },
       gain(v, ms = 600) { want = def[1] * v; try { g.gain.setTargetAtTime(want, ctx.currentTime, ms / 3000); } catch { /* gone */ } },
     };
   } catch { return none; }

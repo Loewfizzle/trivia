@@ -169,10 +169,7 @@ let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
 onSettings(() => applySound('settings'));
 
-// ---- THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (the owner, Nov 21; retires CITY I's PODCAST MODE — docs/audio.md "HEAR THE HARBOR"):
-// ONE row of THE SOUND TABLE (sound-state.js) applied WHOLE on every change, in one order — the buses, the session, the hush (ALL OFF =
-// NOTHING RUNS), the music's rest, the beds — so a load in any state + any order of taps lands in the same state (tests/audio-session.test.mjs
-// walks every path). Nothing naps any more: the context runs while the page is on screen and the row isn't ALL OFF.
+// ---- HEAR THE HARBOR: ONE row of THE SOUND TABLE applied WHOLE on every change — docs/audio.md "engine.js — THE COMMENTS (moved Nov 25)"
 let restOn = false;   // the music resting (the row has no music) while not hushed — music.js pauses its elements, exactly as THE HUSH does
 const restListeners = new Set();
 /** the row has no music (HEAR THE HARBOR · ALL OFF): music.js plays no element — a PURE read of the settings, never stale mid-change */
@@ -232,10 +229,7 @@ function noteStart(c) {
   const on = () => { if (c.state !== 'running') return; r.wait = performance.now() - r.at; startWaits--; try { c.removeEventListener('statechange', on); } catch { /* fine */ } };
   try { c.addEventListener('statechange', on); } catch { startWaits--; }
 }
-// ---- HIGH RISE S4A — THE HOLD (docs/audio.md): a game's LEASE on the context while a run is LIVE — renewed from its frame loop, let go on the
-// end card. CITY I's nap (the reason for it) is retired with PODCAST MODE (THE GARDEN PARTY PASS): nothing naps, so the lease only records
-// itself (audioHealth().held) — kept so a game's call stays valid + any future idle rule must honour it. A LAZY chunk reaches it through the
-// hub globalThis.__nsHoldAwake (THE STALE-MODULE RULE).
+// ---- THE HOLD (HIGH RISE S4A): a live run's lease — it only RECORDS itself (nothing naps); the hub: globalThis.__nsHoldAwake
 export const HOLD_LEASE_MS = 3000;
 /** is a game holding the context awake now (its lease not lapsed)? */
 export const heldAwake = () => heldNow();
@@ -246,11 +240,7 @@ export function holdAwake(on, who = 'game') {
 }
 globalThis.__nsHoldAwake = holdAwake;
 
-// ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
-// app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
-// elements on their silent activation. Now while MUTED (or the music AND the effects both off) NOTHING RUNS: the master ramps to 0, the context
-// is SUSPENDED after the ramp (music.js pauses every element + releases the direct path's src — no silent loop); a tap no longer resumes it.
-// UNMUTE is a tap: inside that gesture the context resumes, music.js re-activates its elements, the master ramps up from 0 (no pop).
+// ---- THE HUSH (CITY A — item 29, THE LEAVING SQUEAL): MUTED / ALL OFF = NOTHING RUNS — docs/audio.md "engine.js — THE COMMENTS (moved Nov 25)"
 export const hushWanted = (s = settings) => !!(s.muted || (s.musicOff && s.sfxOff));
 let hushed = false, hushT = 0;
 /** is the audio machinery hushed now (muted / everything off)? */
@@ -365,7 +355,7 @@ function unlock(e) {
   if (hushed || hushWanted()) {
     hushed = true;
     if (ctx.state === 'running') hushNow('a tap while hushed');
-    if (!unlocked) { unlocked = true; audioLog(`unlock (${e ? e.type : '?'} · hushed)`); unlockListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } }); }
+    if (!unlocked) { unlocked = true; audioLog(`unlock (${e ? e.type : '?'} · hushed)`); fireUnlock(); }
     gestureListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } });
     return;
   }
@@ -380,21 +370,25 @@ function unlock(e) {
   if (unlocked && (s !== 'running' || frozen)) { offTapAt = performance.now(); audioLog(`tap ${e ? e.type : '?'} · ctx ${s}${frozen ? ' (frozen)' : ''}`); }
   const why = rebuildWhy();
   if (why) rebuild(why);
-  else if (ctx.state !== 'running') { ask(e ? e.type : 'tap'); blip(); }
+  else if (ctx.state !== 'running') { ask(e ? e.type : 'tap'); if (unlocked) blip(); }
   if (!unlocked) {
     unlocked = true;
     audioLog(`unlock (${e ? e.type : '?'})`);
     blip();
-    unlockListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } });
+    fireUnlock();
   }
   // inside the tap: whatever needs a gesture to play again (music.js: a paused / broken / re-made voice) — on EVERY tap
   gestureListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } });
 }
 
+/** fn() ONCE at the first tap — at once if it already happened (nothing kept); → its unsubscribe. The context's return = onResume. */
 export function onUnlock(fn) {
+  if (unlocked) { fn(); return () => {}; }
   unlockListeners.add(fn);
-  if (unlocked) fn();
+  return () => unlockListeners.delete(fn);
 }
+function fireUnlock() { const fns = [...unlockListeners]; unlockListeners.clear(); for (const fn of fns) { try { fn(); } catch (err) { console.warn(err); } } }
+export const unlockWaiters = () => unlockListeners.size;
 
 /** Called whenever the context (re)starts running — e.g. after iOS let it resume. */
 export function onResume(fn) {
@@ -474,12 +468,12 @@ function resumeBeds() { if (!bedsPaused || !soundRow(settings).beds) return;   /
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
   const c = ctx;
-  mediaCut(true, why);   // (CITY G — the 5:44 pm entry: EVERY media element paused in the cut's own step — the podium's victory song too)
-  if (!c || !master || c.state !== 'running') { pauseBeds(why); if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
+  if (!c || !master || c.state !== 'running') { mediaCut(true, why); pauseBeds(why); if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
   // (FIXES R2: the master RAMPS to 0 over LEAVE_S (it stepped — and the beds were cut in that same instant); the beds stop once it's 0; the
   //  suspend after THE ZEROS FIRST. A blur already ramped it: then the ramp is already 0 and this only keeps it there.)
   const already = master.gain.value < 1e-5 && blurred === false && bedsPaused;
   quiet(c, LEAVE_S);
+  mediaCut(true, why);   // (after the ramp)
   if (!already) cutStart('leave');
   leaveNote('cut: the master ramped to 0');
   audioLog(`fade out (${why}) — the master 0 at once`);
@@ -509,9 +503,9 @@ const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } c
 function onBlur() {
   if (!coarse() || !visibleNow || !ctx || hushed) return;
   blurred = true;
-  mediaCut(true, 'blur');
   // (FIXES R2: a short ramp, then the beds — never a loop cut while it sounds; C2's path for both sound rows)
   if (master && ctx.state === 'running') { quiet(ctx, LEAVE_S); cutStart('leave'); audioLog('blur — the master 0 at once'); }
+  mediaCut(true, 'blur');
   setTimeout(() => { if (blurred || !visibleNow) pauseBeds('blur'); }, Math.round(LEAVE_S * 1000) + 10);
   clearTimeout(blurT);
   blurT = setTimeout(blurBack, BLUR_BACK_MS);
@@ -533,7 +527,7 @@ function setVisible(visible, why = '') {
   visibleNow = visible;
   if (!visible && holdUntil) { holdUntil = 0; audioLog('hold dropped (hidden)'); }   // (HIGH RISE S4A: a leave ends any hold — the cut + the suspend run as ever)
   blurred = false; clearTimeout(blurT); blurT = 0;
-  if (visible) { visibleAt = performance.now(); setSession('back on screen'); mediaCutOn = false; }   // (CITY G: the media's own return = onVisibility)
+  if (visible) { visibleAt = performance.now(); setSession('back on screen'); mediaCutOn = false; clearTimeout(mediaLateT); mediaLateT = 0; }   // (CITY G: the media's own return = onVisibility)
   if (ctx) {
     if (visible && unlocked && hushed) { /* (CITY A: hushed — back on screen wakes nothing) */ }
     else if (visible && unlocked) {
@@ -548,27 +542,31 @@ function setVisible(visible, why = '') {
 /** Test hook: the page leaves / comes back (the fade → the suspend → the resume → the ramp up, in the log). */
 export function simulateVisible(v) { setVisible(!!v, v ? 'test show' : 'test hide'); }
 
-// ---- CITY G's HARD CUT (the master stepped to 0 + the beds in one step — for 'ambient', where iOS did not interrupt the session first) is
-// RETIRED with 'ambient' (THE GARDEN PARTY PASS): HEAR THE HARBOR runs on 'playback' and leaves by C2's path, like MUSIC ON. Why: with the
-// beds running, the step itself is a burst (tests/integration/audio-cut.mjs D: 0.155 vs the sound's own 0.147), and the owner's iPhone squealed
-// on the hard cut when the beds ran on 'ambient' (Nov 21 ~10 am) — C2 never squealed, leaving or returning (the Nov 16 LEAVE MODE test).
-// ---- CITY G — THE MEDIA CUT (the 5:44 pm entry: "media: voice victory3 PLAYING" at the first signal — an HTML element, not the Web Audio
-// master, and iOS may keep one playing behind a 'playback' session): every owner of a media element (music.js — the songs, the podium's
-// victory song, a direct path; any game's DOM audio through the hub) pauses EVERY playing element in the cut's own step: onLeaveCut(fn(left,
-// why)) — left = true at the cut, false when a blur came back on screen (the hidden → visible return is THE FADE's usual onVisibility).
+// ---- THE MEDIA CUT (CITY G; the HARD CUT is retired) — docs/audio.md "engine.js — THE COMMENTS (moved Nov 25)": onLeaveCut(fn(left, why, late))
 const leaveCutListeners = new Set();
 export function onLeaveCut(fn) { leaveCutListeners.add(fn); return () => leaveCutListeners.delete(fn); }
 globalThis.__nsLeaveCut = onLeaveCut;
 // (the music off → no synced song on through a 0 bus — synced-songs.js reads it through this hub; CITY G: the music's own switch, no mode)
 globalThis.__nsAudioRest = () => !!(settings.musicOff || !(settings.music > 0));
-let mediaCutOn = false;
+// THE LEAVE CUT ORDER (Nov 25 — docs/audio.md): listeners told TWICE — late = false AT ONCE (the unrouted elements), late = true once the
+// master's ramp has run + only while still left (the routed voices, under silence).
+export const MEDIA_LATE_MS = Math.round(LEAVE_S * 1000) + 5;
+let mediaCutOn = false, mediaLateT = 0;
 function mediaCut(left, why) {
   if (left === mediaCutOn) return;
   mediaCutOn = left;
-  leaveCutListeners.forEach(fn => { try { fn(left, why); } catch (e) { console.warn(e); } });
+  clearTimeout(mediaLateT); mediaLateT = 0;
+  leaveCutListeners.forEach(fn => { try { fn(left, why, false); } catch (e) { console.warn(e); } });
+  if (!left) return;
   // (belt and braces: a page's own <audio> / <video> nobody registered)
-  if (left && typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') for (const el of document.querySelectorAll('audio, video')) { try { if (!el.paused) el.pause(); } catch { /* fine */ } }
-  if (left) leaveNote(`media after: ${mediaAfter()}`);
+  if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') for (const el of document.querySelectorAll('audio, video')) { try { if (!el.paused) el.pause(); } catch { /* fine */ } }
+  leaveNote(`media after: ${mediaAfter()}`);
+  mediaLateT = setTimeout(() => {
+    mediaLateT = 0;
+    if (!mediaCutOn) return;
+    leaveCutListeners.forEach(fn => { try { fn(true, why, true); } catch (e) { console.warn(e); } });
+    leaveNote(`media after the ramp: ${mediaAfter()}`);
+  }, MEDIA_LATE_MS);
 }
 /** what media still plays right after the cut → 'all paused' | the list (the AUDIO LEAVE row's "media after") */
 function mediaAfter() {
@@ -578,8 +576,8 @@ function mediaAfter() {
   try { for (const el of document.querySelectorAll('audio, video')) if (!el.paused) parts.push('a DOM element'); } catch { /* fine */ }
   return parts.length ? parts.join(' · ') : 'all paused';
 }
-/** test hook: the page's media-cut state (left / back) */
-export const mediaCutState = () => ({ on: mediaCutOn, after: mediaAfter() });
+/** test hook: the media cut's state */
+export const mediaCutState = () => ({ on: mediaCutOn, late: !!mediaLateT, after: mediaAfter() });
 
 // ---- FIXES R3 — THE LEAVE RECORD: each signal written SYNCHRONOUSLY → an AUDIO LEAVE row at the next return / load; soundingHub(name, fn)
 const soundingHubs = new Map();
@@ -624,9 +622,7 @@ function sendLeave() {
 }
 if (typeof window !== 'undefined') window.__audioLeave = { last: () => lastLeave, sounding: soundingNow, episode: () => episode, send: sendLeave };
 
-// ---- FIXES R2 — THE PHONE'S ROW: each CUT (effects off · muted · leave) → its trace; at the suspend: the master + the zeros held. ONE row a page
-// per kind of cut, kind 'audio' (AUDIO CUT in /admin's phone reports) — only from the owner's phone (body.rd-owner) or with &debug=1; a leave's
-// row waits in localStorage for the return / the next load (the page may be frozen right after it). window.__audioCut.last() = the last one.
+// ---- THE PHONE'S ROW (FIXES R2): each CUT → its trace, ONE AUDIO CUT row a kind — docs/audio.md "engine.js — THE COMMENTS (moved Nov 25)"
 let cut = null, lastCut = null;
 const cutSent = new Set();
 const CUT_KEY = 'ns:audiocut';

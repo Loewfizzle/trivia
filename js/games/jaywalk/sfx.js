@@ -1,6 +1,7 @@
 // JAYWALK — THE SOUNDS (H2 — docs/jaywalk.md "THE SOUNDS"; the files: audio/jaywalk/ + CREDITS.md). The site's sound-engine pattern
 // The long notes: docs/games/jaywalk-notes.md
-import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
+import { getContext, getSfxBus, isUnlocked, onUnlock, onRebuild, audioUnlocked, audioHushed } from '../../audio/engine.js';
+import { leadIn, lateGate, decodeOnce } from '../../audio/sfx-kit.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS, seasonSoundsOf } from './sounds.js';
 export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS, seasonSoundsOf };
@@ -24,7 +25,9 @@ const keysOf = s => (s.b ? [`${s.id}:a`, `${s.id}:b`] : [`${s.id}:a`]);
 
 const bytes = new Map();
 const bufs = new Map();
-let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
+let bufCtx = null, bus = null, busCtx = null, hooked = false;
+// THE AUDIO FIXES (Nov 25 — docs/audio.md): ONE wait for "a sound may start" (never a listener a call) · ONE decode a file a context
+const gate = lateGate(), decoding = new Map();
 const live = new Set();
 const log = [];
 const asked = [];
@@ -44,9 +47,12 @@ export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match && !s.se
 export function decode() {
   const ctx = getContext();
   if (!ctx) return Promise.resolve();
-  if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
-  return Promise.all([...bytes.entries()].map(([k, p]) => (bufs.has(k) ? null : p.then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
-    .then(b => { if (b && bufCtx === ctx) bufs.set(k, b); }, () => {}))));
+  if (bufCtx !== ctx) { bufs.clear(); decoding.clear(); bufCtx = ctx; }
+  const jobs = [];
+  // (a decode IN FLIGHT is shared — ten hops asked before it lands are ONE decode a file, not ten; a file whose decode FAILED is forgotten
+  //  with its bytes: the next ask fetches + decodes it again; the lead-in is measured here, never inside a hop's frame)
+  for (const [k, p] of bytes) if (!bufs.has(k)) jobs.push(decodeOnce(ctx, k, p, decoding, (b, had) => { if (b && bufCtx === ctx) { bufs.set(k, b); leadIn(b); } else if (!b && had && bytes.get(k) === p) bytes.delete(k); }));
+  return Promise.all(jobs);
 }
 function out(ctx) {
   if (bus && busCtx === ctx) return bus;
@@ -69,23 +75,30 @@ export function play(id, o = {}) {
     // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes it …
     if (!isUnlocked() || !ctx || !bufs.get(key) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
+      // (THE AUDIO FIXES: MUTED / ALL OFF — nothing sounds, nothing waits, nothing is made; suspended / interrupted — ONE wait for the
+      //  context's return (onResume), the latest sound only; before the first tap — ONE wait for it. It was a listener kept for good + a
+      //  decode of every file at EVERY call while the phone was muted)
+      if (!o.late && !(audioUnlocked() && audioHushed())) gate.when(() => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }));
       return null;
     }
     const voices = [...live], a = admit(voices, s.pri);
     if (!a.ok) return null;
     if (s.max && voices.filter(q => q.id === id).length >= s.max) return null;
     if (a.drop >= 0) voices[a.drop].end();
-    const src = ctx.createBufferSource(), g = ctx.createGain(), v = { src, id, pri: s.loop ? 9 : s.pri, at: t0, fade: s.fade || 0 };
+    const src = ctx.createBufferSource(), g = ctx.createGain(), v = { src, g, pn: null, id, pri: s.loop ? 9 : s.pri, at: t0, fade: s.fade || 0 };
     src.buffer = bufs.get(key); src.playbackRate.value = o.rate || 1; src.loop = !!(o.loop || s.loop);
+    // (THE AUDIO FIXES — THE LATE CUES: an MP3's encoder lead-in (out-drop 27.9 ms, runway-tick 26.8, leaf-crunch 22.4, area-arrive 15.5 —
+    //  measured) is skipped: the sound starts at its first audible sample, ON its hop — HIGH RISE's rule, ONE helper: audio/sfx-kit.js)
+    const lead = leadIn(src.buffer);
     g.gain.value = s.gain * (o.vol == null ? 1 : o.vol);
     // (H5A — PANNED by the side it is on: a stereo panner where the browser has one; none = the middle)
     let tail = g;
-    if (o.pan && ctx.createStereoPanner) { try { const pn = ctx.createStereoPanner(); pn.pan.value = Math.max(-1, Math.min(1, o.pan)); g.connect(pn); tail = pn; } catch { tail = g; } }
+    if (o.pan && ctx.createStereoPanner) { try { const pn = ctx.createStereoPanner(); pn.pan.value = Math.max(-1, Math.min(1, o.pan)); g.connect(pn); tail = pn; v.pn = pn; } catch { tail = g; } }
     src.connect(g); tail.connect(out(ctx));
-    src.start(); live.add(v); src.onended = () => live.delete(v);
+    // (THE AUDIO FIXES: a voice's gain + panner LEAVE the graph when it ends — they stayed wired to the limiter for the page's life)
+    src.start(0, lead); live.add(v); src.onended = () => { live.delete(v); unwire(v); };
     // (H5B — a sound with a `fade` NEVER stops dead: its own end ramps out over its last `fade` s — the take's tail is not trusted …)
-    if (s.fade && !src.loop) { const dur = src.buffer.duration / src.playbackRate.value, t = ctx.currentTime; if (dur > s.fade * 2) { g.gain.setValueAtTime(g.gain.value, t + dur - s.fade); g.gain.linearRampToValueAtTime(0, t + dur); } }
+    if (s.fade && !src.loop) { const dur = (src.buffer.duration - lead) / src.playbackRate.value, t = ctx.currentTime; if (dur > s.fade * 2) { g.gain.setValueAtTime(g.gain.value, t + dur - s.fade); g.gain.linearRampToValueAtTime(0, t + dur); } }
     // (… and a stop — the bell's signals ending, a new run, the unmount, a voice a louder sound takes — ramps out the same way)
     v.end = (fade = v.fade) => {
       live.delete(v);
@@ -98,7 +111,9 @@ export function play(id, o = {}) {
   } catch { return null; }
 }
 /** the game is LEFT (not PLAY AGAIN): the decoded sounds are let go — the fetched bytes stay, the next visit decodes them again */
-export function release() { stopAll(); bufs.clear(); bufCtx = null; }
+export function release() { stopAll(); bufs.clear(); decoding.clear(); gate.reset(); bufCtx = null; }
+/** a voice's nodes out of the graph (its end; a context iOS replaced) */
+function unwire(v) { try { v.src.disconnect(); } catch { /* gone */ } try { v.g.disconnect(); } catch { /* gone */ } if (v.pn) { try { v.pn.disconnect(); } catch { /* gone */ } } }
 /** silence everything still sounding (the unmount, the lab closing) — a sound with a `fade` (the train's) ramps out, the rest stop */
 export function stopAll() { bellWant = false; bell = null; tickWant = null; tick = null; for (const v of [...live]) v.end(); live.clear(); }
 
@@ -138,3 +153,19 @@ export const played = () => log.slice();
 export const wanted = () => asked.slice();
 export const sounding = () => live.size;
 export const totals = () => ({ ...total, by: { ...total.by } });
+/** each decoded take: its length + the lead-in skipped at its start (s) · how many are waiting to sound (0 none · 1 the tap · 2 the context) */
+export const decoded = () => [...bufs.entries()].map(([key, b]) => ({ key, s: +b.duration.toFixed(3), lead: +leadIn(b).toFixed(4) }));
+export const waiting = () => gate.waiting();
+
+// THE AUDIO FIXES (Nov 25) — iOS's CONTEXT REBUILD (engine.js#rebuild, inside a tap: a stuck / frozen context replaced): every node, buffer
+// and loop handle here belonged to the OLD context — its voices would never end (the voice cap filled for good), its bus was a dead limiter,
+// the bell / the stopwatch pointed at sources that no longer sound. Everything is let go + decoded again for the new one; the bell comes back
+// if its signals are still flashing, the stopwatch at its next cue.
+try {
+  onRebuild(() => {
+    for (const v of [...live]) { v.src.onended = null; unwire(v); }   // (the old context is CLOSED: silent already — let go, never a stop)
+    live.clear(); bus = null; busCtx = null; bufs.clear(); decoding.clear(); gate.reset(); bufCtx = null;
+    bell = null; tick = null;
+    if (bytes.size) decode().then(() => { if (bellWant && !bell) onCue({ cue: 'bell-on' }); }, () => {});
+  });
+} catch { /* no engine */ }

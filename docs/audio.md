@@ -2238,3 +2238,38 @@ off, the engine napping, one typical sound from every live game + a flyer + both
 ## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
 - MUSIC OFF = HEAR THE HARBOR (GARDEN PARTY, retires PODCAST MODE): ONE row of THE SOUND TABLE (`sound-state.js` — session · music · beds · one-offs · effects) applied whole on every change (`engine.js#applySound`); both sound rows 'playback' + C2's leave; ALL OFF = nothing runs → docs/audio.md.
 - THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
+
+## engine.js — THE COMMENTS (moved Nov 25 — THE HOUSEKEEPING + AUDIO PASS, THE BOOT's BYTE ROOM: the text the module held, verbatim)
+The engine fixes of this pass grew the boot past THE BOOT BUDGET (6,503 of 6,500 KB); these comment blocks left `js/audio/engine.js` for here
+(THE BOOT HEADERS' rule — a boot module keeps a short pointer, its history lives in the docs). Each block as it stood:
+
+```js
+// ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
+// app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
+// elements on their silent activation. Now while MUTED (or the music AND the effects both off) NOTHING RUNS: the master ramps to 0, the context
+// is SUSPENDED after the ramp (music.js pauses every element + releases the direct path's src — no silent loop); a tap no longer resumes it.
+// UNMUTE is a tap: inside that gesture the context resumes, music.js re-activates its elements, the master ramps up from 0 (no pop).
+
+// ---- CITY G's HARD CUT (the master stepped to 0 + the beds in one step — for 'ambient', where iOS did not interrupt the session first) is
+// RETIRED with 'ambient' (THE GARDEN PARTY PASS): HEAR THE HARBOR runs on 'playback' and leaves by C2's path, like MUSIC ON. Why: with the
+// beds running, the step itself is a burst (tests/integration/audio-cut.mjs D: 0.155 vs the sound's own 0.147), and the owner's iPhone squealed
+// on the hard cut when the beds ran on 'ambient' (Nov 21 ~10 am) — C2 never squealed, leaving or returning (the Nov 16 LEAVE MODE test).
+// ---- CITY G — THE MEDIA CUT (the 5:44 pm entry: "media: voice victory3 PLAYING" at the first signal — an HTML element, not the Web Audio
+// master, and iOS may keep one playing behind a 'playback' session): every owner of a media element (music.js — the songs, the podium's
+// victory song, a direct path; any game's DOM audio through the hub) pauses EVERY playing element in the cut's own step: onLeaveCut(fn(left,
+// why)) — left = true at the cut, false when a blur came back on screen (the hidden → visible return is THE FADE's usual onVisibility).
+
+// ---- FIXES R2 — THE PHONE'S ROW: each CUT (effects off · muted · leave) → its trace; at the suspend: the master + the zeros held. ONE row a page
+// per kind of cut, kind 'audio' (AUDIO CUT in /admin's phone reports) — only from the owner's phone (body.rd-owner) or with &debug=1; a leave's
+// row waits in localStorage for the return / the next load (the page may be frozen right after it). window.__audioCut.last() = the last one.
+
+// ---- THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (the owner, Nov 21; retires CITY I's PODCAST MODE — docs/audio.md "HEAR THE HARBOR"):
+// ONE row of THE SOUND TABLE (sound-state.js) applied WHOLE on every change, in one order — the buses, the session, the hush (ALL OFF =
+// NOTHING RUNS), the music's rest, the beds — so a load in any state + any order of taps lands in the same state (tests/audio-session.test.mjs
+// walks every path). Nothing naps any more: the context runs while the page is on screen and the row isn't ALL OFF.
+
+// ---- HIGH RISE S4A — THE HOLD (docs/audio.md): a game's LEASE on the context while a run is LIVE — renewed from its frame loop, let go on the
+// end card. CITY I's nap (the reason for it) is retired with PODCAST MODE (THE GARDEN PARTY PASS): nothing naps, so the lease only records
+// itself (audioHealth().held) — kept so a game's call stays valid + any future idle rule must honour it. A LAZY chunk reaches it through the
+// hub globalThis.__nsHoldAwake (THE STALE-MODULE RULE).
+```

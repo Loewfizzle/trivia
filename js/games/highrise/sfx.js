@@ -4,7 +4,8 @@
 // MUTE and THE CUT apply there). 8 VOICES by PRIORITY (sounds.js#admit). Audio is POLISH: locked, muted, a missing file — nothing plays,
 // nothing throws; the game never asks the sounds anything.
 // ONE take a sound (S3 — the owner's picks are final: ALL A; S2's B takes + this phone's `hi:play:snd:<id>` picks left the game).
-import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
+import { getContext, getSfxBus, isUnlocked, onUnlock, onRebuild, audioUnlocked, audioHushed } from '../../audio/engine.js';
+import { leadOf, leadIn, LEAD_AT, LEAD_MAX, lateGate, decodeOnce } from '../../audio/sfx-kit.js';
 import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, OLD_GROW_KEY, admitSlot, cuesOf } from './sounds.js';
 export { SOUNDS, cuesOf };
 
@@ -12,23 +13,18 @@ const DIR = new URL('../../../audio/highrise/', import.meta.url);
 export const HI_SFX_REV = 3;   // (bump when a sound file is replaced — 2: the files ship as MP3, S2 FIX · 3: GROW-BACK final, S4A FIX 2)
 // THE FILES ARE MP3 (S2 FIX — scripts/build-highrise-sounds.mjs: 633 KB of WAV → 121 KB). An MP3 begins with its encoder's LEAD-IN
 // (~25–50 ms of near-silence a WAV never had): each sound is started at its first audible sample (less a millisecond) — a drop's
-// sound stays ON its tap. Measured once a file, when its decode lands.
-export const LEAD_AT = 0.003, LEAD_MAX = 0.08;
-export function leadOf(b) {
-  try {
-    const d = b.getChannelData(0), n = Math.min(d.length, Math.floor(b.sampleRate * LEAD_MAX));
-    for (let i = 0; i < n; i++) if (d[i] > LEAD_AT || d[i] < -LEAD_AT) return Math.max(0, i / b.sampleRate - 0.001);
-  } catch { /* an odd buffer: from its start */ }
-  return 0;
-}
-const leads = new Map();              // file → seconds skipped at its start
+// sound stays ON its tap. Measured once a buffer, when its decode lands (THE AUDIO FIXES, Nov 25: the ONE helper — audio/sfx-kit.js#leadIn,
+// JAYWALK's sounds use it too; a play only reads the remembered number).
+export { leadOf, LEAD_AT, LEAD_MAX };
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
 
 const bytes = new Map();               // file → Promise<ArrayBuffer | null>
 const bufs = new Map();                // file → AudioBuffer (for bufCtx)
-let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
+let bufCtx = null, bus = null, busCtx = null, hooked = false;
+// THE AUDIO FIXES (Nov 25 — docs/audio.md): ONE wait for "a sound may start" (never a listener a call) · ONE decode a file a context
+const gate = lateGate(), decoding = new Map();
 // ZERO GARBAGE (S4A FIX — the owner's iPhone: a stall a floor, the collector's): a sound that starts makes ONE thing — its buffer
 // source (Web Audio's one-shot: it can not be kept). Its VOICE is one of a POOL of slots made once: each keeps its own gain node
 // (wired to the limiter once a context), its own `ended` handler, its own record; the test hooks write into two rings of records.
@@ -73,9 +69,12 @@ export function fetchSounds(files = runFiles()) {
 export function decode() {
   const ctx = getContext();
   if (!ctx) return Promise.resolve();
-  if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
-  return Promise.all([...bytes.entries()].map(([k, p]) => (bufs.has(k) ? null : p.then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
-    .then(b => { if (b && bufCtx === ctx) { bufs.set(k, b); leads.set(k, leadOf(b)); workAt = performance.now(); } }, () => {}))))
+  if (bufCtx !== ctx) { bufs.clear(); decoding.clear(); bufCtx = ctx; }
+  const jobs = [];
+  // (a decode IN FLIGHT is shared: asked ten times before it lands = ONE decode a file; a FAILED one is forgotten with its bytes — the next
+  //  ask fetches + decodes again; the lead-in is measured HERE (leadIn), never in a drop's frame)
+  for (const [k, p] of bytes) if (!bufs.has(k)) jobs.push(decodeOnce(ctx, k, p, decoding, (b, had) => { if (b && bufCtx === ctx) { bufs.set(k, b); leadIn(b); workAt = performance.now(); } else if (!b && had && bytes.get(k) === p) bytes.delete(k); }));
+  return Promise.all(jobs)
     // (S2 FIX — THE LAG HUNT: the limiter + its trim are built HERE, with the decode at the unlock — not inside the first drop's frame)
     .then(r => { try { if (isUnlocked()) out(ctx); } catch { /* at the first play, then */ } return r; });
 }
@@ -94,8 +93,11 @@ export const ready = () => { const ctx = getContext(); return !!ctx && bufCtx ==
  *  this moment, so no sound of a run takes the late path below */
 export function whenReady(ms = 600) {
   return new Promise(res => {
-    const t = setTimeout(res, ms), done = () => { clearTimeout(t); res(); };
-    try { onUnlock(() => { decode().then(() => (ready() ? done() : null), () => {}); }); } catch { done(); }
+    // (THE AUDIO FIXES: a call that timed out before the first tap takes its waiter back — it was one kept for good a call)
+    let off = null;
+    const done = () => { clearTimeout(t); if (off) { try { off(); } catch { /* gone */ } off = null; } res(); };
+    const t = setTimeout(done, ms);
+    try { off = onUnlock(() => { off = null; decode().then(() => (ready() ? done() : null), () => {}); }) || null; } catch { done(); }
   });
 }
 let lateN = 0;
@@ -136,7 +138,7 @@ function start(id, rate, vol, delay, late) {
     v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(gain, t);
     src.connect(v.g);
     src.onended = v.ended;
-    src.start(t + delay, leads.get(file) || 0);
+    src.start(t + delay, leadIn(buf));
     v.on = true; v.src = src; v.id = id; v.pri = s.pri; v.at = t0;
     const l = log[logN++ % RING]; l.id = id; l.rate = r4(rate * s.rate); l.gain = r3(gain);
     return true;
@@ -144,10 +146,16 @@ function start(id, rate, vol, delay, late) {
 }
 /** THE LATE PATH (never in a run — START waits for every decode): kept OUT of start() — a function an inner function reads the
  *  numbers of is given a fresh record for them at every call, and start() runs for every sound */
+// (THE AUDIO FIXES, Nov 25: MUTED / ALL OFF — nothing sounds, nothing waits, NOTHING IS MADE (a muted run asked this at every drop: a
+//  listener kept for good + a decode of every file each time); suspended / interrupted — ONE wait for the context's return, the LATEST sound
+//  only, its numbers kept in these five slots (no closure a drop); before the first tap — ONE wait for it)
+let lateId = '', lateRate = 1, lateVol = 1, lateDelay = 0, lateT0 = 0;
+const lateGo = () => { const id = lateId, rate = lateRate, vol = lateVol, delay = lateDelay, t0 = lateT0; decode().then(() => { if (performance.now() - t0 < 220) start(id, rate, vol, delay, true); }); };
 function lateStart(id, rate, vol, delay, t0) {
   lateN++;
-  const go = () => decode().then(() => { if (performance.now() - t0 < 220) start(id, rate, vol, delay, true); });
-  if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); }
+  if (audioUnlocked() && audioHushed()) return;
+  lateId = id; lateRate = rate; lateVol = vol; lateDelay = delay; lateT0 = t0;
+  gate.when(lateGo);
 }
 /** a frame's CUES (sounds.js#cuesOf) → the sounds: a drop never the same twice (pitch ± 4 %, gain ± 1.5 dB) */
 export function playCues(cues, rnd = Math.random) {
@@ -164,4 +172,16 @@ export const played = () => ringOut(log, logN, l => ({ id: l.id, rate: l.rate, g
 export const wanted = () => ringOut(asked, askedN, q => ({ id: q.id, rate: q.rate, delay: q.delay }));
 export const sounding = () => { let n = 0; for (let i = 0; i < POOL; i++) if (slots[i].on) n++; return n; };
 /** each decoded file: its length + the lead-in skipped at its start (s) */
-export const decoded = () => [...bufs.entries()].map(([file, b]) => ({ file, s: +b.duration.toFixed(3), lead: +(leads.get(file) || 0).toFixed(4) }));
+export const decoded = () => [...bufs.entries()].map(([file, b]) => ({ file, s: +b.duration.toFixed(3), lead: +leadIn(b).toFixed(4) }));
+/** how many are waiting to sound (0 none · 1 the first tap · 2 the context's return) */
+export const waiting = () => gate.waiting();
+
+// THE AUDIO FIXES (Nov 25) — iOS's CONTEXT REBUILD (engine.js#rebuild): the old context's sources never fire `ended` — their voices would
+// stay taken for good. Every voice is free again, the limiter + the buffers are the new context's (decoded again now, not at the next drop).
+try {
+  onRebuild(() => {
+    for (let i = 0; i < POOL; i++) { const v = slots[i]; if (v.src) v.src.onended = null; v.on = false; v.src = null; v.busy = 0; v.g = null; v.gctx = null; }   // (the old context is CLOSED: silent already)
+    bus = null; busCtx = null; bufs.clear(); decoding.clear(); gate.reset(); bufCtx = null;
+    if (bytes.size) decode().catch(() => {});
+  });
+} catch { /* no engine */ }

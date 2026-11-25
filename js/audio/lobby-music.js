@@ -16,7 +16,7 @@ import { serverNow, dbRef, update, firebaseReady } from '../firebase.js';
 import { state as store } from '../store.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
 import { moodNow, songsFor, durOf, loadMoodMusic } from './mood.js';
-import { nowPlaying, handoffFade } from './music.js';
+import { nowPlaying, handoffFade, musicInput } from './music.js';
 import { rideDecision, seedQueue, JOIN_FADE_S } from '../core/lobby-song.js';
 
 export { rideDecision, seedQueue };
@@ -77,7 +77,7 @@ export function lobbyMusicTick(st, active, inLobby = active) {
   if (now > starts[starts.length - 1] + lm.sd[lm.sd.length - 1]) return false;   // the queue ran out (a new one is coming)
   if (!player || playingId !== lm.m) {
     if (player) player.stop();
-    player = createSyncedSongs({ urlFor, label: 'lobby song', joinFade: JOIN_FADE_S, connect: ctx => { const g = ctx.createGain(); g.gain.value = 1; g.connect(getMusicBus()); return g; } });
+    player = createSyncedSongs({ urlFor, label: 'lobby song', joinFade: JOIN_FADE_S, connect: ctx => { const g = ctx.createGain(); g.gain.value = 1; g.connect(musicInput() || getMusicBus()); return g; } });
     playingId = lm.m;
   }
   // already on the room's song here (the host who opened the room, a joiner on the same song): keep it — the synced player

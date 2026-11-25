@@ -185,8 +185,9 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   assert.match(v, /if \(!final && !localEnd\) tiers\.sample\(now, performance\.now\(\) - t0\);\n    if \(!pinned\) tiers\.tick\(now\);/, 'the tier is measured only while the scene is drawn');
   assert.match(v, /cv\.addEventListener\('webglcontextlost', lost\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /if \(gone \|\| night !== mine\) return;   \/\/ \(our own teardown/, '… but never our own teardown (BEFORE THE FLIP)'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
   { const sx = readFileSync(new URL('../js/games/jaywalk/sfx.js', import.meta.url), 'utf8');
-    assert.match(sx, /export function release\(\) \{ stopAll\(\); bufs\.clear\(\); bufCtx = null; \}/, 'sfx.release: the decoded buffers let go (the bytes stay)');
-    assert.match(sx, /else if \(!lockWait\) \{ lockWait = true; onUnlock\(\(\) => \{ lockWait = false; go\(\); \}\); \}/, 'a locked / muted phone: ONE sound waits for the unlock — never a listener a call'); }
+    assert.match(sx, /export function release\(\) \{ stopAll\(\); bufs\.clear\(\); decoding\.clear\(\); gate\.reset\(\); bufCtx = null; \}/, 'sfx.release: the decoded buffers let go (the bytes stay)');
+    // (THE AUDIO FIXES, Nov 25: the per-call `lockWait` + onUnlock wait is ONE gate — audio/sfx-kit.js#lateGate; muted = no wait at all — tests/audio-fixes.test.mjs)
+    assert.match(sx, /if \(!o\.late && !\(audioUnlocked\(\) && audioHushed\(\)\)\) gate\.when\(/, 'a locked phone: ONE sound waits — never a listener a call; a MUTED one waits for nothing'); }
   assert.match(v, /if \(night\) night\.rest\(false\)/, 'a new run wakes it');
   assert.match(v, /\}, 1080, 1080\);/, 'the run\'s picture: 1080 wide, the 1080 rows round the kid (≤ 1080 × 1350)');
   assert.match(n, /cv\.width = width; cv\.height = hh; cv\.top = top; cv\.full = H;/, 'the cut knows where it began');

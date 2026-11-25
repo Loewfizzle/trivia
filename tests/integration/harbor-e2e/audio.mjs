@@ -670,11 +670,19 @@ G('mediacut', async () => {
     const d0 = M.musicDiag(), before = d0.el ? d0.el.paused : null;
     window.dispatchEvent(new Event('blur'));                       // (the leave's first signal on a touch phone)
     const els = [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length, d = M.musicDiag();
-    const st = E.mediaCutState(), rec = JSON.parse(localStorage.getItem('ns:audioleave') || 'null');
-    return { before, after: d.el ? d.el.paused : null, els, st, media: rec && rec.sig.find(x => /^media after/.test(x.s)) };
+    const st = E.mediaCutState(), rec = JSON.parse(localStorage.getItem('ns:audioleave') || 'null'), out = M.musicOut(), t0 = performance.now();
+    // (THE HOUSEKEEPING + AUDIO PASS — THE LEAVE CUT ORDER: a ROUTED voice is paused once the master's ramp has run (LEAVE_S), never mid-buffer
+    //  under full gain; the DIRECT element at once. Polled every frame-ish for the moment it pauses)
+    let pausedAt = d.el && d.el.paused ? 0 : -1;
+    while (pausedAt < 0 && performance.now() - t0 < 600) { await new Promise(r => setTimeout(r, 4)); const q = M.musicDiag(); if (q.el && q.el.paused) pausedAt = performance.now() - t0; }
+    const rec2 = JSON.parse(localStorage.getItem('ns:audioleave') || 'null'), st2 = E.mediaCutState();
+    return { before, after: d.el ? d.el.paused : null, els, st, out, pausedAt: Math.round(pausedAt), st2, leaveMs: E.FADE.leaveS * 1000, media: rec && rec.sig.find(x => /^media after:/.test(x.s)), ramped: rec2 && rec2.sig.find(x => /^media after the ramp:/.test(x.s)) };
   })()`);
-  ok(playing && r.before === false && r.after === true && r.els === 0 && r.st.on && r.st.after === 'all paused' && r.media && r.media.s === 'media after: all paused',
-    `THE MEDIA CUT: a song playing (${song}) → the blur → paused IN the cut's own step (${r.before} → ${r.after}; DOM elements still playing ${r.els}); the record: "${r.media && r.media.s}"`);
+  if (r.out === 'direct') ok(playing && r.before === false && r.after === true && r.els === 0 && r.st.on, `THE MEDIA CUT (the DIRECT path): the song (${song}) paused IN the cut's own step (${r.before} → ${r.after})`);
+  else ok(playing && r.before === false && r.after === false && r.els === 0 && r.st.on && r.st.late && /UNDER THE RAMP/.test(r.st.after) && r.media && /UNDER THE RAMP/.test(r.media.s),
+    `THE LEAVE CUT ORDER: a song playing on a ROUTED voice (${song}) → the blur → NOT paused in the cut's own step (the master is ramping); the record: "${r.media && r.media.s}"`);
+  ok(r.pausedAt >= (r.out === 'direct' ? 0 : r.leaveMs - 2) && r.pausedAt < 400 && r.st2.after === 'all paused' && (r.out === 'direct' || (r.ramped && r.ramped.s === 'media after the ramp: all paused')),
+    `… paused ${r.pausedAt} ms after the cut — after the ramp (LEAVE_S ${r.leaveMs} ms), under silence; then "${r.ramped && r.ramped.s}" (every element: ${r.st2.after})`);
   // hidden after it: still all paused; back on screen + a focus → the song is told it may go on
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
   await sleep(300);

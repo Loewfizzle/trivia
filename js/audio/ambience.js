@@ -151,9 +151,18 @@ function neonChain(ctx, kind) {
   else ws.connect(getSfxBus());
   return (neonChains[kind] = ws);
 }
+// (Nov 25: a FAILED load is forgotten RETRY_MS later — never kept for the session; docs/audio.md)
+const RETRY_MS = 8000;
+function loadOnce(map, name, ctx, url) {
+  const p = fetch(url).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
+    .then(b => new Promise((res, rej) => { const q = ctx.decodeAudioData(b, res, rej); if (q && q.catch) q.catch(rej); }))
+    .then(b => b || null, () => null)
+    .then(b => { if (!b) setTimeout(() => { if (map.get(name) === p) map.delete(name); }, RETRY_MS); return b; });
+  return p;
+}
 const neonBufs = new Map();
 function neonBuf(ctx, name) {
-  if (!neonBufs.has(name)) neonBufs.set(name, fetch(new URL(`../../audio/sfx/${name}`, import.meta.url)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then(b => ctx.decodeAudioData(b)).catch(() => null));
+  if (!neonBufs.has(name)) neonBufs.set(name, loadOnce(neonBufs, name, ctx, new URL(`../../audio/sfx/${name}`, import.meta.url)));
   return neonBufs.get(name);
 }
 /** warm the neon files (the title calls it once City 2.0 is up and audio is unlocked: the first flicker then plays on time) */
@@ -282,7 +291,7 @@ const REC_GAIN = { 'thunderstrike.mp3': 1, 'thunderstrike2.mp3': 0.45 };
 let rolling = 0;            // recorded strikes sounding now (at most two at once: a storm never piles up into a wall)
 const decoded = new Map();
 function loadRec(ctx, name) {
-  if (!decoded.has(name)) decoded.set(name, fetch(new URL(`../../audio/weather/${name}`, import.meta.url)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status)))).then(b => ctx.decodeAudioData(b)).catch(() => null));
+  if (!decoded.has(name)) decoded.set(name, loadOnce(decoded, name, ctx, new URL(`../../audio/weather/${name}`, import.meta.url)));
   return decoded.get(name);
 }
 function brown(ctx) {

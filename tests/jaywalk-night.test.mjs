@@ -114,7 +114,7 @@ test('THE SOUNDS (PURE): every sound in play (H5A — the world\'s cues: tests/j
   assert.deepEqual(admit([...full.slice(0, 7), { pri: 3, at: 99 }], 3), { ok: true, drop: 0 });
   assert.deepEqual(admit(Array.from({ length: 8 }, (_, i) => ({ pri: 3, at: i })), 3), { ok: false, drop: -1 }, 'never one hit over another');
   const s = code('sfx.js');
-  assert.match(s, /import \{ getContext, getSfxBus, isUnlocked, onUnlock \} from '\.\.\/\.\.\/audio\/engine\.js';/, 'the SHARED engine');
+  assert.match(s, /import \{ getContext, getSfxBus, isUnlocked, onUnlock, onRebuild, audioUnlocked, audioHushed \} from '\.\.\/\.\.\/audio\/engine\.js';/, 'the SHARED engine (THE AUDIO FIXES, Nov 25: + its rebuild, its unlock + hush reads)');
   assert.match(s, /trim\.connect\(getSfxBus\(\) \|\| ctx\.destination\)/, 'a soft limiter → the console\'s SFX bus (the slider, the mute, THE CUT)');
   assert.match(s, /createDynamicsCompressor/);
   assert.doesNotMatch(s, /new (window\.)?(webkit)?AudioContext|new Audio\(/, 'never its own audio context / element');
