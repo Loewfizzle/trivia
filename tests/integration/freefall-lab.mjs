@@ -117,11 +117,17 @@ const t = await open(390, 844, 3, '?seed=lab1');
   const s2 = await st(p);
   ok(Math.abs(angDiff(s2.a + s2.owed, s0.a)) <= 6, 'the same drag back: the tower is where it was');
   ok(Math.abs(60 * k / 4096 * 360 - 60 / s0.pxPerRad * 180 / Math.PI) < 0.01 && s0.pxPerRad > 60, `the drag's scale: ${s0.pxPerRad.toFixed(0)} px a radian (a full-width drag = ${(390 / s0.pxPerRad / (2 * Math.PI)).toFixed(2)} of a turn)`);
-  // a flick faster than MAX SPIN: the tower catches up (the log never turns more than 171 a tick)
-  await drag(t, 60, 640, 280, { steps: 1 });
+  // a flick faster than MAX SPIN (150 px in two moves): the tower catches up — and ends EXACTLY where the finger went (nothing dropped)
+  const b3 = await st(p);
+  await drag(t, 100, 640, 150, { steps: 2 });
   await sleep(250);
   const s3 = await st(p);
-  ok(s3.owed === 0, 'a flick: what MAX SPIN held back is caught up within a moment');
+  ok(s3.owed === 0 && Math.abs(angDiff(s3.a, b3.a) - 150 * k) <= 6, `a 150 px flick: MAX SPIN held it back, then the tower caught up to exactly 1 : 1 (${angDiff(s3.a, b3.a)} of ${(150 * k).toFixed(0)} units)`);
+  // a wilder one (280 px in ONE move): the page owes at most 8 ticks of catching up — the rest of the flick is dropped
+  await drag(t, 60, 640, 280, { steps: 1 });
+  await sleep(250);
+  const s3b = await st(p), got = Math.abs(angDiff(s3b.a, s3.a));
+  ok(s3b.owed === 0 && got >= 8 * 171 && got <= 9 * 171 + 6, `a 280 px flick in one move: ${got} of ${(280 * k).toFixed(0)} units (one tick + 8 of catching up, the rest dropped)`);
   // drag to each floor's gap: the ball falls floor after floor
   let floors = 0;
   for (let n = 0; n < 60 && floors < 7; n++) {

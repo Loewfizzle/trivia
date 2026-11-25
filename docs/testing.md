@@ -1319,6 +1319,22 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - `wk-edge.mjs --slowcarry <ms> [--slowold]` — THE CARRY on a slow store (an iPhone's): the deploy visit's static requests ≤ 12.
 - `tests/quiet-kinds.test.mjs` — every quiet kind only counts; no empty row.
 
+## FREEFALL F1 (Nov 25 2026 — docs/games/passes/freefall-f1.md)
+- Unit (`node --test tests/freefall-*.test.mjs`, ≈ 10 s, no install): `freefall-engine.test.mjs` (19 — every rule with hand-built input + THE REVIEW's FINDS:
+  the slice math at slice edges, bounce / fall timing, red = out, THE BLAZE, the no-bounce run, THE DARKNESS to the tick, the finish +
+  the cap per mode, MAX SPIN, FAIR INPUT + a 400-session input fuzz (live == replay, event for event), the same log in one jump / tick
+  by tick / uneven jumps, the packed log, integers only) · `freefall-tower.test.mjs` (8 — FAIR BY CONSTRUCTION over 2,000 seeds × 240
+  floors + 250 seeds to floor 520, each rule from the outside; the four proofs share ONE sweep, their failure messages are built only
+  when a rule breaks) · `freefall-server.test.mjs` (7 — `api/_lib/freefall.js`: pure + not wired, honest bot logs accepted, the judge ==
+  the live engine for 500 bot runs, every refusal by name, 3,000 changed logs) · `freefall-sim.test.mjs` (6 — the FAST 200-seed bands of
+  the owner's targets: a tuning slip goes red) · `freefall-lab.test.mjs` (5 — the page, the lab's WHOLE module graph: it never counts).
+- The full sim table: `node scripts/freefall-sim.mjs 2000` (≈ 20 s; `--json`).
+- The browser: `node tests/integration/freefall-lab.mjs "<chromium>" [outDir]` (57 — outside the sandbox; `scripts/serve.mjs` is enough —
+  the lab makes no server call): the frame at 390 × 844 (the ball ≥ 34 pt, its floor ≈ 30 % down, 4–5 floors below, the HUD above the
+  ball's highest point), a run through REAL drags (CDP touches: 1 : 1, a flick over MAX SPIN, floor after floor, hands off → the lights
+  go out), REPLAY = LIVE ✓ + the judge, RESTART, the network log, `?mode=` `?seed=` `?fps=1`, + 375 × 667 · 430 × 932 · 1440 × 900 (the
+  mouse + the arrow keys). THE PAGES LOAD (`kit/page-loads.mjs`) covers `/freefall-lab`.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
 - THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
 

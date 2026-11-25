@@ -146,7 +146,7 @@ export function turn(run, T, d, ev) {
   if (!Number.isSafeInteger(T) || T < 0 || !Number.isSafeInteger(d) || d === 0 || run.st !== 'live') return 0;
   if (T - 1 > run.t) stepTo(run, T - 1, ev);   // (every landing BEFORE T is decided on the angle as it was)
   if (run.st !== 'live') return 0;
-  let te = T;
+  let te = T + 0;   // (+ 0: a −0 tick is tick 0 — never a negative zero in the log)
   if (te <= run.ll) te = run.ll + 1;
   if (te < run.mt) te = run.mt;
   const R = run.R, cap = R.modes[run.mode].capTicks;
@@ -191,7 +191,7 @@ export function resultOf(run) {
     floor: run.floor, tick: run.at, end: run.end, over: run.st !== 'live',
     cause: run.st === 'out' ? run.cause : run.st === 'made' || run.st === 'cap' ? run.st : '',
     made: run.st === 'made',
-    bounces: run.bounces, shatters: run.shatters, blazes: run.blazes, maxClean: run.maxNb, moves: run.lt.length,
+    bounces: run.bounces, shatters: run.shatters, blazes: run.blazes, bestRun: run.maxNb, moves: run.lt.length,
     feats: { reachedHarbor: run.floor >= HARBOR_FLOOR, terminal: run.maxNb >= TERMINAL_RUN, reachedBottom: run.floor >= BOTTOM_FLOOR },
   };
 }

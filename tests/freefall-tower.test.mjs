@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TURN, SLICES, BALL, SAFE, GAP, RED, GEN, REACH, HOP, FALL, BOUNCE, HUMAN, RULE_SETS, makeRuleSet, rampOf } from '../js/games/freefall/tuning.js';
-import { buildFloor, floorAt, floorInto, seedHash, twistOf, gapsOf, sliceStart, sliceOf, sliceUnder, kindAt, wrap, angDiff, windowOk, reachOk } from '../js/games/freefall/tower-gen.js';
+import { buildFloor, floorAt, floorInto, seedHash, twistOf, gapsOf, sliceStart, sliceOf, sliceUnder, kindAt, wrap, angDiff, windowOk, reachOk, reachAt } from '../js/games/freefall/tower-gen.js';
 
 const SEEDS = 2000, FLOORS = 240;          // every seed: floors 0 … 239 (THE ROOFTOP … THE BOTTOM + the first lap of THE TRENCH)
 const DEEP_SEEDS = 250, DEEP_TO = 520;     // + THE TRENCH's laps for 250 seeds
@@ -184,7 +184,7 @@ test(`FAIR BY CONSTRUCTION 3 — THE FALL WINDOW over ${SEEDS} seeds, every floo
   assert.ok(runs > 400000 && traps > 100000 && widest >= 6, `${runs} red runs, ${traps} with a trap, the longest ${widest} slices`);
   // … and ANGLE BY ANGLE for 24 seeds, floors 1 … 259: the nearest not-red point is never further than REACH from where the ball comes through
   let points = 0, worst = 0;
-  const far = new Int32Array(TURN);
+  const far = new Int32Array(TURN), band = new Array(13).fill(0);   // (the hardest escape seen, per 20 floors)
   for (let k = 0; k < 24; k++) {
     const h = seedHash(`t${k}`);
     for (let i = 1; i < 260; i++) {
@@ -195,18 +195,25 @@ test(`FAIR BY CONSTRUCTION 3 — THE FALL WINDOW over ${SEEDS} seeds, every floo
       for (let n = 0; n < 2 * TURN; n++) { const u = n % TURN; d = kindAt(fl, sliceOf(u)) === RED ? d + 1 : 0; if (n >= TURN || d < TURN) far[u] = d > TURN ? TURN : d; }
       d = TURN;
       for (let n = 2 * TURN - 1; n >= 0; n--) { const u = n % TURN; d = kindAt(fl, sliceOf(u)) === RED ? d + 1 : 0; if (d < far[u]) far[u] = d; }
-      const reach = i < GEN.belowUntil ? 0 : REACH;
+      // (THE RAMP — the reviewer's find: no cliff at floor 120. The escape a floor may ask for grows from 0 to the human reach over 40 floors)
+      const reach = reachAt(i);
       for (let A = 0; A < TURN; A++) {
         if (kindAt(up, sliceUnder(A, up.twist)) !== GAP) continue;
         points++;
         const need = far[wrap(BALL - A - fl.twist)];
         if (need > worst) worst = need;
-        if (need > reach) assert.fail(`seed t${k} floor ${i} angle ${A}: the nearest safe point is ${need} units away (the human reach: ${reach})`);
+        if (need > band[Math.min(band.length - 1, Math.floor(i / 20))]) band[Math.min(band.length - 1, Math.floor(i / 20))] = need;
+        if (need > reach) assert.fail(`seed t${k} floor ${i} angle ${A}: the nearest safe point is ${need} units away (this floor may ask for ${reach})`);
       }
     }
   }
   assert.ok(points > 2000000, `${points} points of gaps tried`);
   assert.ok(worst > REACH / 2 && worst <= REACH, `the tightest escape in the proof: ${worst} of ${REACH} units`);
+  // THE RAMP: nothing to escape above floor 120, then a little more every 20 floors, the full human reach only from floor 160
+  assert.deepEqual([GEN.belowUntil, GEN.windowRamp], [120, 40]);
+  assert.deepEqual([reachAt(0), reachAt(119), reachAt(120), reachAt(130), reachAt(140), reachAt(159), reachAt(160), reachAt(999)], [0, 0, 0, 102, 204, 397, 408, 408]);
+  assert.deepEqual(band.slice(0, 6), [0, 0, 0, 0, 0, 0], 'floors 0–119: a straight drop through a gap never needs an escape');
+  assert.ok(band[6] > 0 && band[6] <= reachAt(139) && band[7] > band[6] && band[7] <= reachAt(159) && band[8] > band[7], `the hardest escape by depth: floors 120–139 ${band[6]} units · 140–159 ${band[7]} · 160–179 ${band[8]}`);
 });
 
 const P4 = { safeSlices: 0, hops: 0 };

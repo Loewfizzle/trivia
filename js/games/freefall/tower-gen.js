@@ -4,9 +4,9 @@
 // FAIR BY CONSTRUCTION — every rule below is checked while a floor is BUILT (a red slice that would break one is simply not laid), and
 // proved again from the outside by tests/freefall-tower.test.mjs over 2,000+ seeds:
 //   · ≥ 1 gap · ≥ 3 safe slices · red ≤ 8 of 12 · floors 0–9 have NO red · red sits beside a gap only from floor 40
-//   · in the early areas (floors < 80) every slice straight below a gap (twists counted) is never red
+//   · in the early areas (floors < 120 — `belowUntil`) every slice straight below a gap (twists counted) is never red
 //   · THE FALL WINDOW: from any point of any gap, a human-paced spin (the reaction, then ≤ 1 turn a second) reaches a SAFE or GAP point of
-//     the floor below before the landing
+//     the floor below before the landing — and below the early areas the escape a floor asks for RAMPS in over 40 floors (reachAt)
 //   · NO ISLAND: from every safe slice a gap can be reached by human-paced hops (no stretch of safe slices walled in by red runs too long
 //     to cross inside one bounce) — nobody is ever left bouncing for the darkness
 //   · floor 0: the slice under the ball at the start (A = 0) is SAFE — a run never starts by falling
@@ -135,6 +135,17 @@ export function reachOk(gap, red, hop) {
   return true;
 }
 
+/**
+ * the escape floor `i` may ask of a ball that comes through a gap above it (angle units): 0 in the early areas (a slice straight below a
+ * gap is never red) → it RAMPS over `windowRamp` floors → THE FALL WINDOW's full human reach from there on (never a cliff in one floor)
+ */
+export function reachAt(i, R = CLASSIC) {
+  const G = R.gen;
+  if (i < G.belowUntil) return 0;
+  if (i >= G.belowUntil + G.windowRamp) return R.reach;
+  return Math.floor(R.reach * (i - G.belowUntil) / G.windowRamp);
+}
+
 /** a floor's RED slices (a 12-bit mask): laid one at a time, in the seed's order — and only where every fairness rule still holds */
 function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   const G = R.gen;
@@ -146,8 +157,7 @@ function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   if (want > room) want = room;
   if (want <= 0) return 0;
   const beside = (rot(gap, 1) | rot(gap, SLICES - 1)) & ~gap & FULL;
-  // (above `belowUntil` the reach is 0: a slice straight below a gap is never red; from there on THE FALL WINDOW's human reach)
-  const reach = i < G.belowUntil ? 0 : R.reach;
+  const reach = reachAt(i, R);
   let red = 0, n = 0;
   const lay = s => {
     const next = red | (1 << s);

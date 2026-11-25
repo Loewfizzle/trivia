@@ -217,7 +217,7 @@ test('THE NO-BOUNCE RUN: gaps + shatters count, only a bounce resets it — 15 f
   // exactly 15: the feat, kept after the bounce
   const r2 = runAt(0, { seed: 'term2' });
   for (let k = 0; k < 15; k++) { if (!aim(r2, GAP)) assert.fail('a floor without a gap'); land(r2); }
-  assert.equal(r2.nb, 15); assert.equal(resultOf(r2).feats.terminal, true); assert.equal(resultOf(r2).maxClean, 15);
+  assert.equal(r2.nb, 15); assert.equal(resultOf(r2).feats.terminal, true); assert.equal(resultOf(r2).bestRun, 15);
   while (r2.blaze || under(r2) !== SAFE || r2.fl !== 'bounce') { aim(r2, SAFE); land(r2); if (r2.nb === 0) break; }
   assert.equal(r2.nb, 0); assert.equal(resultOf(r2).feats.terminal, true, 'the best run is kept');
   assert.equal(TERMINAL_RUN, 15);
@@ -513,7 +513,7 @@ test('THE EVENTS (for a view): each with its tick; a landing\'s own events toget
 
 test('THE RESULT + THE FEATS + THE AREAS + THE RANKING + THE WORDS + THE SEED', () => {
   const run = createRun({ seed: 'res', mode: 'solo' });
-  assert.deepEqual(resultOf(run), { rules: 'classic', floor: 0, tick: 0, end: -1, over: false, cause: '', made: false, bounces: 0, shatters: 0, blazes: 0, maxClean: 0, moves: 0, feats: { reachedHarbor: false, terminal: false, reachedBottom: false } });
+  assert.deepEqual(resultOf(run), { rules: 'classic', floor: 0, tick: 0, end: -1, over: false, cause: '', made: false, bounces: 0, shatters: 0, blazes: 0, bestRun: 0, moves: 0, feats: { reachedHarbor: false, terminal: false, reachedBottom: false } });
   assert.equal(endWords(resultOf(run)), '');
   dive(run, 119); assert.equal(resultOf(run).feats.reachedHarbor, false);
   dive(run, 1); assert.deepEqual(resultOf(run).feats, { reachedHarbor: true, terminal: true, reachedBottom: false });
@@ -558,7 +558,7 @@ test('THE PACKED LOG: tick gaps + the tower\'s turns in base 36 — CANONICAL (p
   }
   assert.ok(chars / entries < 4.5, `${(chars / entries).toFixed(2)} characters an entry`);
   // NOT CANONICAL / NOT A LOG: refused
-  for (const bad of ['.1+5', '.0+5', '.01+5', '+0', '-0', '+05', '+', '-', '.c', '.c+', 'c+5', '+5.', '+5..2+5', '+5,+5', '+5 +5', ' +5', '+5\n', '+1kw', '+1kx', '-1kx', '+zzzz', '.zzzzzz+1', '+A', '+5+-5', '+1E3', '+1_3', null, undefined, 5, {}, [], ['+5'], true]) {
+  for (const bad of ['.1+5', '.0+5', '.01+5', '+0', '-0', '+05', '+', '-', '.c', '.c+', 'c+5', '+5.', '+5..2+5', '+5,+5', '+5 +5', ' +5', '+5\n', '+1kw', '+1kx', '-1kx', '+zzzz', '.zzzzzz+1', '.10000+1', '.zzzzz+1', '+A', '+5+-5', '+1E3', '+1_3', null, undefined, 5, {}, [], ['+5'], true]) {
     assert.equal(unpackLog(bad), null, `${JSON.stringify(bad)} is not a packed log`);
   }
   // REFUSED UNREAD: longer than any log packs to (9 characters an entry × the longest log) — and a caller's own bound
@@ -571,6 +571,64 @@ test('THE PACKED LOG: tick gaps + the tower\'s turns in base 36 — CANONICAL (p
   // a long honest log parses in one pass (no regex over it, no recursion)
   const long = '+1-1'.repeat(50000);
   assert.equal(unpackLog(long).length, 100000);
+});
+
+test('THE REVIEW\'s FINDS (F1\'s fresh-eyes reviewer): never a NEGATIVE ZERO in the state or the log · the end\'s words come from their own table only · THE CAP beats the finish at the same tick · the judge scores a run AS IT STANDS (`until`) · the largest log there can be is judged in a blink', () => {
+  // −0: a tick of −0 is tick 0 (the log, `mt`, the clock → tick mapping) — and the judge refuses a −0 in a log (one log, one JSON text)
+  const z = createRun({ seed: 'z', mode: 'solo' });
+  assert.equal(turn(z, -0, 5), 5);
+  assert.ok(Object.is(z.lt[0], 0) && Object.is(z.mt, 0), 'tick −0 is logged as tick 0');
+  assert.ok(Object.is(tickOf(99.9, 100), 0) && Object.is(tickOf(100, 100), 0) && Object.is(tickOf(-0, 0), 0), 'tickOf never gives a negative zero');
+  assert.equal(setAngle(z, 2, 0), -5); assert.ok(Object.is(z.a, 0));
+  assert.deepEqual(judgeRun(JSON.parse('{"seed":"z","mode":"solo","log":[{"t":-0,"a":5}]}')), { ok: false, why: 'entry' });
+  assert.deepEqual(judgeRun(JSON.parse('{"seed":"z","mode":"solo","log":[{"t":0,"a":5},{"t":3,"a":-0}]}')), { ok: false, why: 'entry' });
+  assert.equal(judgeRun(JSON.parse('{"seed":"z","mode":"solo","log":[{"t":0,"a":5},{"t":3,"a":0}]}')).ok, true);
+  // the end's words: the table's own keys only
+  for (const c of ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf', '', 5, null, {}, ['red']]) assert.equal(endWords({ cause: c }), '', `endWords of ${JSON.stringify(c)}`);
+  assert.equal(endWords({ cause: 'red' }), 'HIT THE RED'); assert.equal(endWords(undefined), '');
+  // THE CAP BEATS THE FINISH AT THE SAME TICK (the plan: "whichever first" — at a tie the cap, as everywhere: before anything else that tick)
+  const plain = JSON.parse(JSON.stringify(C)); delete plain.reach; delete plain.hop;
+  const tie = makeRuleSet({ ...plain, id: 'tie', modes: { ...plain.modes, match: { finish: 1, capTicks: FIRST } } });
+  const t = createRun({ seed: 'tie', mode: 'match', rules: tie }), tev = [];
+  aim(t, GAP); assert.equal(under(t), GAP);
+  stepTo(t, FIRST, tev);
+  assert.deepEqual([t.st, t.floor, t.end], ['cap', 0, FIRST], 'the pass that would have finished the run falls on the cap\'s tick: the cap');
+  assert.deepEqual(tev, [{ e: 'cap', t: FIRST }]);
+  const one = makeRuleSet({ ...plain, id: 'one', modes: { ...plain.modes, match: { finish: 1, capTicks: FIRST + 1 } } });
+  const t1 = createRun({ seed: 'tie', mode: 'match', rules: one }); aim(t1, GAP); stepTo(t1, FIRST + 5);
+  assert.deepEqual([t1.st, t1.floor, t1.end], ['made', 1, FIRST], 'a tick earlier than the cap: made');
+  // THE JUDGE's `until`: the run as it stands at a tick (a match still going) — a whole tick ≥ 0, else refused by name
+  const src = createRun({ seed: 'unt', mode: 'match' }); playBot(src, makeBot('great', 'unt'), { maxFloor: 60 }); stepTo(src, MODES.match.capTicks);
+  const log = logOf(src), whole = judgeRun({ seed: 'unt', mode: 'match', log });
+  assert.equal(whole.ok, true); assert.ok(!('over' in whole), 'a whole run\'s answer has no `over`: it is over');
+  let last = 0;
+  for (const u of [0, 100, 900, src.end - 1, src.end, src.end + 99]) {
+    const v = judgeRun({ seed: 'unt', mode: 'match', log, until: u });
+    assert.equal(v.ok, true); assert.equal(v.over, u >= src.end); assert.ok(v.floor >= last && v.tick <= u); last = v.floor;
+    const live = createRun({ seed: 'unt', mode: 'match' });
+    for (const e of log) { if (e.t > u) break; turn(live, e.t, angDiff(e.a, live.a)); }
+    stepTo(live, u);
+    assert.deepEqual([v.floor, v.tick, v.end, v.cause], [live.floor, live.at, live.end, resultOf(live).cause], `as of tick ${u}`);
+  }
+  assert.deepEqual(judgeRun({ seed: 'unt', mode: 'match', log, until: src.end }).floor, whole.floor);
+  for (const bad of [NaN, -1, 1.5, '600', {}, [], Infinity, true, -0]) assert.deepEqual(judgeRun({ seed: 'unt', mode: 'match', log, until: bad }), { ok: false, why: 'until' });
+  assert.deepEqual(judgeRun({ seed: 'unt', mode: 'match', log: [null], until: 9 }), { ok: false, why: 'entry' }, 'a hostile log is refused by its bounds first — with `until` too');
+  // THE LARGEST LOG THERE CAN BE (a move every tick of a 30:00 solo run, 108,000 entries, a dive to the cap) — judged in well under a second
+  const big = createRun({ seed: 'big', mode: 'solo' });
+  for (let T = 1; T < MODES.solo.capTicks && !isOver(big); T++) {
+    // (one unit back and forth every tick — and, in every flight, a gap under the ball: the run never ends before the cap)
+    stepTo(big, T - 1);
+    if (isOver(big)) break;
+    if (T === big.ll + 1 || T === 1) { const s = sliceOfKind(big, GAP), A = angleFor(big, sliceStart(s) + 170); for (let q = T; big.a !== A; q++) turn(big, q, angDiff(A, big.a)); }
+    turn(big, T, T % 2 ? 1 : -1);
+  }
+  stepTo(big, MODES.solo.capTicks);
+  const bl = logOf(big);
+  assert.equal(big.st, 'cap'); assert.ok(bl.length > 100000 && big.floor > 5000, `${bl.length} entries, floor ${big.floor}`);
+  const t0 = process.hrtime.bigint(), bv = judgeRun({ seed: 'big', mode: 'solo', log: bl }), ms = Number(process.hrtime.bigint() - t0) / 1e6;
+  assert.deepEqual([bv.ok, bv.floor, bv.cause, bv.moves], [true, big.floor, 'cap', bl.length]);
+  assert.ok(ms < 1000, `judged in ${ms.toFixed(0)} ms`);
+  assert.deepEqual(unpackLog(packRun(big)), bl);
 });
 
 test('THE RULES NEVER READ A CLOCK OR A DICE — AND ARE INTEGERS ONLY: no Date / Math.random / performance / frame clock / float math in the rules\' files; the run\'s whole state is whole numbers', () => {
@@ -590,7 +648,7 @@ test('THE RULES NEVER READ A CLOCK OR A DICE — AND ARE INTEGERS ONLY: no Date 
     const s = code(`js/games/freefall/${f}`).replace(/'[^'\n]*'|`[^`\n]*`/g, "''");
     for (const m of s.matchAll(/[^\n]*[\w)\]] \/ [\w(][^\n]*/g)) assert.match(m[0], /Math\.floor\([^\n]* \/ |TURN \/ 2/, `${f}: a division outside Math.floor — ${m[0].trim().slice(0, 90)}`);
   }
-  assert.match(code('js/games/freefall/logic.js'), /export const tickOf = \(ms, t0\) => Math\.round\(\(ms - t0\) \* TICK_HZ \/ 1000\);/, 'the ONE clock → tick mapping (the view\'s side of the rules): the nearest tick');
+  assert.match(code('js/games/freefall/logic.js'), /export const tickOf = \(ms, t0\) => Math\.round\(\(ms - t0\) \* TICK_HZ \/ 1000\) \+ 0;/, 'the ONE clock → tick mapping (the view\'s side of the rules): the nearest tick');
   assert.deepEqual([...code('js/games/freefall/engine.js').matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]), ['./tuning.js', './tower-gen.js', './logic.js']);
   assert.deepEqual([...code('js/games/freefall/tower-gen.js').matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]), ['../../core/rng.js', './tuning.js'], 'the one import outside the folder: the integer hash');
   assert.deepEqual([...code('js/games/freefall/tuning.js').matchAll(/^import /gm)], [], 'tuning.js imports nothing');
@@ -601,6 +659,9 @@ test('THE RULES NEVER READ A CLOCK OR A DICE — AND ARE INTEGERS ONLY: no Date 
     playBot(run, makeBot(id, `int-${id}`), { maxFloor: 260 });
     for (const [k, v] of Object.entries(run)) {
       if (typeof v === 'number') assert.ok(Number.isSafeInteger(v) && !Object.is(v, -0), `run.${k} = ${v}`);
+    }
+    for (const v of [...run.lt, ...run.la]) {
+      if (Object.is(v, -0)) assert.fail('a negative zero in the log');
     }
     for (const v of [...run.lt, ...run.la, run.cur.twist, run.cur.gap, run.cur.red]) assert.ok(Number.isSafeInteger(v) && v >= 0);
     assert.ok(run.la.every(a => a < TURN));

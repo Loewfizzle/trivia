@@ -21,6 +21,8 @@ const LAB_MODES = ['solo', 'match'];
 const clock = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** the arrow keys (a desk): this many angle units a tick while one is held */
 const KEY_SPIN = 60;
+/** the most turn the page keeps owing when a flick out-runs MAX SPIN: 8 ticks of catching up (the rest of a wilder flick is dropped) */
+const OWED_MAX = 8 * MAX_SPIN;
 /** a button that acts on its own press + lift (never a click), and is never a drag on the tower */
 function press(node, fn) {
   let id = null;
@@ -83,9 +85,8 @@ function mount() {
     if (T < 0) return;
     settle(T - 1);          // (what was still owed belongs to the ticks before this move)
     owed += units;
-    const before = owed;
     owed -= turn(run, T, owed, ev);
-    if (owed !== 0 && owed === before) owed = owed > 0 ? Math.min(owed, 8 * MAX_SPIN) : Math.max(owed, -8 * MAX_SPIN);   // (a wild flick: never more than a few ticks of catching up)
+    if (owed > OWED_MAX) owed = OWED_MAX; else if (owed < -OWED_MAX) owed = -OWED_MAX;   // (a wild flick: never more than 8 ticks — 0.13 s — of catching up after the finger)
   }
   const stamp = ts => { const now = performance.now(); return ts > 0 && ts <= now + 4 && now - ts < 1000 ? ts : now; };   // (a browser whose event clock is not the page's: the handler's own time)
 
@@ -126,7 +127,7 @@ function mount() {
     const live = resultOf(run), log = logOf(run);
     endT.textContent = endWords(live);
     const many = (n, word) => `${n} ${word}${n === 1 ? '' : 'S'}`;
-    endL.textContent = `FLOOR ${live.floor} · ${areaOf(live.floor).name}\n${many(live.bounces, 'BOUNCE')} · ${many(live.blazes, 'BLAZE')} · BEST RUN ${live.maxClean}`;
+    endL.textContent = `FLOOR ${live.floor} · ${areaOf(live.floor).name}\n${many(live.bounces, 'BOUNCE')} · ${many(live.blazes, 'BLAZE')} · BEST RUN ${live.bestRun}`;
     // THE DETERMINISM CHECK: the recorded input log replayed through a FRESH engine — the SAME code the server's judge runs
     const evR = [], { used, bad, why, ...r } = replay({ seed, mode, log, ev: evR });
     let same = bad < 0 && used === log.length && JSON.stringify(r) === JSON.stringify(live), at = -1;
@@ -169,8 +170,9 @@ function mount() {
       stats.textContent = `CLEAN ${run.clean} · BLAZE ${run.blaze ? 'ON' : '—'} · DARK ${gap}`;
       areaN.textContent = areaOf(run.floor).name;
       sub.textContent = `${mode.toUpperCase()} · ${left}`;
-      // the darkness, as plain as it gets: the top of the screen dims as it comes nearer (6 floors off = nothing)
+      // the darkness, as plain as it gets: the screen's edges close in as it comes nearer (6 floors off = nothing) — never over the ball
       dark.style.opacity = String(Math.max(0, Math.min(1, (6 - gap) / 6)));
+      stats.classList.toggle('is-near', gap <= 2);
     }
     if (frames.length < 20000) frames.push(dt);
     if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t} · owed ${owed}`; }

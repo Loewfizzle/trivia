@@ -74,6 +74,7 @@ export const makeRuleSet = r => {
  *                 gaps  the gaps a floor has (512 = 2; the fraction = the chance of one more) · wide  the chance a gap is 2 slices wide (else 1)
  *                 red   the red slices a floor aims for · hug  the chance a slice BESIDE a gap turns red
  *               redFrom (no red above it) · hugFrom (red never beside a gap above it) · belowUntil (above it the slices straight below a gap are never red)
+ *               windowRamp (THE FALL WINDOW comes in over this many floors from `belowUntil`: the escape a floor may ask for grows from 0 to the human reach)
  *               redMax · safeMin · gapSlicesMax (the hard bounds) · lap { from, every, red, hug } (THE TRENCH: past `from`, every `every` floors
  *               the red aim grows by `red` 256ths and the hug chance by `hug`)
  *   modes       each mode's `finish` (the floor that ends the run as MADE IT; null = endless) + `capTicks` (the tick the run ends where it stands)
@@ -92,7 +93,7 @@ export const RULE_SETS = Object.freeze({
       wide: [[0, 256], [40, 256], [80, 192], [120, 128], [160, 48], [200, 0]],
       red: [[10, 384], [40, 768], [80, 960], [120, 1152], [160, 1408], [200, 1664]],
       hug: [[40, 56], [80, 88], [120, 128], [160, 200], [200, 240]],
-      redFrom: 10, hugFrom: 40, belowUntil: 120,
+      redFrom: 10, hugFrom: 40, belowUntil: 120, windowRamp: 40,
       redMax: 8, safeMin: 3, gapSlicesMax: 6,
       lap: { from: 200, every: 40, red: 128, hug: 8 },
     },

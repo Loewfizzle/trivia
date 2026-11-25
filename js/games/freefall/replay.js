@@ -14,7 +14,7 @@ export const seedProblem = seed => (typeof seed !== 'string' || seed.length > SE
 /** the most entries a `mode` run's log can hold: ONE a tick, every tick before its cap */
 export const maxEntries = (mode, R = CLASSIC) => { const M = modeRow(mode, R); return M && M.capTicks != null ? Math.min(M.capTicks, MAX_LOG) : MAX_LOG; };
 
-const tickOk = t => typeof t === 'number' && Number.isSafeInteger(t) && t >= 0;
+const tickOk = t => typeof t === 'number' && Number.isSafeInteger(t) && t >= 0 && !Object.is(t, -0);   // (a −0 is not a tick: one log, one JSON text)
 
 /**
  * THE INPUT LOG's BOUNDS (PURE, no replay — cheap: the judge refuses these before it plays a tick): null = fine, else why.
@@ -45,6 +45,7 @@ export function logProblem(log, mode, R = CLASSIC) {
 }
 
 /**
+ * (NOT the hostile-safe door — it takes a log THE BOUNDS already passed: logProblem, or the engine's own; judgeRun is the door.)
  * replay({ seed, mode, log, until }) → the run's result + `used` (the entries played) + `bad` (the index of the first entry the engine
  * did not take exactly as written, −1 = none) + `why` for it. Without `until` the run is played to its END — after the last move THE
  * DARKNESS (or the finish, or THE CAP) always ends it. `until` (a tick) = the run as it stands then (a run still going — a match scored live).
@@ -69,23 +70,26 @@ export function replay({ seed, mode = 'solo', log = [], until = null, rules = RU
 
 /**
  * THE JUDGE (PURE): ONE run from its seed + mode + input log → { ok: true, rules, floor, tick, end, cause, made, bounces, shatters,
- * blazes, maxClean, moves, feats } | { ok: false, why }. The floor is the judge's own — a phone's claimed depth is never read.
+ * blazes, bestRun, moves, feats } | { ok: false, why }. The floor is the judge's own — a phone's claimed depth is never read.
  * `mode` is REQUIRED (a missing one is never quietly judged as solo). NOTHING THROWS: every hostile input gets its { ok: false, why }.
  * REFUSED: an unknown rule set ('rules') · an unknown mode · a malformed seed · a log that breaks its bounds (logProblem) · a move after
  * the run was over ('past the end').
  */
 export function judgeRun(input) {
-  const { seed, mode, log, rules } = input !== null && typeof input === 'object' ? input : {};
+  const { seed, mode, log, rules, until } = input !== null && typeof input === 'object' ? input : {};
   const R = rulesOf(rules);
   if (!R) return { ok: false, why: 'rules' };
   if (!modeRow(mode, R)) return { ok: false, why: 'mode' };
   if (seedProblem(seed)) return { ok: false, why: 'seed' };
+  // (`until` — A RUN SCORED AS IT STANDS at a tick, a match still going: a whole tick ≥ 0 or nothing; the answer then says `over`)
+  const live = until !== undefined && until !== null;
+  if (live && !tickOk(until)) return { ok: false, why: 'until' };
   const bad = logProblem(log, mode, R);
   if (bad) return { ok: false, why: bad };
-  const r = replay({ seed, mode, log, rules: R.id });
+  const r = replay({ seed, mode, log, rules: R.id, until: live ? until : null });
   if (r.bad >= 0) return { ok: false, why: r.why };
-  if (!r.over) return { ok: false, why: 'never ended' };   // (can not happen: the darkness or the cap ends every run — kept as the judge's own floor)
-  return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, bounces: r.bounces, shatters: r.shatters, blazes: r.blazes, maxClean: r.maxClean, moves: r.moves, feats: r.feats };
+  if (!live && !r.over) return { ok: false, why: 'never ended' };   // (can not happen: the darkness or the cap ends every run — kept as the judge's own floor)
+  return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, bounces: r.bounces, shatters: r.shatters, blazes: r.blazes, bestRun: r.bestRun, moves: r.moves, feats: r.feats, ...(live ? { over: r.over } : {}) };
 }
 
 // ---- THE PACKED LOG (F4's run node): entry after entry, no separator between them —
@@ -126,7 +130,7 @@ export function unpackLog(str, maxLen = ENTRY_CHARS_MAX * MAX_LOG) {
   };
   while (i < n) {
     let gap = 1;
-    if (str[i] === '.') { i++; gap = num(5); if (gap < 2) return null; }
+    if (str[i] === '.') { i++; gap = num(4); if (gap < 2) return null; }   // (≤ 4 digits: the longest log's last tick is "2bbz")
     const sign = str[i] === '+' ? 1 : str[i] === '-' ? -1 : 0;
     if (!sign) return null;
     i++;

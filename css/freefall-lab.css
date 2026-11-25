@@ -10,8 +10,9 @@
 /* the play area: a drag ANYWHERE on it spins the tower — no page scroll, no tap flash */
 .ff-play { position: absolute; inset: 0; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; outline: none; }
 .ff-canvas { display: block; width: 100%; height: 100%; }
-/* THE DARKNESS, plain: the top of the screen dims as it comes nearer (the script sets the opacity) */
-.ff-dark { position: absolute; left: 0; right: 0; top: 0; height: 62%; pointer-events: none; opacity: 0; background: linear-gradient(#000 0%, rgba(0, 0, 0, 0.86) 38%, rgba(0, 0, 0, 0) 100%); }
+/* THE DARKNESS, plain: the EDGES of the screen close in as it comes nearer (the script sets the opacity) — never the ball or its floor:
+   that is exactly when the player must see them (the reviewer's find) */
+.ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse 62% 46% at 50% 44%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.92) 100%); }
 
 /* THE HUD: plain text, readable at 390 × 844 — FLOOR big at the top, then CLEAN · BLAZE · DARK, then ONE row: the area · the mode + its
    clock. It ends above the ball's highest point on every phone (a short screen gets a smaller number). */
@@ -19,6 +20,7 @@
 .ff-k { font-size: 13px; font-weight: 700; letter-spacing: 0.32em; text-indent: 0.32em; color: #cfcbe6; }
 .ff-floor { font-size: 72px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #ffffff; }
 .ff-stats { margin-top: 6px; font-size: 17px; font-weight: 700; letter-spacing: 0.08em; color: #ffffff; font-variant-numeric: tabular-nums; }
+.ff-stats.is-near { color: #ff8a8a; }   /* (the darkness 2 floors off or nearer) */
 .ff-row { margin-top: 5px; display: flex; justify-content: center; align-items: baseline; gap: 12px; white-space: nowrap; }
 .ff-area { font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #ffd9f4; }
 .ff-sub { font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #cfcbe6; font-variant-numeric: tabular-nums; }

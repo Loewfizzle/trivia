@@ -83,7 +83,7 @@ test('THE LAB\'s RUN: a drag ANYWHERE spins the tower 1 : 1 · FAIR INPUT (each 
   assert.match(s, /carry \+= \(s\.clientX - drag\.x\) \* TURN \/ \(2 \* Math\.PI \* view\.pxPerRad\(\)\);/, '1 : 1 — the finger\'s pixels → the ring\'s own radians → angle units');
   assert.match(s, /typeof e\.getCoalescedEvents === 'function' \? e\.getCoalescedEvents\(\) : null/, 'every sample the browser gathered, each at its own time (a 120 Hz finger = a 60 Hz one)');
   assert.match(s, /const T = tickOf\(ts, t0\);/, 'a move\'s event time → its tick');
-  assert.match(read('js/games/freefall/logic.js'), /export const tickOf = \(ms, t0\) => Math\.round\(\(ms - t0\) \* TICK_HZ \/ 1000\);/, 'the nearest tick');
+  assert.match(read('js/games/freefall/logic.js'), /export const tickOf = \(ms, t0\) => Math\.round\(\(ms - t0\) \* TICK_HZ \/ 1000\) \+ 0;/, 'the nearest tick');
   assert.match(s, /owed -= turn\(run, T, owed, ev\);/, 'the engine\'s own turn(): it clamps to MAX SPIN and logs the move');
   assert.match(s, /function settle\(T\) \{\s*for \(let t = Math\.max\(run\.mt \+ 1, run\.ll \+ 1\); t <= T && owed !== 0 && !isOver\(run\); t\+\+\) \{ owed -= turn\(run, t, owed, ev\);/, 'what MAX SPIN held back is offered again, tick by tick');
   assert.match(s, /settle\(T\);[^\n]*\n\s*stepTo\(run, T, ev\);/, 'in a frame: the moves first, THEN the landings up to that tick');
@@ -112,6 +112,8 @@ test('THE GRAYBOX: the pillar, ring floors of 12 slices (the gaps open, RED clea
   const RB = 0.66, R_BALL = 0.14;
   assert.ok(2 * Math.PI * RB / 12 > 2 * R_BALL * 1.2, `a 1-slice gap is ${(2 * Math.PI * RB / 12).toFixed(3)} wide at the ball's ring, the ball ${(2 * R_BALL).toFixed(2)}`);
   assert.match(g, /red: 0xff2a3d/, 'RED is red');
+  assert.match(g, /const RED_RISE = 0\.07;/); assert.match(s, /const rise = kind === RED \? RED_RISE : 0;/, '… and never by colour alone: a red slice stands proud of the floor (a shape)');
+  assert.match(read('css/freefall-lab.css'), /\.ff-dark \{[^}]*radial-gradient\(ellipse 62% 46% at 50% 44%, rgba\(0, 0, 0, 0\) 58%/, 'THE DARKNESS closes in from the edges — never over the ball or its floor');
   assert.match(s, /new THREE\.InstancedMesh\(wedge, new THREE\.MeshLambertMaterial/, 'every solid slice in sight: one instanced mesh of flat-shaded wedges');
   assert.match(s, /if \(kind === GAP \|\| \(\(gone >> s\) & 1\)\) continue;/, 'a gap is simply not there — nor is a slice THE BLAZE broke');
   assert.match(s, /tower\.rotation\.y = run\.a \* UNIT;/, 'the tower stands at the RULES\' own angle — what you see is what the landing reads');

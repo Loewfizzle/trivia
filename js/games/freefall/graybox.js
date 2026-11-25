@@ -1,5 +1,5 @@
 // FREEFALL — THE GRAYBOX (F1 — docs/freefall.md "THE LAB"): the engine drawn in flat-shaded shapes on three.js 0.160 (the page's import
-// map) — NO ART, no sounds: the pillar, ring floors of 12 slices (the gaps open, RED clearly red), the ball at the front. THE CAMERA looks
+// map) — NO ART, no sounds: the pillar, ring floors of 12 slices (the gaps open, RED clearly red AND standing proud of the floor), the ball at the front. THE CAMERA looks
 // down the shaft from in front of the ball: the ball about 30 % from the top of the screen, 4–5 floors in sight below it. A floor the ball
 // has passed is gone (nothing ever hangs between the camera and the ball). The looks: F2.
 // VIEW ONLY: it reads the run + its EVENTS (engine.js) and eases the ball between two landings itself — the rules never read the frame clock.
@@ -14,7 +14,9 @@ export const SHAPE = Object.freeze({ H: 1, RO: 1, RI: 0.3, RB: 0.66, R_BALL: 0.1
 export const CAM = Object.freeze({ fov: 46, pitch: 33, fill: 0.8, ballY: 0.34, aspectMax: 0.47 });
 const BELOW = 8;                // the floors drawn under the ball's
 const RAD = Math.PI / 180, UNIT = 2 * Math.PI / TURN;
-const COL = Object.freeze({ safeA: 0x8b90a4, safeB: 0x6d7286, red: 0xff2a3d, pillar: 0x2b2e3a, ball: 0xf4f2ff, blaze: 0xffb020, out: 0xff2a3d, dim: 0x2a2c36 });
+const COL = Object.freeze({ safeA: 0x8b90a4, safeB: 0x6d7286, red: 0xff2a3d, pillar: 0x2b2e3a, ball: 0xf4f2ff, blaze: 0xffb020, out: 0xff2a3d, gone: 0x5a5f72, dim: 0x2a2c36 });
+/** RED IS NEVER RED BY COLOUR ALONE (the reviewer's find — its brightness is the greys'): a red slice stands this much PROUD of the floor */
+const RED_RISE = 0.07;
 
 export function createGraybox(host) {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -68,7 +70,10 @@ export function createGraybox(host) {
         const kind = f.slices[s];
         if (kind === GAP || ((gone >> s) & 1)) continue;
         Q.setFromAxisAngle(Y, (sliceStart(s) + f.twist) * UNIT);
-        P.set(0, -i * SHAPE.H - SHAPE.THICK / 2, 0);
+        // (a red slice is a taller block: its top RED_RISE above the floor — a shape, not only a colour)
+        const rise = kind === RED ? RED_RISE : 0;
+        P.set(0, -i * SHAPE.H - SHAPE.THICK / 2 + rise / 2, 0);
+        S.set(1, (SHAPE.THICK + rise) / SHAPE.THICK, 1);
         M.compose(P, Q, S);
         slices.setMatrixAt(n, M);
         slices.setColorAt(n, C.set(i <= dark ? COL.dim : kind === RED ? COL.red : s & 1 ? COL.safeA : COL.safeB));
@@ -151,7 +156,7 @@ export function createGraybox(host) {
     const f = floorOf(run.floor), su = sliceUnder(run.a, f.twist);
     shadow.visible = f.slices[su] !== GAP && !(((broken.get(run.floor) || 0) >> su) & 1);
     shadow.position.set(0, -run.floor * SHAPE.H + 0.006, SHAPE.RB);
-    ballMat.color.set(state === 'red' || state === 'dark' ? COL.out : (run.blaze || lit) && run.st === 'live' ? COL.blaze : COL.ball);
+    ballMat.color.set(state === 'red' ? COL.out : state === 'dark' ? COL.gone : (run.blaze || lit) && run.st === 'live' ? COL.blaze : COL.ball);
     renderer.render(scene, cam);
   }
 

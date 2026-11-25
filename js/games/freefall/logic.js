@@ -12,7 +12,7 @@ export const END_WORDS = Object.freeze({
   cap: 'TIME’S UP',
 });
 /** a result → its words ('' = the run is still going) */
-export const endWords = result => END_WORDS[result && result.cause] || '';
+export const endWords = result => { const c = result && result.cause; return typeof c === 'string' && Object.prototype.hasOwnProperty.call(END_WORDS, c) ? END_WORDS[c] : ''; };   // (the table's own words only: never 'constructor')
 
 /**
  * THE SEED IS PICKED AFTER GO (JAYWALK's + HIGH RISE's way): hash(room code + matchId + a SERVER time the rules enforce). PURE — the phone
@@ -21,7 +21,7 @@ export const endWords = result => END_WORDS[result && result.cause] || '';
  */
 export const seedOf = (code, matchId, go) => `f${hashString(`${code}:${matchId}:${go}`).toString(36)}${hashString(`ff:${go}:${matchId}:${code}`).toString(36)}`;
 /** a tick ↔ a clock: tick 0 = `t0` (ms) — the ONE mapping (FAIR INPUT: a move's event.timeStamp → the nearest tick; 60 Hz and 120 Hz phones are equal) */
-export const tickOf = (ms, t0) => Math.round((ms - t0) * TICK_HZ / 1000);
+export const tickOf = (ms, t0) => Math.round((ms - t0) * TICK_HZ / 1000) + 0;   // (+ 0: never a negative zero)
 
 /**
  * THE AREAS — by floor (pure, for the views): 0 THE ROOFTOP · 40 THE OFFICES · 80 THE SPEAKEASY · 120 UNDER THE HARBOR · 160 THE DEEP ·

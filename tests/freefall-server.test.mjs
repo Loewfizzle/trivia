@@ -38,8 +38,8 @@ test('THE JUDGE accepts honest bot logs — all four bots, every mode — and re
     const seed = `ok-${mode}-${id}-${i}`, { log, live } = botRun(seed, mode, id);
     const v = judgeRun({ seed, mode, log });
     assert.equal(v.ok, true, `${seed}: ${v.why}`);
-    assert.deepEqual([v.floor, v.tick, v.end, v.cause, v.made, v.bounces, v.shatters, v.blazes, v.maxClean, v.moves], [live.floor, live.tick, live.end, live.cause, live.made, live.bounces, live.shatters, live.blazes, live.maxClean, log.length]);
-    assert.deepEqual(v.feats, { reachedHarbor: live.floor >= 120, terminal: live.maxClean >= 15, reachedBottom: live.floor >= 200 });
+    assert.deepEqual([v.floor, v.tick, v.end, v.cause, v.made, v.bounces, v.shatters, v.blazes, v.bestRun, v.moves], [live.floor, live.tick, live.end, live.cause, live.made, live.bounces, live.shatters, live.blazes, live.bestRun, log.length]);
+    assert.deepEqual(v.feats, { reachedHarbor: live.floor >= 120, terminal: live.bestRun >= 15, reachedBottom: live.floor >= 200 });
     assert.equal(v.rules, 'classic');
     assert.deepEqual(judgePacked({ seed, mode, log: packLog(log) }), v, 'the packed log judges the same');
     assert.deepEqual(judgeRun({ seed, mode, log, rules: 'classic' }), v, 'the rule set named = the default');
@@ -149,6 +149,11 @@ test('THE PACKED JUDGE: the rule set + the mode + the seed are named before the 
   for (const bad of [undefined, null, 5, log, `${s}.`, `${s}+0`, `.1${s}`, s.toUpperCase() === s ? 'X' : s.toUpperCase(), ` ${s}`, `${s}\n`]) assert.deepEqual(judgePacked({ seed: 'pk', mode: 'match', log: bad }), { ok: false, why: 'log' });
   assert.deepEqual(judgePacked({ seed: 'pk', mode: 'match', log: '+4s' }), { ok: false, why: 'spin' }, 'a canonical string of a forged log: the judge names what is wrong with the log');
   assert.deepEqual(judgePacked({ seed: 'pk', mode: 'match', log: '+1.2-1' }).ok, true);
+  // a run scored as it stands (`until`) through the packed door too; a bad one named before the log is read
+  const asOf = judgePacked({ seed: 'pk', mode: 'match', log: s, until: 300 });
+  assert.deepEqual([asOf.ok, asOf.over, asOf.tick <= 300], [true, false, true]);
+  assert.deepEqual(judgePacked({ seed: 'pk', mode: 'match', log: s, until: -3 }), { ok: false, why: 'until' });
+  assert.deepEqual(judgeRun({ seed: 'pk', mode: 'match', log, until: 2.5 }), { ok: false, why: 'until' });
   // the mode's own bound: 9 characters an entry × the entries its cap allows
   const over = '+1-1'.repeat(9 * MODES.match.capTicks / 4 + 1);
   assert.ok(over.length > 9 * MODES.match.capTicks && over.length < 9 * MAX_LOG);
