@@ -117,6 +117,16 @@ function partyLine() {
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#f2c14e' };
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
+// (THE CITY POLISH PASS — THE RETURN-VISIT POWER-ON, the owner's call LATER: DEFAULT OFF. ?poweron=short = this phone's return visits get the
+//  SHORT re-light instead of the full 3.4 s power-on (remembered: nd:poweron) · ?poweron=full = back to the full one. The first visit is untouched)
+const RET = 'nd:poweron';
+function shortReturn() {
+  try {
+    const m = /[?&]poweron=(short|full)(?:&|$)/.exec(location.search);
+    if (m) { if (m[1] === 'short') localStorage.setItem(RET, 'short'); else localStorage.removeItem(RET); }
+    return localStorage.getItem(RET) === 'short';
+  } catch { return false; }
+}
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 // 11a-2 — the power-on's sound per kind (s): the strike cut to `strike`, the hum up over `up`, held `hold`, faded over `fade`;
 // the crackle's ticks across `crackle` (the race's run); `cool` ms between two taps' strikes. A tap ≤ 1.5 s in all.
@@ -510,7 +520,7 @@ export function createTitle() {
     const first = !testSkip && !store(localStorage, SEEN);
     // every visit gets the full power-on (the tap screen only the first time: it's there to unlock sound);
     // stepping back from the name / profile screen a moment later gets the quick version
-    const back = store(sessionStorage, BACK) === '1';
+    const back = store(sessionStorage, BACK) === '1' || shortReturn();
     try { sessionStorage.removeItem(BACK); } catch { /* fine */ }
     if (first) {
       el.classList.add('is-gated');

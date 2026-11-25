@@ -390,6 +390,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const wxRecent = () => performance.now() - wxChangedAt < 12000;
   // FP3a — THE LOAD GATE: dark until the first full frame is ready (the bake + lit windows, no resize for 400 ms, the fonts) → S.onReveal; never later than REVEAL_MAX (docs/harbor.md)
   const LOAD_WIN = 2500, REVEAL_MAX = 4500;
+  // (THE CITY POLISH PASS — THE SCHOOL CHROMEBOOKS: a LATE reveal with the FIRST bake (the city or its lit windows) still on its way showed the
+  //  city and then ran the bake's last big step in the first frames after it — an 850–920 ms frame at 4× CPU on software graphics (a weak
+  //  laptop's), 3 late reveals of 3. The first bakes now finish under the boot screen (≤ REVEAL_MAX + 2 s, like the other holds — then late as before))
+  const firstBakeDue = () => baker.bakes < 1 || litBaker.bakes < 1 || (baker.bakes <= 1 && baker.pending) || (litBaker.bakes <= 1 && litBaker.pending);
   const NET_LET_GO_MS = 5000, PAGE_LATE_MS = 6500;
   const pageOnScreen = fallback => { try { const b = typeof window !== 'undefined' && window.__boot; const v = b && typeof b.onScreen === 'function' ? Number(b.onScreen()) : NaN; return Number.isFinite(v) ? v : fallback; } catch { return fallback; } };
   let lastGates = null, lastGatesOn = 0;
@@ -3001,7 +3005,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
     const panel = !remoteStored || remoteApplied || on > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
     const songs = !!partyDeckNow() || on > REVEAL_MAX - 500;
-    let late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
+    let late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || firstBakeDue() || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the reveal waits for the roof board's PICKED poster (≤ REVEAL_MAX − 0.5 s; a failed load lets go))
     const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : bp === 'highrise' ? !!tri.hr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;

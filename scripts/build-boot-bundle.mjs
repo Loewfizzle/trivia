@@ -49,13 +49,21 @@ export function buildBundle(list = bundleList()) {
   return b;
 }
 export const bundleText = b => `${JSON.stringify(b)}\n`;
+/** index.html's loader URL → its ?v= (null: none) · the URL set to v */
+export const htmlV = html => { const m = /fetch\('boot-bundle\.json(?:\?v=([0-9a-f]+))?'/.exec(html); return m ? m[1] || null : null; };
+export const withHtmlV = (html, v) => html.replace(/fetch\('boot-bundle\.json(?:\?v=[0-9a-f]+)?'/, `fetch('boot-bundle.json?v=${v}'`);
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(ROOT, 'scripts/build-boot-bundle.mjs')) {
   const file = resolve(ROOT, BUNDLE_FILE);
   const want = sourcesHash();
   const have = existsSync(file) ? (() => { try { return JSON.parse(readFileSync(file, 'utf8')).v; } catch { return null; } })() : null;
-  if (process.argv.includes('--check')) { if (have !== want) { console.error(`${BUNDLE_FILE} is stale — run node scripts/build-boot-bundle.mjs`); process.exit(1); } console.log(`${BUNDLE_FILE} current (${want})`); process.exit(0); }
+  const html = resolve(ROOT, 'index.html'), htmlNow = readFileSync(html, 'utf8');
+  if (process.argv.includes('--check')) { if (have !== want || htmlV(htmlNow) !== want) { console.error(`${BUNDLE_FILE} (or index.html's ?v=) is stale — run node scripts/build-boot-bundle.mjs`); process.exit(1); } console.log(`${BUNDLE_FILE} current (${want})`); process.exit(0); }
   const b = buildBundle();
   writeFileSync(file, bundleText(b));
+  // (THE CITY POLISH PASS — the bundle's URL carries its own hash (index.html's loader: boot-bundle.json?v=…) → vercel.json keeps it a year,
+  //  immutable: a new build = a new URL, never a stale copy)
+  const htmlNew = withHtmlV(htmlNow, b.v);
+  if (htmlNew !== htmlNow) writeFileSync(html, htmlNew);
   console.log(`${BUNDLE_FILE}: ${b.n} modules, ${(Buffer.byteLength(bundleText(b)) / 1024).toFixed(0)} KB (${want})`);
 }

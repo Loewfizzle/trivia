@@ -112,11 +112,19 @@ export function createPeople() {
   function staged(t, ctx) {
     const left = folkWarmSteps(t).filter(([w, k]) => !cache.has(`${w}|${k}`));
     if (!left.length && stageWhole) { staging = false; return true; }
-    if (!stageBusy) {
-      stageBusy = true; const Mw = M, step = left[0];
-      setTimeout(() => { stageBusy = false; if (!L || M !== Mw) return; try { if (step) folkAt(t, { L, M, ctx, warm: step }, cache); else { folkAt(t, { L, M, ctx }, cache); stageWhole = true; } stageN++; } catch { staging = false; } }, 0);
-    }
+    if (!stageBusy) { stageBusy = true; stageRun(t, ctx, M); }
     return false;
+  }
+  // (THE CITY POLISH PASS — THE BOOT: the blocks ran ONE A FRAME — at 4× CPU (a 150-ms frame under the boot screen) the folk gate waited
+  //  blocks × frames; now each block is its own task, back to back (the same blocks, the same cache, the same first plan — a frame can still
+  //  run between two), so the people are staged in the blocks' own time)
+  function stageRun(t, ctx, Mw) {
+    setTimeout(() => {
+      if (!L || M !== Mw) { stageBusy = false; return; }
+      const step = folkWarmSteps(t).filter(([w, k]) => !cache.has(`${w}|${k}`))[0];
+      try { if (step) folkAt(t, { L, M, ctx, warm: step }, cache); else { folkAt(t, { L, M, ctx }, cache); stageWhole = true; } stageN++; } catch { staging = false; stageBusy = false; return; }
+      if (step) stageRun(t, ctx, Mw); else stageBusy = false;
+    }, 0);
   }
   // (SPEED PASS B — A6, review-6.md: a resize RE-PLANNED the whole promenade (~130 ms of routing in the resize's held frame on a desktop).
   //  The plan is in world units on the walking map: a re-layout whose map comes out the SAME (mapSig) keeps every visit — re-projected by

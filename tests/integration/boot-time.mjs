@@ -49,12 +49,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // (in the page before anything runs: the reveal's moment + the long tasks as the page itself saw them)
 const INIT = `(() => {
   try { localStorage.setItem('nd:entered', '1'); } catch {}
-  window.__bt = { reveal: -1, gone: -1, title: -1, lt: [] };
+  window.__bt = { reveal: -1, gone: -1, title: -1, lt: [], gaps: [], lastF: 0 };
   const tick = () => {
     try { const d = window.__district, p = d && d.loadProbe && d.loadProbe();
       if (__bt.title < 0 && window.__arcade && window.__arcade.route && window.__arcade.route() === 'title') __bt.title = performance.now();
       if (p && p.shown && __bt.reveal < 0) { __bt.reveal = performance.now(); performance.mark('bt-reveal'); }
       if (__bt.reveal >= 0 && __bt.gone < 0 && !document.getElementById('boot')) __bt.gone = performance.now();
+      if (__bt.reveal >= 0) { const n = performance.now(); if (__bt.lastF) { const g = n - __bt.lastF; if (n - __bt.reveal < 4000) { __bt.gaps.push(Math.round(g)); } } __bt.lastF = n; if (n - __bt.reveal < 4000) { requestAnimationFrame(tick); return; } }
       if (__bt.gone >= 0) return;
     } catch {}
     requestAnimationFrame(tick);
@@ -77,7 +78,8 @@ const kindOf = (u, type) => {
   return (type || 'other').toLowerCase();
 };
 
-const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--no-sandbox', ...(BASE.startsWith('https://localhost') ? ['--ignore-certificate-errors'] : [])] });
+const SWGL = !!opt('swgl', false);   // (--swgl: no GPU — the canvases rasterised + uploaded by the CPU: a weak laptop's graphics, roughly)
+const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, ...(SWGL ? { gpu: false } : {}), args: ['--no-sandbox', ...(SWGL ? ['--disable-gpu', '--disable-gpu-compositing'] : []), ...(BASE.startsWith('https://localhost') ? ['--ignore-certificate-errors'] : [])] });
 const results = [];
 
 async function throttle(cdp) {
@@ -99,13 +101,14 @@ async function oneLoad(ctx, page, tag) {
   cdp.on('Network.requestWillBeSent', e => { if (wall0 == null) wall0 = e.wallTime * 1000; if (!reqs.has(e.requestId)) reqs.set(e.requestId, { url: e.request.url, type: e.type, at: e.wallTime * 1000, bytes: 0, sw: false, cache: false, status: 0 }); });
   cdp.on('Network.responseReceived', e => { const r = reqs.get(e.requestId); if (r) { r.sw = !!e.response.fromServiceWorker; r.cache = !!e.response.fromDiskCache || !!e.response.fromMemoryCache; r.status = e.response.status; r.type = r.type || e.type; } });
   cdp.on('Network.loadingFinished', e => { const r = reqs.get(e.requestId); if (r) { r.bytes = e.encodedDataLength; r.done = e.timestamp; } });
-  if (TRACE) await page.tracing.start({ categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8.execute', 'blink.user_timing', 'toplevel', 'loading'] });
+  if (TRACE) await page.tracing.start({ categories: [...(opt('profile', false) ? ['disabled-by-default-v8.cpu_profiler'] : []), 'devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8.execute', 'blink.user_timing', 'toplevel', 'loading'] });
   const nav = page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => {});
   await page.waitForFunction('window.__bt && window.__bt.reveal >= 0', { timeout: 60000, polling: 50 }).catch(() => {});
   await nav;
   const origin = await page.evaluate('performance.timeOrigin').catch(() => 0);
   await page.waitForFunction('window.__bt && window.__bt.gone >= 0', { timeout: 30000, polling: 50 }).catch(() => {});
-  const bt = await page.evaluate('({ reveal: __bt.reveal, gone: __bt.gone, title: __bt.title, mode: (window.__nsBoot || {}).mode || "", fcp: (performance.getEntriesByName("first-contentful-paint")[0] || {}).startTime || -1, lt: __bt.lt })').catch(() => ({ reveal: -1, gone: -1, title: -1, fcp: -1, lt: [] }));
+  await sleep(0);
+  const bt = await page.evaluate('({ gaps: __bt.gaps, reveal: __bt.reveal, gone: __bt.gone, title: __bt.title, mode: (window.__nsBoot || {}).mode || "", fcp: (performance.getEntriesByName("first-contentful-paint")[0] || {}).startTime || -1, lt: __bt.lt })').catch(() => ({ reveal: -1, gone: -1, title: -1, fcp: -1, lt: [] }));
   // THE FIRST TAP: BOARD at once, the board on screen
   let tap = null;
   if (TAP && bt.reveal >= 0) {
@@ -123,7 +126,9 @@ async function oneLoad(ctx, page, tag) {
   let longs = null;
   if (TRACE) {
     const buf = await page.tracing.stop();
-    longs = traceLongs(JSON.parse(Buffer.from(buf).toString('utf8')), bt.reveal);
+    const tj = JSON.parse(Buffer.from(buf).toString('utf8'));
+    longs = traceLongs(tj, bt.reveal);
+    if (opt('profile', false)) for (const l of longs) l.top.push('SELF: ' + profileTop(tj, l.ts, l.ts + l.ms * 1000).join(' | '));
   }
   const L = LOG ? await page.evaluate('(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(); return h ? h.loadLog.lines : null; })()').catch(() => null) : null;
   if (CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }).catch(() => {});
@@ -136,7 +141,8 @@ async function oneLoad(ctx, page, tag) {
   const site = new URL(BASE).origin, edge = r => r.url.startsWith(site + '/') && !r.cache && !r.sw;
   const endAt = (bt.gone >= 0 ? bt.gone : bt.reveal) + 2500, upTo = all.filter(r => r.at - origin <= endAt);
   const ltAll = (await page.evaluate('__bt.lt').catch(() => bt.lt)).filter(([s]) => s <= endAt);
-  const row = { tag, mode: bt.mode, title: Math.round(bt.title), gone: Math.round(bt.gone), worst: ltAll.reduce((m, x) => Math.max(m, x[1]), 0), upN: upTo.length, upKB: Math.round(upTo.reduce((s, r) => s + r.bytes, 0) / 1024), edge: before.filter(edge).length, edgeAll: all.filter(edge).length, fcp: Math.round(bt.fcp), reveal: Math.round(bt.reveal), tap, n: before.length, bytes: before.reduce((s, r) => s + r.bytes, 0), by,
+  const gaps = (await page.evaluate('__bt.gaps').catch(() => bt.gaps)) || [];
+  const row = { tag, gapMax: gaps.reduce((m, x) => Math.max(m, x), 0), gaps5: gaps.slice(0, 5), mode: bt.mode, title: Math.round(bt.title), gone: Math.round(bt.gone), worst: ltAll.reduce((m, x) => Math.max(m, x[1]), 0), upN: upTo.length, upKB: Math.round(upTo.reduce((s, r) => s + r.bytes, 0) / 1024), edge: before.filter(edge).length, edgeAll: all.filter(edge).length, fcp: Math.round(bt.fcp), reveal: Math.round(bt.reveal), tap, n: before.length, bytes: before.reduce((s, r) => s + r.bytes, 0), by,
     sw: before.filter(r => r.sw).length, cached: before.filter(r => r.cache).length, swNet: swReqs.length, sw304: swReqs.filter(r => r.status === 304).length,
     lt: bt.lt.filter(([s]) => s <= bt.reveal), after, longs, allN: all.length, log: L,
     urls: before.map(r => ({ u: r.url.replace(BASE, ''), k: kindOf(r.url, r.type), b: r.bytes, at: Math.round(r.at - origin) })) };
@@ -145,6 +151,26 @@ async function oneLoad(ctx, page, tag) {
 }
 
 // the long tasks before the reveal from a trace: each RunTask ≥ 50 ms on the page's main thread + its biggest pieces
+/** --profile: the sampled CPU profile's top self-time frames (with their callers' line) between two trace timestamps (µs) */
+function profileTop(trace, a, b) {
+  const ev = trace.traceEvents || trace, nodes = new Map(), samples = [];
+  const chunks = ev.filter(e => e.name === 'ProfileChunk' || e.name === 'Profile');
+  const start = {};
+  for (const e of chunks) {
+    const id = e.id, d = (e.args && e.args.data) || {};
+    if (e.name === 'Profile') { start[id] = d.startTime; continue; }
+    const cp = d.cpuProfile || {};
+    for (const n of cp.nodes || []) nodes.set(`${id}:${n.id}`, { ...n, key: `${id}:${n.id}`, parent: n.parent != null ? `${id}:${n.parent}` : null });
+    let t = start[id] || 0; const td = d.timeDeltas || [];
+    (cp.samples || []).forEach((sid, i) => { t += td[i] || 0; samples.push([t, `${id}:${sid}`]); });
+    start[id] = t;
+  }
+  const self = new Map();
+  for (const [t, k] of samples) { if (t < a || t > b) continue; const n = nodes.get(k); if (!n) continue; const cf = n.callFrame || {};
+    let up = n, chain = []; for (let i = 0; i < 4 && up; i++) { const c = up.callFrame || {}; if (c.url && /\/js\//.test(c.url)) chain.push(`${c.functionName || '(anon)'}@${c.url.replace(/^.*\/js\//, '')}:${c.lineNumber + 1}`); up = up.parent ? nodes.get(up.parent) : null; }
+    const label = `${cf.functionName || cf.url || '(program)'}${chain.length ? ' ← ' + chain.slice(0, 3).join(' ← ') : ''}`; self.set(label, (self.get(label) || 0) + 1); }
+  return [...self].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([k, n]) => `${n}× ${k}`);
+}
 function traceLongs(trace, revealMs) {
   const ev = trace.traceEvents || trace;
   const names = new Map();
@@ -157,10 +183,11 @@ function traceLongs(trace, revealMs) {
   if (!busiest) return [];
   const key = busiest[0];
   const t0 = nav && `${nav.pid}:${nav.tid}` === key ? nav.ts : Math.min(...ev.filter(e => `${e.pid}:${e.tid}` === key && e.ts > 0).map(e => e.ts));
-  const tEnd = mark ? mark.ts : t0 + revealMs * 1000;
+  const AFTER = !!opt('after', false);   // (--after: the long tasks ≥ 300 ms in the 3 s AFTER the reveal instead)
+  const tR = mark ? mark.ts : t0 + revealMs * 1000, tEnd = tR + (AFTER ? 3e6 : 0);
   const mine = ev.filter(e => `${e.pid}:${e.tid}` === key && e.ph === 'X' && e.ts >= t0 && e.ts <= tEnd);
   const out = [];
-  for (const t of mine.filter(e => e.name === 'RunTask' && e.dur >= 50000)) {
+  for (const t of mine.filter(e => e.name === 'RunTask' && (AFTER ? e.dur >= 300000 && e.ts >= tR : e.dur >= 50000))) {
     const kids = mine.filter(e => e !== t && e.ts >= t.ts && e.ts + e.dur <= t.ts + t.dur && e.name !== 'RunTask');
     const label = e => {
       const d = (e.args && (e.args.data || e.args)) || {};
@@ -175,7 +202,7 @@ function traceLongs(trace, revealMs) {
       agg.set(l, (agg.get(l) || 0) + k.dur);
     }
     const top = [...agg].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([l, d]) => `${l} ${(d / 1000).toFixed(0)}`);
-    out.push({ at: Math.round((t.ts - t0) / 1000), ms: Math.round(t.dur / 1000), top });
+    out.push({ ts: t.ts, at: Math.round((t.ts - t0) / 1000), ms: Math.round(t.dur / 1000), top });
   }
   return out;
 }
@@ -201,7 +228,7 @@ const kb = b => `${(b / 1024).toFixed(0)} KB`;
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : -1; };
 console.log(`THE BOOT CLOCK — ${BASE}${LIVE ? ' (LIVE, read-only)' : ''} ${ANDROID ? 'ANDROID 412×915@2.625' : CROS ? `CHROMEOS 1366×599@${DPR}` : `${IPHONE ? 'iPHONE UA ' : ''}${W}×${H}@${DPR}`} ${CPU ? `cpu ${CPU}×` : 'cpu 1×'} net ${opt('net', 'none')} ${WARM ? 'WARM' : 'COLD'} · ${RUNS} run(s)`);
 for (const r of results) {
-  console.log(`  ${r.tag} [${r.mode || '?'}]: FCP ${r.fcp} · title ${r.title} · reveal ${r.reveal} · boot gone ${r.gone} · worst long task ${r.worst} ms · all ${r.upN} req / ${r.upKB} KB (to gone + 2.5 s)`);
+  console.log(`  ${r.tag} [${r.mode || '?'}]: FCP ${r.fcp} · title ${r.title} · reveal ${r.reveal} · boot gone ${r.gone} · worst long task ${r.worst} ms · all ${r.upN} req / ${r.upKB} KB (to gone + 2.5 s) · after the reveal: the longest frame gap ${r.gapMax} ms (4 s), the first frames ${r.gaps5.join(' / ')} ms`);
   console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · EDGE ${r.edge} before the reveal, ${r.edgeAll} in all · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms · after it (2.5 s) ${r.after.length ? r.after.map(x => `${x[1]} ms @+${x[0] - r.reveal}`).join(', ') : 'none'}`);
   console.log('    ' + Object.entries(r.by).sort((a, b) => b[1].bytes - a[1].bytes).map(([k, o]) => `${k} ${o.n} / ${kb(o.bytes)}`).join(' · '));
   if (r.longs) for (const l of r.longs) console.log(`    long @${l.at} ${l.ms} ms: ${l.top.join(' | ')}`);
