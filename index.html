@@ -318,7 +318,7 @@
       // (8 s with no byte = stalled; P7: past 4 s, the bytes so far against the bundle's own size (its "z", in the first bytes) project the finish —
       //  past BAIL_MS it is left for the modules NOW, never thrown away at the watchdog's 45 s)
       var dog = setInterval(function () { var n = Date.now(), t = B.grew || B.at, el = n - T0, late = B.z > 0 && B.bytes > 0 && el > 4000 && el * B.z / B.bytes > BAIL_MS; if (n - t > 8000 || late) { B.why = late ? 'slow-line' : 'stalled'; clearInterval(dog); if (rd) { try { rd.cancel(); } catch (e) { /* gone */ } } else if (ab) ab.abort(); } }, 1000);
-      fetch('boot-bundle.json?v=894a8decc3e04f3e', ab ? { signal: ab.signal } : undefined).then(function (r) {
+      fetch('boot-bundle.json?v=3bdb7f3ffe357172', ab ? { signal: ab.signal } : undefined).then(function (r) {
         if (!r.ok || !r.body) throw new Error('the bundle: ' + r.status);
         if (B.why) throw new Error(B.why);
         rd = r.body.getReader(); var dec = new TextDecoder(), parts = [];

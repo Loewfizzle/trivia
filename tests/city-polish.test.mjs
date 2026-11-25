@@ -44,3 +44,34 @@ test('THE RETURN-VISIT POWER-ON: DEFAULT OFF — the full power-on on every retu
   assert.match(t, /const back = store\(sessionStorage, BACK\) === '1' \|\| shortReturn\(\);/);
   assert.match(t, /else \{ if \(!reduced\(\)\) cityPowerOn\(\); run\(FULL, 'full'\); \}/, 'the full sequence stays the default');
 });
+
+test('THE BOARD\'s tab row (the owner\'s Nov 22 11:15 am entry): full names on one line, a sideways row through THE NEON TABS', () => {
+  const v = read('js/board/view.js'), nt = read('js/ui/neon-tabs.js'), css = read('css/board.css'), comp = read('css/components.css');
+  assert.match(v, /const TAB_NAMES = Object\.freeze\(\{ xp: 'XP', dailies: 'DAILIES' \}\);/, 'PRISM DROP by its full name (no PRISM short)');
+  assert.match(v, /cls: 'bd-tabs', btnCls: 'bd-tab', scroll: true,/, 'the games row scrolls sideways');
+  assert.ok(!/\.bd-tabs \.nt-tab\[data-id='highrise'\] span/.test(css), 'HIGH RISE no longer stacked HIGH / RISE');
+  assert.match(css, /\.bd-tabs \.nt-tab \{ padding: 0 11px; font-size: 13px;/, 'the labels a size up (10.5 → 13 px)');
+  assert.match(comp, /\.nt-tabs\.is-scroll \{ overflow-x: auto;[^}]*overscroll-behavior-x: contain;/, 'never a page-level sideways scroll');
+  assert.match(comp, /\.nt-tabs\.is-scroll\.is-fade-r \{/, 'a fade where more tabs sit');
+  assert.match(nt, /new IntersectionObserver\(/, 'the fades from an observer — never a layout read in a scroll handler');
+  assert.match(nt, /if \(moved && seen\) reveal\(true\);/, 'the picked tab scrolled into view at a pick');
+  assert.match(nt, /'data-press': true/, 'THE TAP WATCH (a fling\'s stop never acts)');
+});
+
+test('a SOLO end screen\'s way out reads HOME (the house icon stays); a match keeps ROOM', () => {
+  const f = read('js/ui/final.js');
+  assert.match(f, /finIcon\('city'\), h\('span', 'HOME'\)\) : back;/);
+  assert.match(f, /finIcon\('room'\), h\('span', 'ROOM'\)\);/);
+});
+
+test('THE CONTROLLER MARK (the owner\'s Nov 24 7:20 pm entry): ONE flag a game in metas.js, ONE svg; JAYWALK on, HIGH RISE not yet', async () => {
+  const { META } = await import('../js/games/metas.js');
+  assert.equal(META.jaywalk.CONTROLLER, true);
+  assert.ok(!META.highrise.CONTROLLER, 'HIGH RISE has no wirePad yet — its own chat sets the flag');
+  for (const [id, row] of Object.entries(META)) if (row.CONTROLLER) assert.match(read(`js/games/${id}/view.js`), /wirePad/, `${id}: the flag only with a wired pad`);
+  assert.match(read('js/ui/components.js'), /^  pad: svg\('/m, 'the ONE mark (ICONS.pad)');
+  const t = read('js/screens/title-taps.js');
+  assert.match(t, /function padOk\(g\) \{ return !!\(META\[g\.id\] && META\[g\.id\]\.CONTROLLER === true\); \}/);
+  assert.match(t, /'One phone per player\. Play solo now, or open a room for friends\.'/);
+  assert.match(t, /games\.some\(padOk\) \? h\('p\.sh-note\.is-small\.nd-shelf-pad', padMark\(\), h\('span', 'Controller ready — pair a Bluetooth or USB controller to play\.'\)\) : null/);
+});

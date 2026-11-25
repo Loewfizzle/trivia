@@ -60,15 +60,16 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%);
 }
 
-/* ---- the tabs: THE NEON TABS (ONE builder with STATS) — seven tabs on one row at 360 – 430, no sideways scroll ---- */
-.bd-tabs { flex: none; }
-.bd-tabs .nt-tab { padding: 0 2px; font-size: 10.5px; letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); }
-.bd-tabs.is-even .nt-tab { flex: 1 1 auto; min-width: 44px; }
-/* (HIGH RISE's GO-LIVE — SEVEN tabs: its tab reads HIGH / RISE stacked, like its signs' two words — the row had no air between the words at
-   390 and cut them at 360; a narrow phone takes the tabs a size down) */
-.bd-tabs .nt-tab[data-id='highrise'] span { display: block; width: min-content; white-space: normal; line-height: 1.05; text-align: center; }
-@media (max-width: 389px) { .bd-tabs .nt-tab { font-size: 9.5px; letter-spacing: 0; padding: 0 1px; } .bd-tabs.is-even .nt-tab { flex: 1 0 auto; } }   /* (never shrunk under its words) */
-@media (max-width: 369px) { .bd-tabs .nt-tab { font-size: 9px; } }
+/* ---- the tabs: THE NEON TABS (ONE builder with STATS) — THE CITY POLISH PASS (the owner's Nov 22 11:15 am entry): every game's FULL name on
+   ONE line (HIGH RISE, PRISM DROP), the labels a size up, the row SCROLLS SIDEWAYS (no scrollbar, a soft fade where more tabs sit, the picked tab
+   scrolled into view — js/ui/neon-tabs.js `scroll`); a wide screen holds them all with no scroll ---- */
+.bd-tabs { flex: none; min-width: 0; margin: 0 -2px; }
+.bd-tabs .nt-tab { padding: 0 11px; font-size: 13px; letter-spacing: 0.08em; }
+.bd-tabs .nt-tab:first-child { padding-left: 4px; }
+.bd-tabs .nt-tab:last-child { padding-right: 4px; }
+.bd-tabs .nt-tab.is-on::after { left: 9px; right: 9px; }
+.bd-tabs .nt-tab:first-child.is-on::after { left: 2px; }
+.bd-tabs .nt-tab:last-child.is-on::after { right: 2px; }
 /* ---- ONE row: THIS WEEK | ALL TIME — a SQUARED two-part switch (the chosen half lit pink, its words dark; NO PILL) — + THE PICKER ---- */
 .bd-ctrl { display: flex; gap: 10px; flex: none; align-items: stretch; margin-left: calc(52px + 8px); }   /* (CITY I — the owner's 6:50 pm entry: the THIS WEEK | ALL TIME switch + the picker sit in the CARD COLUMN — the medal column's 52 px + the row's 8-px gap stay its own gutter; the NEON TABS row above stays full width) */
 .bd-period { flex: 1 1 0; max-width: 260px; gap: 0; padding: 2px; border-radius: 4px; box-shadow: none; border: 1px solid rgba(255, 124, 203, 0.42); background: rgba(10, 7, 20, 0.6); }
@@ -171,7 +172,8 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
   .bd-name { font-size: 34px; }
   .bd-sky { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-composite: source-in;
     mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite: intersect; }
-  .bd-tabs .nt-tab { font-size: 11px; letter-spacing: 0.12em; }
+  .bd-tabs .nt-tab { font-size: 12.5px; letter-spacing: 0.06em; padding: 0 7px; }   /* (the 600-px column holds all seven: no scroll on a desktop) */
+  .bd-tabs { justify-content: space-between; }
 }
 /* a short phone (Safari's bars up, 375 × 667): the strip shorter — the signs' band kept (its sky + the quay trimmed) */
 @media (max-height: 700px) and (max-width: 899px) {

@@ -837,7 +837,7 @@ export function createView() {
     // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', 'data-pad': 'a', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
-    const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', 'data-pad': waiting ? 'a' : 'b', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM'));
+    const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', 'data-pad': waiting ? 'a' : 'b', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK HOME' : 'BACK TO THE ROOM'));
     localEnd = h('div.jw-final.jw-local', h('div.jw-local-in', body, h('div.jw-local-foot', again, leave)));
     root.classList.add('is-over'); root.append(localEnd); night.rest(true);
   }

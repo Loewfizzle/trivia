@@ -10,7 +10,8 @@ import { gameArtSvg } from '../ui/game-art.js';
 import { h } from '../ui/dom.js';
 import { primaryBoard, fmtValue } from '../core/boards.js';
 import { setState, state, isHost } from '../store.js';
-import { tubeButton, row } from '../ui/components.js';
+import { tubeButton, row, ICONS } from '../ui/components.js';
+import { META } from '../games/metas.js';
 import { cardActions, playersLine } from '../core/room-logic.js';
 import { markSvg } from '../ui/mark-svg.js';
 import { playSolo } from '../host.js';
@@ -244,9 +245,15 @@ export function createTaps(T) {
     openSheet({ title: 'PLAY', kicker: 'PICK A GAME', cls: 'nd-shelf-sheet', label: 'Play a game', body: [
       h('div.nd-shelf', ...games.map(g => { const m = meta(g); const r = row({ icon: markSvg(g), label: isOwnerTest(g.id) ? `${g.name} · TEST` : g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { 'data-press': true, dataset: { game: g.id } }, onClick: () => gameCard(g) });
         if (g.isNew) { const l = r.querySelector('.sh-row-l'); if (l) l.prepend(h('em.gm-new', 'NEW')); }
+        if (padOk(g)) { const b = r.querySelector('.sh-row-l b'); if (b) b.append(padMark()); }
         return r; })),
-      h('p.sh-note.is-small', 'One phone each. Solo games play right now — or bring friends.')] });
+      h('p.sh-note.is-small.nd-shelf-foot', 'One phone per player. Play solo now, or open a room for friends.'),
+      games.some(padOk) ? h('p.sh-note.is-small.nd-shelf-pad', padMark(), h('span', 'Controller ready — pair a Bluetooth or USB controller to play.')) : null] });
   }
+  // (THE CITY POLISH PASS — THE CONTROLLER MARK: ONE meta flag a game (js/games/metas.js CONTROLLER: true — read from the row itself: the
+  //  loaded cartridge's module doesn't carry it) → the mark after its name on the shelf + on its card's meta line; ONE svg (ui/components.js ICONS.pad))
+  function padOk(g) { return !!(META[g.id] && META[g.id].CONTROLLER === true); }
+  function padMark() { return h('i.nd-pad-mark', { html: ICONS.pad, role: 'img', 'aria-label': 'Controller ready', title: 'Controller ready' }); }
 
   // PLAY NOW — THE GAME CARD (THE SHEET): the game's art + name, ONE line on what it is, its players + minutes, HOW TO PLAY; the actions
   // (core/room-logic.js#cardActions): a SOLO game → PLAY NOW (the pink MAIN: a solo run in one tap — host.js#playSolo) + PLAY WITH FRIENDS (a
@@ -285,7 +292,7 @@ export function createTaps(T) {
         h('div.nd-pv-body',
           h('p.nd-pv-blurb', g.blurb),
           // (THE DROP B add-on: ONE plain quiet line — "SOLO · 2–8 PLAYERS · ABOUT 5 MIN" — never two pills)
-          h('p.nd-pv-meta', [m.players, m.mins ? m.mins.replace('≈', 'ABOUT') : null].filter(Boolean).join(' · '))),
+          h('p.nd-pv-meta', [m.players, m.mins ? m.mins.replace('≈', 'ABOUT') : null].filter(Boolean).join(' · '), padOk(g) ? padMark() : null)),
         actions,
         h('div.nd-pv-actions',
           h('button.nd-card-help', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY'), h('i', { 'aria-hidden': 'true' }, ' ›'))),   // (a quiet link — the two PLAY actions lead)
@@ -315,7 +322,7 @@ export function createTaps(T) {
       list, mine,
       // (BOARD 2.0 B: THE BOARD's tabs are the two playable games — a sign of a game without a tab shows its top three, no link)
       g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id, boardBoard: null, boardPeriod: null }); } }, 'SEE THE FULL BOARD ›') : null);
-    Promise.all([lazyImport(import('../profile/api.js'), '../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K }))), lazyImport(import('../ui/medal.js'), '../ui/medal.js')]).then(([d, SB, MD]) => {
+    Promise.all([lazyImport(import('../profile/api.js'), '../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K }))), lazyImport(import('../ui/medal.js'), '../ui/medal.js'), def.avg ? lazyImport(import('../core/board-avg.js'), '../core/board-avg.js').catch(() => null) : null]).then(([d, SB, MD, AV]) => {
       // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
       // (BOARD 2.0 B — SLIM CARDS EVERYWHERE: each of the three = their slim card (ui/strip-board.js), the medal at the left, the score under it)
       const you = loadMe();
@@ -326,7 +333,7 @@ export function createTaps(T) {
       list.classList.add('is-strips');
       list.replaceChildren(...d.rows.map(r => (own(r) ? { ...r, ...you.profile, l: r.l } : r)).map(r => {
         const st = SB.stripFor(SB.K, r); strips.push(st);
-        return h('li', MD.rankMedal(r.rank, { size: 32, cls: 'nd-pv-medal' }) || h('span.nd-pv-medal', String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v))));   // (CITY B: THE DECO MEDALS — lazy, with the strips: never the boot)
+        return h('li', MD.rankMedal(r.rank, { size: 32, cls: 'nd-pv-medal' }) || h('span.nd-pv-medal', String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v)), AV ? h('small.nd-pv-avg', AV.avgLabel(r.av)) : null));   // (THE CITY POLISH PASS — JT2's AVERAGE: "AVG n" / "AVG —" under the best, from the row's own `av`: no extra read)   // (CITY B: THE DECO MEDALS — lazy, with the strips: never the boot)
       }));
       const surface = SB.K.liveList(list, { label: 'preview-top' });
       strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));

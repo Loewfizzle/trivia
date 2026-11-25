@@ -71,7 +71,7 @@ export const META = Object.freeze({
   }),
   // JAYWALK — ONE LIFE EVERYWHERE (no options); both looks (body[data-look])
   jaywalk: Object.freeze({
-    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'JAYWALK', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fc4', NEON: { name: [['JAYWALK', '#ff4fc4', '#ff2bb0']], mode: ['#ffb8e8', '#e85fc0'], line: ['#ff4fc4', '#ff2bb0'] },
+    DEFAULT_SETTINGS: {}, SOLO: true, CONTROLLER: true, MUSIC: 'mood:evening', BANNER_NAME: 'JAYWALK', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fc4', NEON: { name: [['JAYWALK', '#ff4fc4', '#ff2bb0']], mode: ['#ffb8e8', '#e85fc0'], line: ['#ff4fc4', '#ff2bb0'] },
     cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
     scoreLine: s => `${Math.floor(Math.max(0, Number(s) || 0) / 1e5)} LANES`,   // (the daily's score as a line — core/daily-best.js#jwScore)
   }),

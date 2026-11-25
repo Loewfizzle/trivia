@@ -58,7 +58,7 @@ const gameName = id => (GAMES.find(g => g.id === id) || DAILIES.find(g => g.id =
  *  FIVE tabs at 390 without a sideways scroll: PRISM DROP's tab reads PRISM; THE GO-LIVE PASS, Nov 17: + JAYWALK — SIX; HIGH RISE's GO-LIVE,
  *  Nov 20 (the owner: its own tab): + HIGH RISE — SEVEN) */
 export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise']);
-const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES', prism: 'PRISM' });
+const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES' });   // (THE CITY POLISH PASS: every game by its full name — PRISM DROP, HIGH RISE — on one line; the row scrolls)
 const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
 export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
@@ -109,7 +109,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   // ------------------------------------------------------------------ skeleton
   els.scene = h('div.bd-scene', { 'aria-hidden': 'true' }, h('div.bd-bg', h('i.bd-bg-base')));
   // (CITY E — THE NEON TABS: the games + THIS WEEK · ALL TIME — js/ui/neon-tabs.js, the STATS sheet's builder; no pill, no gold)
-  const gameTabs = neonTabs(TABS.map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', even: true, label: 'Boards', onPick: id => pickTab(id) });
+  const gameTabs = neonTabs(TABS.map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', scroll: true, label: 'Boards', onPick: id => pickTab(id) });
   const periodSeg = neonTabs([{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], { cls: 'bd-period', btnCls: 'bd-period-b', even: true, label: 'This week or all time', onPick: v => { S.period = v; boardSfx('tab'); refresh(); } });
   els.tabs = gameTabs.el;
   els.period = periodSeg.el;

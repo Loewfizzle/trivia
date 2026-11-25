@@ -244,6 +244,8 @@ export function row({ icon = null, label = '', sub = null, value = null, chevron
 // the rows' neon LINE icons (24 × 24, stroked in the row's --ic colour)
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 export const ICONS = {
+  // (THE CITY POLISH PASS — THE CONTROLLER MARK: a line-drawn gamepad, the ONE mark every screen uses — a game with metas.js CONTROLLER: true)
+  pad: svg('<path d="M8 7.6h8c2.5 0 4.1 1.8 4.6 4.4l.9 4.6c.4 2-1.8 3.3-3.3 1.9l-2.6-2.5H8.4l-2.6 2.5c-1.5 1.4-3.7.1-3.3-1.9l.9-4.6C3.9 9.4 5.5 7.6 8 7.6z"/><path d="M8.1 10.3v3.4M6.4 12h3.4"/><path d="M15.4 11.1v.1M17.4 12.9v.1"/>'),
   crown: svg('<path d="M3.5 8.5l4.6 4 3.9-6.8 3.9 6.8 4.6-4-2.1 10.3H5.6z"/>'),   // (SHELL 2.0 B2 — MAKE HOST)
   card: svg('<path d="M12 3l7 3v5.5c0 4.3-3 7.7-7 9.5-4-1.8-7-5.2-7-9.5V6z"/>'),
   help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2v.1"/>'),

@@ -1361,7 +1361,7 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
    44-pt tap areas. .is-even = the buttons share the row's width (THE BOARD) · .is-scroll = one sideways row (a tab's boards) */
 .nt-tabs { display: flex; gap: 2px; min-width: 0; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14); }
 .nt-tab { position: relative; flex: none; min-width: 0; min-height: 44px; padding: 0 10px; margin: 0; border: 0; border-radius: 0; background: none;
-  font: 700 11px/1 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; color: rgba(246, 230, 205, 0.74); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  font: 700 12px/1 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; color: rgba(246, 230, 205, 0.74); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .nt-tab > span { display: block; overflow: hidden; text-overflow: clip; }
 .nt-tab.is-on { color: #ff8fe0; text-shadow: 0 0 10px rgba(255, 79, 200, 0.55); }
 .nt-tab.is-on::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; background: #ff4fc8; box-shadow: 0 0 8px rgba(255, 79, 200, 0.85); }
@@ -1369,8 +1369,12 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .nt-tab:active { transform: scale(0.97); }
 .nt-tabs.is-even .nt-tab { flex: 1 1 0; }
 .nt-tabs.is-even .nt-tab.is-on::after { left: 12%; right: 12%; }
-.nt-tabs.is-scroll { overflow-x: auto; scrollbar-width: none; }
+.nt-tabs.is-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; max-width: 100%; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
 .nt-tabs.is-scroll::-webkit-scrollbar { display: none; }
+/* (THE CITY POLISH PASS — the sideways row: a soft fade on the edge(s) with more tabs past them — it reads as scrollable; no scrollbar) */
+.nt-tabs.is-scroll.is-fade-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 34px), transparent); }
+.nt-tabs.is-scroll.is-fade-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 34px); mask-image: linear-gradient(90deg, transparent, #000 34px); }
+.nt-tabs.is-scroll.is-fade-l.is-fade-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); }
 @media (hover: hover) { .nt-tab:not(.is-on):not(:disabled):hover { color: #fff; } }
 .st-sheet .st-players, .st-sheet .st-who { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; }
 /* (the card FULL WIDTH, the count / result on its own line UNDER it at the right end — THE BOARD's score; a side column capped the plate at ~84 px) */

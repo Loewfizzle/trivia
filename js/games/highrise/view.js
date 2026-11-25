@@ -406,7 +406,7 @@ export function createView() {
   function showLeave() {
     if (leaveBtn || !S) return;
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
-    leaveBtn = h('button.hi-leave', { type: 'button', 'data-press': '', onclick: () => { leaveBtn.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leaveBtn && leaveBtn.classList.remove('is-busy')); } }, soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM');
+    leaveBtn = h('button.hi-leave', { type: 'button', 'data-press': '', onclick: () => { leaveBtn.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leaveBtn && leaveBtn.classList.remove('is-busy')); } }, soloRoom ? 'BACK HOME' : 'BACK TO THE ROOM');
     S.el.append(leaveBtn);
   }
   /** the console's podium frame; its body = this game's end screen (final.js#finalScene) */

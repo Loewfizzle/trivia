@@ -117,7 +117,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       if (busy(bar) || busy(leave)) return;
       leave.classList.add('is-busy');
       Promise.resolve(PN.leave()).catch(() => leave.classList.remove('is-busy'));
-    } }, finIcon('city'), h('span', 'CITY')) : back;
+    } }, finIcon('city'), h('span', 'HOME')) : back;   // (THE CITY POLISH PASS: a solo end screen's way out reads HOME — the house icon stays; a match keeps ROOM)
   } else {
     // A MATCH: REMATCH — the host starts it; a guest votes (the votes = the room's rv for THIS match, mirrored in state.rv)
     const sub = h('span.final-bar-s');

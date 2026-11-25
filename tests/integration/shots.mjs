@@ -131,6 +131,8 @@ const SCENE = {
   //  --until "__district.tri().faces && __district.tri().faces.length === 3"; -open = JAYWALK's OPEN DAY forced: the OPEN NOW poster)
   'tri-night': ['2026-11-18T21:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints' }], 'tri-day': ['2026-11-18T13:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints' }],
   'tri-open-night': ['2026-11-18T21:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints&jaywalk=open' }], 'tri-open-day': ['2026-11-18T13:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints&jaywalk=open' }],
+  // (THE CITY POLISH PASS: THE BOARD's sideways tab row — opened on XP (the left end) + on HIGH RISE (the right end: scrolled into view))
+  'bd-tabs-xp': ['2026-11-10T20:30', { act: 'board', game: 'xp' }], 'bd-tabs-hr': ['2026-11-10T20:30', { act: 'board', game: 'highrise' }], 'bd-tabs-jw': ['2026-11-10T20:30', { act: 'board', game: 'jaywalk' }],
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
@@ -386,6 +388,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   if (o.act === 'help') { await p.evaluate(g => import('/js/ui/help.js').then(m => m.openHelp(g)), o.game); await p.waitForSelector('.help-sheet .help-body li'); await sleep(600);
     if (o.end) { await p.evaluate(() => { const b = document.querySelector('.help-sheet .help-body'); b.scrollTop = b.scrollHeight; }); await sleep(400); } }   // (THE POLISH PASS: `end` — the help scrolled to its last line)
   // (PLAY NOW: the shelf · a card (the shelf → its row) · a solo run played to its podium — the clock pushed past its end)
+  if (o.act === 'board') { await p.evaluate(g => import('/js/store.js').then(m => m.setState({ view: 'board', boardGame: g, boardBoard: null, boardPeriod: null })), o.game); await p.waitForSelector('.bd-tabs .nt-tab.is-on'); await sleep(1600); }
   if (o.act === 'shelf' || o.act === 'card') {
     await p.evaluate(() => document.querySelector('.nd-tab-play').click()); await p.waitForSelector('.nd-shelf-sheet.is-in .nd-shelf-row'); await sleep(450);
     if (o.act === 'card') { await p.evaluate(g => document.querySelector(`.nd-shelf-row[data-game="${g}"]`).click(), o.game); await p.waitForSelector(`.nd-card-sheet.is-in .nd-card[data-game="${o.game}"]`); await sleep(650); }

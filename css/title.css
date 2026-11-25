@@ -194,6 +194,7 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-pv-card { min-width: 0; display: grid; gap: 3px; }
 .nd-pv-card .vl-strip { width: 100%; }
 .nd-pv-card > b { justify-self: end; padding-right: 2px; }
+.nd-pv-card > .nd-pv-avg { justify-self: end; padding-right: 2px; margin-top: -1px; font: 700 10.5px/1 var(--font-num); letter-spacing: 0.04em; color: var(--text-dim); }   /* (THE CITY POLISH PASS — JT2's AVG under the best, as THE BOARD shows it) */
 .nd-pv-n { display: flex; align-items: center; min-width: 0; font: 600 14px/1.2 var(--font-ui); color: #fff; white-space: nowrap; overflow: hidden; }
 .nd-pv-medal { width: 32px; height: 32px; display: grid; place-items: center; font: 800 13px/1 var(--font-num); color: var(--text-dim); }   /* (CITY B: places 1–3 = THE DECO MEDALS — .rk-medal; 4 + a plain number) */
 .nd-pv-wait { grid-template-columns: 1fr !important; font: 700 10px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--text-dim); }
@@ -236,6 +237,14 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 .nd-shelf-row .sh-row-ic svg.nd-shelf-mark, .rc-game .rc-game-ic svg.nd-shelf-mark { width: 40px; height: 40px; stroke-width: 7; }
 .nd-shelf-row .sh-row-l b { font-family: var(--font-display); letter-spacing: 0.08em; }
 .nd-shelf-row .sh-row-l small { font-family: var(--font-num); letter-spacing: 0.08em; }
+/* THE CITY POLISH PASS — THE CONTROLLER MARK (ui/components.js ICONS.pad — the ONE svg): a thin neon line gamepad after a game's name, in its
+   row's own colour with the row icons' soft static glow (~18 pt, on the name's cap height); the shelf's footer line = its legend. No pill. */
+.nd-pad-mark { display: inline-block; width: 18px; height: 18px; margin-left: 8px; vertical-align: -3px; color: var(--ic, #9fe9ff); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ic, #5fe3ff) 55%, transparent)); }
+.nd-pad-mark svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nd-shelf-foot { margin-bottom: 6px; }
+.nd-shelf-pad { display: flex; align-items: flex-start; gap: 9px; --ic: #9fe9ff; }
+.nd-shelf-pad .nd-pad-mark { flex: none; margin: 0; vertical-align: 0; }
+.nd-pv-meta .nd-pad-mark { width: 16px; height: 16px; margin-left: 8px; vertical-align: -4px; color: var(--acc, #9fe9ff); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--acc, #5fe3ff) 55%, transparent)); }
 
 /* ---- small sign (lobby header) ---- */
 /* a lit sign's rare flicker (lobby.js toggles .off on one letter, like the title does with .on) */
