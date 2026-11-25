@@ -3,6 +3,7 @@
 //                URL (a lazy chunk's view), a dynamic relative import inside the bundle works, an error names the REAL file (errlog's unblob)
 //   ?bundle=1 + the bundle refused → the modules (THE FALLBACK), the city reveals · no flag → the bundle in Chromium, the modules in WebKit
 //   (THE FIX PASS — D3: every visit but Safari's) · ?nobundle → the modules
+//   BUNDLE_MISSING=1 E2E_BASE=<a serve.mjs --raw of the checkout> → no bundle on the server at all: every visit boots from the modules
 //   node e2e-bundle.mjs "<chromium>"     (the emulators + scripts/serve.mjs --emu; E2E_BASE for another port; WebKit: ~/wk/node_modules/playwright)
 import puppeteer from './kit/puppeteer.mjs';
 import { pathToFileURL } from 'node:url';
@@ -11,6 +12,9 @@ import { join } from 'node:path';
 import { guardUrl } from './kit/live-guard.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
+// (THE HOUSEKEEPING PASS — BUNDLE_MISSING=1: the server has NO /boot-bundle.json at all (serve.mjs --raw on a checkout: the committed page asks
+//  for a file only a deploy builds) — every visit must still reveal, from the modules; the deploy's own output: deploy-sim.mjs + E2E_BASE)
+const MISSING = process.env.BUNDLE_MISSING === '1';
 const Q = '?emu&slot=bb&when=2026-11-06T21:30&wx=clear&tz=America/Detroit&at=42.96,-85.67';
 const fails = [];
 const ok = (c, m) => { console.log(`${c ? 'OK  ' : 'FAIL'} ${m}`); if (!c) fails.push(m); };
@@ -24,7 +28,7 @@ const CHECKS = async () => ({
 
 async function engine(name, open) {
   // (THE FIX PASS — D3: no flag = the bundle in Chromium, the modules in WebKit — Safari keeps the old path; ?nobundle = the modules anywhere)
-  for (const [label, qs, block, want] of [['bundle', '&bundle=1', false, 'bundle'], ['fallback (the bundle refused)', '&bundle=1', true, 'modules'], ['no flag (THE FIX PASS: every visit but Safari’s)', '', false, name === 'webkit' ? 'modules' : 'bundle'], ['?nobundle', '&nobundle', false, 'modules']]) {
+  for (const [label, qs, block, want] of [['bundle', '&bundle=1', false, 'bundle'], ['fallback (the bundle refused)', '&bundle=1', true, 'modules'], ['no flag (THE FIX PASS: every visit but Safari’s)', '', false, name === 'webkit' ? 'modules' : 'bundle'], ['?nobundle', '&nobundle', false, 'modules']].map(c => (MISSING ? [c[0] + ' — NO BUNDLE ON THE SERVER', c[1], false, 'modules'] : c))) {
     const P = await open(block), errs = [];
     P.onErr(t => errs.push(t));
     await P.goto(guardUrl(`${BASE}/${Q}${qs}`, 'e2e-bundle.mjs'));

@@ -79,3 +79,8 @@ NeonBackups/
 neon-backup*/
 backups/
 backup-token*.txt
+
+# THE HOUSEKEEPING PASS (Nov 25, the owner's decision): THE FIRST-VISIT BUNDLE is BUILT AT DEPLOY (scripts/deploy-build.mjs — vercel.json's
+# buildCommand), never committed: 6.8 MB rewritten on most deploys was the repo's fastest growth. Locally scripts/serve.mjs serves it from
+# memory; `node scripts/build-boot-bundle.mjs` writes a copy to look at — this line keeps it out of git.
+/boot-bundle.json

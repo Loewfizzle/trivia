@@ -10,9 +10,13 @@
 //   · a returning visitor (the service worker in charge), an old browser (no import maps), `?nobundle`, or ANY failure of the bundle (its
 //     fetch, its parse) = the modules exactly as before (+ THE BOOT PRELOAD's modulepreloads). THE CARRY + ONE DEPLOY AT A TIME: unchanged
 //     (the bundle sits outside js/ — never a build cache's copy; it is this deploy's own files, generated with them).
-// GENERATED — run `node scripts/build-boot-bundle.mjs` after ANY boot module changes (tests/boot-bundle.test.mjs fails when stale, like the
-// preload graph's). `--check` = exit 1 when stale (no write).
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// THE HOUSEKEEPING PASS (Nov 25, the owner's decision — the ONE narrow exception to "no build step"): /boot-bundle.json is NO LONGER COMMITTED
+// (6.8 MB rewritten on most deploys — git kept every copy). It is GENERATED AT DEPLOY by scripts/deploy-build.mjs (vercel.json's buildCommand —
+// the bundle, index.html's ?v= and THE CARRY's row for it in ONE step, checked against each other; a failure fails the deploy) and, locally, IN
+// MEMORY by scripts/serve.mjs (the same code; rebuilt when a boot module changes — never a stale copy). The sources are read with LF line
+// endings (what git stores + Vercel builds from): a CRLF working copy builds the SAME bundle. `node scripts/build-boot-bundle.mjs` only writes
+// a copy to look at (ignored by git); tests/boot-bundle.test.mjs builds it in the test (deterministic + the whole boot graph).
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, posix } from 'node:path';
 import { createHash } from 'node:crypto';
 import { preloadList } from './build-boot-preload.mjs';
@@ -35,16 +39,20 @@ export function rewrite(path, src) {
   const pre = `const __nsMeta = globalThis.__nsRoot + ${JSON.stringify(path)}, __nsR = s => (typeof s === 'string' && /^\\.{1,2}\\//.test(s) ? new URL(s, __nsMeta).href : s), __nsI = s => import(__nsR(s));`;
   return `${pre} ${out}`;
 }
-/** the sources' own hash (what the bundle was built from — the staleness check) */
-export function sourcesHash(list = bundleList()) {
+/** PURE: a source with LF line endings (THE CRLF TRAP: git + Vercel hold LF; a Windows working copy may not) */
+export const lf = s => (s.includes('\r') ? s.replace(/\r\n/g, '\n') : s);
+/** a boot module's source, LF */
+export const sourceOf = p => lf(readFileSync(resolve(ROOT, p), 'utf8'));
+/** the sources' own hash (what the bundle was built from — its ?v=) */
+export function sourcesHash(list = bundleList(), read = sourceOf) {
   const h = createHash('sha256');
-  for (const f of list) { h.update(f); h.update('\0'); h.update(readFileSync(resolve(ROOT, f))); h.update('\0'); }
+  for (const f of list) { h.update(f); h.update('\0'); h.update(read(f)); h.update('\0'); }
   return h.digest('hex').slice(0, 16);
 }
-export function buildBundle(list = bundleList()) {
-  const f = list.map(p => [p, rewrite(p, readFileSync(resolve(ROOT, p), 'utf8'))]);
+export function buildBundle(list = bundleList(), read = sourceOf) {
+  const f = list.map(p => [p, rewrite(p, read(p))]);
   // (THE FIX PASS — P7: `z` = the file's own byte length, in its first bytes — the loader projects the finish from the bytes so far)
-  const b = { v: sourcesHash(list), n: f.length, z: 0, f };
+  const b = { v: sourcesHash(list, read), n: f.length, z: 0, f };
   for (let i = 0; i < 4; i++) b.z = Buffer.byteLength(bundleText(b));
   return b;
 }
@@ -53,17 +61,15 @@ export const bundleText = b => `${JSON.stringify(b)}\n`;
 export const htmlV = html => { const m = /fetch\('boot-bundle\.json(?:\?v=([0-9a-f]+))?'/.exec(html); return m ? m[1] || null : null; };
 export const withHtmlV = (html, v) => html.replace(/fetch\('boot-bundle\.json(?:\?v=[0-9a-f]+)?'/, `fetch('boot-bundle.json?v=${v}'`);
 
+// (THE CITY POLISH PASS — the bundle's URL carries its own hash (index.html's loader: boot-bundle.json?v=…) → vercel.json keeps it a year,
+//  immutable: a new build = a new URL, never a stale copy. THE HOUSEKEEPING PASS: the COMMITTED index.html names it with NO ?v= — the deploy's
+//  step (and the local server, in memory) stamps it; a page that asks for a bundle that is not there boots from the modules)
+/** PURE: every `@ns/…` name a bundled module imports statically (the deploy's check: each one must be IN the bundle) */
+export const nsImports = src => [...src.matchAll(/\b(?:from|import)\s*['"]@ns\/([^'"\r\n]+)['"]/g)].map(m => m[1]);
+
 if (process.argv[1] && resolve(process.argv[1]) === resolve(ROOT, 'scripts/build-boot-bundle.mjs')) {
-  const file = resolve(ROOT, BUNDLE_FILE);
-  const want = sourcesHash();
-  const have = existsSync(file) ? (() => { try { return JSON.parse(readFileSync(file, 'utf8')).v; } catch { return null; } })() : null;
-  const html = resolve(ROOT, 'index.html'), htmlNow = readFileSync(html, 'utf8');
-  if (process.argv.includes('--check')) { if (have !== want || htmlV(htmlNow) !== want) { console.error(`${BUNDLE_FILE} (or index.html's ?v=) is stale — run node scripts/build-boot-bundle.mjs`); process.exit(1); } console.log(`${BUNDLE_FILE} current (${want})`); process.exit(0); }
+  // (a copy to LOOK at — ignored by git; the deploy's is scripts/deploy-build.mjs's, the local server's is in memory)
   const b = buildBundle();
-  writeFileSync(file, bundleText(b));
-  // (THE CITY POLISH PASS — the bundle's URL carries its own hash (index.html's loader: boot-bundle.json?v=…) → vercel.json keeps it a year,
-  //  immutable: a new build = a new URL, never a stale copy)
-  const htmlNew = withHtmlV(htmlNow, b.v);
-  if (htmlNew !== htmlNow) writeFileSync(html, htmlNew);
-  console.log(`${BUNDLE_FILE}: ${b.n} modules, ${(Buffer.byteLength(bundleText(b)) / 1024).toFixed(0)} KB (${want})`);
+  writeFileSync(resolve(ROOT, BUNDLE_FILE), bundleText(b));
+  console.log(`${BUNDLE_FILE}: ${b.n} modules, ${(Buffer.byteLength(bundleText(b)) / 1024).toFixed(0)} KB (${b.v}) — a local copy only (not committed; built at deploy)`);
 }

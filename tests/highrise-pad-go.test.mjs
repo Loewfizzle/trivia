@@ -8,6 +8,7 @@ import { soloGo, GO_TRIES, GO_TRY_MS, GO_LOOK_MS, GO_WAIT_MS, GO_LATE_MS } from 
 import { createRun, stepTo, tap } from '../js/games/highrise/engine.js';
 import { TICK_HZ } from '../js/games/highrise/tuning.js';
 import { META } from '../js/games/metas.js';
+import { bundleList } from '../scripts/build-boot-bundle.mjs';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
@@ -193,7 +194,7 @@ test('THE PINS: the pad is the STAGE\'s one wiring (the cartridge, the daily + t
   assert.match(st, /lazyImport\(import\('\.\.\/kit\/gamepad\.js'\), '\.\.\/kit\/gamepad\.js'\)\.then\(P => \{\s*if \(gone\) return;\s*offPad = P\.wirePad\(\{ a: padPress, say: t => padSay\(t, P\.SAY_MS\) \}\);/, 'A = a tap; no dir, no b: the D-pad, the stick + B do nothing in a run');
   assert.match(st, /addEventListener\('gamepadconnected', padOn, sig\);\s*try \{ if \(navigator\.getGamepads && \[\.\.\.navigator\.getGamepads\(\)\]\.some\(Boolean\)\) padOn\(\); \}/, 'on the first pad this page sees (or one already there)');
   for (const f of ['js/games/highrise/stage.js', 'js/games/highrise/view.js', 'js/games/highrise/daily-run.js', 'js/games/highrise/play.js', 'js/games/highrise/index.js']) assert.doesNotMatch(read(f), /^import [^\n]*gamepad\.js/m, `${f}: never a static import of the kit's pad`);
-  assert.doesNotMatch(read('boot-bundle.json'), /kit\/gamepad\.js/, 'not in THE FIRST-VISIT BUNDLE');
+  assert.ok(!bundleList().some(f => /kit\/gamepad\.js/.test(f)), 'not in THE FIRST-VISIT BUNDLE (its list — the bundle itself is built at deploy)');
   assert.doesNotMatch(read('js/games/preload-graph.js'), /kit\/gamepad\.js/, 'not in any cartridge\'s preload graph');
   // the pad's press goes through `touch` itself — the SAME path as a finger, which is byte for byte what it was
   assert.match(st, /function padPress\(stamp, prev\) \{\s*if \(watchW \|\| document\.visibilityState === 'hidden' \|\| \(o\.padOk && !o\.padOk\(\)\)\) return;/, 'WATCHING / hidden / a sheet open: a pad does nothing');

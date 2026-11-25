@@ -3,23 +3,43 @@
 // visit but Safari's (THE FIX PASS) and falls back to the modules on any failure; the worker keeps it per build (THE CARRY moves it unchanged).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
-import { bundleList, sourcesHash, rewrite, BUNDLE_FILE } from '../scripts/build-boot-bundle.mjs';
+import { readFileSync } from 'node:fs';
+import { bundleList, sourcesHash, sourceOf, buildBundle, bundleText, nsImports, lf, rewrite, BUNDLE_FILE } from '../scripts/build-boot-bundle.mjs';
 import { preloadList } from '../scripts/build-boot-preload.mjs';
+import { bootGraph } from '../scripts/boot-bytes.mjs';
 
 const at = p => new URL(`../${p}`, import.meta.url);
 const read = p => readFileSync(at(p), 'utf8');
+// (THE HOUSEKEEPING PASS — the bundle is BUILT AT DEPLOY, never committed: built HERE, once, from the working tree)
+const LIST = bundleList(), BUILT = buildBundle(LIST), TEXT = bundleText(BUILT);
 
-test('THE FIRST-VISIT BUNDLE is current (node scripts/build-boot-bundle.mjs after ANY boot module changes) and holds the whole boot list', () => {
-  assert.ok(existsSync(at(BUNDLE_FILE)), `${BUNDLE_FILE} exists`);
-  const b = JSON.parse(read(BUNDLE_FILE));
-  assert.equal(b.v, sourcesHash(), `${BUNDLE_FILE} is stale — run node scripts/build-boot-bundle.mjs`);
-  assert.deepEqual(b.f.map(x => x[0]), bundleList(), 'the boot list, in order (js/app.js first)');
-  assert.deepEqual(bundleList().slice(1), preloadList(), 'exactly THE BOOT PRELOAD\'s modules');
-  for (const [p, src] of b.f) {
+test('THE FIRST-VISIT BUNDLE covers the WHOLE boot graph: js/app.js first, exactly THE BOOT PRELOAD\'s modules, every static import inside it', () => {
+  assert.deepEqual(BUILT.f.map(x => x[0]), LIST, 'the boot list, in order (js/app.js first)');
+  assert.equal(LIST[0], 'js/app.js');
+  assert.deepEqual(LIST.slice(1), preloadList(), 'exactly THE BOOT PRELOAD\'s modules');
+  const have = new Set(LIST);
+  for (const r of bootGraph('js/app.js').rows) assert.ok(have.has(r.f), `${r.f}: in js/app.js's static graph — in the bundle`);
+  assert.ok(LIST.length > 250 && new Set(LIST).size === LIST.length, `${LIST.length} modules, none twice`);
+  for (const [p, src] of BUILT.f) {
     assert.ok(!/(\b(?:from|import)\s*)(['"])\.{1,2}\//.test(src), `${p}: no relative static import left`);
     assert.ok(!/\bimport\.meta\b/.test(src), `${p}: no import.meta left (a blob URL is no base)`);
+    for (const d of nsImports(src)) assert.ok(have.has(d), `${p} imports ${d}: in the bundle (a module the bundle lacks would not resolve)`);
   }
+});
+
+test('the builder is DETERMINISTIC: the same sources = the same bytes; a CRLF working copy builds the SAME bundle (THE CRLF TRAP)', () => {
+  assert.equal(bundleText(buildBundle(LIST)), TEXT, 'built twice: byte for byte');
+  assert.equal(BUILT.v, sourcesHash(LIST), 'its ?v= = the hash of its sources');
+  // a Windows checkout with CRLF line endings (git + Vercel hold LF): the same bundle, the same hash
+  const crlf = p => sourceOf(p).replace(/\n/g, '\r\n'), sub = LIST.slice(0, 40);
+  assert.ok(crlf(sub[0]).includes('\r\n'));
+  assert.equal(sourcesHash(sub, p => lf(crlf(p))), sourcesHash(sub));
+  assert.equal(bundleText(buildBundle(sub, p => lf(crlf(p)))), bundleText(buildBundle(sub)));
+  assert.equal(lf('a\r\nb\nc\r\n'), 'a\nb\nc\n');
+  for (const [, src] of BUILT.f) assert.ok(!src.includes('\r'), 'no CR in a bundled module');
+  // one changed byte in one module = another ?v= (a new URL, never a stale copy kept a year)
+  assert.notEqual(sourcesHash(sub, p => (p === sub[3] ? `${sourceOf(p)} ` : sourceOf(p))), sourcesHash(sub));
+  assert.match(read('scripts/build-boot-bundle.mjs'), /export const sourceOf = p => lf\(readFileSync\(resolve\(ROOT, p\), 'utf8'\)\);/, 'every source read through the LF reader');
 });
 
 test('the rewrite: static relative imports → @ns/<path>; import.meta.url → the real URL; dynamic import → __nsI (relative resolved against the real URL)', () => {
@@ -74,13 +94,13 @@ test('index.html: ONE loader picks the bundle for EVERY visit but Safari’s (TH
   assert.match(html, /W\.__nsBundle && W\.__nsBundle\.grew > bundleSeen/, 'THE BOOT WATCHDOG: the bundle\'s bytes arriving = still arriving (a slow line is no hang)');
 });
 
-test('THE FIX PASS — P6: the bundle IS a build file — pinned to its build by the worker (CODE_RE), carried while unchanged (file-hashes.json), deployed; its size `z` in its first bytes (P7)', () => {
+test('THE FIX PASS — P6: the bundle IS a build file — pinned to its build by the worker (CODE_RE), carried while unchanged (the DEPLOY\'s file-hashes.json), deployed; its size `z` in its first bytes (P7)', () => {
   assert.ok(!BUNDLE_FILE.includes('/'), 'at the root');
-  assert.ok((JSON.parse(read('file-hashes.json')).files || {})['/' + BUNDLE_FILE], 'in THE CARRY’s list');
+  // (THE HOUSEKEEPING PASS: THE CARRY's row for it is written by the deploy's step, with the bundle itself — tests/deploy-build.test.mjs)
+  assert.match(read('scripts/deploy-build.mjs'), /\[OUT\]: withFile\(listText, BUNDLE_PATH, text\)/, 'in THE CARRY’s list (the deploy adds its row)');
   assert.ok(read('sw.js').includes(String.raw`const CODE_RE = /^\/((js|css)\/|boot-bundle\.json$)/;`), 'pinned like a module (a miss is the network only while it is still this build)');
   const ign = read('.vercelignore').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
   assert.ok(!ign.some(l => l === BUNDLE_FILE || l === '*.json' || l === '/' + BUNDLE_FILE), 'deployed');
-  const txt = read(BUNDLE_FILE), b = JSON.parse(txt);
-  assert.equal(b.z, Buffer.byteLength(txt), 'z = the file’s own byte length');
-  assert.ok(txt.slice(0, 80).includes(`"z":${b.z}`), 'z in the first bytes');
+  assert.equal(BUILT.z, Buffer.byteLength(TEXT), 'z = the file’s own byte length');
+  assert.ok(TEXT.slice(0, 80).includes(`"z":${BUILT.z}`), 'z in the first bytes');
 });

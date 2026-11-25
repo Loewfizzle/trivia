@@ -143,7 +143,8 @@ try {
     // ONE DEPLOY AT A TIME's two builds (wk-onebuild's setup): build B = a boot module gains an export + JAYWALK's cartridge imports it
     const PORT = BROWSER === 'webkit' ? 5185 : 5186, A = 'aaaa1111', B = 'bbbb2222';
     const line = await startLine({ port: PORT, to: BASE, rtt: 15, mbps: 100, prod: true, build: A });
-    const HASHES = JSON.parse(readFileSync(new URL('../../file-hashes.json', import.meta.url), 'utf8')).files;
+    // (THE HOUSEKEEPING PASS: the list AS SERVED — the bundle's row is the deploy's / the local server's, never in the committed file)
+    const HASHES = (await (await fetch(`${BASE}/file-hashes.json`)).json()).files;
     const listRule = (path, tag) => ({ re: '^/file-hashes\\.json$', from: `"${path}":"${HASHES[path]}"`, to: `"${path}":"${tag.toLowerCase().repeat(12).slice(0, 12)}"` });
     // (a real deploy that changes a boot module changes THE FIRST-VISIT BUNDLE's copy of it + the bundle's hash too — wk-edge's rig)
     const rulesB = [listRule('/js/config.js', 'B'), listRule('/js/games/jaywalk/index.js', 'B'), listRule('/boot-bundle.json', 'C'),

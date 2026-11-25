@@ -1,5 +1,13 @@
 tests
-scripts
+# THE HOUSEKEEPING PASS (Nov 25): the generators never ship — EXCEPT the deploy's own step (vercel.json's buildCommand, the ONE exception to
+# "no build step": scripts/deploy-build.mjs + the three builders it imports — tests/deploy-build.test.mjs keeps this list = its import graph).
+# They are in the BUILD only: the step removes scripts/ from the output when it is done (--prune).
+/scripts/*
+!/scripts/deploy-build.mjs
+!/scripts/build-boot-bundle.mjs
+!/scripts/build-boot-preload.mjs
+!/scripts/boot-bytes.mjs
+!/scripts/build-file-hashes.mjs
 *.md
 database.rules.json
 firebase.json

@@ -76,7 +76,9 @@ const warm2 = await visit('3b WARM again');
 //  boot bundle's copy of config.js (+ its hash) for a --qs &bundle=1 run)
 const SLOW = Number(opt('slowcarry', 0)), SLOW_OLD = argv.includes('--slowold');
 if (SLOW || SLOW_OLD) await p.evaluate(([ms, old]) => navigator.serviceWorker.controller.postMessage({ t: 'ns:test-slow-carry', ms, old }), [SLOW, SLOW_OLD]);
-const H0 = JSON.parse(fs.readFileSync(new URL('../../file-hashes.json', import.meta.url), 'utf8')).files;
+// (THE HOUSEKEEPING PASS: the list AS SERVED — the bundle's row is the deploy's / the local server's, never in the committed file)
+const H0 = (await (await fetch(`${UP}/file-hashes.json`)).json()).files;
+if (!H0['/boot-bundle.json']) console.log('NOTE: the served file-hashes.json has no row for /boot-bundle.json (serve.mjs --raw on a checkout?) — the bundle is never carried');
 line.set({ build: 'f6e5d4c3b2a1', rules: [
   { re: /^\/js\/config\.js$/, prepend: 'globalThis.__deployB = 1;\n' },
   { re: /^\/boot-bundle\.json$/, from: '["js/config.js","', to: '["js/config.js","globalThis.__deployB = 1;' },

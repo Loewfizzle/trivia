@@ -14,5 +14,5 @@ test('the worker reads the list + carries unchanged files from the old build (sw
   const sw = readFileSync('sw.js', 'utf8');
   assert.match(sw, /const HASH_URL = '\/file-hashes\.json',/);
   assert.match(sw, /async function carryUnchanged\(/);
-  assert.match(readFileSync('.vercelignore', 'utf8'), /^scripts$/m, 'the generator never ships');
+  assert.match(readFileSync('.vercelignore', 'utf8'), /^\/scripts\/\*$/m, 'the generators never ship (THE HOUSEKEEPING PASS: the deploy\'s own step + its imports are in the BUILD only — tests/deploy-build.test.mjs)');
 });

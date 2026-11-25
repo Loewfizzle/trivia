@@ -3,13 +3,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { htmlV } from '../scripts/build-boot-bundle.mjs';
+import { htmlV, buildBundle, withHtmlV } from '../scripts/build-boot-bundle.mjs';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 
 test('THE BOOT CACHE: /boot-bundle.json is fetched by its own hash and kept a year (immutable); /js /css /assets — fetched by plain paths — stay ≤ 5 min', () => {
-  const b = JSON.parse(read('boot-bundle.json'));
-  assert.equal(htmlV(read('index.html')), b.v, "index.html's loader asks for boot-bundle.json?v=<the bundle's own hash> (node scripts/build-boot-bundle.mjs)");
+  // (THE HOUSEKEEPING PASS: the bundle is built AT DEPLOY — the committed page carries no ?v=; the deploy's step stamps the bundle's own hash)
+  const b = buildBundle();
+  assert.equal(htmlV(read('index.html')), null, 'the committed page: no ?v= (scripts/deploy-build.mjs stamps it — tests/deploy-build.test.mjs)');
+  assert.equal(htmlV(withHtmlV(read('index.html'), b.v)), b.v, "the deployed page's loader asks for boot-bundle.json?v=<the bundle's own hash>");
   const rules = JSON.parse(read('vercel.json')).headers;
   const cc = src => ((rules.find(r => r.source === src) || {}).headers || []).find(h => h.key === 'Cache-Control');
   assert.equal(cc('/boot-bundle.json').value, 'public, max-age=31536000, immutable');
