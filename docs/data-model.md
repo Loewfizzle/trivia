@@ -507,3 +507,6 @@ status write (host.js#startGameNow: a failed start keeps them; rules without gv 
 with them (room.js). Read: the tally ignores the host, a player no longer seated, a game not playable; most votes first, a tie = the earliest
 `at`. Suggestions only — never an auto-start; MOST WANTED · <GAME> (n) on the host's list = the host's one-tap start (game-options.js#quickStart).
 Mirrored as `state.gv` (room.js listen). A refused vote = the quiet `late-vote`. RULES CHANGED (CITY PART 2 — re-published by the owner).
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- THE FIX PASS (Nov 22): THE ROOM LIST IS CLOSED (`rooms/.read` false — the stale sweep is the server's, `api/_lib/room-sweep.js`) · THE ERROR BOUNDARY (a game screen that can't run = `ui/game-broke.js`'s card) · the server's housekeeping claims its window in the database (`api/_lib/due.js`) → docs/data-model.md, docs/cartridge.md.

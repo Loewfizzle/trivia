@@ -8,7 +8,7 @@ CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
 `window.__district`). The full intro: docs/roadmap-history.md (moved). `ROADMAP.md` = what shipped + what is next.
 
-**THIS FILE IS THE SHORT GUIDE (THE CLAUDE.md DIET, Nov 13):** ≤ 40 KB (`tests/claude-md-size.test.mjs`); THE FIX PASS (Nov 22) took it back to ~37 KB — keep it under that (a game's / an area's long lines live in its doc). A pass adds AT MOST ONE line here per
+**THIS FILE IS THE SHORT GUIDE (THE CLAUDE.md DIET, Nov 13):** ≤ 40 KB (`tests/claude-md-size.test.mjs`); THE HOUSEKEEPING PASS (Nov 25) took it under 36 KB — keep it there (a game's / an area's long lines live in its doc). A pass adds AT MOST ONE line here per
 new standing rule; its detail goes in the doc that owns the area. "(moved)" after a doc = its section **THE RULES FROM CLAUDE.md (moved Nov 13)** —
 the full text this file used to hold, verbatim (`scripts/claude-md-coverage.mjs` proves nothing was lost). **Keep this file, ROADMAP.md (one line
 per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
@@ -42,7 +42,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   pass builds it. Never edit or delete others' entries. Rules at the top of that file.
 - **NEVER STOP TO ASK (the owner is on his phone):** obvious + established-pattern calls → do + name them; a genuinely new owner call → skip it,
   list it under OPEN FOR BEN + the inbox; finish, push, notify.
-- **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
+- **No build step** — except the boot bundle, generated at deploy (docs/harbor.md THE FIRST-VISIT BUNDLE); nothing else is built. Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
   functions firebase-admin; Vercel installs it, the browser never sees it). Firebase comes
   from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
   `js/firebase.js` exports thin wrappers (`ref`, `get`, `set`…) that are only valid after `firebaseReady` resolves.
@@ -95,24 +95,20 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   `core/harbor-room.js`, `core/room-show.js`); ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top).
 - LEAVE ON THE DOCK (CITY H1): the room dock's left ring + ☰'s top row; EVERY way out = ONE sheet (`ui/leave-sheet.js`, never TAP AGAIN); INVITE tops GUESTS → docs/title.md.
 - NEVER A DEAD SCREEN (CITY H2): a route with nothing to render → the city at once + COUNTED (`app.js#dead`, quiet kind 'dead').
-- THE GAMES LIST ORDER (CITY H2): most DIFFERENT players in 14 days first, a game's first 14 days on top + NEW (`core/game-order.js`); worked once a streak day, the ORDER only in the cached ?live=1 → docs/progression.md.
 - MAKE HOST (`room.js#makeHost` — to an ONLINE player); ONE ACCOUNT, ONE ROOM (`seats/{pid}` — `js/seat.js`); NAME + COLOUR edited only at the top of CUSTOMIZE YOUR CARD.
 - REMATCH IN PLACE (CITY G): the end screen's REMATCH = the 'r' start (`host.js#rematch({ inPlace })`) — no city / room / walk on any phone; a podium vote only while its end screen is up → docs/cartridge.md.
 - THE FROZEN CONTRACT: `config.js#FROZEN_IDS` — never loaded, logic + sims kept, views not maintained (docs/cartridge.md); a start's frame checked (host.js).
-- THE ONE META MODULE (CITY PART 1): every playable game's boot meta = ONE ROW in `js/games/metas.js`; its `meta.js` re-exports the row — a new game = a row, never a boot module; `CONTROLLER: true` (a wired pad) = THE CONTROLLER MARK → docs/cartridge.md.
-- THE CONTRACT: a game = ONE ROW in `metas.js` + its one-line `meta.js` + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static
-  game import); `preload` ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).
-- A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change) — only the room's PICKED game (`room-city.js#pickedGame`); THE PER-GAME BUDGET (`tests/integration/game-budget.json`) counts THE GAME ALONE (THE FIX PASS M2 — the city has THE BOOT BUDGET): jaywalk 44 / 529 KB of 52 / 610, highrise 41 / 483 of 48 / 560; THE BOOT: 305 of 310 modules, `js/games` at boot 28 of 30 KB, the bytes ~12 KB under the line.
+- THE CONTRACT + THE ONE META MODULE: a game = ONE ROW in `js/games/metas.js` + its one-line `meta.js` + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import, never a boot module); `preload` ≤ 1.5 MB; `CONTROLLER: true` = THE CONTROLLER MARK; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).
+- A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change); THE PER-GAME BUDGET (`tests/integration/game-budget.json`) counts THE GAME ALONE; THE BOOT's numbers → docs/cartridge.md (moved Nov 25).
 - A game's podium sound = `OWN_VICTORY_SOUND` (its body plays its own) or the console's victory playlist (`FINAL_MUSIC` only in two frozen games); THE GAME LOOK = `body[data-look]` (`kit/look.js`) — games read it LIVE, no switch of their own.
 - HOW TO PLAY = a LAZY chunk through ONE opener (`ui/help-open.js` — the frame at the tap, TAP TO RETRY); never a static import of help.js (`tests/help-lazy.test.mjs`).
-- THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
-- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city: `touchInCity` = the root, its ancestors, the scene's wrap); never a per-screen class list → docs/title.md.
+- THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (`globalThis.__nsNowPlaying`) → docs/audio.md (moved Nov 25).
+- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered`); never a per-screen class list → docs/title.md (moved Nov 25).
 - THE NEON TABS (CITY E): every tab row on THE BOARD + STATS / /admin's stats through ONE builder (`ui/neon-tabs.js` — neon-underline, built once, set in place) → docs/title.md.
 - THE TAP WATCH (`ui/tapwatch.js`): EVERY TAP ACTS on its press + lift (`data-press` + `PRESS_IMPLICIT`); a Safari-gesture control = `data-gesture`, acted in the lift; never re-render under a finger; a fling-stop never acts; `:hover` only in `@media (hover: hover)` → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
-- THE END NEON (CITY PART 2): every end screen's header (`<GAME> · SOLO / MATCH`, the name in its sign's colours) + result line (the accent; a win GOLD) through ONE builder (`ui/fin-neon.js`; ONE row per game: `metas.js` NEON) → docs/match-kit.md.
-- GAME VOTES (CITY PART 2): a guest's vote = `rooms/{CODE}/gv/{uid}` { g, at } (lobby only, suggestions — the host picks; MOST WANTED = one tap); the start clears them in its OWN write → docs/data-model.md.
+- THE GAMES LIST ORDER (`core/game-order.js`) · THE END NEON (ONE builder: `ui/fin-neon.js`; `metas.js` NEON) · GAME VOTES (`rooms/{CODE}/gv/{uid}` — suggestions, the host picks) → docs/cartridge.md (moved Nov 25).
 
 **Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))
 - PROGRESSION: XP, levels, the streak, items, achievements, FOUNDER are written by the SERVER only (one transaction through the PURE steps in
@@ -126,13 +122,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE REAL PLAYER COUNT: anything the server PAYS BY A COUNT takes it from what it can verify (`api/report.js`); A SEAT IS NOT A PLAY (`PROOF_TREES`).
 - Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
 - THE PROOF TREE (`jw` + `hr`, ONE shared copy — `core/proof.js`, `kit/proof-writer.js`, `kit/proof-io.js`): never trusts what the HOST writes; THE STAMP `t0`, a GO within 5 s, THE LIVE LOCK; THE CHUNK CEILING (THE FIX PASS) → docs/match-kit.md (moved Nov 22).
-- THE FIX PASS (Nov 22): THE ROOM LIST IS CLOSED (`rooms/.read` false — the stale sweep is the server's, `api/_lib/room-sweep.js`) · THE ERROR BOUNDARY (a game screen that can't run = `ui/game-broke.js`'s card) · the server's housekeeping claims its window in the database (`api/_lib/due.js`) → docs/data-model.md, docs/cartridge.md.
-- A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (`screen.holdsRun` · THE RUN HOLD · `core/proof.js#liveGoers` · THE TREE CAP 1,000) → docs/match-kit.md (moved Nov 22).
-- HOST TRUST (BEFORE-LAUNCH): a host-graded game's result is checked against the players' OWN data (PRISM `prismVerify`, OVERCLOCK `regrade.js`); never paid from the snapshot path; THE REPORT LOCK + the server-stamped starts (rules) → docs/match-kit.md.
-- ITEM NAMES ONLY TO OWNERS (two named exceptions on THE PLAYER PAGE) · THE ADD-ME LINK (a server-made `flink/` code) + STATS (ONE builder, ONE snapshot) → docs/profiles.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
-- SECOND ACCOUNTS + DON'T COUNT (CITY I, owner-only): hashed addresses only (`seen/`, LIVE, 14 d); DON'T COUNT = `nocount/{pid}` applied AT READ (boards, SCORES, the place line + N, THE PENTHOUSE), its own views unchanged, UNDO instant → docs/profiles.md.
-- THE OWNER'S NAME TAG (CITY PART 2): the tag only in OWNER-ONLY lists (`ui/owner-tag.js`), from the server only for THE OWNER's ask — never a public screen → docs/profiles.md.
-- S8 (THE CITY POLISH PASS): `profiles/{pid}` readable by its owner + a ROOM-MATE (`seats/` code) only; `pfr/` server-only; the friends API names a stranger by the BOARD ID (+ a viewer-salted `ph`), never a pid → docs/profiles.md.
+- THE FIX PASS (Nov 22): THE ROOM LIST IS CLOSED (`rooms/.read` false) · THE ERROR BOUNDARY (`ui/game-broke.js`) · the server's housekeeping claims its window (`api/_lib/due.js`) → docs/data-model.md (moved Nov 25).
+- HOST TRUST: a host-graded game's result is checked against the players' OWN data (PRISM `prismVerify`, OVERCLOCK `regrade.js`); THE REPORT LOCK; A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (`screen.holdsRun` · THE RUN HOLD) → docs/match-kit.md (moved Nov 25).
+- ITEM NAMES ONLY TO OWNERS · THE ADD-ME LINK (a server-made `flink/` code) + STATS · THE OWNER'S NAME TAG (`ui/owner-tag.js` — OWNER-ONLY lists, never a public screen) → docs/profiles.md (moved Nov 25).
+- SECOND ACCOUNTS + DON'T COUNT (owner-only; `nocount/{pid}` applied AT READ) · S8 (`profiles/{pid}` readable by its owner + a ROOM-MATE only; a stranger named by the BOARD ID, never a pid) → docs/profiles.md (moved Nov 25).
 - FRIENDS: `pfr/{pid}` server-written + server-read (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 - THE YOU ROW (CITY H2): YOUR card in EVERY slim-card list = ONE breathing pink glow (`ui/strip-board.js#markMine`); no list keeps its own "me" box / edge / tint → docs/vault.md.
@@ -147,36 +140,29 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
 - A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.
 - An unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
-- THE DAY PAINT (CITY PART 1): a sign's day face is PAINT — never a saturated / white-hot ink on a dark board (`tests/city-part1-signs.test.mjs`); THE PAGE'S CLOCK: the city's network gates let go by the page's time on screen → docs/harbor.md.
-- NEVER A GAME TWICE AS A SIGN (CITY PART 2): the speakeasy blade skips tonight's lit named signs (`harbor-neon.js#bladeGame`); THE LED BILLBOARD EXCEPTION: the tri-vision's posters never get a day variant → docs/harbor.md.
-- THE BOOT HEADERS (CITY PART 2): a boot module keeps a SHORT header — its long history lives in `docs/harbor/boot-headers.md` (THE BOOT's BYTE ROOM).
+- THE DAY PAINT (a sign's day face is PAINT) · THE PAGE'S CLOCK · NEVER A GAME TWICE AS A SIGN · THE LED BILLBOARD EXCEPTION · THE BOOT HEADERS (a boot module's long history: `docs/harbor/boot-headers.md`) → docs/harbor.md (moved Nov 25).
 - THE LAB FEEDS EVERY PASS: every pass runs scripts/lab-export.mjs <live> at its START and builds the open FIX marks (bump LAB_V + its LAB_CHANGES line) — rebuilt items show under CHANGED for the owner's re-mark → docs/vault.md.
 
 **The dailies** (→ docs/progression.md, docs/password.md, docs/coastclear.md; the full rule lines: docs/progression.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
 - A daily = its cartridge + ONE row in `config.js#DAILIES` (PLUG-AND-PLAY); THE SERVER JUDGES every guess (answers + THE DAILY SECRET only in the database); DAILY BEST · THE TICKET · A RUN KEEPS ITS OWN DAY · THE GO-LIVE SWITCH + THE SCHEDULED GO-LIVE · THE SHARE CARDS · EVERYONE ON SCORES → docs/progression.md.
-- THE BIG FIVE (HIGH RISE DAILY B): 5+ dailies finished → SHARE TODAY is TEXT ONLY (each name in its ticket's ink — `ticket-art.js#TICKET_INK`, ONE ink table); a row's `liveFrom` = THE SCHEDULED GO-LIVE IN CODE → docs/progression.md.
+- THE BIG FIVE: 5+ dailies finished → SHARE TODAY is TEXT ONLY (ONE ink table: `ticket-art.js#TICKET_INK`); a row's `liveFrom` = THE SCHEDULED GO-LIVE IN CODE → docs/progression.md (moved Nov 25).
 
 **The games** (read the game's doc before a pass on it; each game's full rule lines: its doc, "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
 - OVERCLOCK: its timings are the owner's, NO SIDEWAYS SCROLL, right / wrong never ✓ / ✕, the pools are BUILT; ONE BOARD (CITY PART 1): BEST QUICK RUN — ROOM matches with 2+ verified players only (THE FIX PASS S4: a solo run plays + pays XP, no row), DUMB LUCK's points left out → docs/overclock.md.
 - PRISM DROP: never "Tetris" / "tetromino" / "T-spin", THE ANTI-CHEAT RULES, ONE definition per SKIN; THE DROP (the daily) → docs/prism.md.
 - HOLD'EM: the engine PURE + DETERMINISTIC, THE SERVER IS THE DEALER, PLAY CHIPS ONLY, the portrait untouched → docs/holdem.md.
-- JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY, /jaywalk-lab · THE SOLO RUN · THE MATCH · J1 SPLITS · J2 COURSE RULES (v1 + v2 FROZEN — a change = a v3) · J3 THREE TRIES ALL DAY · J4 WINTER = a VIEW · JT1 SEASONS = THE SEASONAL PACK, never the start bundle · JT2 TAP TO START (the stamp at the tap) · VA THE TIMES OF DAY = a VIEW on the city's sun (`daylook.js`; a match = the HOST's, `game.lk`; tier 2's line 96 calls) · B1 THE AREA TRAFFIC (`variety.js` — per area, never the start bundle) · B2 THE PROPS (`props.js` lazy: a tree cell's MODEL only, edge pieces in EMPTY edge slots) + ONE LOADING STEP A LIGHT FRAME (`variety.js#PUMP`) · ONE PACK PER SEASON (`season.js#PACKS`) · the start bundle's long notes in docs/games/jaywalk-notes.md → docs/jaywalk.md (moved Nov 22).
-- HIGH RISE (PLAYABLE since Nov 20; its DAILY live since Nov 22): the rules PURE + INTEGERS ONLY, a result = THE REPLAY (`highrise/proof.js#judgeNode`) · THE SWITCH · THE LAG RULES (ZERO GARBAGE IN PLAY) · THE TWO LOOKS · THE MATCH · THE DAILY (THE HELD RUN) · THE BAKED HUD · SPECTATE = A PLAYBACK · THE POSTER · THE CONTROLLER (ONE wiring: stage.js; a pad drop at the press's own time) · THE SOLO GO (go.js) → docs/highrise.md (moved Nov 22).
-- SMOOTHNESS = DROPPED + WORST FRAMES on the real iPhone, never the median (JAYWALK SMOOTH): the lab's `&hud=1` meter · every perf run through `kit/frame-report.mjs` · A SEASON NEVER ADDS BIG FRAMES (`--smooth=season`) → docs/jaywalk.md.
-- THE STILL-SCREEN RULE (JAYWALK SMOOTH 4 + FINAL): every load + warm-up while a still screen is up (`variety.js#STILL`); a first tap that beats it is HELD there (`night.js#START_HOLD_MS`), never a freeze mid-hop; the scene shows only in its FINAL look; every vehicle faces its travel (a test) → docs/jaywalk.md.
-- LAST MILE (Nov 24): a JAYWALK tier step waits for a QUIET MOMENT (`kit/tiers.js` `quiet`, opt-in) · a start is its ROOM's (`core/room-show.js#startLock`) · a proof tree is mirrored IN PLACE (`liveTrees` → `room-logic.js#mirrorTree`) → docs/jaywalk.md "LAST MILE".
-- THE BLEND RULE (JAYWALK SMOOTH 3): no blend / filter / backdrop layer over or grouped with the 3D canvas unless it visibly does something, and then isolated from it (`--smooth=passes`) → docs/jaywalk.md.
-- THE HOLD (HIGH RISE S4A): a LIVE run's lease (`audio/engine.js#holdAwake` via `globalThis.__nsHoldAwake`) only RECORDS itself now — nothing naps since HEAR THE HARBOR → docs/audio.md.
+- JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY; the course rules v1 + v2 FROZEN (a change = a v3); a season / a time of day = a VIEW, never the start bundle; SMOOTHNESS = DROPPED + WORST FRAMES on the real iPhone · THE STILL-SCREEN RULE · THE BLEND RULE · LAST MILE → docs/jaywalk.md (moved Nov 25).
+- HIGH RISE: the rules PURE + INTEGERS ONLY, a result = THE REPLAY; THE LAG RULES (ZERO GARBAGE IN PLAY); THE CONTROLLER = ONE wiring (`stage.js`); THE HOLD (`engine.js#holdAwake`) only RECORDS itself → docs/highrise.md (moved Nov 25).
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
-- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
+- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`); a page iOS killed reports itself (kind `killed`) → docs/testing.md (moved Nov 25).
 - THE RULES-LAG: every write through `firebase.js#write`; a rules change fails `tests/rules-live.test.mjs` until its ack names it, and the pass
   summary's FIRST line says RE-PUBLISH + how; a feature on a new rule keeps a fallback that works on the old one.
-- THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); pass screenshots stay out of git (`tests/repo-growth.test.mjs`).
+- THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); a pass's screenshots go to `Downloads\NEON\<pass>\`, NEVER the repo (`tests/repo-growth.test.mjs`: LEGACY or a named REFERENCE).
 - ONE DEPLOY AT A TIME: a phone never runs two deploys' code — `sw.js` pins every page to its build (lazy chunks too; gone → ONE reload, only at a RETURN — never mid-tap, mid-match or with a pop-up open — logged to /admin) → docs/harbor.md "ONE DEPLOY AT A TIME".
 - THE NIGHTLY BACKUP (CITY E): every top-level node is DURABLE, LIVE or SECRET (`api/_lib/backup.js` — `tests/backup.test.mjs`); never a backup file / the token in this repo → docs/backup.md.
-- THE CARRY (CITY A): `node scripts/build-file-hashes.mjs` after ANY change under js/ css/ assets/ data/ (`tests/file-hashes.test.mjs`) — a deploy downloads only the changed files; /audio kept by version; + `node scripts/build-boot-bundle.mjs` after ANY boot module change (THE FIRST-VISIT BUNDLE, slow lines) → docs/harbor.md.
+- THE CARRY (CITY A): `node scripts/build-file-hashes.mjs` after ANY change under js/ css/ assets/ data/ (`tests/file-hashes.test.mjs`) — a deploy downloads only the changed files; /audio kept by version. THE FIRST-VISIT BUNDLE is BUILT AT DEPLOY (`scripts/deploy-build.mjs`, vercel.json's buildCommand — never committed; `serve.mjs` serves it from memory; `tests/integration/deploy-sim.mjs` = the deploy's step locally) → docs/harbor.md.
 
 ## Working efficiently (what cost the most in past sessions)
 - **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
@@ -230,7 +216,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
   OUTSIDE a room must `want()` / `release()` its own reason; never parked while in a room. `state.net`: only `lost` shows SIGNAL LOST.
 - **Identity + rejoin:** an anonymous Firebase user per *slot* (phones are slot 1); `localStorage na:{slot}:session` → `resumeSession()`.
 - **Presence — ONE CHILD PER CONNECTION** (`presence/{uid}/c/{connId}`; every reader through `normalizePresence`). Offline players stay as "SIGNAL LOST".
-- THE WAKE HOLD + THE ONE HOST-WRITE GATE (CITY PART 1): every host write through `host.js#hostWriteOk`; after a stall a fresh read of `meta/hostId` first; a refusal then = the quiet `not-host`; the stall clock is the ROOM's (THE PLAY BOUNCE — PLAY NOW never bounces silently) → docs/harbor.md.
+- THE WAKE HOLD + THE ONE HOST-WRITE GATE: every host write through `host.js#hostWriteOk` (a stall → a fresh read of `meta/hostId` first; a refusal = the quiet `not-host`); THE PLAY BOUNCE → docs/harbor.md (moved Nov 25).
 - **Host migration** (`core/room-logic.js#shouldClaimHost`): in a game the `meta.hostBeat` (every 2 s, stale ≥ 10 s) ALONE decides; claims staggered by join order.
 - **Director:** `host.js` ticks every 250 ms → `module.prepare()` + `module.step(game, ctx)`; a step may carry `$room` side writes; `final` writes `night/{matchId}`.
 - **Live player data:** `livePaths(game)` → `state.live`; directors + views check `state.liveKey` before trusting `live`.
@@ -241,7 +227,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
 - `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
 - THE IDLE CUTOFF · LEAVING + MUTED: THE CUT IN ONE ORDER · MUTED = NOTHING RUNS · THE THREE-WAY BUTTON + THE SESSION BY STATE (`audio/sound-state.js`) → docs/audio.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
-- MUSIC OFF = HEAR THE HARBOR (GARDEN PARTY, retires PODCAST MODE): ONE row of THE SOUND TABLE (`sound-state.js` — session · music · beds · one-offs · effects) applied whole on every change (`engine.js#applySound`); both sound rows 'playback' + C2's leave; ALL OFF = nothing runs → docs/audio.md.
+- MUSIC OFF = HEAR THE HARBOR: ONE row of THE SOUND TABLE (`sound-state.js`) applied whole on every change (`engine.js#applySound`); ALL OFF = nothing runs → docs/audio.md (moved Nov 25).
 - AN EFFECT ASKS `isUnlocked()`, NEVER THE CONTEXT's STATE (CITY PART 1 — the sweep; `tests/podcast-sweep.test.mjs` allows `running` only in the music / clock files) → docs/audio.md.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 

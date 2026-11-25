@@ -2234,3 +2234,7 @@ song voice placement (named on its line), `engine.js`, `music.js`, `beat.js`, `s
 THE GUARD: `tests/podcast-sweep.test.mjs` (a `running` gate anywhere else fails). The browser check: `tests/integration/podcast-sweep.mjs` — music
 off, the engine napping, one typical sound from every live game + a flyer + both dailies + progress + the room + THE BOARD STARTS (14 / 14; 7 of
 11 were silent before).
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- MUSIC OFF = HEAR THE HARBOR (GARDEN PARTY, retires PODCAST MODE): ONE row of THE SOUND TABLE (`sound-state.js` — session · music · beds · one-offs · effects) applied whole on every change (`engine.js#applySound`); both sound rows 'playback' + C2's leave; ALL OFF = nothing runs → docs/audio.md.
+- THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.

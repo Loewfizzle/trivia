@@ -980,3 +980,6 @@ seeds BEST QUICK RUN from the old QUICK · SOLO best (`core/board-fill.js#seedOc
   VERCEL_BRANCH_URL — a preview) stay themselves.
 - Tests: `tests/integration/share-card.test.mjs` "A4 step 3 + A17" (a JPEG taken + served as JPEG, a padded / cut / wrong-size one
   refused, gone after 3 days, a forged Host → the canonical origin); `shareGet` takes the clock (the tests' own day).
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- THE BIG FIVE (HIGH RISE DAILY B): 5+ dailies finished → SHARE TODAY is TEXT ONLY (each name in its ticket's ink — `ticket-art.js#TICKET_INK`, ONE ink table); a row's `liveFrom` = THE SCHEDULED GO-LIVE IN CODE → docs/progression.md.

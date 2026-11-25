@@ -803,3 +803,9 @@ STATS builder (`summarize` → `games.daily[i].p`); the daily finishers read on 
   THE PLAYER PAGE opens from it too. Friends + the players you shared a room with keep their pid (the room already showed it).
 - No data moved (the keys stay pids, only who may read them changed); the phone needs nothing of the new rules (THE RULES-LAG).
 - Tests: rules (the S8 case — every stranger REFUSED), /api (BOARD 2.0 A: a request by board id only, DECLINE by it), e2e-friends.
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- SECOND ACCOUNTS + DON'T COUNT (CITY I, owner-only): hashed addresses only (`seen/`, LIVE, 14 d); DON'T COUNT = `nocount/{pid}` applied AT READ (boards, SCORES, the place line + N, THE PENTHOUSE), its own views unchanged, UNDO instant → docs/profiles.md.
+- S8 (THE CITY POLISH PASS): `profiles/{pid}` readable by its owner + a ROOM-MATE (`seats/` code) only; `pfr/` server-only; the friends API names a stranger by the BOARD ID (+ a viewer-salted `ph`), never a pid → docs/profiles.md.
+- ITEM NAMES ONLY TO OWNERS (two named exceptions on THE PLAYER PAGE) · THE ADD-ME LINK (a server-made `flink/` code) + STATS (ONE builder, ONE snapshot) → docs/profiles.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
+- THE OWNER'S NAME TAG (CITY PART 2): the tag only in OWNER-ONLY lists (`ui/owner-tag.js`), from the server only for THE OWNER's ask — never a public screen → docs/profiles.md.

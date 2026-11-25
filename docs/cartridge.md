@@ -470,3 +470,12 @@ row) · the tests that read a meta's source read its row.
 A game whose view wires a gamepad (`games/kit/gamepad.js#wirePad`) sets `CONTROLLER: true` in its ROW of `js/games/metas.js` — the PLAY sheet
 shows THE ONE mark (`ui/components.js` ICONS.pad) after its name + on its GAME CARD's meta line, and the sheet's footer its legend. No per-game
 code in the city; `tests/city-polish.test.mjs` refuses the flag on a game with no wirePad (JAYWALK on; HIGH RISE's own chat sets its flag).
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change) — only the room's PICKED game (`room-city.js#pickedGame`); THE PER-GAME BUDGET (`tests/integration/game-budget.json`) counts THE GAME ALONE (THE FIX PASS M2 — the city has THE BOOT BUDGET): jaywalk 44 / 529 KB of 52 / 610, highrise 41 / 483 of 48 / 560; THE BOOT: 305 of 310 modules, `js/games` at boot 28 of 30 KB, the bytes ~12 KB under the line.
+- THE GAMES LIST ORDER (CITY H2): most DIFFERENT players in 14 days first, a game's first 14 days on top + NEW (`core/game-order.js`); worked once a streak day, the ORDER only in the cached ?live=1 → docs/progression.md.
+- THE END NEON (CITY PART 2): every end screen's header (`<GAME> · SOLO / MATCH`, the name in its sign's colours) + result line (the accent; a win GOLD) through ONE builder (`ui/fin-neon.js`; ONE row per game: `metas.js` NEON) → docs/match-kit.md.
+- GAME VOTES (CITY PART 2): a guest's vote = `rooms/{CODE}/gv/{uid}` { g, at } (lobby only, suggestions — the host picks; MOST WANTED = one tap); the start clears them in its OWN write → docs/data-model.md.
+- THE ONE META MODULE (CITY PART 1): every playable game's boot meta = ONE ROW in `js/games/metas.js`; its `meta.js` re-exports the row — a new game = a row, never a boot module; `CONTROLLER: true` (a wired pad) = THE CONTROLLER MARK → docs/cartridge.md.
+- THE CONTRACT: a game = ONE ROW in `metas.js` + its one-line `meta.js` + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static
+  game import); `preload` ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).

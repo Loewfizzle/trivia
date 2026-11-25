@@ -1763,3 +1763,9 @@ The pass log: [passes/city-part2.md](harbor/passes/city-part2.md).
 ## THE RULES FROM CLAUDE.md (moved Nov 22 — THE FIX PASS, THE FABLE REVIEW's M3: the text CLAUDE.md held, verbatim)
 
 - The city's module rules — every force flag a panel row + every canvas through `safeCtx` · THE CITY TIMETABLE (every timed thing; THE GOLDEN TABLE) · THE WINDOW SCENES ARE TIMETABLE ROWS · THE RADIO (the server checks the ROLE) · THE LOAD + THE BOOT BUDGET + THE BOOT PRELOAD · THE BOOT WATCHDOG · THE REJOIN LIMIT · EVERY dynamic import through THE SKEW WRAPPER (`lazyImport`) · THE BOX GATE + NO TWO CAMERAS · THE LONG NIGHT's RULE · AWAY, LIGHT · THE ONE-STALL RULE · THE CITY'S IDLE POLLS · the debug flags · the SIGN FORCE · THE TRI-VISION · THE SIGNS → docs/harbor.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- THE DAY PAINT (CITY PART 1): a sign's day face is PAINT — never a saturated / white-hot ink on a dark board (`tests/city-part1-signs.test.mjs`); THE PAGE'S CLOCK: the city's network gates let go by the page's time on screen → docs/harbor.md.
+- NEVER A GAME TWICE AS A SIGN (CITY PART 2): the speakeasy blade skips tonight's lit named signs (`harbor-neon.js#bladeGame`); THE LED BILLBOARD EXCEPTION: the tri-vision's posters never get a day variant → docs/harbor.md.
+- THE BOOT HEADERS (CITY PART 2): a boot module keeps a SHORT header — its long history lives in `docs/harbor/boot-headers.md` (THE BOOT's BYTE ROOM).
+- THE WAKE HOLD + THE ONE HOST-WRITE GATE (CITY PART 1): every host write through `host.js#hostWriteOk`; after a stall a fresh read of `meta/hostId` first; a refusal then = the quiet `not-host`; the stall clock is the ROOM's (THE PLAY BOUNCE — PLAY NOW never bounces silently) → docs/harbor.md.

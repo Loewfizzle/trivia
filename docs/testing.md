@@ -1318,3 +1318,6 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   columns (title · boot gone · worst long task · all requests / KB) + the longest frame gap after the reveal.
 - `wk-edge.mjs --slowcarry <ms> [--slowold]` — THE CARRY on a slow store (an iPhone's): the deploy visit's static requests ≤ 12.
 - `tests/quiet-kinds.test.mjs` — every quiet kind only counts; no empty row.
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).

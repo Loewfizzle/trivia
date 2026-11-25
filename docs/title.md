@@ -1079,3 +1079,6 @@ the press") and on every CLEAN LIFT (a pointerup is a user activation: iOS opens
 lost row; `stats().focused`). A mouse keeps the label's own click. The other label-wrapped fields (EDIT USERNAME, the radio's preset NAME, the
 keychain, setup's HUSH WORD / CALLSIGN, /admin's date) get the lift for free when a tap lands on the label's words. Proof: `tests/tapwatch.test.mjs`
 ("THE FIELD IN A LABEL") + `e2e-taps.mjs` "THE CODE BOX" (WebKit + Chromium: 4 / 4 first taps, the field focused by the tap itself, 0 rescued).
+
+## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+- A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city: `touchInCity` = the root, its ancestors, the scene's wrap); never a per-screen class list → docs/title.md.
