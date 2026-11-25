@@ -94,7 +94,7 @@ test('S9: the seen/ sweep plan — every sighting past 14 days goes, an address 
 test('S8: a card for anyone who is not an accepted friend never carries the tag digits or the member Nº', () => {
   const f = src('api/_lib/friends.js');
   assert.match(f, /export const stranger = c => \{ if \(!c\) return c; const \{ t: _t, mn: _mn, \.\.\.face \} = c;/);
-  assert.match(f, /const nick = list => list\.map\(c => stranger\(/);
+  assert.match(f, /const nick = list => list\.map\(c => \{ const \{ pid: _p, \.\.\.face \} = stranger\(/);   // (THE CITY POLISH PASS: + no pid)
   assert.match(f, /recent: recent\.map\(c => stranger\(/);
   assert.match(f, /const \{ pid: _p, bid: _b, \.\.\.face \} = stranger\(c\);/);
 });
