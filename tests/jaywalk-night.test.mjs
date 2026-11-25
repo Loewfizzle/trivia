@@ -130,7 +130,7 @@ test('THE NIGHT LOOK: THE CAMERA is camera.js (H2B — the rules stay 9 columns)
   assert.match(read('js/games/jaywalk/tuning.js'), /export const COLS = 9;/);
   assert.match(n, /new THREE\.InstancedMesh\(g, mat, n\)/); assert.match(fxs, /new THREE\.InstancedBufferGeometry\(\)/);
   assert.match(n, /const DPR_AT = \[1\.5, 2, 3\];/, 'full device sharpness at the top tier (≤ 3)');
-  assert.match(n, /if \(tier === 2 && !bloom && !resting\)/, 'the half-res bloom ONLY at the top tier (and never while the scene rests behind the end screen — H6B)'); assert.match(n, /if \(tier < 2 && bloom\) \{ bloom\.dispose\(\); bloom = null; \}/);
+  assert.match(n, /if \(tier === 2 && !bloom && !resting\)/, 'the half-res bloom ONLY at the top tier (and never while the scene rests behind the end screen — H6B)'); assert.match(n, /if \(tier < 2\) bloomPark\(\);/);
   assert.doesNotMatch(n + fxs, /PointLight|SpotLight|castShadow|shadowMap/, 'no real point light, no shadow map: pools + blobs');
   assert.doesNotMatch(n + fxs + m, /computeVertexNormals/, 'Kenney\'s normals are never recomputed');
   assert.match(n, /prefers-reduced-motion: reduce/); assert.match(n, /fx\.shake = reduce \? 0 : clock \+ 240;/, 'the shake is off with reduce motion');

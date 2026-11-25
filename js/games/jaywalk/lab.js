@@ -138,8 +138,10 @@ async function mount() {
   if (/^(splits9?|moments|graves)$/.test(Q.get('j1') || ''))   // (+ graves — THE GRAVESTONES: 8 players, 4 out)
  lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
+  // (LAST MILE: as the game — a step waits for the start line / a run's end; `&tierq=0` = at once, the A/B)
+  const QUIET_TIERS = Q.get('tierq') !== '0';
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
-  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin, stutter: SMOOTH });
+  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin, stutter: SMOOTH, quiet: QUIET_TIERS ? () => !started || isOver(run) : null });
   // SMOOTH — THE FRAME METER (`&hud=1`, lab-hud.js — lazy, this page only)
   let meter = null;
   if (Q.get('hud') === '1' && !GRAY) lazyImport(import('./lab-hud.js'), './lab-hud.js').then(M => { meter = M.createFrameMeter(app.querySelector('.jw-stage'), () => { const i = view.info(), v = i.variety || {}, p = i.props || {}; return { tier: i.tier, dpr: i.dpr, sun: !!(i.sunMap && i.sunF > 0.004), loading: !!(v.loading || v.queued || v.staged || v.drops || p.loading || p.queued || p.staged || p.drops), changes: tierPath.length - 1, smooth: SMOOTH, blendOld: BLEND_OLD }; }); lab.meter = meter; }).catch(() => { /* a look tool */ });
@@ -272,7 +274,7 @@ async function mount() {
     state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, line: endT.textContent, hitBy: run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '', wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, heldMs, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
-    setCamera, setLook: pickLook, look: () => look, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
+    setCamera, setLook: pickLook, look: () => look, setTier: t => tiers.set(t), askTier: t => tiers.ask(t), tierPending: () => tiers.pending(), tierPath: () => tierPath.slice(), ready: view.ready || Promise.resolve(true),
     /** (the framing's checks) a ground point (column cells, lane) → [x, y] on the screen, 0 … 1 from the top left */
     project: (cells, lane) => view.project(cells, lane),
     lane: i => { const L = course.lane(i); return { type: L.type, dir: L.dir || (L.pulse && L.pulse.dir) || 0, mark: L.mark || '' }; },

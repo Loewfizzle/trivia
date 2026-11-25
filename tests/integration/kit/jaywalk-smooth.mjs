@@ -317,6 +317,59 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     }
     return;
   }
+  // tier — LAST MILE (TIER SWITCHES ONLY AT QUIET MOMENTS): a tier step forced MID-RUN the way the rule makes one (kit/tiers.js#ask) waits — the
+  // canvas untouched, no long frame — and is made at the next quiet moment (the start line); a step back UP links nothing in play (tier 2's
+  // programs kept warm). `&tierq=0` = the step at once (the code before): its stall, for the before / after. `tier:<scene>+<scene>`
+  if (what === 'tier' || what.startsWith('tier:')) {
+    const TS = { noon: SCENES.noon, night: SCENES.night, snowNight: '&tod=night&weather=clear&date=2026-12-24&snow=heavy' };
+    const names = what.startsWith('tier:') ? what.slice(5).split('+') : ['noon', 'snowNight'];
+    const pre = p => p.evaluateOnNewDocument(() => { const L = window.__links = [], P = WebGL2RenderingContext.prototype, f = P.linkProgram; P.linkProgram = function (...a) { L.push(performance.now()); return f.apply(this, a); }; });
+    const J = 'window.__jwLab';
+    const worst = async (p, from, to) => p.evaluate((a, b) => { const f = window.__jwLab.frames().slice(a, b); return { n: f.length, worst: f.length ? Math.max(...f) : 0, over40: f.filter(x => x > 40).length, big: f.filter(x => x > 25).length }; }, from, to);
+    const len = p => p.evaluate(`${J}.frames().length`), links = p => p.evaluate('window.__links.length');
+    const play = async (p, ms) => { await p.evaluate(`${J}.bot(true)`); await waitFor(p, `${J}.state().started && ${J}.state().t > 30`, 8000); await sleep(ms); };
+    const toStart = async p => { await p.evaluate(`${J}.bot(false); ${J}.restart()`); await waitFor(p, `!${J}.state().started`, 4000); await sleep(250); await waitFor(p, `!${J}.view.startBusy()`, 6000); };
+    for (const nm of names) {
+      const o = await open(390, 844, 3, `&preview=1&seed=look3&zoom=8&angle=straight&cv=2${TS[nm]}`, { pre });
+      await up(o.p); await waitFor(o.p, `!${J}.view.startBusy()`, 8000);
+      await play(o.p, 4000);
+      const i0 = await o.p.evaluate(`${J}.view.info()`), n0 = await len(o.p);
+      await o.p.evaluate(`${J}.askTier(1)`);
+      await sleep(3000);
+      const i1 = await o.p.evaluate(`${J}.view.info()`), pend1 = await o.p.evaluate(`${J}.tierPending()`), w1 = await worst(o.p, n0, await len(o.p));
+      ok(i0.tier === 2 && i1.tier === 2 && i1.dpr === i0.dpr && i1.w === i0.w && pend1 === 1, `QUIET TIERS ${nm}: a step asked mid-run WAITS (tier ${i0.tier} → ${i1.tier}, dpr ${i0.dpr} → ${i1.dpr}, waiting for ${pend1})`);
+      ok(w1.worst <= 40, `… ${nm}: no frame over 40 ms in the 3 s after the ask (worst ${w1.worst.toFixed(1)} ms of ${w1.n}, ${w1.big} over 25)`);
+      await toStart(o.p);
+      const i2 = await o.p.evaluate(`${J}.view.info()`), pend2 = await o.p.evaluate(`${J}.tierPending()`);
+      ok(i2.tier === 1 && pend2 === -1, `… ${nm}: made at the next quiet moment — the start line (tier ${i2.tier}, dpr ${i2.dpr}, waiting ${pend2})`);
+      const n2 = await len(o.p), l2 = await links(o.p);
+      await play(o.p, 3000);
+      const w2 = await worst(o.p, n2, await len(o.p)), l2b = await links(o.p);
+      ok(l2b - l2 === 0, `… ${nm}: the run after the step down links nothing in play (${l2b - l2} links; worst frame ${w2.worst.toFixed(1)} ms, ${w2.over40} over 40)`);
+      // back UP: asked mid-run, made at the start line, and the run after it compiles nothing (the glow + the sun's depth programs were kept warm)
+      await o.p.evaluate(`${J}.askTier(2)`); await sleep(1200);
+      const i3 = await o.p.evaluate(`${J}.view.info()`);
+      await toStart(o.p);
+      const i4 = await o.p.evaluate(`${J}.view.info()`), n4 = await len(o.p), l4 = await links(o.p);
+      await play(o.p, 3000);
+      const w4 = await worst(o.p, n4, await len(o.p)), l4b = await links(o.p), i5 = await o.p.evaluate(`${J}.view.info()`);
+      ok(i3.tier === 1 && i4.tier === 2, `… ${nm}: a step UP asked mid-run waits too, then is made at the start line (tier ${i3.tier} → ${i4.tier}; ${nm === 'noon' ? `the sun map ${i5.sunMap}` : `the glow ${i5.bloom}`})`);
+      ok(l4b - l4 === 0, `… ${nm}: stepping up links NOTHING in play (${l4b - l4} links in the first 3 s; worst frame ${w4.worst.toFixed(1)} ms, ${w4.over40} over 40)`);
+      console.log(`     TIER ${nm} [${tag}]: at the ask worst ${w1.worst.toFixed(1)} ms · the run after the step down worst ${w2.worst.toFixed(1)} ms · the run after the step up worst ${w4.worst.toFixed(1)} ms · the tier path ${(await o.p.evaluate(`${J}.tierPath()`)).join('→')}`);
+      errs.push(...o.errs); await o.close();
+      // the A/B: the step made AT ONCE mid-run (`&tierq=0` — the code before): the stall it costs
+      const q = await open(390, 844, 3, `&preview=1&seed=look3&zoom=8&angle=straight&cv=2&tierq=0${TS[nm]}`, { pre });
+      await up(q.p); await waitFor(q.p, `!${J}.view.startBusy()`, 8000);
+      await play(q.p, 4000);
+      const m0 = await len(q.p); await q.p.evaluate(`${J}.askTier(1)`); await sleep(1500);
+      const x1 = await worst(q.p, m0, await len(q.p)), m1 = await len(q.p), k1 = await links(q.p);
+      await q.p.evaluate(`${J}.askTier(2)`); await sleep(1500);
+      const x2 = await worst(q.p, m1, await len(q.p)), k2 = await links(q.p);
+      console.log(`     TIER ${nm} AT ONCE (&tierq=0, as before): the step down mid-run worst ${x1.worst.toFixed(1)} ms · the step up mid-run worst ${x2.worst.toFixed(1)} ms, ${k2 - k1} links`);
+      errs.push(...q.errs); await q.close();
+    }
+    return;
+  }
   // warm — SMOOTH 4 (WARM START): a fresh page's first 40 s of play, second by second (kit/jaywalk-warm.mjs; `--webkit` = Playwright WebKit's JavaScriptCore)
   if (what === 'warm' || what.startsWith('warm:')) { const W = await import('./jaywalk-warm.mjs'); await W.warmStart({ what, out, tag, abBase, chromium: process.argv[2], webkit: process.argv.includes('--webkit'), sleep, waitFor, errs }); return; }
   if (what === 'first' || what.startsWith('first:')) {

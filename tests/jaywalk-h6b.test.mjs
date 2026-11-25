@@ -166,7 +166,8 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   assert.match(n, /if \(tier === 2 && !bloom && !resting\)/, 'no bloom targets while it rests');
   assert.match(n, /if \(resting === 1\) return;/, 'nothing is drawn once the still is up');
   const rest = n.slice(n.indexOf('    rest(on) {'), n.indexOf('    resting: () => resting'));
-  assert.match(rest, /bloom\.dispose\(\); bloom = null;/, 'the bloom\'s targets are freed');
+  assert.match(rest, /if \(on\) \{ bloomPark\(\); sunFree\(\);/, 'the bloom\'s targets are freed');
+  assert.match(n, /const bloomPark = \(\) => \{ if \(bloom\) \{ bloom = null; bloomKeep\.size\(8, 8\); \} \};/, '(LAST MILE: parked at 8 px — its programs stay linked, its big targets go)');
   assert.match(rest, /if \(f !== skyS\.now\) skyHold\.delete\(f\)/, 'only the skyline picture on screen is held');
   assert.match(rest, /if \(FL\) FL\.rest\(on\);/, 'the big moments\' module lets its sprite go');
   assert.match(rest, /if \(!on\) setTier\(tier\)/, 'waking = the tier\'s own setup again (the bloom back at the top tier)');
@@ -181,7 +182,7 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   assert.match(FL, /for \(let i = 0; i < n; i\+\+\) d\[i\] \*= 0\.9 \/ pk;/, 'the rumble is normalised: 0.9 × DUCK.rumble at the bus at most');
   assert.match(FL, /dead = true; offBed\(\); bufs\.clear\(\); bufCtx = null;/, 'the moments\' decoded sounds go with the scene');
   assert.match(v, /const ship = mode === 'over' && Object\.values\(g\.results \|\| \{\}\)\.some\(r => r && r\.x\) && tickNow\(\)\.t < MODES\.match\.cap \+ SHIP_SEEN;/, 'a watcher sees the Mothership\'s lift before the podium');
-  assert.match(v, /if \(!final && !localEnd\) \{ tiers\.sample\(now, performance\.now\(\) - t0\); if \(!pinned\) tiers\.tick\(now\); \}/, 'the tier is measured only while the scene is drawn');
+  assert.match(v, /if \(!final && !localEnd\) tiers\.sample\(now, performance\.now\(\) - t0\);\n    if \(!pinned\) tiers\.tick\(now\);/, 'the tier is measured only while the scene is drawn');
   assert.match(v, /cv\.addEventListener\('webglcontextlost', lost\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /if \(gone \|\| night !== mine\) return;   \/\/ \(our own teardown/, '… but never our own teardown (BEFORE THE FLIP)'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
   { const sx = readFileSync(new URL('../js/games/jaywalk/sfx.js', import.meta.url), 'utf8');
     assert.match(sx, /export function release\(\) \{ stopAll\(\); bufs\.clear\(\); bufCtx = null; \}/, 'sfx.release: the decoded buffers let go (the bytes stay)');

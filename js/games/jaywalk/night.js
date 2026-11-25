@@ -531,7 +531,13 @@ export function createNight(host, o = {}) {
   }
   setLook(o.look === 'day' ? 'day' : 'night');
 
-  let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;
+  // LAST MILE — TIER 2's PROGRAMS STAY WARM (a tier step is made only at a quiet moment — kit/tiers.js `quiet` — and PLAY AGAIN starts at once):
+  // the glow is ONE object for the scene's life (`bloomKeep`), PARKED at 8 px when unused (tier < 2, the end screen's rest) — never disposed, so
+  // its programs stay linked; a tier-1 start makes it at the warm-up + draws through it once (bloomWarm); the sun's depth material + eye are kept
+  // the same way (SUN_MAT, sunWarm below). Stepping up — or a rest's end — links nothing
+  let bloom = null, bloomKeep = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;
+  const bloomPark = () => { if (bloom) { bloom = null; bloomKeep.size(8, 8); } };
+  const bloomWarm = () => { if (!bloomKeep) bloomKeep = createBloom(renderer); (bloom || bloomKeep).render(scene, cam); };
   /** the rig's scale moved (a ZOOM change): the far plane + the fog follow it */
   const FOOT_AT = 0.25, HAZE_LANES = 4.4, HAZE_DAY = 2.2;
   let footAt = 0, footDirty = true, posed = false;
@@ -565,8 +571,8 @@ export function createNight(host, o = {}) {
   function setTier(t) {
     tier = t < 0 ? 0 : t > 2 ? 2 : t | 0;
     ground.uniforms.uQ.value = tier > 0 ? 1 : 0;
-    if (tier === 2 && !bloom && !resting) { try { bloom = createBloom(renderer); } catch { bloom = null; } }
-    if (tier < 2 && bloom) { bloom.dispose(); bloom = null; }
+    if (tier === 2 && !bloom && !resting) { try { bloom = bloomKeep || (bloomKeep = createBloom(renderer)); } catch { bloom = null; } }
+    if (tier < 2) bloomPark();
     fit(true);
   }
   setTier(o.tier == null ? 2 : o.tier);
@@ -651,7 +657,7 @@ export function createNight(host, o = {}) {
   }
   function warmPaint() {
     const w0 = warmOpen();
-    try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
+    try { renderer.compile(scene, cam); renderer.render(scene, cam); sunWarm(); bloomWarm(); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     if (!otherWarm && lookSet) {
       otherWarm = true; day = !day;
       try { lookGL(); renderer.compile(scene, cam); renderer.render(scene, cam); } catch { /* as above */ }
@@ -669,8 +675,8 @@ export function createNight(host, o = {}) {
   function warmStep() {
     const w0 = warmOpen();
     try {
-      if (warmStage === 1) renderer.render(scene, cam);
-      else if (warmStage === 2) { if (bloom) bloom.render(scene, cam); }
+      if (warmStage === 1) { renderer.render(scene, cam); sunWarm(); }
+      else if (warmStage === 2) bloomWarm();
       else if (!otherWarm && lookSet) { otherWarm = true; day = !day; lookGL(); renderer.render(scene, cam); day = !day; lookGL(); }
     } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     warmShut(w0);
@@ -1327,14 +1333,23 @@ export function createNight(host, o = {}) {
   }
   // VARIETY A — THE SUN's SHADOWS (tier 2 only, a DAY look with sun): ONE depth pass of the casters (their own layer — the kid + the rivals
   // keep their contact shadows: the depth pass knows nothing of their skinning) from the sun, up the course from the camera; the ground reads it
-  let SHD = null;
+  let SHD = null, sunWarmRT = null;
+  const SUN_MAT = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }), SUN_EYE = new THREE.OrthographicCamera(-10.5, 10.5, 27, -15, 1, 90);
+  SUN_EYE.layers.set(SUN_LAYER);
+  /** (LAST MILE) the warm-up's: the casters once through the sun's depth material into a 4 px target — its program linked though no sun pass runs (tier < 2, night) */
+  function sunWarm() {
+    if (SHD) return;
+    if (!sunWarmRT) sunWarmRT = new THREE.WebGLRenderTarget(4, 4, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false });
+    const bg = scene.background, ca = renderer.getClearAlpha(); renderer.getClearColor(clearC);
+    scene.background = null; scene.overrideMaterial = SUN_MAT; renderer.setRenderTarget(sunWarmRT);
+    try { renderer.render(scene, SUN_EYE); } finally { renderer.setRenderTarget(null); scene.overrideMaterial = null; scene.background = bg; renderer.setClearColor(clearC, ca); }
+  }
   const WHITE_TEX = ground.uniforms.uShTex.value;
   const SHD_BIAS = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1), clearC = new THREE.Color();
   function sunPass(camY) {
     if (!SHD) {
       const rt = new THREE.WebGLRenderTarget(SUN_MAP[0], SUN_MAP[1], { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false });
-      const sc = new THREE.OrthographicCamera(-10.5, 10.5, 27, -15, 1, 90); sc.layers.set(SUN_LAYER);
-      SHD = { rt, eye: sc, mat: new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }) };
+      SHD = { rt, eye: SUN_EYE, mat: SUN_MAT };
       ground.uniforms.uShTex.value = rt.texture; ground.uniforms.uShTx.value.set(1 / SUN_MAP[0], 1 / SUN_MAP[1]);
     }
     const el = Math.round(Math.max(14, Math.min(68, GR.key[2]))) * Math.PI / 180, ce = Math.cos(el), cx = rig.x(), cz = Z(camY + 6), d = 42;
@@ -1365,7 +1380,7 @@ export function createNight(host, o = {}) {
     for (let x = -23; x <= 23; x += 46) { const at = c.z + (far - (x - c.x) * fwd.x + c.y * fwd.y) / fwd.z; if (at < z) z = at; }
     return z - 1.25;
   }
-  function sunFree() { if (!SHD) return; SHD.rt.dispose(); SHD.mat.dispose(); SHD = null; ground.uniforms.uShTex.value = WHITE_TEX; ground.uniforms.uShK.value = 0; }
+  function sunFree() { if (!SHD) return; SHD.rt.dispose(); SHD = null; ground.uniforms.uShTex.value = WHITE_TEX; ground.uniforms.uShK.value = 0; }
   let snapAsk = null, snapW = 1080, snapR = 0;
   /** the picture on the canvas right now → a 2D canvas `width` px wide (null if this phone can't) */
   function grab(width = 1080, rows = 0) {
@@ -1387,7 +1402,7 @@ export function createNight(host, o = {}) {
     rest(on) {
       if (!!resting === !!on) return;
       resting = on ? 3 : 0;
-      if (on) { if (bloom) { bloom.dispose(); bloom = null; } sunFree(); for (const f of [...skyHold.keys()]) if (f !== skyS.now) skyHold.delete(f); }
+      if (on) { bloomPark(); sunFree(); for (const f of [...skyHold.keys()]) if (f !== skyS.now) skyHold.delete(f); }
       if (FL) FL.rest(on);
       if (SP) SP.rest(on);
       fit(true); if (!on) setTier(tier);
@@ -1455,8 +1470,8 @@ export function createNight(host, o = {}) {
       G.cv.remove(); G.cv.width = 0; G.cv.height = 0; offLost();
       for (const g of Object.values(AGEO)) g.dispose();
       flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
-      if (bloom) bloom.dispose();
-      sunFree();
+      if (bloomKeep) bloomKeep.dispose();
+      sunFree(); SUN_MAT.dispose(); if (sunWarmRT) sunWarmRT.dispose();
       if (env) env.dispose();
       if (envDay) envDay.dispose();
       clearTimeout(skyLifeT); if (SH) SH.destroy();

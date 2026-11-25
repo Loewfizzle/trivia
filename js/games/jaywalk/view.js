@@ -131,6 +131,9 @@ export function createView() {
   // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
   // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
   let glTries = 0, waitTap = false, startEl = null, firstHop = '', veilAt = 0, veilFrom = 0, offPad = null, tapAt = 0, heldMs = -1;
+  // LAST MILE — TIER SWITCHES ONLY AT QUIET MOMENTS (kit/tiers.js `quiet`): true on the start line / TAP TO START / a match's count, at a run's end,
+  // while watching, on the final screen — a step the rule decides in play waits for it (the canvas is never reallocated mid-run)
+  let quietNow = true;
   let mergedSeen = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
@@ -192,7 +195,7 @@ export function createView() {
     try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }
     if (!had && !isMatch) coverUntilLook();   // (JAYWALK FINAL — THE LOAD SNAP: a fresh scene shows once, in its final look)
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
-    tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier(), stutter: true });
+    tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier(), stutter: true, quiet: () => quietNow });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish …
     try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
@@ -784,7 +787,9 @@ export function createView() {
         if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
       }
     }
-    if (!final && !localEnd) { tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now); }
+    quietNow = mode !== 'run' || isOver(run) || !c || c.t < 0 || !!final || !!localEnd;
+    if (!final && !localEnd) tiers.sample(now, performance.now() - t0);
+    if (!pinned) tiers.tick(now);
     if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
     const shownBest = watching && drawRun !== run ? drawRun.best : run.best;
     if (shownBest !== lanesShown) {
@@ -924,6 +929,8 @@ export function createView() {
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
         setTier(t) { pinned = t != null; if (t != null) tiers.set(t); },
+        /** (LAST MILE's proof) a tier step the way the rule makes one: queued in play, made at the next quiet moment · what waits (-1 = nothing) */
+        askTier(t) { tiers.ask(t); }, tierPending: () => tiers.pending(), quiet: () => quietNow,
         bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { const q = { seed: `${course.seed}${uid}`, ...(o || {}) }; bot = q.steady ? B.steadyBot(q) : B.greedyBot(q); }); },
         follow: nextFollow,
       };
