@@ -2,17 +2,19 @@
 
 Four groups: the boot bundle BUILT AT DEPLOY (the one narrow exception to "no build step"), screenshots out of git, the CLAUDE.md trim, the
 audio fixes of an outside review. No rules change, no `/api` change. Commits: Group 1 `4f7f60c4` · Group 2 `260d0378` · Group 3 `119ced11` ·
-Group 4 `7e7cfa27` · the docs + the close (the tagged push).
+Group 4 `7e7cfa27` · the docs `2a7c5e6d` · the close `53e3b6d8` (the tagged push) · the deploy hotfix `2331ca25`.
 
 ## OPEN FOR BEN
 1. **RE-PUBLISH: nothing** (no rules change).
-2. **THE FIRST DEPLOY-BUILT BUNDLE** — what you will see: on Vercel's page for this deployment the Build step shows
-   `Running "node scripts/deploy-build.mjs --prune"` and ONE line from it — `THE DEPLOY BUILD: boot-bundle.json 306 modules, 6670 KB (v …) ·
-   index.html asks for ?v=… · file-hashes.json … files (the bundle's row in) · … ms` — and the build is a few seconds longer. On the site
-   nothing looks different. If the step ever fails the deployment is red, its log says `THE DEPLOY BUILD FAILED — nothing ships:` and why,
-   and the site stays on the deploy before it. NOT PROVEN before the push (no preview deploy): that Vercel keeps the five builder scripts in
-   the build after `.vercelignore` (`/scripts/*` + five `!` lines) and serves a file the build writes into the root — both simulated locally
-   (deploy-sim), both checked read-only on the live site after the deploy (the summary says what was found).
+2. **THE FIRST DEPLOY-BUILT BUNDLE IS LIVE** (2331ca25 — the section "THE FIRST REAL DEPLOY" below). What you see: on Vercel's page
+   for a deployment the Build step now shows `Running "node scripts/deploy-build.mjs --prune"` and ONE line from it — `THE DEPLOY BUILD:
+   boot-bundle.json 306 modules, 6669 KB (v …) · index.html asks for ?v=… · file-hashes.json 1404 files (the bundle's row in) · … ms` — and a
+   deploy takes about a minute. On the site nothing looks different. **The first try (53e3b6d8) shows as a FAILED deployment in the list** —
+   expected history, it shipped nothing: with a build command Vercel wanted its output folder named; the hotfix names the root. If a build
+   ever fails again the deployment is red, its log says `THE DEPLOY BUILD FAILED — nothing ships:` and why, and the site stays on the deploy
+   before it. **One small leftover, yours to call:** four config files are now readable on the site — `/vercel.json`, `/.vercelignore`,
+   `/.gitignore`, `/.gitattributes` (Vercel hid them while there was no build step). All four are public in the GitHub repo already and hold
+   no secret; a later pass can take the three dot-files out of the output if you want them gone (vercel.json has to stay where Vercel reads it).
 3. **Named calls (overrule any):** a failed sound load is tried again 8 s later, not at once (a missing file would otherwise be asked for
    every time its sound is wanted) · THE SONG CAP counts the SONGS only (60 MB, the newest three always kept); the effects (≈ 35 MB in all)
    are not capped · the builder scripts are removed from the deployed output (`--prune`) · the AUDIO LEAVE row now reads
@@ -105,6 +107,21 @@ step" gains its ONE clause; THE CARRY's line no longer tells a pass to rebuild a
 
 THE BOOT BUDGET was 3 KB over after the engine fixes (6,503 of 6,500 KB — it had been sitting at the line): five long comment blocks of
 `js/audio/engine.js` moved verbatim into docs/audio.md ("engine.js — THE COMMENTS (moved Nov 25)") — 6,499 KB, no budget raised.
+
+## THE FIRST REAL DEPLOY (Nov 25)
+- **53e3b6d8 (the tagged push) — FAILED in about 13 s, shipped NOTHING.** The live site stayed on 3e5b798b (checked: `/api/time`'s `v`, the
+  old page + its committed bundle still served) — never a half deploy. Vercel's log could not be read from here (it needs the owner's
+  login); the cause by the timing + Vercel's rule: with a build command set, Vercel no longer falls back to the repo root as the output —
+  it looks for a folder named `public`. Not catchable locally: deploy-sim runs the build command, not Vercel's own output step.
+- **2331ca25 (the hotfix, the deploy tag) — `"outputDirectory": "."` in vercel.json → SUCCESS in about a minute.**
+- **THE LIVE CHECK, read-only** (GETs only — nothing played, nothing written, no room opened): the live build is 2331ca25 · the live page
+  asks for `boot-bundle.json?v=4c010e6eb4a17769` · the live bundle: 200, 306 modules, 6,669 KB, its `v` = the page's `?v=`, `z` = its size,
+  `Cache-Control: public, max-age=31536000, immutable` · the live `file-hashes.json` (1,404 rows) carries the bundle's row `6577529d6276` =
+  the bundle's own hash · **the bundle's hash, its size and that row are EXACTLY the local simulation's** (deploy-sim on the same tree) ·
+  six sampled rows = the live files' own bytes · the bundled `engine.js` is the live file · `/js/audio/sfx-kit.js` is served, the live
+  `sw.js` has THE SONG CAP · `/scripts/*`, `/package.json`, `/package-lock.json`, `/tests/*`, `/CLAUDE.md`, `/node_modules/*` → 404 ·
+  `/board`, `/admin`, `/lab`, `/sw.js`, the manifest, a sound file → 200, `/api` answers.
+- New on the site since the build step (named in OPEN FOR BEN 2): `/vercel.json`, `/.vercelignore`, `/.gitignore`, `/.gitattributes` → 200.
 
 ## THE REPO's SIZE
 - `.git` on the Beelink: 670 MB (the pack 575 MB); GitHub ≈ 586 MB.
