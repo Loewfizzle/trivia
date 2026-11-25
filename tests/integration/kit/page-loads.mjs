@@ -1,7 +1,7 @@
 // FIXES R1 — THE PAGES LOAD (THE REVIEW A1): CITY E shipped js/admin/admin.js with `backups` declared twice — the module failed to parse and
 // /admin hung on "Signing in…" for everyone; nothing local ever opened /admin. Every page with its own script is loaded here, in a REAL browser,
 // and FAILS on any page error (an unparsed module is one) or a page that never leaves its placeholder:
-//   the app (/), /admin, /board, /lab, /daychart, /jaywalk-lab, /highrise-play — on the emulators (?emu). e2e-smoke.mjs runs it first (Chromium; + WebKit when Playwright's
+//   the app (/), /admin, /board, /lab, /daychart, /jaywalk-lab, /highrise-play, /freefall-lab — on the emulators (?emu). e2e-smoke.mjs runs it first (Chromium; + WebKit when Playwright's
 //   WebKit is installed at ~/wk — the cloud has none, it says so). Alone: node tests/integration/kit/page-loads.mjs "<chrome>" [--base URL]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
@@ -20,6 +20,8 @@ export const PAGES = [
   //  a browser with no WebGL still loaded the page — it says so on the stage)
   ['/jaywalk-lab', "!!document.querySelector('#app .jw-stage') && !document.querySelector('#app .jw-deny')"],
   ['/highrise-play', "!!document.querySelector('#app .hi-stage')"],
+  // (FREEFALL F1 — THE FREEFALL LAB: the graybox's stage; no gate, no server call)
+  ['/freefall-lab', "!!document.querySelector('#app .ff-stage')"],
 ];
 const READY_MS = 25000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
