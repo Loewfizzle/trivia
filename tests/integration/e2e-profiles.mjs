@@ -438,6 +438,8 @@ await H.run(async () => {
   void p5b;
   // ---- 7d. PERF-A — THE EMPTY CARD SAYS WHY (the Oct 31 scare): no key + no profile on this address → one line, never a card that looks wiped
   const p7 = await openPlayer(7);
+  // (THE CITY POLISH PASS: the view set only once the app is up — a view set mid-boot is overwritten by the boot's own route, on the old code too)
+  await p7.waitForFunction(() => !!(window.__arcade && window.__arcade.state && window.__arcade.state.ready && window.__arcade.route && window.__arcade.route() === 'title'), { timeout: 45000 });
   await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
   await p7.waitForSelector('.pf-note', { timeout: 15000 });
   ok(/ALREADY A MEMBER\?.*Nothing is saved on this device yet .*wasn’t deleted.*BRING YOUR CARD/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);

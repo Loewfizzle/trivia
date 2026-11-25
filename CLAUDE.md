@@ -99,7 +99,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - MAKE HOST (`room.js#makeHost` — to an ONLINE player); ONE ACCOUNT, ONE ROOM (`seats/{pid}` — `js/seat.js`); NAME + COLOUR edited only at the top of CUSTOMIZE YOUR CARD.
 - REMATCH IN PLACE (CITY G): the end screen's REMATCH = the 'r' start (`host.js#rematch({ inPlace })`) — no city / room / walk on any phone; a podium vote only while its end screen is up → docs/cartridge.md.
 - THE FROZEN CONTRACT: `config.js#FROZEN_IDS` — never loaded, logic + sims kept, views not maintained (docs/cartridge.md); a start's frame checked (host.js).
-- THE ONE META MODULE (CITY PART 1): every playable game's boot meta = ONE ROW in `js/games/metas.js`; its `meta.js` re-exports the row — a new game = a row, never a boot module → docs/cartridge.md.
+- THE ONE META MODULE (CITY PART 1): every playable game's boot meta = ONE ROW in `js/games/metas.js`; its `meta.js` re-exports the row — a new game = a row, never a boot module; `CONTROLLER: true` (a wired pad) = THE CONTROLLER MARK → docs/cartridge.md.
 - THE CONTRACT: a game = ONE ROW in `metas.js` + its one-line `meta.js` + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static
   game import); `preload` ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).
 - A cartridge's module graph is preloaded (`js/games/preload.js` + the GENERATED `preload-graph.js` — `node scripts/build-preload-graph.mjs` after a game's imports change) — only the room's PICKED game (`room-city.js#pickedGame`); THE PER-GAME BUDGET (`tests/integration/game-budget.json`) counts THE GAME ALONE (THE FIX PASS M2 — the city has THE BOOT BUDGET): jaywalk 44 / 529 KB of 52 / 610, highrise 41 / 483 of 48 / 560; THE BOOT: 305 of 310 modules, `js/games` at boot 28 of 30 KB, the bytes ~12 KB under the line.
@@ -132,7 +132,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - ITEM NAMES ONLY TO OWNERS (two named exceptions on THE PLAYER PAGE) · THE ADD-ME LINK (a server-made `flink/` code) + STATS (ONE builder, ONE snapshot) → docs/profiles.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 - SECOND ACCOUNTS + DON'T COUNT (CITY I, owner-only): hashed addresses only (`seen/`, LIVE, 14 d); DON'T COUNT = `nocount/{pid}` applied AT READ (boards, SCORES, the place line + N, THE PENTHOUSE), its own views unchanged, UNDO instant → docs/profiles.md.
 - THE OWNER'S NAME TAG (CITY PART 2): the tag only in OWNER-ONLY lists (`ui/owner-tag.js`), from the server only for THE OWNER's ask — never a public screen → docs/profiles.md.
-- FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
+- S8 (THE CITY POLISH PASS): `profiles/{pid}` readable by its owner + a ROOM-MATE (`seats/` code) only; `pfr/` server-only; the friends API names a stranger by the BOARD ID (+ a viewer-salted `ph`), never a pid → docs/profiles.md.
+- FRIENDS: `pfr/{pid}` server-written + server-read (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 - THE YOU ROW (CITY H2): YOUR card in EVERY slim-card list = ONE breathing pink glow (`ui/strip-board.js#markMine`); no list keeps its own "me" box / edge / tint → docs/vault.md.
 - THE LIVE LANE (lists = baked STILLS, ≤ 3 live strips) · THE STRIP MATCH (a slim card's material frames its picture as its effect does) → docs/vault.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
@@ -168,7 +169,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
-- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}` (old · gone · ext), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
+- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
 - THE RULES-LAG: every write through `firebase.js#write`; a rules change fails `tests/rules-live.test.mjs` until its ack names it, and the pass
   summary's FIRST line says RE-PUBLISH + how; a feature on a new rule keeps a fallback that works on the old one.
 - THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); pass screenshots stay out of git (`tests/repo-growth.test.mjs`).
@@ -228,7 +229,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
   OUTSIDE a room must `want()` / `release()` its own reason; never parked while in a room. `state.net`: only `lost` shows SIGNAL LOST.
 - **Identity + rejoin:** an anonymous Firebase user per *slot* (phones are slot 1); `localStorage na:{slot}:session` → `resumeSession()`.
 - **Presence — ONE CHILD PER CONNECTION** (`presence/{uid}/c/{connId}`; every reader through `normalizePresence`). Offline players stay as "SIGNAL LOST".
-- THE WAKE HOLD + THE ONE HOST-WRITE GATE (CITY PART 1): every host write through `host.js#hostWriteOk`; after a stall a fresh read of `meta/hostId` first; a refusal then = the quiet `not-host` → docs/harbor.md.
+- THE WAKE HOLD + THE ONE HOST-WRITE GATE (CITY PART 1): every host write through `host.js#hostWriteOk`; after a stall a fresh read of `meta/hostId` first; a refusal then = the quiet `not-host`; the stall clock is the ROOM's (THE PLAY BOUNCE — PLAY NOW never bounces silently) → docs/harbor.md.
 - **Host migration** (`core/room-logic.js#shouldClaimHost`): in a game the `meta.hostBeat` (every 2 s, stale ≥ 10 s) ALONE decides; claims staggered by join order.
 - **Director:** `host.js` ticks every 250 ms → `module.prepare()` + `module.step(game, ctx)`; a step may carry `$room` side writes; `final` writes `night/{matchId}`.
 - **Live player data:** `livePaths(game)` → `state.live`; directors + views check `state.liveKey` before trusting `live`.

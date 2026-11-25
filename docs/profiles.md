@@ -792,3 +792,14 @@ results/…/o — + daily finishes — dly/{g}/{day}/r, the open dailies), DON'T
 ONE scale; a legend under the title; a tap = "NOV 19 · 34 MATCHES · 6 PLAYERS". `core/insights.js#playersPerDay` (pure, unit-tested) in the ONE
 STATS builder (`summarize` → `games.daily[i].p`); the daily finishers read on their own 5-min cache (`api/admin.js#dailyFinishers`);
 `progress/statsSnap` v 3. The past 30 days come from the records the server keeps (a day whose `dly/…/r` is gone adds only its matches).
+
+## S8 — A STRANGER NEVER LEARNS A PID (THE CITY POLISH PASS, Nov 24 — a RULES CHANGE: database.rules.nov24-polish.json)
+- `profiles/{pid}` is readable by its OWNER and by a player SEATED IN THE SAME ROOM (`seats/{pid}/code` equal — the room's slim cards + name tags
+  stay live through `profile/public.js`, which asks again while the seats land); a signed-in stranger, another room, a guest, signed out: refused.
+- `pfr/{pid}` is the server's only — no phone reads it (the list comes from `/api` `friends`).
+- The friends API names a REQUEST · a SENT request · a BLOCK by its BOARD ID, never the pid, plus `ph` = sha256(your pid : theirs)
+  (`api/_lib/friends.js#pairHash`) — a phone that already holds that pid (a room-mate's node) matches its own row (`profile/friends.js#inList`); a
+  stranger can't reverse it. An action on such a row goes by the board id, found in the CALLER's OWN lists (`api/_lib/player.js#pidInMyLists`);
+  THE PLAYER PAGE opens from it too. Friends + the players you shared a room with keep their pid (the room already showed it).
+- No data moved (the keys stay pids, only who may read them changed); the phone needs nothing of the new rules (THE RULES-LAG).
+- Tests: rules (the S8 case — every stranger REFUSED), /api (BOARD 2.0 A: a request by board id only, DECLINE by it), e2e-friends.

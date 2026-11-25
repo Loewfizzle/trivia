@@ -71,10 +71,14 @@ const atPerfect = (P, lead) => P.p.evaluate(ld => new Promise(res => {
 async function drops(P, k, early = () => 20) { let d = 0; for (let i = 0; i < k; i++) { if (await atPerfect(P, early(i)) !== 'go') break; await P.tapAt(195, 620); d++; await sleep(240); } return d; }
 /** a run to floor `to` by a bot INSIDE the page (a pointerdown on the play area at each slab's perfect moment — the touch path's own handler) */
 const botTo = (P, to) => P.p.evaluate(target => new Promise(res => {
+  // (THE CITY POLISH PASS — the FIX PASS's red: on the Beelink at 4× CPU the run reached floor 58 when a FIXED 240 s ran out — the bot now runs
+  //  while the tower still climbs: it stops at the target, a top-out, or 45 s with no new floor (the page's protocolTimeout is 600 s))
   const L = window.__hiStage, play = document.querySelector('.hi-play'), t0 = performance.now();
+  let lastF = -1, lastAt = t0;
   (function poll() {
-    const s = L.state();
-    if (s.over || s.floor >= target || performance.now() - t0 > 240000) return res(s.floor);
+    const s = L.state(), now = performance.now();
+    if (s.floor !== lastF) { lastF = s.floor; lastAt = now; }
+    if (s.over || s.floor >= target || now - lastAt > 45000 || now - t0 > 560000) return res(s.floor);
     const m = L.msToPerfect();
     if (m != null && m <= 5) { play.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', pointerId: 7 })); return setTimeout(poll, 150); }
     setTimeout(poll, m != null && m > 14 ? Math.min(30, m - 8) : 1);

@@ -2857,3 +2857,17 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - BEFORE FREEFALL: `tests/proof-lists.test.mjs` (+ `api/_lib/trust-lists.js`), the contract's PROOF block + SHEETS, THE PER-GAME BUDGET = the
   game alone, CLAUDE.md 40.6 → 36.8 KB, the pepper in the backup doc.
 
+## THE CITY POLISH PASS (Nov 24, 2026 — docs/harbor/passes/city-polish.md; a RULES CHANGE)
+- **THE PLAY BOUNCE (Group 0):** `host.js`'s stall clock was module-global — the title's time read as a stall at a solo room's first tick, THE
+  WAKE HOLD held the start, PLAY NOW left silently (the nephew's "it wouldn't let him"). The clock is the room's; a start held only by a pending
+  wake waits for it; COULDN'T START — TAP PLAY AGAIN; a cartridge a deploy broke = the ONE reload at once. `e2e-play-bounce.mjs`.
+- **THE BOOT HANG:** THE CARRY now answers a miss from the hash lists (an unchanged file from the old build's copy at once); six at a time; a
+  module request that never starts is retried after 12 s.
+- **THE BOOT + THE SCHOOL CHROMEBOOKS (Group 1):** a late reveal waits for the first bakes under the boot screen; a low-core desktop Chrome
+  starts a tier lower on its first visit; the people's staged plan back to back; `/boot-bundle.json?v=` immutable; THE RETURN-VISIT POWER-ON
+  behind `?poweron=short` (default off); Safari keeps the modules (THE BOOT PRELOAD).
+- **LOOKS (Group 2):** THE BOARD's tab row (full names on one line, larger, sideways with edge fades); a solo end screen's HOME; JT2's AVG under
+  the GAME CARD's top three; THE CONTROLLER MARK (metas.js `CONTROLLER`).
+- **S8 (Group 3):** `profiles/{pid}` owner + room-mate only, `pfr/` server-only, the friends API names strangers by board id.
+- **SMALL ONES (Group 4):** the quiet kinds' ONE list (no TAP rows, no empty rows); HIGH RISE's two reds (see the pass log).
+

@@ -1079,7 +1079,7 @@ G('bootfloor', async () => {
     await p.setRequestInterception(true);
     p.on('request', r => { if (hold && /\/js\/screens\/title\.js(\?|$)/.test(r.url())) { held.push(r); return; }   /* (never answered: the boot hangs) */ r.continue().catch(() => {}); });
     const before = Object.keys((await get('phonelog')) || {});
-    p.goto(`${BASE}/?emu&slot=bf2&city=2`, { timeout: 60000 }).catch(() => {});   // (never awaited: the held module keeps the load from finishing)
+    p.goto(`${BASE}/?emu&slot=bf2&city=2&nobundle`, { timeout: 60000 }).catch(() => {});   // (never awaited: the held module keeps the load from finishing — THE CITY POLISH PASS: &nobundle, the modules path, where a module CAN be held; on the bundle path title.js is a blob the interception never sees)
     await waitFor(p, '!!window.__boot', 'the watchdog', 10000);
     await sleep(5600);
     const stage = await ev(p, 'window.__boot && window.__boot.stageNow');

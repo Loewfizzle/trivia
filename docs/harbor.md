@@ -1344,6 +1344,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | CITY PART 2 — LOOKS + FEATURES | Nov 21 | [passes/city-part2.md](harbor/passes/city-part2.md) | THE BOOT's BYTE ROOM (the boot headers moved), THE END NEON, GAME VOTES, STATS' players line, THE OWNER'S NAME TAG, NEVER A GAME TWICE AS A SIGN + THE LED BILLBOARD EXCEPTION, THE SLIM-CARD LAYER |
 | THE BEFORE-LAUNCH PASS | Nov 22 | [passes/before-launch.md](harbor/passes/before-launch.md) | HOST TRUST (PRISM + OVERCLOCK + HOLD'EM, THE REPORT LOCK — rules), THE FIRST-VISIT BUNDLE, the MEMORY red (the idle chain + the WeakMap), the backup's DEEP SLICES, the JPEG link card, the review's before-launch items |
 | THE FIX PASS | Nov 22 | [passes/fix-pass.md](harbor/passes/fix-pass.md) | THE FABLE REVIEW's fixes: THE ROOM LIST closed (rules), the bundle for every non-Safari visit, THE CHUNK CEILING, THE WAKE HOLD's write, THE ERROR BOUNDARY, the dailies' holes, before FREEFALL |
+| THE CITY POLISH PASS | Nov 24 | [passes/city-polish.md](harbor/passes/city-polish.md) | THE PLAY BOUNCE (the stall clock is the room's), THE BOOT HANG (the carry by the lists), the school Chromebooks, THE BOARD's sideways tabs, THE CONTROLLER MARK, S8's pid (rules), the quiet kinds |
 | THE GARDEN PARTY PASS | Nov 21 | [passes/garden-party.md](harbor/passes/garden-party.md) | MUSIC OFF = HEAR THE HARBOR (THE SOUND TABLE), GARDEN PARTY (LV 34), THE LAST FOUR SLIM CARDS, THE CODE BOX's first tap, THE PERSONAL-BEST SHARE CARD, NO RESET |
 | CITY I — HOUSEKEEPING | Nov 18 | [passes/city-i.md](harbor/passes/city-i.md) | H2's cloud reds (the plate, REMATCH in the ring, the dock labels) + the two pre-existing (THE FROZEN-GAME HANG behind e2e-profiles' CIPHER podium + THE LOST SEAT LINK; strip-match's 13 named), HOW TO PLAY out of the boot (ui/help-open.js), THE CLAUDE.md TRIM (→ 31.5 KB), SECOND ACCOUNTS + DON'T COUNT, the idempotent close; the inbox: MUSIC OFF = PODCAST MODE, THE LATE PROOF CHUNK, THE BOARD's controls row, THE WEEK as rows |
 | CITY D — FIXES | Nov 15 | [passes/city-d.md](harbor/passes/city-d.md) | the presence red = a test flake (DUMB LUCK dealt first) · THE LIVE LANE (every slim-card list = stills, ≤ 3 live on screen, no GPU canvas) + CUSTOMIZE stills · a killed-page marker · the leaving squeal with effects on (master 0 at once, beds stopped) · THE DROP's end card → a bar · no room messages for a solo player · the owner's slim card LV · four different games on the four named signs, the hotel blade PRISM / HOLDEM · SCORES at once (kept scores + the server's trips cut) · add-ons: gesture taps at the lift, STATS fixed + WHO, THE DROP in the roof rotation |
@@ -1710,6 +1711,38 @@ The pass log: [passes/city-part1.md](harbor/passes/city-part1.md).
   called the idle close on it and walked out of a live match. Now every seated phone confirms with its round trip first (a guest: its own
   `presence/{uid}/lastSeen`), then asks again on what came back (`host.js#idleClose`) — the run hold still wins.
 - Tests: `tests/city-part1-host.test.mjs` (the write, the idle gate), `e2e-stall-host.mjs` 8/8.
+
+### THE PLAY BOUNCE — THE STALL CLOCK IS THE ROOM's (THE CITY POLISH PASS, Nov 24 — docs/harbor/passes/city-polish.md)
+- **The bug:** `host.js`'s `lastTickWall` was module-global and `tick()` returns early with no room, so the time a phone spent on the title was
+  read as a STALL at the next solo room's first tick → THE WAKE HOLD held `startGameNow` → PLAY NOW left the room SILENTLY (a race: a fast
+  second start lost more often) — the owner's nephew's "it wouldn't let him".
+- **Now:** `syncStallClock()` runs before the no-room return: a new code (or none) resets the clock (and the hide clock), a wake for another room
+  is dropped — the first tick in a room only STARTS it. A start held ONLY by a pending wake waits for its round trip (`writeOkSoon` — 3 s, one
+  retry; a phone that is not the host never waits). PLAY NOW never fails silently: COULDN'T START — TAP PLAY AGAIN, then the leave; a cartridge
+  a deploy broke (the module could not link) runs THE SKEW WRAPPER's queued ONE reload at that safe moment (`lazy-import.js#reloadNowIfQueued`
+  — the city, no sheet, no match, logged as ever), so the next tap plays on the live build.
+- The mid-match WAKE HOLD is exactly as strict (a tick gap / a ≥ 5 s hide WHILE host of the SAME room).
+- Tests: `tests/play-bounce.test.mjs` (no compare across codes), `e2e-play-bounce.mjs` (bounce · newphone · deploy — Chromium 4× + WebKit; the
+  old code woke at every second start and left a dead tap across a deploy).
+
+### THE LOAD — THE CARRY BY THE LISTS + THE FIRST BAKES UNDER THE BOOT SCREEN (THE CITY POLISH PASS, Nov 24)
+- **THE BOOT HANG (iPhone, Nov 22 2:00 pm, 7 min after a deploy: 313 files re-fetched, `core/harbor-workers.js` never came):** THE CARRY copied
+  the old build's files one at a time and every boot request waited for the WHOLE carry (≤ 2.5 s) — on an iPhone's Cache Storage the carry
+  outlasts the wait, so the whole boot went to the network while the carry + every new copy fought over the store. Now a miss asks the hash
+  LISTS (`sw.js#carryLookup` — two reads): an unchanged file comes from the old build's copy at once (and is kept into the new cache), a changed
+  one goes straight to the network; the carry runs six at a time; a module request whose answer never STARTS is retried after `NET_STALL_MS`
+  (12 s). `wk-edge.mjs --slowcarry 60` (an iPhone's slow store): the deploy visit 6.89 s / 24 static (the old path, `--slowold`) → 3.30 s / 5.
+- **THE SCHOOL CHROMEBOOKS:** a LATE reveal with the first bake (the city or its lit windows) still on its way ran the bake's last big step in
+  the first frames after it (850–920 ms at 4× CPU on software graphics). The first bakes now finish under the boot screen
+  (`scene.js#firstBakeDue`, ≤ REVEAL_MAX + 2 s like every hold). A low-core desktop Chrome (`harbor-tiers.js#lowCoreDesk` — ChromeOS / Linux /
+  Windows, ≤ 4 cores, dpr ≤ 1.25, never a phone) starts ONE tier lower on its first visit (remembered: `na:tier`).
+- **The people's staged plan** runs its blocks back to back (a task each — `people.js#stageRun`), never one a frame.
+- **`/boot-bundle.json?v=<its hash>`** (written by `build-boot-bundle.mjs`) is kept a year, immutable; `/js /css /assets` are fetched by plain
+  paths (no version) and stay at `max-age=300`.
+- **Safari** keeps the modules path: THE BOOT PRELOAD already asks for every boot module in one round trip; a WebKit bundle needs a blob import
+  map (iOS's trouble) or a build step — not shipped (the numbers in the pass log).
+- **THE RETURN-VISIT POWER-ON** (`title.js#shortReturn`): `?poweron=short` gives this phone's return visits the short re-light (remembered,
+  `nd:poweron`; `?poweron=full` undoes it) — DEFAULT OFF, the owner's call.
 
 ## CITY PART 2 (Nov 21) — THE BOOT HEADERS · THE ROOM's GAME VOTES · THE SIGNS ONCE A NIGHT
 The pass log: [passes/city-part2.md](harbor/passes/city-part2.md).

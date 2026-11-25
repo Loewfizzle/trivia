@@ -1300,3 +1300,12 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   emulators first (the same class as the other leftovers above).
 - **`scripts/serve.mjs` caches every `/api` module for its whole life** — restart it after ANY change under `api/` before an E2E (THE FIX PASS's
   first E2E round ran on the server code from before its groups).
+
+## THE CITY POLISH PASS (Nov 24) — the new checks
+- `tests/integration/e2e-play-bounce.mjs [--browser chromium|webkit] [--only bounce,newphone,deploy] [--rounds 4] [--base …]` — THE PLAY BOUNCE
+  (a wake at a solo start's gate = red), a brand-new phone → the name page → the game, and PLAY NOW across a deploy (THE LINE's two builds).
+- `boot-time.mjs` + `--iphone` (Safari's user agent: the modules path) · `--chromeos` (the school Chromebooks: 1366 × 599 @ 1, 4 cores) · `--swgl`
+  (no GPU: a weak laptop's graphics) · `--trace --after [--profile]` (the long tasks AFTER the reveal + their sampled CPU profile); the review's
+  columns (title · boot gone · worst long task · all requests / KB) + the longest frame gap after the reveal.
+- `wk-edge.mjs --slowcarry <ms> [--slowold]` — THE CARRY on a slow store (an iPhone's): the deploy visit's static requests ≤ 12.
+- `tests/quiet-kinds.test.mjs` — every quiet kind only counts; no empty row.

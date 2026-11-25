@@ -111,7 +111,7 @@ test('CITY PART 1: the BOOT HANG row names the city\'s gates (+ the line: bytes,
   assert.match(scene, /window\.__boot\.gates\(\(\) => \{/, 'the scene registers its gates');
   for (const g of ['bake', 'fonts', 'wx', 'sky', 'panel', 'songs', 'folk', 'board']) assert.ok(scene.includes(`'${g}'`), `the report names ${g}`);
   assert.match(scene, /window\.__boot\.gates\(null\)/, 'and takes them back when it goes');
-  assert.match(read('api/log.js'), /QUIET_KINDS = \[[^\]]*'slow-boot'/, 'slow-boot is a quiet kind (read as text — THE UNIT JOB INSTALLS NOTHING)');
+  assert.match(read('js/core/quiet-kinds.js'), /QUIET_KINDS = Object\.freeze\(\[[^\]]*'slow-boot'/, 'slow-boot is a quiet kind (THE CITY POLISH PASS: the ONE list) (read as text — THE UNIT JOB INSTALLS NOTHING)');
 });
 test('CITY PART 1: THE PAGE\'S CLOCK — the network gates let go by the page\'s time on screen; a BAKED city reveals from 6.5 s; the bake never early', () => {
   const scene = read('js/screens/harbor/scene.js');
