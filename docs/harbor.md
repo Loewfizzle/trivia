@@ -699,8 +699,9 @@ above are the history; the rules now —
 **THE DECISION (the owner, Nov 24):** `boot-bundle.json` (6.8 MB) was committed and rewritten on most deploys — 20 copies in four days,
 51 MB of `.git`. It is **no longer committed** (`.gitignore`; history untouched). Everything above about what the bundle IS still holds;
 what changed is WHO writes it:
-- **At deploy — `scripts/deploy-build.mjs`** (vercel.json's `buildCommand`: `node scripts/deploy-build.mjs --prune`; the deploy tags rule,
-  the root as the output and the `/api` install are unchanged). ONE step writes, into the root, the three files that must match:
+- **At deploy — `scripts/deploy-build.mjs`** (vercel.json's `buildCommand`: `node scripts/deploy-build.mjs --prune` + **`"outputDirectory":
+  "."`** — with a build command Vercel no longer falls back to the repo root by itself: the first real deploy, 53e3b6d8, failed in ~13 s
+  and shipped nothing until the root was NAMED; the deploy tags rule and the `/api` install are unchanged). ONE step writes, into the root, the three files that must match:
   `/boot-bundle.json` · `/index.html` (THE BOOT PRELOAD's block from the same graph + `boot-bundle.json?v=<the bundle's own hash>`) ·
   `/file-hashes.json` (THE CARRY's list, hashed from the deploy's own bytes, + the bundle's row). `checkDeploy()` holds them against each
   other before AND after writing (the bundle parses + holds the boot list in order + every `@ns/…` import inside it is in it + `z` = its

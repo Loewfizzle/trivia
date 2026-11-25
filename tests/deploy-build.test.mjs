@@ -30,7 +30,10 @@ test('vercel.json runs THE DEPLOY BUILD; the deploy tags rule + the root as the 
   const v = JSON.parse(read('vercel.json'));
   assert.equal(v.buildCommand, 'node scripts/deploy-build.mjs --prune');
   assert.match(v.ignoreCommand, /\\\[\(harbor\|ci\|deploy\)\\\]/, 'only tagged pushes deploy');
-  assert.ok(!('outputDirectory' in v) && !('framework' in v) && !('installCommand' in v), 'the output stays the repo root; the install for /api unchanged');
+  // (THE FIRST REAL DEPLOY, Nov 25 — 53e3b6d8 FAILED in ~13 s and shipped nothing: with a build command Vercel no longer falls back to the
+  //  repo root — it wants its output folder NAMED; "." = the root, as it always was)
+  assert.equal(v.outputDirectory, '.', 'the output is NAMED: the repo root (a build command alone makes Vercel look for public/)');
+  assert.ok(!('framework' in v) && !('installCommand' in v), 'the preset + the install for /api unchanged');
   assert.ok(!existsSync(at('public')), 'no public/ folder (Vercel would serve IT instead of the root)');
   assert.ok(!('rewrites' in v), 'still no rewrites (THE WRONG DOOR)');
   const pkg = JSON.parse(read('package.json'));
