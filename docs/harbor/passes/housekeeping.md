@@ -121,5 +121,17 @@ The biggest files: `passes/buzzed-lightyear/buzzed-motion-402.png` 3.9 MB · `pa
 `refs/shell/tier-gem-cards.png` 1.9 MB · `passes/overclock-cards/cards-webkit-402.png` 1.8 MB · `ref/city2-harbor.png` 1.7 MB ·
 `passes/overclock-cards/cards-402.png` 1.6 MB · `passes/holdem-city/g2/roofB-night-1440x900.png` 1.5 MB.
 
-## THE FINAL RUN
-(filled in at the close — see the last commit's message and docs/roadmap-history.md)
+## THE FINAL RUN (Nov 25, the Beelink, one suite at a time, nothing else busy; this pass's own emulators + `serve.mjs --emu`)
+- unit **2,712 / 2,712** (`node --test tests/*.test.mjs`) · rules + `/api` tests not run (neither was touched).
+- smoke **24/24** · `e2e-bundle` **all green** (Chromium + WebKit, 24 checks) · `wk-edge` **7/7** (the modules) + **7/7** (`--qs "&bundle=1"`:
+  the bundle through the worker, a deploy, THE CARRY) · `e2e-play-bounce` JAYWALK **30/30**, HIGH RISE **22/22**.
+- `e2e-jaywalk` **122/122** (it has no fast mode: the one run is the full one) · `e2e-highrise` **125/125** · the HIGH RISE zero-garbage
+  guard: `tests/highrise-zero-garbage.test.mjs` in the unit run + `highrise-alloc.mjs` passed (the game's own code 6.0 KB of objects a
+  second in the night run, three.js's own 31.8 — the play path of the sounds makes nothing new).
+- the audio checks in Chromium: `audio-hush.mjs` **9/9** · `audio-leave.mjs` **27/27** · `sound-sync.mjs` **42/42** · `podcast-sweep.mjs` **14/14** ·
+  `jaywalk-podcast.mjs` **5/5** · `sw-audio-cap.mjs` **11/11** · `audio-cut.mjs`: flaky on old and new code (OPEN FOR BEN 4).
+- the harbor GROUPS (local): `core,load,bootfloor,weakstart` **63/63** · `gamestart,newstart` **23/23** ·
+  `music,mediacut,sounds,tape,musiccache,rebuild` **157/157** on its second run — the first run's `tape` group timed out once
+  ("the tape gives the song back after the jets"; its other 150 checks green), then `tape` alone **16/16** twice: a one-off, named.
+- THE DEPLOY, SIMULATED on the committed tree: see "GROUP 1 — Proven" + the close's commit message.
+- Screenshots of this pass: `C:\Users\benja\Downloads\NEON\housekeeping\` (none in the repo).
