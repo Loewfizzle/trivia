@@ -55,6 +55,13 @@ export function settingsFor(mod, id, meta, players) {
   return { settings, shownOptions };
 }
 
+/** HIGH RISE PAD + GO — THE INITIATE MESSAGE: a start that comes back `false` having SAID NOTHING (host.js: the cartridge would not load · the
+ *  host-write gate held it) used to put the button back silently. THE MESSAGE shows one at a time (ui/toast.js): no new one since the tap =
+ *  nothing was said → the plain line (PLAY NOW's own — host.js#playSoloNow) */
+export const COULDNT_START = 'COULDN’T START — TAP PLAY AGAIN';
+const msgNow = () => document.querySelector('.sh-msgs > .sh-msg:not(.is-out)');
+function saidNothing(before) { const now = msgNow(); if (!now || now === before) toast(COULDNT_START, 'err'); }
+
 /** CITY PART 2 — MOST WANTED's ONE TAP: the guests' most-voted game starts at once with the room's saved settings (the options sheet skipped —
  *  the host's own tap; votes are suggestions, never an auto-start) → true when it started */
 export async function quickStart(g, { meta = null } = {}) {
@@ -64,8 +71,9 @@ export async function quickStart(g, { meta = null } = {}) {
   preloadSheets(g.id);
   const min = minPlayersOf(mod, MIN_PLAYERS);
   if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
+  const before = msgNow();
   const ok = await startGame(g.id, settingsFor(mod, g.id, meta, onlineCount()).settings).catch(e => { toast(String((e && e.message) || e).toUpperCase(), 'err'); return false; });
-  if (ok) closeAllSheets();
+  if (ok) closeAllSheets(); else saidNothing(before);
   return !!ok;
 }
 
@@ -90,9 +98,10 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
     if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return; }
     startBtn.classList.add('is-busy');
     startBtn.firstChild.textContent = 'BOOTING…';
+    const before = msgNow();
     try {
       if (await startGame(g.id, settings)) { close(); closeAllSheets(); }   // (SHELL 2.0 B1: the picker under it goes too)
-      else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
+      else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; saidNothing(before); }
     } catch (e) { toast(String(e.message || e).toUpperCase(), 'err'); startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
   };
   // (SHELL 2.0 A: THE SHEET — the game's name is its title, its tag the small line; INITIATE the one tube main)

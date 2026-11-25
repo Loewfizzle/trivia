@@ -10,7 +10,7 @@ import { TICK_MS, TICK_HZ, MODES, MODE_IDS, SEED_MAX, TIGHT } from './tuning.js'
 import { RIVAL_TAPES } from './night.js';
 import { createRun, stepTo, tap, hold, isOver, resultOf, endBy, slabInto } from './engine.js';
 import { replay } from './replay.js';
-import { endWords, tickOf } from './logic.js';
+import { endWords, tickOf, padTime } from './logic.js';
 import { createTower } from './tower.js';
 import { BANDS, bandAt, skyTone } from './bands.js';
 import { LOOKS, LOOK_LABEL, cleanLook, readLook, writeLook, guessLook, resolveLook, sunUpNow } from './look.js';
@@ -95,6 +95,8 @@ const START_WAIT_MS = 600;
  *   o.page      THE TEST PAGE's own pieces: the look switch, the SOUNDS list, the note, its own end card every run, the audio engine installed here
  *   o.seed · o.mode · o.look · o.from · o.fps · o.tier · o.trace · o.lean     the page's `?…` flags (lean — S4B, THE LAG A/B: every DOM / CSS
  *               effect drawn over the 3D view is OFF while a run is live — the glows, the transitions, the announcer's motion; the canvas's own look stays)
+ *   o.dpr · o.stutter   HIGH RISE PAD + GO — the test page's `&dpr=2` (the pixel ratio capped there at every tier) · `&stutter=1` (the tier
+ *               rule's STUTTER half on — kit/tiers.js). LAB ONLY: the cartridge + the daily never pass them (the live defaults are unchanged)
  *   o.cam · o.noFly   REVIEW FIX B — the test page's `?poster=hero` only: THE HERO CAMERA (night.js) · no flyer moments (the finish's pour stays)
  *   o.best      { read() → floor, write(n) } — YOUR BEST's store (the page: this phone's `hi:play:best`)
  *   o.hook      the name its checks find the hook under (`window[o.hook]`)
@@ -105,6 +107,8 @@ const START_WAIT_MS = 600;
  *   o.onEnd     (result) → { own, note } — the end card's moment: own = the stage's own card (an UNPROVEN run); else the console's podium
  *   o.onShow    () — back on screen (the clock is read again)
  *   o.friends   () → [{ n, v }] — YOUR TABLE's bests above you (THE NEXT FRIEND's pink tape)
+ *   o.padOk     () → false = THE CONTROLLER's press is not a tap now (a sheet is open over the game) · o.go's answer may carry `note`:
+ *               the quiet line an UNPROVEN run shows for as long as it is on ("NOT COUNTED — NO CONNECTION")
  *   S4B — THE MATCH (docs/highrise.md "THE MATCH"): the driver (view.js — or the test page's sim) hands a run in with `adopt({ mode:
  *   'match', … })`, the rivals with `hook.rivals(rows)`, a tower to WATCH with `hook.watch(W)`; o.onWatchTap () — a tap while watching;
  *   o.onEnd may answer { watch: true }: the run is over, the stage stays live for the watcher (no card, no veil)
@@ -170,6 +174,15 @@ export function createStage(app, o = {}) {
   againIco.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
   const again = press(h('button.hi-again', { type: 'button', hidden: true }, againIco, h('span.hi-again-t', 'PLAY AGAIN')), () => { const now = performance.now(); if (shown && card && now - overAt > RETRY_MS) { restart(); begin(now); } });
   const note = h('p.hi-note', LEAN || LEANS.size ? `TEST PAGE · LEAN${LEAN ? '' : ` (${[...LEANS].join(' ')})`}${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS` : FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : MODE === 'solo' ? 'TEST PAGE · SOLO · NOTHING COUNTS YET' : 'TEST PAGE · THE MATCH’S LOOK · NOTHING COUNTS');
+  // HIGH RISE PAD + GO — THE TWO QUIET LINES (top left, under the corner button; plain words on the scene, never a pill): an UNPROVEN run's
+  // "NOT COUNTED — …" for as long as the run is on (the driver's `note` — view.js: said once it is known) · the controller's
+  // "🎮 CONNECTED" (~2 s). Each ONE text node, written when it changes — nothing a frame.
+  // (the note = TWO short lines, split at its dash — "NOT COUNTED" / "NO CONNECTION": narrow enough to stand clear of a three-digit floor number)
+  const ncA = document.createTextNode(''), ncB = document.createTextNode(''), padT = document.createTextNode('');
+  const nc = h('div.hi-nc', { hidden: true, role: 'status' }, h('b', ncA), h('span', ncB)), padL = h('div.hi-padl', { role: 'status' }, padT);
+  const lines = h('div.hi-lines', nc, padL);
+  let noteNow = '';
+  const setNote = text => { const t = String(text || ''); if (t === noteNow) return; noteNow = t; const k = t.indexOf(' — '); ncA.data = k < 0 ? t : t.slice(0, k); ncB.data = k < 0 ? '' : t.slice(k + 3); nc.hidden = !t; };
   const fps = o.fps ? h('div.hi-fps', h('span.hi-fps-in', fpsA, fpsB, fpsC)) : null;   // (S5: its words on a flat dark plate — no glow re-drawn every second)
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
   let snd = null, sheetOpen = false;
@@ -180,10 +193,11 @@ export function createStage(app, o = {}) {
   });
   // (the page installs the shared engine itself; in the console it is running long since — and the sounds are DECODED AHEAD there, never on the first drop)
   Promise.all([PAGE ? lazyImport(import('../../audio/engine.js'), '../../audio/engine.js') : null, lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { if (gone) return; if (E) E.installAudio(); S.fetchSounds(); Promise.resolve(S.decode()).catch(() => {}); snd = S; hook.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const stage = h('div.hi-stage', { class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, endBg, shade, hud, tag, ftag, start, end, check, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
+  const stage = h('div.hi-stage', { class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, endBg, shade, hud, tag, ftag, start, end, check, lines, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
   app.replaceChildren(stage);
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
+  const DPR_MAX = PAGE && o.dpr > 0 ? Math.max(1, Math.min(3, Number(o.dpr))) : 0;   // (0 = the device's — every stage but the test page's `&dpr=`)
   const pin = o.tier === 0 || o.tier === 1 || o.tier === 2 ? o.tier : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   const noGL = () => h('p.hi-nogl', 'This browser can’t draw the game here (it has no WebGL).');
   /** the view's stand-in while a lost context has not come back (the run goes on; nothing is drawn; the rebuild keeps trying) */
@@ -216,10 +230,10 @@ export function createStage(app, o = {}) {
   const BL = bakedLine(call);
   const NO_VIEW = { el: null, setRival() {}, dimRivals() {}, showRivals() {}, warm: () => true, flyReady: () => true, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), flyPath: () => null, project: () => [0, -1], zoneTop: () => 1, restZone: () => 1, restY: () => -1, stat: () => null, io: new Float64Array(3), pose() {}, welcome() {}, ghostBest() {}, poseXY(x, f, z, out) { out[0] = 0; out[1] = -1; }, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR, cam: o.cam }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR, cam: o.cam, dprMax: DPR_MAX }); }
   catch { stage.append(noGL()); return null; }
   const tierPath = [pin == null ? 2 : pin];
-  const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
+  const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin, stutter: PAGE && !!o.stutter });   // (`&stutter=1`: the test page only)
 
   // THE LOST CONTEXT (JAYWALK's lesson — iOS takes a WebGL context away under memory pressure; the run is on the clock: a blank
   // playfield is a slab dropped unseen): the scene is REBUILT — destroyed + created again on the same tower, tier + tape — the moment
@@ -235,7 +249,7 @@ export function createStage(app, o = {}) {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR, cam: o.cam }); }
+    try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR, cam: o.cam, dprMax: DPR_MAX }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -474,6 +488,7 @@ export function createStage(app, o = {}) {
   function restart(s = FIXED || newSeed()) {
     stillN++; stage.classList.remove('has-still'); if (view.snap) view.snap(null);   // (THE CLOSE's REVIEW: a still asked for and not yet taken is let go — the next run's welcome never grabs it)
     wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
+    setNote('');
     seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; holdsAt.length = 0; held = false; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
@@ -517,6 +532,7 @@ export function createStage(app, o = {}) {
     }
     hush = taps.length > 0;
     live(G.t0);
+    setNote(G.note);   // (HIGH RISE PAD + GO: an UNPROVEN run says so for as long as it is on — "NOT COUNTED — NO CONNECTION")
   }
   // THE SOUND SYNC (S4A): a batch's sounds are asked the moment its events exist — a tap's own IN THE TOUCH, never a frame later.
   // `sounded` = how many of `ev` already have theirs (the frame sounds the rest: the fuse's drop). `syncs` = the pass's measure: when
@@ -562,6 +578,40 @@ export function createStage(app, o = {}) {
   // (in the console a key is a drop only while nothing else has the focus — its menus + the podium keep their own keys)
   const keyOk = () => PAGE || (!(shown && !card) && !stage.classList.contains('is-final') && (!document.activeElement || document.activeElement === document.body || stage.contains(document.activeElement)));
   document.addEventListener('keydown', e => { if (sheetOpen || !keyOk()) return; if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); touch(e.timeStamp); } }, sig);   // (the sheet's own buttons keep their keys)
+  // THE CONTROLLER (HIGH RISE PAD + GO — kit/gamepad.js's wirePad, the shared kit: ONE wiring, HERE — the stage is what the cartridge, the
+  // daily and the test page all mount; docs/highrise.md "THE CONTROLLER"). A = A TAP, through `touch` itself: the drop · TAP TO START (a held
+  // daily run's RESUME is that same tap) · the stage's own card's PLAY AGAIN. The podium's PLAY AGAIN / REMATCH / HOME / ROOM are the kit's
+  // (ui/final.js's data-pad marks). B does nothing in a run; Start, the D-pad + the stick are not mapped at all (no pause — a daily hold
+  // is never spent by a button); while WATCHING a pad does nothing (the list stays a touch thing).
+  // EXACT TIMING: the kit notices a press at its next poll — up to a frame after it. The drop is stamped at THE PRESS's OWN TIME: the
+  // Gamepad's `timestamp`, taken only between the poll before + now, never before the last tap logged (logic.js#padTime; anything else
+  // = now) — and handed to `touch` AS A FINGER's event time is: the same tick mapping, the same engine tap, the same log. A pad player
+  // is never a frame behind a finger; the tick logged is the one the server replays.
+  // Lazy: the kit is fetched on the first pad this page sees (`gamepadconnected`, or one already there) — never in the start bundle.
+  const padSeen = { n: 0, stamp: 0, prev: 0, at: 0, ts: 0, tick: -1, dropped: false };   // (the pass's check reads the last press — ONE record, written in place)
+  let offPad = null, padHide = 0;
+  function padPress(stamp, prev) {
+    if (watchW || document.visibilityState === 'hidden' || (o.padOk && !o.padOk())) return;
+    const now = performance.now(), n0 = taps.length, was = taps;
+    const ts = padTime(stamp, prev, now, t0 != null && n0 ? t0 + taps[n0 - 1] * TICK_MS : 0);
+    touch(ts);
+    const dropped = taps === was && taps.length > n0;
+    padSeen.n++; padSeen.stamp = stamp; padSeen.prev = prev; padSeen.at = now; padSeen.ts = ts; padSeen.dropped = dropped; padSeen.tick = dropped ? taps[taps.length - 1] : -1;
+  }
+  function padSay(text, ms) {
+    padT.data = text; padL.classList.add('is-on'); clearTimeout(padHide);
+    padHide = setTimeout(() => padL.classList.remove('is-on'), ms);
+  }
+  function padOn() {
+    if (offPad || gone) return;
+    offPad = () => {};
+    lazyImport(import('../kit/gamepad.js'), '../kit/gamepad.js').then(P => {
+      if (gone) return;
+      offPad = P.wirePad({ a: padPress, say: t => padSay(t, P.SAY_MS) });
+    }).catch(() => { offPad = null; });
+  }
+  addEventListener('gamepadconnected', padOn, sig);
+  try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padOn(); } catch { /* no pads here */ }
 
   // ---- THE ANNOUNCER LANE (under the band's name): one call at a time — a bigger moment is never wiped by a smaller one
   // Its one-shot (and the band's arrival) are played through the Web Animations API — opacity + transform only, restarted WITHOUT a
@@ -949,6 +999,9 @@ export function createStage(app, o = {}) {
     held: () => held, log: () => logNow(),
     /** the run's tap log (the SAME list the engine's drops are logged in — the proof's chunks are cut from it) · its result as it stands */
     taps: () => taps, result: () => resultOf(mine || run), seed: () => seed,
+    /** HIGH RISE PAD + GO — the pad's wiring as the pass's check reads it: wired? · the last press (its stamp, the poll before, when it
+     *  was noticed, the time + tick it counted at, did it drop) · tick 0 on this page's clock · the two quiet lines */
+    pad: () => ({ wired: !!offPad, ...padSeen, t0, line: padL.classList.contains('is-on') ? padT.data : '', note: noteNow }),
     /** (S5 — ZERO GARBAGE IN A MATCH) YOUR numbers read into a record the caller keeps — what a match's pump asks 10 × a second */
     me(into) { const r = mine || run; into.floor = r.floor; into.perfects = r.perfects; into.over = isOver(r); into.made = r.st === 'made'; into.cause = r.st === 'out' ? r.cause : r.st === 'made' || r.st === 'cap' ? r.st : ''; return into; },
     /** the stage's own end card after all (the podium never came: no signal) — with its one line */
@@ -1020,7 +1073,8 @@ export function createStage(app, o = {}) {
     /** the cartridge unmounts: every listener, timer + the scene go */
     destroy() {
       if (gone) return;
-      gone = true; cancelAnimationFrame(raf); ac.abort(); clearInterval(sunIv); clearTimeout(lostTimer); ro.disconnect(); awake(false);
+      gone = true; cancelAnimationFrame(raf); ac.abort(); clearInterval(sunIv); clearTimeout(lostTimer); clearTimeout(padHide); ro.disconnect(); awake(false);
+      if (offPad) { try { offPad(); } catch { /* fine */ } offPad = null; }
       offGL(); try { view.destroy(); } catch { /* gone already */ }
       try { if (snd) snd.stopAll(); } catch { /* silent */ }
       stage.remove();

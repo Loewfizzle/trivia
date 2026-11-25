@@ -25,6 +25,19 @@ export const endWords = result => END_WORDS[result && result.cause] || '';
 export const seedOf = (code, matchId, go) => `h${hashString(`${code}:${matchId}:${go}`).toString(36)}${hashString(`hi:${go}:${matchId}:${code}`).toString(36)}`;
 /** a tick ↔ a clock: tick 0 = `t0` (ms) — the ONE mapping (FAIR TAPS: a touch's event.timeStamp → the nearest tick) */
 export const tickOf = (ms, t0) => Math.round((ms - t0) * TICK_HZ / 1000);
+/**
+ * THE CONTROLLER's EXACT TIMING (HIGH RISE PAD + GO — docs/highrise.md "THE CONTROLLER"): the moment a pad's press COUNTS, on the page's
+ * clock (ms). The kit notices a press at its next poll (a frame late at most); the Gamepad's own `timestamp` says when the press reached
+ * the browser — the press lies between the poll before (`prev`: the button was still up) and `now`. The stamp is taken ONLY inside that
+ * window (+ PAD_SLACK_MS before `prev`: a report stamped a moment before the poll that missed it): never in the future, never an old one —
+ * and a browser whose Gamepad clock is not the page's (an older Safari counts seconds) falls back to `now`, the frame it was noticed.
+ * `floor` (0 = none) = the time of the last tap already logged: a press never counts before it — the log only rises.
+ */
+export const PAD_SLACK_MS = 34;
+export function padTime(stamp, prev, now, floor = 0) {
+  const t = stamp > 0 && prev > 0 && stamp <= now && stamp >= prev - PAD_SLACK_MS ? stamp : now;
+  return t < floor ? floor : t;
+}
 
 /** a result's feats as a row carries them: 'reachedClouds reachedTop' ('' = none) */
 export const featsOf = r => Object.keys((r && r.feats) || {}).filter(k => r.feats[k]).join(' ');

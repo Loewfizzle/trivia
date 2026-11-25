@@ -10,6 +10,8 @@
 //      (a test fixture) · a FORGED node is refused — NOT COUNTED, no best of it
 //   6. A LONG COUNTED RUN: a real run past floor 60 → the floor, XP, the streak, the best (the board
 //      highrise-solo), ABOVE THE CLOUDS — and THE HITCH RUN inside the cartridge (no frame over 33 ms after the first second)
+//   7. HIGH RISE PAD + GO — THE CONTROLLER: a fake pad drives a solo run (kit/highrise-pad.mjs; WebKit: wk-highrise-pad.mjs)
+//   8. … THE SOLO GO: a GO answer 5.5 s late still PROVES + COUNTS; no answer at all → NOT COUNTED — NO CONNECTION on screen + the end card
 //   node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]     (`--fast` skips step 6's long run)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
@@ -22,11 +24,13 @@ import { isNew, dayKeyOf } from '../../js/core/game-order.js';
 import { streakDay } from '../../js/core/streak.js';
 import { seedOf, floorOf, perfectsOf, towerScore } from '../../js/games/highrise/logic.js';
 import { createRun, stepTo, tap as engineTap } from '../../js/games/highrise/engine.js';
+import { padSoloCase } from './kit/highrise-pad.mjs';   // (HIGH RISE PAD + GO — THE CONTROLLER's checks, shared with wk-highrise-pad.mjs)
 import { imgSize } from './kit/img-size.mjs';   // (THE FIX PASS: the link card is a JPEG since THE BEFORE-LAUNCH PASS)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), FAST = argv.includes('--fast') || process.env.FAST === '1', OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
 // (S4B: `HI_UNTIL=table` stops after THE END SCREEN's checks + YOUR TABLE's fixtures · `S4B_OUT=<dir>` = their shots · `HI_LOOK=day` = by day)
+const ONLY_NEW = process.env.HI_ONLY === 'padgo';
 const S4B_OUT = process.env.S4B_OUT || null, LOOKN = process.env.HI_LOOK === 'day' ? 'day' : 'night';
 if (S4B_OUT) mkdirSync(S4B_OUT, { recursive: true });
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -126,6 +130,7 @@ const pastMoment = async P => {
 
 try {
   await dbPut('testHighriseCounts', null);   // (the code's own ON — never a flip a failed suite left behind)
+  if (!ONLY_NEW) {   // (`HI_ONLY=padgo`: steps 7 + 8 alone — HIGH RISE PAD + GO's own, each on a new phone)
   // ---- 1. A STRANGER (THE GO-LIVE — HIGH RISE is playable for everyone): the PLAY shelf lists it, no · TEST, no owner set-up
   const P = await phone(`hi${Date.now() % 100000}`);
   const { uid, pid } = await pidOf(P);
@@ -345,6 +350,86 @@ try {
   await dropRunCards(pid);
   ok(P.errs.length === 0, `no page error (${P.errs.join(' | ')})`);
   await P.close();
+  }
+  // ---- 7. HIGH RISE PAD + GO — THE CONTROLLER (kit/highrise-pad.mjs — the SAME checks wk-highrise-pad.mjs runs in WebKit): a FAKE PAD on
+  // the Gamepad API drives a solo run on a NEW phone — the first press only CONNECTS · A = TAP TO START · A drops, each logged at THE
+  // PRESS's OWN TICK (an injected timestamp) · B / Start / the D-pad nothing · a touch the same · REPLAY = LIVE · the podium: A = PLAY AGAIN, B = HOME
+  {
+    const Q = await phone(`hp${Date.now() % 100000}`, 'PADDER');
+    await Q.ev("import('/js/host.js').then(h => { h.playSolo('highrise'); })");
+    ok(await Q.waitFor(`${S}.game && ${S}.game.id === 'highrise' && ${S}.game.phase === 'play' && !!document.querySelector('.hi-stage.hi-game canvas.hi-canvas') && !!${G} && ${ST}.state().info.warmed > 0`, 40000), 'THE CONTROLLER: a new phone, PLAY NOW → HIGH RISE at TAP TO START');
+    ok(await Q.ev("import('/js/games/metas.js').then(m => m.META.highrise.CONTROLLER === true && !performance.getEntriesByType('resource').some(e => /kit\\/gamepad\\.js/.test(e.name)))"), '… the PLAY sheet\'s mark is on (metas.js CONTROLLER) — and the kit\'s pad module was NOT fetched before a pad showed (lazy)');
+    await padSoloCase(Q, ok, { sleep, verifyNode, nodeOf, shot: OUT ? name => Q.shot(`${name}-390x844.png`) : null });
+    ok(await Q.ev("performance.getEntriesByType('resource').filter(e => /kit\\/gamepad\\.js/.test(e.name)).length === 1"), '… the kit\'s pad module: fetched ONCE, on the first pad');
+    ok(Q.errs.length === 0, `THE CONTROLLER: no page errors${Q.errs.length ? ` (${Q.errs.slice(0, 3).join(' · ')})` : ''}`);
+    await Q.close();
+  }
+
+  // ---- 8. HIGH RISE PAD + GO — THE SOLO GO (go.js): the line DEAD for 5.5 s at the START tap (goOffline) — the old ONE 4 s wait went on
+  // UNPROVEN; now the answer is still waited for: the run starts PROVEN when the line is back, and COUNTS
+  {
+    const Q = await phone(`hg${Date.now() % 100000}`, 'LATEGO');
+    const who = await pidOf(Q);
+    await Q.ev("import('/js/host.js').then(h => { h.playSolo('highrise'); })");
+    ok(await Q.waitFor(`${S}.game && ${S}.game.id === 'highrise' && ${S}.game.phase === 'play' && !!${G} && ${ST}.state().info.warmed > 0`, 40000), 'THE SOLO GO: a new phone at TAP TO START');
+    const gq = await Q.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+    await Q.ev("import('/js/firebase.js').then(f => f.goOffline())");
+    const t0 = Date.now();
+    await Q.tapAt(195, 620);
+    await sleep(4600);
+    const mid = await Q.ev(`({ starting: ${ST}.state().starting, started: ${ST}.state().started, proven: ${G}.state().proven, note: ${ST}.pad().note })`);
+    ok(mid.starting && !mid.started && !mid.note, `4.6 s after the START tap with NO line: still waiting on the start screen — the old 4 s wait had gone on UNPROVEN by now (${JSON.stringify(mid)})`);
+    await sleep(Math.max(0, 5500 - (Date.now() - t0)));
+    await Q.ev("import('/js/firebase.js').then(f => f.goOnline())");
+    ok(await Q.waitFor(`${ST}.state().started`, 6000), `the line is back at 5.5 s → the run starts (${((Date.now() - t0) / 1000).toFixed(1)} s after the tap)`);
+    const late = await Q.ev(`({ proven: ${G}.state().proven, go: ${G}.state().go, note: ${ST}.pad().note, seed: ${ST}.state().seed })`), nodeL = await nodeOf(gq.code, gq.m, who.uid);
+    ok(late.proven && nodeL && nodeL.go === late.go && late.seed === seedOf(gq.code, gq.m, nodeL.go) && !late.note, `A LATE ANSWER STILL PROVES THE RUN: PROVEN on the server's GO (${nodeL && nodeL.go}), the seed picked from it — no NOT COUNTED line`);
+    const dl = await drops(Q, 4);
+    ok(dl >= 3, `… ${dl} real taps drop slabs`);
+    ok(await toFinal(Q, 40000), '… the fuse ends it → the podium');
+    const resL = await counted(gq.code, gq.m), VL = verifyNode({ code: gq.code, matchId: gq.m, node: await nodeOf(gq.code, gq.m, who.uid) });
+    ok(resL && resL.g === 'highrise' && VL.ok && VL.floor >= 3, `… and it COUNTS: results/ done, the judge's replay = ${VL.ok ? VL.floor : VL.why} floors`);
+    ok(Q.errs.length === 0, `THE SOLO GO (late): no page errors${Q.errs.length ? ` (${Q.errs.slice(0, 3).join(' · ')})` : ''}`);
+    await Q.close();
+  }
+  // … and TOTAL FAILURE: no line for the whole GO_WAIT_MS → the run plays UNPROVEN and SAYS SO — "NOT COUNTED — NO CONNECTION" on screen for
+  // as long as the run is on (the stage's quiet line), and as its end card's reason
+  {
+    const Q = await phone(`hn${Date.now() % 100000}`, 'NOLINE');
+    const who = await pidOf(Q);
+    await Q.ev("import('/js/host.js').then(h => { h.playSolo('highrise'); })");
+    ok(await Q.waitFor(`${S}.game && ${S}.game.id === 'highrise' && ${S}.game.phase === 'play' && !!${G} && ${ST}.state().info.warmed > 0`, 40000), 'THE SOLO GO (no line): a new phone at TAP TO START');
+    const gq = await Q.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+    await Q.ev("import('/js/firebase.js').then(f => f.goOffline())");
+    const t0 = Date.now();
+    await Q.tapAt(195, 620);
+    ok(await Q.waitFor(`${ST}.state().started`, 12000), 'no answer at all: the run still STARTS (never a stuck start)');
+    const took = Date.now() - t0;
+    ok(took >= 8000 && took <= 11500, `… after the whole wait (${(took / 1000).toFixed(1)} s — go.js#GO_WAIT_MS 9 s, not 4)`);
+    const un = await Q.ev(`({ proven: ${G}.state().proven, spent: ${G}.state().spent, note: ${ST}.pad().note, vis: (e => !!e && !e.hidden && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height > 0)(document.querySelector('.hi-nc')), box: (r => ({ x: r.left, y: r.top, r: r.right, b: r.bottom }))(document.querySelector('.hi-nc').getBoundingClientRect()), fs: parseFloat(getComputedStyle(document.querySelector('.hi-nc')).fontSize), radius: getComputedStyle(document.querySelector('.hi-nc')).borderRadius, bg: getComputedStyle(document.querySelector('.hi-nc')).backgroundColor, menu: (r => ({ b: r.bottom }))(document.querySelector('.menu-btn').getBoundingClientRect()), w3: 195 - 84 * 0.6 * 3 / 2, net: (e => { if (!e || !e.classList.contains('is-on')) return null; const r = e.getBoundingClientRect(); return { y: r.top, b: r.bottom }; })(document.querySelector('#net')) })`);
+    ok(!un.proven && un.spent && un.note === 'NOT COUNTED — NO CONNECTION' && un.vis, `the run is UNPROVEN and SAYS SO on screen: "${un.note}"`);
+    ok(un.fs >= 11 && un.box.y >= un.menu.b - 1 && un.box.b < 844 * 0.25 && un.box.r <= un.w3 && (!un.net || un.box.y >= un.net.b) && un.bg === 'rgba(0, 0, 0, 0)' && (un.radius === '0px' || un.radius === ''), `… small, in the top quarter (y ${un.box.y.toFixed(0)}–${un.box.b.toFixed(0)}, ${un.fs} px) — UNDER the console's SIGNAL LOST banner${un.net ? ` (it ends at ${un.net.b.toFixed(0)})` : ' (not up)'}, clear of a THREE-DIGIT floor number (its right edge ${un.box.r.toFixed(0)} ≤ ${un.w3.toFixed(0)}), plain words — no pill, no plate`);
+    await Q.shot('not-counted-run-390x844.png');
+    await Q.ev("import('/js/firebase.js').then(f => f.goOnline())");
+    const dn = await drops(Q, 3);
+    ok(dn >= 2 && await Q.ev(`${ST}.pad().note === 'NOT COUNTED — NO CONNECTION' && !${G}.state().proven`), `… ${dn} drops later (the line back): still NOT COUNTED — the line stays for the whole run`);
+    for (const [w, hh] of [[402, 874], [430, 932], [1440, 900]]) { await Q.p.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(350); await Q.shot(`not-counted-run-${w}x${hh}.png`); }
+    await Q.p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    ok(await Q.waitFor(`${ST}.state().card && !!document.querySelector('.hi-leave')`, 40000), '… the fuse ends it → the stage\'s OWN card (no podium: nothing to count)');
+    const card = await Q.ev(`({ check: ${ST}.state().check, nc: getComputedStyle(document.querySelector('.hi-nc')).display, leave: document.querySelector('.hi-leave').textContent, pad: document.querySelector('.hi-leave').getAttribute('data-pad') })`);
+    ok(card.check === 'NOT COUNTED — NO CONNECTION' && card.nc === 'none' && card.leave === 'BACK HOME' && card.pad === 'b', `THE END CARD's reason: "${card.check}" (the run's own line is put away) · ${card.leave} (the pad's B)`);
+    await Q.shot('not-counted-end-390x844.png');
+    await sleep(2500);
+    ok(!(await dbGet(`results/${gq.code}_${gq.m}`)), '… nothing is counted for it (no results/ row)');
+    // PLAY AGAIN on that card: this match's one GO is SPENT — the next run starts AT ONCE (never another 9 s), NOT COUNTED on screen
+    await sleep(700);
+    const t1 = Date.now();
+    await Q.tapAt(195, 500);
+    ok(await Q.waitFor(`${ST}.state().started && !${ST}.state().card`, 3000) && Date.now() - t1 < 3000, `PLAY AGAIN on that card starts AT ONCE (${Date.now() - t1} ms — this match's one GO is spent: never a second 9 s wait)`);
+    ok(await Q.ev(`${ST}.pad().note === 'NOT COUNTED — NO LINE TO THE BOARD' && !${G}.state().proven`), '… and says NOT COUNTED — NO LINE TO THE BOARD (BACK HOME → PLAY NOW is the counted way back)');
+    ok(Q.errs.length === 0, `THE SOLO GO (no line): no page errors${Q.errs.length ? ` (${Q.errs.slice(0, 3).join(' · ')})` : ''}`);
+    await Q.close();
+  }
 } catch (e) { ok(false, `FATAL ${e && e.stack ? e.stack : e}`); }
 await b.close();
 console.log(`\n${n - fails.length}/${n} checks passed`);

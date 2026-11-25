@@ -270,7 +270,9 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
 test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'s time, read back), the chunks server-stamped, `e` once behind the last chunk; never after the match left `play`; the scene parked only over PLAY AGAIN', () => {
   const v = code('js/games/highrise/view.js');
   assert.ok(v.includes('const treePath = () => `rooms/${code}/hr/${matchId}`, nodePath = () => `${treePath()}/${uid}`;'), 'its own uid, its own match');
-  assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO: the server\'s time, read back — never the phone\'s estimate');
+  // (HIGH RISE PAD + GO — THE SOLO GO: the write + the read are go.js#soloGo's `write` / `read` — the same two calls, tried again; the node is read from THE SERVER)
+  assert.match(v, /soloGo\(\{\s*write: \(\) => \{[^}]*return stampT0\(treePath\(\), 'highrise'\)\.then\(\(\) => \(stale\(\) \? Promise\.reject\(new Error\('the run stopped waiting'\)\) : dbSet\(dbRef\(path\), serverTimestamp\(\)\)\)\);\s*\},\s*read: \(\) => dbGet\(dbRef\(nodePath\(\)\)\)\.then\(snap => snap\.val\(\)\),/, 'GO: the server\'s time, read back — never the phone\'s estimate');
+  assert.match(v, /\}\)\.then\(r => \{\s*if \(r\.go > 0\) \{ const fresh = !r\.c; proof\(r\.go, r\.c\); if \(fresh\) writeRs\(\); \}\s*else if \(r\.why !== 'left'\) unproven\(r\.why\);/, '… the answer → the proof (a late one too) · no answer / refused → UNPROVEN');
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go\), taps: old \|\| \[\] \}\);/, 'the seed = hash(code + matchId + GO); tick 0 = GO');
   // THE PROOF PASS: the chunks + the end go up through THE PROOF WRITER (kit/proof-writer.js + proof-io.js — JAYWALK's too)
   const io = code('js/games/kit/proof-io.js');
@@ -283,7 +285,8 @@ test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'
   assert.ok(v.includes("left: matchLeft,") && v.includes("onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },"));
   assert.ok(code('js/games/kit/proof-writer.js').includes('if (left() && ++lateTries > LATE_TRIES) { giveUpLate(); return; }'), 'dropped only once the rules keep refusing while the mirror says the match is over');
   assert.match(v, /if \(!isMatch && performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(S\); else S\.destroy\(\);/, 'parked only over a SOLO run\'s PLAY AGAIN — else (a match too) freed at once');
-  assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' \}; \}/, 'an UNPROVEN run ends on the stage\'s own card');
+  assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: notCounted\(whyNot\) \}; \}/, 'an UNPROVEN run ends on the stage\'s own card — with its reason (HIGH RISE PAD + GO)');
+  assert.match(v, /export const NOT_COUNTED = Object\.freeze\(\{ net: 'NOT COUNTED — NO CONNECTION', line: 'NOT COUNTED — NO LINE TO THE BOARD' \}\);\s*export const notCounted = why => \(why === 'no answer' \? NOT_COUNTED\.net : NOT_COUNTED\.line\);/);
   // the stage itself writes nothing (it is the test page's module too)
   assert.doesNotMatch(code('js/games/highrise/stage.js'), /firebase|dbRef|serverTimestamp|\/api\//);
 });
@@ -307,9 +310,10 @@ test('THE FRESH-EYES REVIEW — the host\'s podium reads its LIVE MIRROR (a chun
 test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never touches a run that went on; the hold is taken in the START touch; the podium puts the stage\'s card away; the best is stored before the end screen; the two tags keep the floors\' order', () => {
   const v = code('js/games/highrise/view.js'), st = code('js/games/highrise/stage.js'), fin = code('js/games/highrise/final.js');
   assert.match(v, /const stale = \(\) => done \|\| gone \|\| m !== matchId;/);
-  assert.match(v, /const proof = \(goAt, chunks\) => \{\s*if \(stale\(\)\) \{ if \(!gone && m === matchId\) spent = true; return; \}/, 'a late GO: nothing of the view is written — and this match\'s one GO is spent');
-  assert.match(v, /const unproven = why => \{ if \(stale\(\)\) return;/);
-  assert.match(v, /if \(node && node\.go > 0\) \{\s*dbGet\(dbRef\(nodePath\(\)\)\)\.then\(snap => \{ const n = snap\.val\(\); if \(n && n\.go > 0 && !n\.e\) proof\(n\.go, n\.c\); else unproven\('again'\); \}\)/, 'a rejoin reads the node FROM THE SERVER — never the mirror\'s estimate');
+  assert.match(v, /const proof = \(goAt, chunks\) => \{\s*if \(stale\(\)\) return;/, 'a late GO: nothing of the view is written');
+  // (HIGH RISE PAD + GO: the match's one GO is spent THE MOMENT a run goes on unproven — a GO still in the air lands when the line is back)
+  assert.match(v, /const unproven = why => \{ if \(stale\(\)\) return; if \(why === 'refused'\) refused\(\); go = 0; proven = false; spent = true; whyNot = why; W\.reset\(\); fin\(\{ seed: newSeed\(\), t0: performance\.now\(\), taps: \[\], note: notCounted\(why\) \}\); \};/, '… and this match\'s one GO is spent; the run SAYS it is not counted (the stage\'s quiet line)');
+  assert.match(v, /if \(node && node\.go > 0\) \{\s*goTimer = setTimeout\(\(\) => unproven\('no answer'\), GO_WAIT_MS\);\s*dbGet\(dbRef\(nodePath\(\)\)\)\.then\(snap => \{ const n = snap\.val\(\); if \(n && n\.go > 0 && !n\.e\) proof\(n\.go, n\.c\); else unproven\('again'\); \}\)/, 'a rejoin reads the node FROM THE SERVER — never the mirror\'s estimate');
   assert.doesNotMatch(v, /proof\(node\.go/, 'the seed is never picked from the mirror');
   assert.match(st, /starting = true; stage\.classList\.add\('is-starting'\);\s*awakeAt = performance\.now\(\); awake\(true\);/, 'the hold: in the START touch');
   assert.match(st, /if \(\(t0 != null \|\| starting\) && !shown && now - awakeAt > 1000\) \{ awakeAt = now; awake\(true\); \}/, '… renewed while GO is on its way');

@@ -6,6 +6,8 @@
 // game's own a() / b(). The game's moves go through the SAME intents its touch + keys use — the proof sees ordinary hops.
 // Safari shows a pad only after a button press → that FIRST press says "🎮 CONNECTED" (~2 s, the game's own quiet line) and does nothing
 // else (the buttons it holds are learned, never a move); a quiet line on a disconnect. Polled once a frame ONLY while wired (a game on screen). Lazy: a game imports it on its first `gamepadconnected` (padReady).
+// EXACT TIMING (HIGH RISE PAD + GO): a() / b() are handed the pad's own `timestamp` + the time of the poll BEFORE this one (the press lies
+// between the two) — a game on a clock (HIGH RISE's drop) stamps the press itself, never the frame it was noticed; a game may ignore both.
 export const DEADZONE = 0.5, REARM = 0.3, SAY_MS = 2000;
 /** the standard mapping's buttons (W3C "standard gamepad"): the face buttons by POSITION, the D-pad 12–15 */
 export const STD = Object.freeze({ bottom: 0, right: 1, up: 12, down: 13, left: 14, right2: 15 });
@@ -49,9 +51,12 @@ export function wirePad({ dir, a, b, say } = {}) {
   const mem = new Map();
   let raf = 0, off = false;
   wired++;
+  let polled = 0;
   const frame = () => {
     if (off) return;
     raf = requestAnimationFrame(frame);
+    const prev = polled;
+    polled = performance.now();
     let pads = [];
     try { pads = navigator.getGamepads ? [...navigator.getGamepads()] : []; } catch { pads = []; }
     for (const gp of pads) {
@@ -63,8 +68,8 @@ export function wirePad({ dir, a, b, say } = {}) {
       if (!r.dirs.length && !r.a && !r.b) continue;
       if (document.visibilityState === 'hidden') continue;
       for (const d of r.dirs) if (dir) dir(d);
-      if (r.a) { const el = padControl('a'); if (el) el.click(); else if (a) a(); }
-      if (r.b) { const el = padControl('b'); if (el) el.click(); else if (b) b(); }
+      if (r.a) { const el = padControl('a'); if (el) el.click(); else if (a) a(gp.timestamp, prev); }
+      if (r.b) { const el = padControl('b'); if (el) el.click(); else if (b) b(gp.timestamp, prev); }
     }
   };
   const gone = e => { const gp = e && e.gamepad; if (!gp) return; mem.delete(gp.index); if (known.delete(gp.id) && say) say('CONTROLLER DISCONNECTED'); };

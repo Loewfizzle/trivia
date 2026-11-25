@@ -26,6 +26,7 @@ import { createProofWriter } from '../kit/proof-writer.js';
 import { CLOCK } from './proof.js';
 import { TICK_HZ } from './tuning.js';
 import { HOLDS, hrFloors, hrPerfects } from './held.js';
+import { layersOpen } from '../../ui/layers.js';
 
 export const GAME_ID = 'highrise';
 const WANT = 'highrise-daily';
@@ -195,7 +196,7 @@ export function createView() {
     if (score != null && !C.el.querySelector('.dy-stamp')) C.el.prepend(h('span.dy-stamp.dy-jw-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' }));
     // SHARE — the day's HIGH RISE card (THE POSTER + the DAILY · ONE SHOT tag), built now from the SERVER's share inputs, sent at the tap (its link)
     const share = score != null ? shareTube(r && r.day) : null;
-    C.foot.replaceChildren(...[share, tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack(true) })].filter(Boolean));
+    C.foot.replaceChildren(...[share, tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true, 'data-pad': 'b' }, onClick: () => ctx.onBack && ctx.onBack(true) })].filter(Boolean));
   }
   /** SHARE on the end card: daily-share.js#prepDaily — the card drawn as the card shows (its PNG kept), the link made at the first tap (its user
    *  activation kept: 'ready' → the NEXT tap shares it at once — the console's SHARE pattern) */
@@ -226,10 +227,14 @@ export function createView() {
       host.append(stageEl);
       Promise.all([lazyImport(import('./stage.js'), './stage.js'), ...SHEETS.map(loadSheet)]).then(([M]) => {
         if (gone) return;
-        const lookNow = () => (document.body && document.body.dataset.look === 'day' ? 'day' : 'night');
+        const lookNow = () => (document.body && document.body.dataset.look === 'day' ? 'day' : 'night'), layers0 = layersOpen();
         S = M.createStage(stageEl, {
           hook: TEST ? '__hiDaily' : '', lookNow, best: { read: () => 0, write() {}, runs: false },
           go, onFrame: () => { if (W && state === 'live') W.flush(false); }, onOver: over, onEnd: ended,
+          // (HIGH RISE PAD + GO — THE CONTROLLER is the stage's own wiring: A = a tap — TAP TO START, a held run's RESUME, the drop; nothing
+          //  here spends a hold: Start + B are not mapped. The end card's way out = B; ONE SHOT has no PLAY AGAIN for A)
+          //  (a press is a tap only while nothing is open OVER the run: the run's own overlay is a layer itself — the count as it stood at the mount)
+          padOk: () => layersOpen() <= layers0,
         });
         if (TEST) window.__hiDailyRun = { state: () => state, leg: () => (leg ? { ...leg } : null), stage: () => S };
         if (todayNow() && todayNow().started && todayNow().started[GAME_ID]) holdNote('YOUR RUN IS HELD — TAP TO GO ON');

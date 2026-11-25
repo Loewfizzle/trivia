@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { dailyTestMode, DAILY_MODE_FIX } from './kit/daily-mode.mjs';
+import { installPad, padPress, padDrop, padRunChecks, tickOfStamp, BTN } from './kit/highrise-pad.mjs';
 import { ref, val, fb } from '../../api/_lib/fb.js';
 import { deleteApp } from 'firebase-admin/app';
 import { streakDay } from '../../js/core/streak.js';
@@ -127,6 +128,64 @@ try {
   const again = await p.evaluate(() => import('/js/profile/api.js').then(m => m.api('daily', { action: 'start', game: 'highrise' })));
   ok(again.done === r && again.run == null, 'a second START: the day\'s score, no run');
   await ctx.close();
+
+  // ---- HIGH RISE PAD + GO — THE CONTROLLER IN THE DAILY (a NEW phone; kit/highrise-pad.mjs's fake pad): the first press only CONNECTS · A =
+  // TAP TO START · A drops at the press's own tick · START / B / the D-pad do NOTHING — a hold is never spent by a button · ‹ BACK = a hold ·
+  // A on the held run's welcome = RESUME (leg 1, 2 holds left) · the end card: B = BACK TO THE DAILIES (ONE SHOT: A has nothing to press)
+  {
+    const ctx2 = await browser.createBrowserContext(), q = await ctx2.newPage();
+    q.on('pageerror', e => errors.push(`pageerror (pad): ${e.message}`));
+    await q.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const slot2 = `hq${Date.now() % 100000}`;
+    await q.goto(guardUrl(`${BASE}/?emu&slot=${slot2}`, 'e2e-highrise-daily'));
+    await q.evaluate(s2 => { localStorage.setItem(`na:${s2}:profile`, JSON.stringify({ name: 'HDPAD', color: 'pink', avatar: 'bolt' })); localStorage.setItem('nd:entered', '1'); }, slot2);
+    await q.reload();
+    await q.waitForFunction(s2 => !document.getElementById('boot') && !!window.__arcade && !!(JSON.parse(localStorage.getItem(`na:${s2}:me`) || 'null') || {}).pid, { timeout: 40000 }, slot2);
+    const pid2 = await q.evaluate(s2 => JSON.parse(localStorage.getItem(`na:${s2}:me`)).pid, slot2);
+    await ref(`ppriv/${pid2}/at`).set(WEEK_AGO);
+    const Q = { ev: js => q.evaluate(js), waitFor: async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await q.evaluate(js)) return true; } catch { /* navigating */ } await sleep(60); } return false; } };
+    const openRun = async () => { await q.evaluate(() => { window.__hiDailyRun = null; window.__hiDaily = null; return import('/js/store.js').then(m => m.setState({ daily: { v: 'run', id: 'highrise' } })); }); await q.waitForFunction(() => !!window.__hiDailyRun && !!window.__hiDaily && !!document.querySelector('.dy-run .hi-play'), { timeout: 30000 }); await sleep(600); };
+    const RUN = 'window.__hiDailyRun', HD = 'window.__hiDaily';
+    await openRun();
+    await installPad(Q);
+    await padPress(Q, BTN.a);
+    ok(await Q.waitFor("window.__pad.said.includes('🎮 CONNECTED')", 20000) && await Q.ev(`${RUN}.state() === 'idle' && ${HD}.pad().wired && ${HD}.pad().n === 0`), 'THE CONTROLLER (daily): the first press → "🎮 CONNECTED" — and nothing else (the one shot is not started by it)');
+    await sleep(300);
+    await padPress(Q, BTN.a);
+    ok(await Q.waitFor(`${RUN}.state() === 'count' || ${RUN}.state() === 'live'`, 20000), 'THE CONTROLLER (daily): A = TAP TO START → the 3 · 2 · 1');
+    await q.waitForFunction(() => window.__hiDailyRun.state() === 'live' && window.__hiDaily.state().st === 'slide', { timeout: 15000 });
+    const legA = await Q.ev(`${RUN}.leg()`);
+    await padRunChecks(Q, ok, '__hiDaily', { n: 4, label: 'daily', touchSel: '.dy-run .hi-play' });
+    const afterBtn = await Q.ev(`({ state: ${RUN}.state(), left: ${RUN}.leg().left, path: ${RUN}.leg().path, floor: ${HD}.state().floor })`);
+    ok(afterBtn.state === 'live' && afterBtn.left === legA.left && afterBtn.left === 3 && afterBtn.path === legA.path, `START (+ B, BACK, the D-pad) in the daily: NO HOLD SPENT — still live on leg 0 with ${afterBtn.left} holds`);
+    // ‹ BACK mid-run = a hold; the run opened again: A on its welcome = RESUME
+    await q.evaluate(() => document.querySelector('.dy-run > .dy-back').click());
+    await q.waitForFunction(() => !document.querySelector('.dy-run'), { timeout: 15000 });
+    await sleep(1200);
+    await openRun();
+    ok(await Q.ev(`${RUN}.state() === 'idle' && ${HD}.pad().wired`), '‹ BACK = a hold; the run opened again: its welcome, the pad wired at once (no second CONNECTED)');
+    await padPress(Q, BTN.a);
+    ok(await Q.waitFor(`!!${RUN}.leg() && /\\/1$/.test(${RUN}.leg().path)`, 20000), 'THE CONTROLLER (daily): A = RESUME — a hold, leg 1');
+    await q.waitForFunction(() => window.__hiDailyRun.state() === 'live' && window.__hiDaily.state().st === 'slide', { timeout: 20000 });
+    const legB = await Q.ev(`({ left: ${RUN}.leg().left, floor: ${HD}.state().floor })`);
+    ok(legB.left === 2 && legB.floor === afterBtn.floor, `… 2 holds left, the tower as it was (${legB.floor} floors)`);
+    const dB = await padDrop(Q, '__hiDaily');
+    ok(!!dB && dB.after === dB.before + 1 && dB.last === tickOfStamp(dB.stamp, dB.pad.t0), '… and the pad drops on, at the press\'s own tick (the resumed leg\'s clock)');
+    await padPress(Q, BTN.start);
+    ok(await Q.ev(`${RUN}.state() === 'live' && ${RUN}.leg().left === 2 && !${HD}.held()`), '… START again: nothing — 2 holds still');
+    ok(await Q.ev("window.__pad.said.filter(t => t === '🎮 CONNECTED').length === 1"), '"🎮 CONNECTED" was said ONCE');
+    // the fuse ends it → the end card: B = BACK TO THE DAILIES
+    await q.waitForFunction(() => { const c = document.querySelector('.dy-run .dy-hr-end'); return c && c.dataset.floors != null && !!c.querySelector('[data-pad="b"]'); }, { timeout: 60000 });
+    const endP = await q.evaluate(() => { const c = document.querySelector('.dy-run .dy-hr-end'); return { floors: Number(c.dataset.floors), phone: window.__hiDaily.result(), log: window.__hiDaily.log(), seed: window.__hiDaily.seed(), b: c.querySelector('[data-pad="b"]').textContent, a: !!c.querySelector('[data-pad="a"]') }; });
+    const JP = judgeRun({ seed: endP.seed, mode: 'daily', taps: endP.log });
+    ok(JP.ok && JP.floor === endP.phone.floor && JP.holds === 1 && endP.floors === endP.phone.floor, `REPLAY = LIVE with a pad's taps + the hold: the judge's ${JP.floor} floors = the phone's = the SERVER's card (${endP.floors})`);
+    ok(/BACK TO THE DAILIES/.test(endP.b) && !endP.a, 'the end card: B = BACK TO THE DAILIES; no A control (ONE SHOT — no PLAY AGAIN)');
+    await padPress(Q, BTN.a); await sleep(400);
+    ok(await Q.ev("!!document.querySelector('.dy-run .dy-hr-end')"), '… A does nothing there');
+    await padPress(Q, BTN.b);
+    ok(await Q.waitFor("!document.querySelector('.dy-run')", 15000), '… B → back to the dailies');
+    await ctx2.close();
+  }
 } catch (e) { bad++; console.log('FATAL', e && e.stack || e); }
 finally {
   await browser.close();

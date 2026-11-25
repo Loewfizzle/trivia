@@ -6,6 +6,10 @@
 //   · THE END = the console's podium frame (ui/final.js) with this game's body (final.js); PLAY AGAIN = the console's INSTANT AGAIN
 //   · an UNPROVEN run (GO refused / unanswered: no signal, the rules not yet re-published) still PLAYS — on a seed of its own, never
 //     counted — and ends on the stage's own card (NOT COUNTED — NO LINE TO THE BOARD)
+//   · HIGH RISE PAD + GO: THE SOLO GO = go.js#soloGo (THE MATCH's PATTERN: up to 7 tries, the server's copy read again, ≤ 9 s — a late
+//     answer still PROVES the run); a run that goes on UNPROVEN says so ON SCREEN for as long as it is on ("NOT COUNTED — NO CONNECTION"
+//     when the line gave no answer) + on its end card. THE CONTROLLER = the stage's own wiring (stage.js — kit/gamepad.js's wirePad): A = a
+//     tap; here only the end cards' marks (the stage's own way out = B; the podium's marks wait RETRY-long before a press counts)
 // JAYWALK's view.js is the pattern (docs/jaywalk.md "THE SOLO GAME" · "THE MATCH"). S4A = THE SOLO RUN.
 // S4B — THE MATCH (docs/highrise.md "THE MATCH"): 3 · 2 · 1 · GO — every phone writes its own GO (a TRANSACTION, never applied locally);
 // THE FIRST GO among the proof nodes picks the seed + tick 0 for everyone (match.js#startOf: THE NODES ARE THE TRUTH); the same chunks
@@ -36,10 +40,19 @@ import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
 import { cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY, TABLE_KEEP_MS, parseTable } from './lines.js';
 import { createStage, newSeed } from './stage.js';
+import { soloGo, GO_WAIT_MS } from './go.js';
+import { layersOpen } from '../../ui/layers.js';
 import { finLine } from '../../ui/fin-neon.js';   // (CITY PART 2 — THE REVIEW: the in-match OUT card's words through THE END NEON too)
 
-/** GO's answer is waited this long before a run goes on UNPROVEN (never a stuck start) */
-export const GO_WAIT_MS = 4000;
+/** GO's answer is waited this long before a run goes on UNPROVEN (never a stuck start) — go.js: 9 s of tries now, not one 4 s wait */
+export { GO_WAIT_MS };
+/** an UNPROVEN run's words — on screen while it is on (the stage's quiet line) + its end card's reason: the LINE gave no answer · anything
+ *  else (the rules refused it, this match's one GO is spent) */
+export const NOT_COUNTED = Object.freeze({ net: 'NOT COUNTED — NO CONNECTION', line: 'NOT COUNTED — NO LINE TO THE BOARD' });
+export const notCounted = why => (why === 'no answer' ? NOT_COUNTED.net : NOT_COUNTED.line);
+/** THE CONTROLLER: the podium's A / B marks (ui/final.js's data-pad) count a press only this long after it shows — a rhythm's next press
+ *  never wipes the end screen unread (the stage's own card waits the same: stage.js#RETRY_MS) */
+export const PAD_ARM_MS = 600;
 /** the podium is waited this long after a proven run's end before the stage's own card says NO SIGNAL (never a frozen screen) */
 export const FINAL_WAIT_MS = 6000;
 /** a match is over (the host's step) while this phone's own tower still climbs: the podium waits for its end at most this long */
@@ -86,13 +99,14 @@ const drv = {
   onHide: () => { if (cur) cur.hide(); },   // (THE REVIEW: the last second's taps go up as the page is hidden — never left for the return)
   onWatchTap: () => { if (cur && cur.watchTap) cur.watchTap(); },
   onWatchPick: u => { if (cur && cur.watchPick) cur.watchPick(u); },
+  padOk: () => layersOpen() === 0,   // (THE CONTROLLER: a press with a sheet open — the ☰ menu, HOW TO PLAY — is never a drop under it)
   friends: () => (cur ? cur.friends() : []),
 };
 
 export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '';
-  let final = null, finalWrap = null, leaveBtn = null, goTimer = 0, finalTimer = 0, finalSeen = 0, friends = [];
+  let final = null, finalWrap = null, leaveBtn = null, goTimer = 0, finalTimer = 0, finalSeen = 0, friends = [], whyNot = '', padArm = 0;
   // the match (S4B)
   let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, rowsKey = '', lateGo = false, missed = false;
   let outCard = null, outAt = 0, outRes = null, callEl = null, callLine = '', callDone = false, liveRuns = null, followUid = '', followPick = '', pickAny = '', watchKey = '', countNames = null;
@@ -164,33 +178,38 @@ export function createView() {
       const stale = () => done || gone || m !== matchId;
       const fin = G => { done = true; clearTimeout(goTimer); started = true; res(G); };
       const proof = (goAt, chunks) => {
-        // (a GO that landed AFTER this run went on unproven: this match's one GO is spent — the next run here plays unproven too,
-        //  never on a minutes-old GO)
-        if (stale()) { if (!gone && m === matchId) spent = true; return; }
+        if (stale()) return;
         const old = chunks ? tapsFromChunks(chunks) : null;
-        go = goAt; proven = true; W.reset({ sent: old ? old.length : 0, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks }); wroteE = false;
+        go = goAt; proven = true; whyNot = ''; W.reset({ sent: old ? old.length : 0, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks }); wroteE = false;
         fin({ seed: seedOf(code, matchId, go), t0: perfOf(go), taps: old || [] });
       };
-      /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never counted */
-      const unproven = why => { if (stale()) return; if (why === 'refused') refused(); go = 0; proven = false; W.reset(); fin({ seed: newSeed(), t0: performance.now(), taps: [] }); };
+      /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never
+       *  counted, and SAYS SO for as long as it is on (the stage's quiet line — `note`). This match's one GO is SPENT with it: a GO still in
+       *  the air lands when the line is back — the next run on this card never waits 9 s again, and never starts on a minutes-old GO */
+      const unproven = why => { if (stale()) return; if (why === 'refused') refused(); go = 0; proven = false; spent = true; whyNot = why; W.reset(); fin({ seed: newSeed(), t0: performance.now(), taps: [], note: notCounted(why) }); };
       if (spent || matchLeft()) { unproven('again'); return; }
       clearTimeout(goTimer);
-      goTimer = setTimeout(() => unproven('no answer'), GO_WAIT_MS);
       // a refresh / a rejoin mid-run: the run so far is in the node — READ FROM THE SERVER (never this phone's mirror: while a GO of its
       // own is unacknowledged the mirror holds the phone's ESTIMATE of the server's time — the seed is never picked from an estimate)
       const runs = runsNow(), node = runs ? runs[uid] : null;
       if (node && node.go > 0) {
+        goTimer = setTimeout(() => unproven('no answer'), GO_WAIT_MS);
         dbGet(dbRef(nodePath())).then(snap => { const n = snap.val(); if (n && n.go > 0 && !n.e) proof(n.go, n.c); else unproven('again'); }).catch(() => unproven('again'));
         return;
       }
-      expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet');
-      // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js; THE CONSOLE FIX: the GO behind its answer)
-      stampT0(treePath(), 'highrise').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
-        const v = snap.val();
-        if (typeof v === 'number' && v > 0) { proof(v, null); writeRs(); } else unproven('no go');
-      }).catch(() => {
-        // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
-        dbGet(dbRef(nodePath())).then(snap => { const n = snap.val(); if (n && n.go > 0 && !n.e) proof(n.go, n.c); else unproven('refused'); }).catch(() => unproven('refused'));
+      // HIGH RISE PAD + GO — THE SOLO GO (go.js): THE STAMP + the GO, tried again GO_TRY_MS apart when refused (the match's pattern), the
+      // server's copy of the node read again while an answer is owed — all inside GO_WAIT_MS; a late answer still PROVES the run
+      // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO; THE GO GUARD: no GO once the run stopped waiting)
+      soloGo({
+        write: () => {
+          expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet', GO_WAIT_MS + 6000);
+          return stampT0(treePath(), 'highrise').then(() => (stale() ? Promise.reject(new Error('the run stopped waiting')) : dbSet(dbRef(path), serverTimestamp())));
+        },
+        read: () => dbGet(dbRef(nodePath())).then(snap => snap.val()),
+        now: () => performance.now(), timer: (fn, ms) => { goTimer = setTimeout(fn, ms); }, stale: () => gone || m !== matchId,
+      }).then(r => {
+        if (r.go > 0) { const fresh = !r.c; proof(r.go, r.c); if (fresh) writeRs(); }
+        else if (r.why !== 'left') unproven(r.why);
       });
     });
   }
@@ -395,7 +414,7 @@ export function createView() {
 
   /** the end card's moment: a PROVEN run ends on the console's podium (it comes with the host's step); an UNPROVEN one on the stage's own card */
   function end() {
-    if (!proven) { showLeave(); return { own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' }; }
+    if (!proven) { showLeave(); return { own: true, note: notCounted(whyNot) }; }   // (HIGH RISE PAD + GO: the reason, said plainly — NO CONNECTION when the line gave no answer)
     clearTimeout(finalTimer);
     // (the end has not reached the room — no signal: never a frozen screen; the run is in the node / the queue and counts when it lands)
     finalTimer = setTimeout(() => { if (!gone && !final && S) { S.showCard('NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK'); showLeave(); } }, FINAL_WAIT_MS);
@@ -406,7 +425,7 @@ export function createView() {
   function showLeave() {
     if (leaveBtn || !S) return;
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
-    leaveBtn = h('button.hi-leave', { type: 'button', 'data-press': '', onclick: () => { leaveBtn.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leaveBtn && leaveBtn.classList.remove('is-busy')); } }, soloRoom ? 'BACK HOME' : 'BACK TO THE ROOM');
+    leaveBtn = h('button.hi-leave', { type: 'button', 'data-press': '', 'data-pad': 'b', onclick: () => { leaveBtn.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leaveBtn && leaveBtn.classList.remove('is-busy')); } }, soloRoom ? 'BACK HOME' : 'BACK TO THE ROOM');
     S.el.append(leaveBtn);
   }
   /** the console's podium frame; its body = this game's end screen (final.js#finalScene) */
@@ -421,6 +440,11 @@ export function createView() {
     final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}` }) })), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'HIGH RISE · SOLO' : 'HIGH RISE · MATCH', mode: solo ? 'SOLO' : 'MATCH', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
     finalWrap = h('div.hi-final', final.el);
     S.el.classList.add('is-final'); S.el.append(finalWrap);
+    // THE CONTROLLER: the podium's A / B marks count only PAD_ARM_MS after it shows (the marks are put back then — the kit presses what it finds)
+    const marks = [...finalWrap.querySelectorAll('[data-pad]')].map(el => [el, el.getAttribute('data-pad')]);
+    for (const [el] of marks) el.removeAttribute('data-pad');
+    clearTimeout(padArm);
+    padArm = setTimeout(() => { for (const [el, k] of marks) if (el.isConnected) el.setAttribute('data-pad', k); }, PAD_ARM_MS);
   }
   function sync() {
     const g = st && st.game;
@@ -460,7 +484,7 @@ export function createView() {
     holdsRun,
     update(state) { st = state; sync(); },
     unmount() {
-      gone = true; clearTimeout(goTimer); clearTimeout(finalTimer); clearInterval(pumpIv);
+      gone = true; clearTimeout(goTimer); clearTimeout(finalTimer); clearTimeout(padArm); clearInterval(pumpIv);
       if (callEl) { callEl.remove(); callEl = null; }
       if (S && started && !S.state().over) flush(true);   // (a QUIT mid-run: what was dropped is in the proof)
       W.close();   // (… what is logged leaves now, in order; nothing is tried again once the view is gone)

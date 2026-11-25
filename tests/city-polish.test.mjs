@@ -64,11 +64,11 @@ test('a SOLO end screen\'s way out reads HOME (the house icon stays); a match ke
   assert.match(f, /finIcon\('room'\), h\('span', 'ROOM'\)\);/);
 });
 
-test('THE CONTROLLER MARK (the owner\'s Nov 24 7:20 pm entry): ONE flag a game in metas.js, ONE svg; JAYWALK on, HIGH RISE not yet', async () => {
+test('THE CONTROLLER MARK (the owner\'s Nov 24 7:20 pm entry): ONE flag a game in metas.js, ONE svg; JAYWALK on, HIGH RISE on since HIGH RISE PAD + GO', async () => {
   const { META } = await import('../js/games/metas.js');
   assert.equal(META.jaywalk.CONTROLLER, true);
-  assert.ok(!META.highrise.CONTROLLER, 'HIGH RISE has no wirePad yet — its own chat sets the flag');
-  for (const [id, row] of Object.entries(META)) if (row.CONTROLLER) assert.match(read(`js/games/${id}/view.js`), /wirePad/, `${id}: the flag only with a wired pad`);
+  assert.equal(META.highrise.CONTROLLER, true, 'HIGH RISE PAD + GO (Nov 24): its pad is wired — in its STAGE (the one module the cartridge, the daily + the test page mount)');
+  for (const [id, row] of Object.entries(META)) if (row.CONTROLLER) assert.match(read(`js/games/${id}/view.js`) + (id === 'highrise' ? read('js/games/highrise/stage.js') : ''), /wirePad\(\{/, `${id}: the flag only with a wired pad`);
   assert.match(read('js/ui/components.js'), /^  pad: svg\('/m, 'the ONE mark (ICONS.pad)');
   const t = read('js/screens/title-taps.js');
   assert.match(t, /function padOk\(g\) \{ return !!\(META\[g\.id\] && META\[g\.id\]\.CONTROLLER === true\); \}/);

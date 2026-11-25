@@ -78,7 +78,9 @@ test('THE LANDING FRAME: the slab + its sound now — the moments, the number, t
   assert.match(body(n, '  function fall(r, floor, dx, dz, whole) {'), /let i = jobSlot\(J_SPARKS\)/, 'the spark burst later (the piece itself drawn with the slab)');
   assert.match(n, /runJobs\(\);   \/\/ \(S4A FIX 2/, 'the jobs run at the next draw');
   assert.match(n, /for \(let k = 0; k < PIECES; k\+\+\) \{ QQ\.setFromEuler\(EU\.set\(0\.1 \* k, 0, 0\.05 \* k\)\); put\(GOLD, QQ, null\); \}/, 'PREWARM: the falling pieces\' turned boxes in the warm frame');
-  assert.match(n, /const upRange = \(a, off, cnt\) => \{ const u = a\._updateRange; if \(u && cnt > 0\) \{ u\.offset = off; u\.count = cnt; \} a\.needsUpdate = true; \};/, 'three\'s kept range record — addUpdateRange makes one a call');
+  // (HIGH RISE PAD + GO: nothing to send = NO upload — the attribute is not even marked)
+  assert.match(n, /const upRange = \(a, off, cnt\) => \{ if \(cnt <= 0\) return; const u = a\._updateRange; if \(u\) \{ u\.offset = off; u\.count = cnt; \} a\.needsUpdate = true; \};/, 'three\'s kept range record — addUpdateRange makes one a call');
+  assert.doesNotMatch(n, /\.addUpdateRange\(/, '… and never addUpdateRange (it allocates)');
   assert.match(n, /upRange\(boxes\.instanceMatrix, 0, nb \* 16\); upRange\(aColor, 0, nb \* 3\); upRange\(aFx, 0, nb \* 4\); upRange\(aUp, 0, nb \* 4\);/);
   assert.match(n, /upRange\(spO, spLo \* 3, spCount \* 3\)/); assert.doesNotMatch(body(n, '  function spark(x, y, z, vx, vy, vz, life, size, c) {'), /needsUpdate/, 'a spark no longer sends the whole buffer');
   assert.match(n, /for \(const m of scene\.children\) \{ m\.updateMatrix\(\); m\.matrixAutoUpdate = false; \}\n  scene\.matrixAutoUpdate = false; scene\.matrixWorldAutoUpdate = false;/, 'a static scene');

@@ -74,7 +74,8 @@ export function createNight(host, o = {}) {
   /** THE ON-PHONE TRACE (S4A FIX 2 — `?trace=1`: trace.js): the frame's phases inside the scene (the flyers · the render · the bloom); null = off */
   const TRC = o.trace || null;
   const reduce = o.reduce != null ? !!o.reduce : (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
-  const devDpr = Math.min(window.devicePixelRatio || 1, 3);
+  // (HIGH RISE PAD + GO — `dprMax`: the TEST PAGE's `&dpr=2` only — the pixel ratio capped there at every tier; 0 / none = the device's, as ever)
+  const devDpr = Math.min(window.devicePixelRatio || 1, o.dprMax > 0 ? o.dprMax : 3);
   const renderer = new THREE.WebGLRenderer({ antialias: devDpr < 2, powerPreference: 'high-performance' });
   renderer.info.autoReset = false;   // (a frame = the picture + the bloom's passes: counted together)
   const el = renderer.domElement;
@@ -296,7 +297,8 @@ export function createNight(host, o = {}) {
 
   // ONE RANGE OF AN ATTRIBUTE TO THE GPU (S4A FIX 2): three's own kept range record (`_updateRange` — its `addUpdateRange()` makes a new
   // record at every call: garbage in a frame); a three without it sends the whole buffer, as before
-  const upRange = (a, off, cnt) => { const u = a._updateRange; if (u && cnt > 0) { u.offset = off; u.count = cnt; } a.needsUpdate = true; };
+  // (HIGH RISE PAD + GO: NOTHING to send (`cnt` ≤ 0) = NO upload at all — it used to mark the attribute anyway and three re-sent its last range)
+  const upRange = (a, off, cnt) => { if (cnt <= 0) return; const u = a._updateRange; if (u) { u.offset = off; u.count = cnt; } a.needsUpdate = true; };
   // THE LANDING FRAME's LATER JOBS (S4A FIX 2 — the owner's iPhone: a stall after a touch, the UFO jumping at every landing): the frame a
   // slab lands draws ONLY what must be instant — the slab snapped into place (+ the overhang it lost, beside it: the same box, one
   // record) and its flash; its sound started in the touch itself. A perfect's RING, grow-back's, and a cut's SPARK BURST are JOBS for the
