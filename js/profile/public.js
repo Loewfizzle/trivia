@@ -14,22 +14,33 @@ function changed() {
 }
 
 export function watchRoomProfiles(players) {
+  keepPlayers(players);
   const want = new Set(Object.values(players || {}).map(p => p && p.pid).filter(p => typeof p === 'string' && /^p[a-z2-9]{11}$/.test(p)));
   for (const [pid, off] of subs) if (!want.has(pid)) { off(); subs.delete(pid); delete pubs[pid]; changed(); }
+  last = want;
   for (const pid of want) {
     if (subs.has(pid)) continue;
     try {
-      subs.set(pid, onValue(dbRef(`profiles/${pid}`), s => { const v = s.val(); if (v) pubs[pid] = v; else delete pubs[pid]; changed(); }, () => {}));
+      // (THE CITY POLISH PASS — S8: a profile is readable by its owner + a player SEATED IN THE SAME ROOM (seats/{pid}/code — database.rules.json);
+      //  a read refused before both seats landed is asked again a moment later (a few times), never left dead)
+      subs.set(pid, onValue(dbRef(`profiles/${pid}`), s => { tries.delete(pid); const v = s.val(); if (v) pubs[pid] = v; else delete pubs[pid]; changed(); }, () => {
+        subs.delete(pid);
+        const n = (tries.get(pid) || 0) + 1; tries.set(pid, n);
+        if (n <= 6) setTimeout(() => { if (last.has(pid) && !subs.has(pid)) watchRoomProfiles(lastPlayers); }, 1500 * n);
+      }));
     } catch { /* offline / not ready: the next player update retries */ }
   }
 }
+let last = new Set(), lastPlayers = null;
+const tries = new Map();
+const keepPlayers = players => { lastPlayers = players; };
 
 /** The public profile behind a room player node ({ name, pid, … }), or null. */
 export const pubOf = player => (player && player.pid && pubs[player.pid]) || null;
 
 export function stopRoomProfiles() {
   for (const off of subs.values()) off();
-  subs.clear();
+  subs.clear(); tries.clear(); last = new Set(); lastPlayers = null;
   for (const k of Object.keys(pubs)) delete pubs[k];
   changed();
 }

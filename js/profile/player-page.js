@@ -36,7 +36,7 @@ let open = null;
 onCloseAll(() => { if (open) open.close(); });
 
 /** the query the server takes: a pid, a board row ({ b, bid }), or a board id */
-const queryOf = t => (t.pid ? { pid: t.pid } : t.b && t.bid ? { b: t.b, bid: t.bid } : t.id ? { id: t.id, ...(t.dg ? { dg: t.dg } : {}) } : null);   // (FIXES R2: dg = the daily whose TODAY list the row came from)
+const queryOf = t => (t.pid ? { pid: t.pid } : t.bid ? { bid: t.bid, ...(t.b ? { b: t.b } : {}) } : t.id ? { id: t.id, ...(t.dg ? { dg: t.dg } : {}) } : null);   // (THE CITY POLISH PASS: a lone bid = a row of YOUR friends list — the server finds it there)   // (FIXES R2: dg = the daily whose TODAY list the row came from)
 
 export async function openPlayer(target = {}, o = {}) {
   const row = target.row || o.row || {}, extra = (o.extra || target.extra || []).filter(Boolean), report = o.report || target.report || null;   // (CITY H2: THE BOARD's REPORT — in MORE)

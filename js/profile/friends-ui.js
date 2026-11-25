@@ -146,25 +146,25 @@ export function knockCards() {
   const el = h('div.fr-knocks', { 'aria-label': 'Friend requests', hidden: true });
   let sig = null, surface = null;
   const paintNow = S => {
-    const hid = knockHidden(), list = ((S && S.in) || []).filter(c => c && c.pid && !hid.has(c.pid)).slice(0, 3);
-    const k = list.map(c => `${c.pid}|${c.n}|${c.cd || ''}|${c.l || ''}`).join(',');
+    const hid = knockHidden(), list = ((S && S.in) || []).filter(c => keyOf(c) && !hid.has(keyOf(c))).slice(0, 3);
+    const k = list.map(c => `${keyOf(c)}|${c.n}|${c.cd || ''}|${c.l || ''}`).join(',');
     if (k === sig) return;
     sig = k;
     if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; }
     el.hidden = !list.length;
-    el.replaceChildren(...list.map(c => h('div.fr-knock', { dataset: { pid: c.pid } },
+    el.replaceChildren(...list.map(c => h('div.fr-knock', { dataset: { pid: keyOf(c) } },
       h('div.fr-knock-k', h('span', 'A FRIEND REQUEST')),
-      h('button.fr-knock-card', { type: 'button', 'data-press': true, 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) },
+      h('button.fr-knock-card', { type: 'button', 'data-press': true, 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ ...targetOf(c), row: c })).catch(() => {}) },
         h('span.fr-knock-ph', String(c.n || 'MEMBER').toUpperCase())),
       h('div.fr-knock-acts',
-        tubeButton('NOT NOW', { kind: 'secondary', size: 'sm', cls: 'fr-knock-later', onClick: () => hideKnock(c.pid) }),
+        tubeButton('NOT NOW', { kind: 'secondary', size: 'sm', cls: 'fr-knock-later', onClick: () => hideKnock(keyOf(c)) }),
         tubeButton('ACCEPT', { kind: 'secondary', size: 'sm', cls: 'fr-knock-acc',   /* (THE SHELL: one pink MAIN a screen — YOUR card's CUSTOMIZE) */ onClick: act('accept', c, `You and ${c.n} are friends`) })))));
     if (!list.length) return;
     const mine = k;
     stripKit().then(K => {
       if (sig !== mine) return;
       surface = K.liveList(el, { label: 'knock' });
-      list.forEach((c, i) => { const slot = el.querySelector(`.fr-knock[data-pid="${c.pid}"] .fr-knock-card`); if (!slot) return; const st = stripFor(K, c); slot.replaceChildren(st.el); stripFx(K, surface, st, i + 1); });
+      list.forEach((c, i) => { const slot = el.querySelector(`.fr-knock[data-pid="${keyOf(c)}"] .fr-knock-card`); if (!slot) return; const st = stripFor(K, c); slot.replaceChildren(st.el); stripFx(K, surface, st, i + 1); });
       el.dataset.strips = String(list.length);
     }).catch(() => {});
   };
@@ -210,12 +210,15 @@ export async function openAddLink(code) {
   return s;
 }
 
+// (THE CITY POLISH PASS — S8: a request / a sent one / a block carries the board id, never a stranger's pid: every row's key + target by keyOf)
+const keyOf = c => (c && (c.pid || c.bid)) || '';
+const targetOf = c => (c.pid ? { pid: c.pid } : { bid: c.bid });
 const act = (kind, c, okMsg) => async () => {
-  try { await friendDo(kind, { pid: c.pid }); if (okMsg) toast(okMsg, 'ok'); }
+  try { await friendDo(kind, targetOf(c)); if (okMsg) toast(okMsg, 'ok'); }
   catch (e) { toast(why(e), 'warn'); }
 };
 function reqRow(c) {
-  return h('div.fr-row.is-req', { dataset: { pid: c.pid } }, face(c), who(c), h('span.fr-acts',
+  return h('div.fr-row.is-req', { dataset: { pid: keyOf(c) } }, face(c), who(c), h('span.fr-acts',
     tubeButton('ACCEPT', { kind: 'main', size: 'sm', cls: 'fr-acc', onClick: act('accept', c, `You and ${c.n} are friends`) }),
     tubeButton('DECLINE', { kind: 'secondary', size: 'sm', cls: 'fr-dec', onClick: act('decline', c) })));
 }
@@ -264,7 +267,7 @@ function friendRow(c) {
     h('button.fr-more', { type: 'button', 'aria-label': `More for ${c.n}`, onclick: () => openMore(c) }, h('span', { 'aria-hidden': 'true' }, '⋯')));
 }
 function sentRow(c) {
-  return h('div.fr-row.is-sent', { dataset: { pid: c.pid } }, face(c), who(c), h('span.fr-acts',
+  return h('div.fr-row.is-sent', { dataset: { pid: keyOf(c) } }, face(c), who(c), h('span.fr-acts',
     tubeButton('CANCEL', { kind: 'secondary', size: 'sm', cls: 'fr-cancel', confirm: 'TAP AGAIN', onClick: act('cancel', c) })));
 }
 function recentRow(c) {

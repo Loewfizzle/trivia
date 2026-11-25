@@ -1476,7 +1476,7 @@
         "nk"
       ],
       "$pid": {
-        ".read": "auth != null"
+        ".read": "auth != null && (root.child('uids/' + auth.uid).val() === $pid || (root.child('seats/' + $pid + '/code').exists() && root.child('seats/' + $pid + '/code').val() === root.child('seats/' + root.child('uids/' + auth.uid).val() + '/code').val()))"
       }
     },
     "uids": {
@@ -1570,7 +1570,7 @@
     },
     "pfr": {
       "$pid": {
-        ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid"
+        ".read": false
       }
     },
     "lb": {

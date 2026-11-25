@@ -3106,10 +3106,17 @@ test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER 
   // …and a FRIEND REQUEST from that name: the house nickname in the other player's list
   await profileAction('u-pp-s', { action: 'friendAdd', pid: k.pid }, '', later);
   const fl = await profileAction('u-pp-k', { action: 'friends' }, '', later);
-  const req = (fl.in || []).find(c => c.pid === s.pid);
+  const req = (fl.in || []).find(c => c.bid === boardId(s.pid));
   assert.ok(req, 'the request arrived');
   assert.equal(req.n, houseNick(boardId(s.pid)).n, 'a request from a rude name: the house nickname');
-  await profileAction('u-pp-k', { action: 'friendDecline', pid: s.pid }, '', later).catch(() => {});
+  // THE CITY POLISH PASS — S8: a request names its sender by the BOARD ID only — never the pid (nor in the sender's own sent list)
+  assert.equal(req.pid, undefined, 'S8: no pid on a request');
+  assert.ok(!JSON.stringify(fl.in).includes(s.pid) && !JSON.stringify(fl.out || []).includes(s.pid), 'S8: the pid nowhere in the lists');
+  const sl = await profileAction('u-pp-s', { action: 'friends' }, '', later);
+  assert.ok((sl.out || []).some(c => c.bid === boardId(k.pid)) && !JSON.stringify(sl.out).includes(k.pid), 'S8: the sent list by board id only');
+  // …and the action goes by that board id (found in YOUR OWN list on the server) — the player page opens from it too
+  const dec = await profileAction('u-pp-k', { action: 'friendDecline', bid: req.bid }, '', later);
+  assert.ok(dec.ok && dec.pid === undefined && !(dec.state.in || []).some(c => c.bid === req.bid), 'DECLINE by the board id: done, and the answer names no pid');
   await ref(`profiles/${s.pid}/n`).set('STAR'); forgetPlayers();
   // a hidden player → only what a room shows (name + emblem), no card, no achievements
   await profileAction('u-pp-h', { action: 'show', on: false }, '', later);

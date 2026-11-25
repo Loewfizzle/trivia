@@ -19,7 +19,7 @@ import { topRows, publicName, boardId } from './lb.js';
 import { ownerCounts, pctOf } from './owners.js';
 import { ACH_ROWS, ITEM_ROWS, wornCardName } from './catalog.js';
 import { boardDef, OVERALL_IDS } from '../../js/core/boards.js';
-import { relOf } from '../../js/core/friends.js';
+import { relOf, fresh } from '../../js/core/friends.js';
 import { bandOf } from '../../js/core/levels.js';
 import { rarestThree, flameOf } from '../../js/core/player.js';
 import { DAILIES } from '../../js/config.js';
@@ -80,10 +80,17 @@ export async function pidOfQuery(body = {}, now = Date.now()) {
   return pid;
 }
 
+/** THE CITY POLISH PASS — a board id in the caller's OWN lists (friends · in · out · blocked · recent) → its pid, else null: the friends
+ *  list's rows carry no stranger's pid, so an ACCEPT / DECLINE / CANCEL / UNBLOCK names the row by its board id — never a lookup of anyone else's */
+export async function pidInMyLists(me, bid, now = Date.now()) {
+  const A = (await val(`pfr/${me}`)) || {}, X = fresh(A, now);
+  for (const m of [X.f, X.in, X.out, X.b, A.rp]) for (const p of Object.keys(m || {})) if (isPid(p) && boardId(p) === bid) return p;
+  return null;
+}
 export async function playerAnswer(uid, body = {}, now = Date.now()) {
   if (!(await take(`pv_${String(uid).replace(/[.#$[\]/]/g, '_')}`, PLAYER_LIMIT.max, PLAYER_LIMIT.windowMs, now))) throw new ApiError(429, 'slow_down', 'Too many looks — wait a minute.');
   const me = await pidOf(uid);   // (a viewer with no profile yet still sees the page — rel 'none')
-  const pid = await pidOfQuery(body, now);
+  const pid = (await pidOfQuery(body, now)) || (me && /^[0-9a-f]{16}$/.test(String(body.bid || '')) ? await pidInMyLists(me, String(body.bid), now) : null);   // (THE CITY POLISH PASS: a row of YOUR friends list — its board id)
   if (!pid) throw new ApiError(404, 'no_profile', 'That player isn’t here.');
   const part = await partOf(pid, now);
   if (!part) throw new ApiError(404, 'no_profile', 'That player isn’t here.');

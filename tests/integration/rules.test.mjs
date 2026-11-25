@@ -107,7 +107,26 @@ test('THE VAULT 2B: a member number + the counter + the dev cards — written by
     await assertFails(set(ref(db('stranger'), path), v), `a stranger writes ${path}`);
   }
   await assertFails(get(ref(db('me'), 'members')), 'the counter is the server only');
-  await assertSucceeds(get(ref(db('stranger'), 'profiles/pme')));   // (a profile is readable one at a time — its № with it, like its tag)
+  await assertSucceeds(get(ref(db('me'), 'profiles/pme')));   // (its owner reads it — THE CITY POLISH PASS: a stranger no longer does: S8)
+  await assertFails(get(ref(db('stranger'), 'profiles/pme')), 'S8: a stranger reads a profile by its pid')
+});
+
+// THE CITY POLISH PASS — S8 (review-nov22): a stranger must never learn another player's pid NOR read a profile by one. profiles/{pid} is
+// readable by its OWNER and by a player SEATED IN THE SAME ROOM (seats/{pid}/code — the room's slim cards + name tags, live); the S8 proof — a
+// signed-in stranger with a profile of their own, a guest with none, a player in ANOTHER room, signed out — all REFUSED
+test('S8: profiles/{pid} — the owner + a room-mate (the same seat code) read it; a stranger, another room, a guest, signed out: REFUSED', async () => {
+  await seed({ uids: { me: 'pme', mate: 'pmate', other: 'pother', stranger: 'pstr' }, profiles: { pme: { n: 'ME', mn: 7, t: '4821' }, pmate: { n: 'MATE' } },
+    seats: { pme: { code: 'ABCD', uid: 'me', at: 1 }, pmate: { code: 'ABCD', uid: 'mate', at: 1 }, pother: { code: 'WXYZ', uid: 'other', at: 1 } } });
+  await assertSucceeds(get(ref(db('me'), 'profiles/pme')), 'the owner');
+  await assertSucceeds(get(ref(db('mate'), 'profiles/pme')), 'a room-mate (the same seat) — the room cards stay live');
+  await assertSucceeds(get(ref(db('me'), 'profiles/pmate')), 'and the other way round');
+  await assertFails(get(ref(db('other'), 'profiles/pme')), 'S8 REFUSED: a player seated in ANOTHER room');
+  await assertFails(get(ref(db('stranger'), 'profiles/pme')), 'S8 REFUSED: a signed-in stranger with a profile, seated nowhere');
+  await assertFails(get(ref(db('guest'), 'profiles/pme')), 'S8 REFUSED: a guest with no profile');
+  await assertFails(get(ref(db(null), 'profiles/pme')), 'S8 REFUSED: signed out');
+  await assertFails(get(ref(db('me'), 'profiles')), 'never the whole list');
+  await assertFails(get(ref(db('stranger'), 'pfr/pme')), 'S8 REFUSED: the friends list (its keys are pids)');
+  await assertFails(get(ref(db('stranger'), 'seats/pme')), 'S8 REFUSED: where someone sits');
 });
 
 // PROGRESSION A: XP, levels, the streak, the items, the achievements, the owners' counts, the FOUNDER switch, the dailies, the outage —
@@ -128,10 +147,10 @@ test('PROGRESSION A: pstats (xp · it · ac · st · pa · dl · fv), pcount, pr
 
 // FRIENDS A: pfr/{pid} (friends, requests in + out, blocks, recently played with, waiting invites) — the SERVER writes it (/api); its owner
 // may read it, another player never (not even a friend); the invite notifications' subscriptions (ppriv/{pid}/ps) server-only
-test('FRIENDS A: pfr/{pid} — the owner reads their own, another player never; nobody writes it (not even their own)', async () => {
+test('FRIENDS A: pfr/{pid} — the server only (THE CITY POLISH PASS: not even its owner by socket); nobody writes it (not even their own)', async () => {
   await seed({ uids: { me: 'pme', pal: 'ppal' }, pfr: { pme: { f: { ppal: 1 }, in: { pxx: 1 }, b: { pzz: 1 }, rp: { ppal: 1 }, inv: { ppal: { r: 'ABCD', ca: 1, at: 1, until: 2 } } }, ppal: { f: { pme: 1 } } },
     ppriv: { pme: { ps: { k: { endpoint: 'https://fcm.googleapis.com/x' } } } } });
-  await assertSucceeds(get(ref(db('me'), 'pfr/pme')));
+  await assertFails(get(ref(db('me'), 'pfr/pme')), 'THE CITY POLISH PASS — S8: the SERVER only now (its keys are pids — the list comes from /api, which names a stranger by the board id)');
   await assertFails(get(ref(db('pal'), 'pfr/pme')), 'a friend reads my list');
   await assertFails(get(ref(db('stranger'), 'pfr/pme')), 'a stranger reads my list');
   await assertFails(get(ref(db(null), 'pfr/pme')), 'signed out');
@@ -1241,7 +1260,8 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
   await seed({
     ...lobbyRoom(),
     profiles: { pmike0000000: { n: 'Mike', nk: 'mike', t: '4821', a: 'bolt', c: 'cyan', x: 300, r: 1, at: 1 } },
-    uids: { host: 'pmike0000000' },
+    uids: { host: 'pmike0000000', p2: 'pp2000000000' },
+    seats: { pmike0000000: { code: 'ABCD', uid: 'host', at: 1 }, pp2000000000: { code: 'ABCD', uid: 'p2', at: 1 } },   // (THE CITY POLISH PASS — S8: a room-mate reads a face: both seated in ABCD)
     pstats: { pmike0000000: { xp: 300, g: { cipher: { p: 3, w: 1 } } } },
     ppriv: { pmike0000000: { kh: 'abc', nameAt: 0 } },
     pkeys: { abc: 'pmike0000000' },
@@ -1250,8 +1270,9 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
     results: { ABCD_m1: { st: 'done' } },
     audit: { a1: { act: 'hide' } },
   });
-  // public: names, tags, emblems (the lobby and chat show them)
+  // a ROOM-MATE's face: names, tags, emblems (the lobby and chat show them) — THE CITY POLISH PASS (S8): a room-mate, never a stranger
   await assertSucceeds(get(ref(db('p2'), 'profiles/pmike0000000')));
+  await assertFails(get(ref(db('nobody'), 'profiles/pmike0000000')), 'S8: a signed-in stranger');
   // BNAME: one profile at a time, signed in; never the whole list (a dump of every typed name), never signed out
   await assertFails(get(ref(db(null), 'profiles/pmike0000000')), 'not without signing in');
   await assertFails(get(ref(db('p2'), 'profiles')), 'never the whole list');

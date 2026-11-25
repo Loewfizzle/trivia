@@ -43,7 +43,21 @@ function adopt(r) {
   save(); emit();
 }
 
-const inList = (k, pid) => !!(S && (S[k] || []).some(c => c.pid === pid));
+// (THE CITY POLISH PASS — S8: a request / a sent one / a block carries no pid — its `ph` = sha256(YOUR pid : theirs) (api/_lib/friends.js#pairHash);
+//  a pid this phone already holds (a room-mate's node) is hashed once, async, and its button repaints when the hash lands)
+const PH = new Map();
+function phOf(pid) {
+  const me = myPid();
+  if (!me || !pid) return null;
+  const k = `${me}:${pid}`;
+  if (PH.has(k)) return PH.get(k);
+  PH.set(k, null);
+  try {
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)).then(d => { PH.set(k, [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16)); emit(); }).catch(() => {});
+  } catch { /* no subtle crypto: by pid only */ }
+  return null;
+}
+const inList = (k, pid) => { if (!S) return false; const ph = phOf(pid); return (S[k] || []).some(c => c.pid === pid || (ph && c.ph === ph)); };
 export function relOf(pid) {
   if (!pid) return null;
   if (pid === myPid()) return 'self';

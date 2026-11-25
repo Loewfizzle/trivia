@@ -7,7 +7,7 @@ import { ApiError } from './http.js';
 import { take } from './limit.js';
 import { isPid, publicProfile } from './profiles.js';
 import { boardId, publicName, publicFaces } from './lb.js';
-import { pidOfQuery } from './player.js';
+import { pidOfQuery, pidInMyLists } from './player.js';
 import { boardDef } from '../../js/core/boards.js';
 import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive, tablePids } from '../../js/core/friends.js';
 import { sendPush, okEndpoint, vapid } from './push.js';
@@ -17,6 +17,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { countsOn, streakDay } from '../../js/core/streak.js';
 
 const node = async pid => (await val(`pfr/${pid}`)) || {};
+/** THE CITY POLISH PASS — S8: the viewer-salted pair hash a list row carries in place of a stranger's pid (js/profile/friends.js#pairHash — the same) */
+export const pairHash = (me, other) => createHash('sha256').update(`${me}:${other}`).digest('hex').slice(0, 16);
 const fail = (status, why) => { throw new ApiError(status, why, FR_WHY[why] || why); };
 
 /** a player as THEIR FRIENDS see them: the card's public face (+ bid, so THE BOARD's rows can show FRIENDS / REQUESTED) */
@@ -46,7 +48,11 @@ export async function friendsState(pid, now = Date.now()) {
   //  NICKNAME on the requests + the blocked, as THE BOARD shows it; your friends + the players you shared a room with keep their names)
   // (THE FIX PASS — S8: a card that is NOT an accepted friend never carries the tag digits or the member Nº — a friend request to any board
   //  row answered with that stranger's `t` + `mn`; the slim card draws without them)
-  const nick = list => list.map(c => stranger({ ...c, n: publicName(c.bid, c.n) }));
+  // (THE CITY POLISH PASS — S8's pid: a request / a sent request / a block may be a STRANGER from a board row — their card carries the board id,
+  //  NEVER the pid; an action on it goes by that board id, found in YOUR OWN lists (pidInMyLists). Friends + the players you shared a room with
+  //  keep theirs — the room already showed it)
+  //  (`ph` = sha256(YOUR pid : theirs) — a phone that already holds their pid (a room-mate's node) matches its own row; a stranger can't reverse it)
+  const nick = list => list.map(c => { const { pid: _p, ...face } = stranger({ ...c, n: publicName(c.bid, c.n) }); void _p; return { ...face, ph: pairHash(pid, c.pid) }; });
   const inn = nick(inn0), out = nick(out0), blocked = nick(blocked0);
   // (BOARD 2.0 B — THE FRIENDS LIST as slim cards, by THIS WEEK's XP: each FRIEND's week counter (pstats/{pid}/xw — the OVERALL board's own number), the
   //  friends only — never a request, a block or a suggestion; the existing read, no new function)
@@ -89,6 +95,7 @@ export async function friendDo(me, body, now = Date.now()) {
   const kind = KINDS[body.action];
   if (!kind) fail(400, 'bad_action');
   let other = isPid(body.pid) ? String(body.pid) : null;
+  if (!other && /^[0-9a-f]{16}$/.test(String(body.bid || ''))) other = await pidInMyLists(me, String(body.bid), now);   // (a row of YOUR list: its board id)
   if (!other && (body.bid || body.id)) other = await pidOfQuery({ b: body.b, bid: body.bid, id: body.id, dg: body.dg }, now);
   if (!other && body.code) other = await pidOfLink(body.code);   // (CITY C — THE ADD-ME LINK: the code → its owner, on the server only)
   if (!other) fail(404, 'no_profile');

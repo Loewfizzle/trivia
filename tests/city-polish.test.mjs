@@ -75,3 +75,15 @@ test('THE CONTROLLER MARK (the owner\'s Nov 24 7:20 pm entry): ONE flag a game i
   assert.match(t, /'One phone per player\. Play solo now, or open a room for friends\.'/);
   assert.match(t, /games\.some\(padOk\) \? h\('p\.sh-note\.is-small\.nd-shelf-pad', padMark\(\), h\('span', 'Controller ready — pair a Bluetooth or USB controller to play\.'\)\) : null/);
 });
+
+test('S8 — the friends API names a stranger by the BOARD ID: requests, sent, blocked carry no pid; an action finds a board id in YOUR OWN lists', () => {
+  const f = read('api/_lib/friends.js'), pl = read('api/_lib/player.js');
+  assert.match(f, /const nick = list => list\.map\(c => \{ const \{ pid: _p, \.\.\.face \} = stranger\(/);
+  assert.match(f, /const inn = nick\(inn0\), out = nick\(out0\), blocked = nick\(blocked0\);/);
+  assert.match(f, /other = await pidInMyLists\(me, String\(body\.bid\), now\);/);
+  assert.match(pl, /export async function pidInMyLists\(me, bid, now = Date\.now\(\)\) \{/);
+  const ui = read('js/profile/friends-ui.js');
+  assert.match(ui, /const targetOf = c => \(c\.pid \? \{ pid: c\.pid \} : \{ bid: c\.bid \}\);/);
+  const pub = read('js/profile/public.js');
+  assert.match(pub, /if \(n <= 6\) setTimeout\(/, 'a face refused before both seats landed is asked again');
+});

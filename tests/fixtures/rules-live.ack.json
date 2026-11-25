@@ -1,4 +1,4 @@
 {
- "hash": "85ededb7b6b17654",
- "line": "RULES CHANGED: rooms/.read (THE ROOM LIST closed — false; the stale-room sweep is the server's) · rooms/{CODE}/.write (an idle room deleted only by a SEATED player) — RE-PUBLISH database.rules.json in the Firebase console (DownloadsNEONdatabase.rules.nov22-fix.json)"
+ "hash": "4b28512302ea47f2",
+ "line": "RULES CHANGED: profiles/{pid}/.read (THE CITY POLISH PASS — S8: its owner + a player seated in the same room only) · pfr/{pid}/.read (the server only) — and still the Nov 22 fix pass's rooms/.read + rooms/{CODE}/.write — RE-PUBLISH database.rules.json in the Firebase console (Downloads\\NEON\\database.rules.nov24-polish.json)"
 }
