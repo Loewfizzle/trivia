@@ -7,6 +7,9 @@
 //   3. WARM — the same build again: the count this pass is about (it was ~330: every file re-asked)
 //   4. A DEPLOY — the build id changes + one file's content (a marker): the new code is on screen at once, no page error, no mixed graph
 //   5. WARM after the deploy — the new build's copies
+//   THE CITY POLISH PASS — THE BOOT HANG: the deploy's visit asks the edge only for what CHANGED (+ the page + its /api); --slowcarry <ms> slows
+//   every carried copy (an iPhone's store: the carry outlasts the boot) — the count must stay small; --slowold adds the pre-pass path (each miss
+//   waited for the WHOLE carry, then the network: ~300 files re-fetched — the Nov 22 boot hang's 313)
 //   node tests/integration/wk-edge.mjs [--upstream http://localhost:5173] [--json out.json]   (serve.mjs --emu + the emulators)
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
@@ -71,6 +74,8 @@ const warm2 = await visit('3b WARM again');
 // (THE FIX PASS: the deploy's changed file changes its HASH too — THE CARRY (CITY A) moves every file whose hash held, so a rig that changed
 //  config.js but not its line in file-hashes.json carried the OLD copy (this check was red on the old code) · and the same marker in the
 //  boot bundle's copy of config.js (+ its hash) for a --qs &bundle=1 run)
+const SLOW = Number(opt('slowcarry', 0)), SLOW_OLD = argv.includes('--slowold');
+if (SLOW || SLOW_OLD) await p.evaluate(([ms, old]) => navigator.serviceWorker.controller.postMessage({ t: 'ns:test-slow-carry', ms, old }), [SLOW, SLOW_OLD]);
 const H0 = JSON.parse(fs.readFileSync(new URL('../../file-hashes.json', import.meta.url), 'utf8')).files;
 line.set({ build: 'f6e5d4c3b2a1', rules: [
   { re: /^\/js\/config\.js$/, prepend: 'globalThis.__deployB = 1;\n' },
@@ -86,6 +91,7 @@ const stillNew = await p.evaluate('globalThis.__deployB === 1');
 ok(cold.up && fill.up && warm.up && dep.up && after.up, 'the city reached its reveal on every visit');
 ok(warm.static <= 10 && warm2.static <= 10, `a WARM visit asks the edge for ≤ 10 static files (${warm.static} + ${warm2.static}; the worker served ${warm.sw && warm.sw.hits} from its copy) — every file was re-asked before`);
 ok(newCode && stillNew, `A DEPLOY: the new code on screen at once (${newCode}) and on the warm visit after it (${stillNew})`);
+ok(dep.static <= 12, `THE CARRY: the deploy's visit asked the edge for ${dep.static} static files (≤ 12 — the changed ones + the page; the worker carried ${dep.sw && dep.sw.carried}, answered ${dep.sw && (dep.sw.carryHits || 0)} misses from the old build's copy${SLOW ? `; each copy slowed ${SLOW} ms` : ''}${SLOW_OLD ? '; the PRE-PASS path' : ''})`);
 ok(dep.sw && dep.sw.build === 'f6e5d4c3b2a1' && dep.sw.fresh >= 1, `the deploy's visit started a fresh build cache (${dep.sw && dep.sw.build}, fresh ${dep.sw && dep.sw.fresh})`);
 const allErr = visits.flatMap(v => v.errors);
 ok(mixed.length === 0 && allErr.length === 0, `no mixed graph, no page error on any visit (${[...mixed, ...allErr].slice(0, 3).join(' · ') || 'none'})`);

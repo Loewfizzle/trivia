@@ -15,7 +15,7 @@ import { loadProfile } from './identity.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, LOCKED_PROOF_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
-import { lazyImport } from './ui/lazy-import.js';
+import { lazyImport, reloadNowIfQueued } from './ui/lazy-import.js';
 import { nightPoints } from './core/night.js';
 
 // SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
@@ -48,12 +48,33 @@ setHostGone(lostHostRecently);
 // CITY PART 1 — THE WAKE HOLD + THE ONE HOST-WRITE GATE (a stalled host's mirror is as old as the stall): docs/harbor.md "THE WAKE HOLD"
 export const STALL_GAP_MS = 5000, WAKE_QUIET_MS = 30_000;
 let lastTickWall = 0, hiddenAt = 0, wokeAt = 0, wake = null;   // wake: { code, host (the mirror's hostId at the wake), ok: null|true|false, at, asking }
+// (THE CITY POLISH PASS — THE PLAY BOUNCE: the stall clock is THIS ROOM's — a new code (or none) resets it, so time on the title is never read as
+//  a stall at the next room's first tick; a wake for another room is dropped)
+let tickCode = null;
+function syncStallClock() {
+  if (state.code === tickCode) return;
+  tickCode = state.code; lastTickWall = 0; hiddenAt = 0;
+  if (wake && wake.code !== state.code) { wake = null; wokeAt = 0; }
+}
 export const justWoke = () => wokeAt > 0 && Date.now() - wokeAt < WAKE_QUIET_MS;
 setWoke(justWoke);
 const inRoom = () => !!(state.code && state.uid && state.players && state.players[state.uid]);
 function woke(why) {
   wokeAt = Date.now();
   wake = { code: state.code, host: state.meta && state.meta.hostId, ok: null, at: 0, asking: false, why };
+}
+// (THE PLAY BOUNCE: a start held ONLY by a pending wake check waits for its round trip — ~3 s, one retry — never a silent false)
+const wakePending = () => !!(wake && wake.code === state.code && wake.ok == null && isHost() && inRoom());
+async function writeOkSoon() {
+  for (let round = 0; round < 2; round++) {
+    const end = Date.now() + 3000;
+    while (Date.now() < end) {
+      if (hostWriteOk()) return true;
+      if (!wakePending()) return false;
+      await new Promise(r => setTimeout(r, 120));
+    }
+  }
+  return hostWriteOk();
 }
 /** THE ONE HOST-WRITE GATE: the mirror says host, this phone still seated, and no wake check pending (the mirror fresh) */
 export function hostWriteOk() {
@@ -92,10 +113,11 @@ function idleClose() {
 }
 export const idleAsking = () => !!idleAsk;   // (tests)
 export const wakeState = () => (wake ? { ...wake } : null);   // (tests)
-if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt >= STALL_GAP_MS && isHost()) woke('back on screen'); });
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { syncStallClock(); if (document.visibilityState === 'hidden') hiddenAt = state.code ? Date.now() : 0; else if (hiddenAt && Date.now() - hiddenAt >= STALL_GAP_MS && isHost()) woke('back on screen'); });
 function tick() {
   // (PERF-A — Grok 5.4: the same player open in two tabs ran two host loops; the tab that yields (identity.js#watchDuplicateTabs) is idle)
   if (state.dupTab) return;
+  syncStallClock();   // (THE PLAY BOUNCE: the stall clock never compares across room codes)
   if (!state.code || !state.meta || !state.uid) return;
   { const w = Date.now(); if (lastTickWall && w - lastTickWall >= STALL_GAP_MS && isHost()) woke(`a stall of ${((w - lastTickWall) / 1000).toFixed(1)} s`); lastTickWall = w; }   // (CITY PART 1: THE WAKE HOLD — before the connection check: a phone waking with a dead socket still knows)
   if (!state.connected) return;
@@ -303,7 +325,8 @@ export function startGame(gameId, settings, { quick = false, solo = false, inPla
 async function startGameNow(gameId, settings, quick = false) {
   lazyImport(import('./games/preload.js'), './games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (FRIENDS C — THE SLOW-3G START: its whole graph at once)
   const mod = await loadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap; FRIENDS C: its whole graph at once)
-  if (!mod || !hostWriteOk()) return false;   // (CITY PART 1: the one host-write gate)
+  if (!mod) return false;
+  if (!hostWriteOk() && !(await writeOkSoon())) return false;   // (CITY PART 1: the one host-write gate — THE PLAY BOUNCE: a pending wake check is waited for)
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
   // (FR7 FIXES A — B2: THE INITIATE GUARD — never a new game over the match the room is still playing; core/room-logic.js#gameRunning)
@@ -388,7 +411,11 @@ async function playSoloNow(gameId, settings) {
     if (!ready) throw new Error('network');
     const meta = metaOf(gameId) || await loadGame(gameId).catch(() => null);
     const ok = await startGame(gameId, soloSettings(meta, settings), { solo: true });   // (PD-6: the button's mode, cleaned for one player)
-    if (!ok) { await leaveRoom().catch(() => {}); return false; }
+    if (!ok) {   // (THE PLAY BOUNCE: never a silent bounce — and a cartridge a deploy broke = the ONE reload now, the next tap plays)
+      toast('COULDN’T START — TAP PLAY AGAIN', 'err'); await leaveRoom().catch(() => {});
+      if (!GAME_MODULES[gameId]) await reloadNowIfQueued().catch(() => false);
+      return false;
+    }
     return true;
   } catch (e) {
     if (state.code && isSoloMeta(state.meta)) await leaveRoom().catch(() => {});

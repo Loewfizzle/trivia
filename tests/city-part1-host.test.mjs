@@ -32,7 +32,7 @@ test('THE WAKE HOLD + THE ONE GATE: a tick gap >= 5 s (or a 5 s hide) holds ever
   assert.ok(h.indexOf('woke(`a stall of') < h.indexOf('if (!state.connected) return;'), 'the wake is seen before the connection check (a dead socket still knows)');
   // every host write: the beat, the director, a dead start's clear, the solo hold, a start, a rematch, the walk back — through the gate
   for (const re of [/if \(!hostWriteOk\(\)\) return;   \/\/ \(THE ERRORS GROUP: checked again right before the write/, /if \(!hostWriteOk\(\)\) return;   \/\/ \(THE ERRORS GROUP: a newer hostId/,
-    /clearedGo === go\.m \|\| !hostWriteOk\(\)\) return;/, /!state\.code \|\| !game \|\| !hostWriteOk\(\) \|\| !soloRoom\(game\)/, /if \(!mod \|\| !hostWriteOk\(\)\) return false;/,
+    /clearedGo === go\.m \|\| !hostWriteOk\(\)\) return;/, /!state\.code \|\| !game \|\| !hostWriteOk\(\) \|\| !soloRoom\(game\)/, /if \(!hostWriteOk\(\) && !\(await writeOkSoon\(\)\)\) return false;/,
     /if \(!hostWriteOk\(\) \|\| !\(state\.game \|\| \(back && back\.g\)\)\) return Promise\.resolve\(false\);/, /export async function backToLobby\(\) \{\n  if \(!hostWriteOk\(\) \|\| !state\.code\) return;/]) assert.match(h, re);
   // the ROOM STAMP self-check: the re-publish blame only for a confirmed host IN the room
   assert.match(h, /if \(justWoke\(\) \|\| !isHost\(\) \|\| !inRoom\(\) \|\| \(wake && wake\.ok === false\)\) \{ lazyImport\(import\('\.\/errlog\.js'\), '\.\/errlog\.js'\)\.then\(m => m\.countQuiet && m\.countQuiet\('not-host'\)\)/);

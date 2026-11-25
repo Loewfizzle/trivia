@@ -93,6 +93,18 @@ export function weakDevice(nav) {
   const hc = Number(nav.hardwareConcurrency) || 0, dm = Number(nav.deviceMemory) || 0;
   return (hc > 0 && hc <= 2) || (dm > 0 && dm <= 4);
 }
+/** THE CITY POLISH PASS — THE SCHOOL CHROMEBOOKS (/admin Nov 24: three ChromeOS Chromebooks — 4 cores, 8 GB, 1366 × 768 @ 1 — each stalled
+ *  ~1.6 s right after the reveal at tier 2, frame work p95 176 ms): a LOW-CORE DESKTOP — ChromeOS or desktop Linux / Windows Chrome (never a
+ *  phone, never an iPhone / iPad / Mac), ≤ 4 cores, a pixel ratio ≤ 1.25 — starts ONE TIER LOWER on its first visit (scene.js remembers it:
+ *  `na:tier`; the guard's step up still climbs after steady frames). PURE. */
+export function lowCoreDesk(nav, dpr = 1) {
+  if (!nav) return false;
+  const ua = String(nav.userAgent || '');
+  if (/iPhone|iPad|iPod|Android|Mobile|Macintosh/.test(ua) || ((nav.maxTouchPoints || 0) > 1 && !/CrOS/.test(ua))) return false;
+  if (!/CrOS|Linux|Windows/.test(ua) || !/Chrome\//.test(ua)) return false;
+  const hc = Number(nav.hardwareConcurrency) || 0;
+  return hc > 0 && hc <= 4 && Number(dpr) > 0 && Number(dpr) <= 1.25;
+}
 /** CITY F — the weak device's backing store at the lowest tier: the city drawn at ≤ WEAK_MP megapixels (never under WEAK_FLOOR ×) and
  *  scaled up by the browser — a 1600 × 1200 screen draws at ≈ 0.72 ×, a 1366 × 768 one at ≈ 0.98 ×, a phone at its tier's own 1 × */
 export const WEAK_MP = 1.0, WEAK_FLOOR = 0.6;

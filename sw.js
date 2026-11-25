@@ -33,7 +33,7 @@ const LIVE_FRESH_MS = 3e3, VERIFY_MS = 2500, ASK_MS = 700, PIN_KEEP_MS = 10e3;
 // ONE DEPLOY AT A TIME still holds: a page only ever runs one build's code), and only the changed files come over the network. The old cache is
 // dropped once the carry is done. /audio: a song is kept BY ITS URL (its name + music.js#REV) in its own cache — fetched whole once (music.js's
 // prefetch), the media element's range requests answered from that copy — never downloaded again per deploy; a new REV replaces it.
-const HASH_URL = '/file-hashes.json', AUDIO = 'na-audio-v1', CARRY_WAIT_MS = 2500;
+const HASH_URL = '/file-hashes.json', AUDIO = 'na-audio-v1', CARRY_WAIT_MS = 2500, NET_STALL_MS = 12000;
 const carries = new Map();   // new build cache → the running carry (a miss waits for it, bounded)   // (a miss trusts a build answer ≤ 3 s old — a boot's first wave; later misses ask again)
 const CODE_RE = /^\/((js|css)\/|boot-bundle\.json$)/;   // (THE FIX PASS — P6: the boot bundle is pinned to its build like a module — its own build's copy, kept, carried)
 const modes = new Map();      // clientId → Promise<{ mode: 'build' | 'net', cache, v }>
@@ -146,20 +146,44 @@ async function hashesFor(v) {
   for (const k of await m.keys()) { const p = new URL(k.url).pathname; if (p.startsWith('/__hashes/') && p !== hashKey(v)) { const b = p.slice(10); if (!(await caches.has(BUILD_PREFIX + b))) await m.delete(k); } }
   return j.files;
 }
-/** every file of the OLD build whose hash is the same in the NEW build: its copy carried into the new cache → how many */
-async function carryUnchanged(from, to, v) {
-  const t0 = Date.now(), m = await caches.open(META), oldR = await m.match(hashKey(from));
-  if (!oldR || !(await caches.has(BUILD_PREFIX + from))) return 0;
+// THE CITY POLISH PASS — THE BOOT HANG (iPhone Safari, Nov 22 2:00 pm, 7 min after a deploy: 313 files re-fetched, one never came): the carry
+// copied ~313 files ONE AT A TIME and every boot request waited ≤ CARRY_WAIT_MS for the WHOLE carry — on an iPhone's Cache Storage the carry
+// outlasts that wait, so the whole boot went to the network at once while the carry + 313 copies being kept fought over the store. Now a miss
+// asks the LISTS (ready in two reads): an unchanged file is answered from the OLD build's copy at once (and kept into the new cache), a
+// changed one goes straight to the network (no wait at all); the carry itself runs a few files at a time in the background
+const carryLists = new Map();   // new build cache → Promise<{ oldH, newH, src } | null>
+let slowCarry = { ms: 0, old: false };   // (tests on localhost only: each carried copy delayed — an iPhone's store; old = the pre-pass path)
+async function listsFor(from, v) {
+  const m = await caches.open(META), oldR = await m.match(hashKey(from));
+  if (!oldR || !(await caches.has(BUILD_PREFIX + from))) return null;
   const oldH = (await oldR.json()).files || {}, newH = await hashesFor(v);
-  if (!newH) return 0;
-  const src = await caches.open(BUILD_PREFIX + from), dst = await caches.open(to);
+  return newH ? { oldH, newH, src: await caches.open(BUILD_PREFIX + from) } : null;
+}
+/** a miss during a carry: 'same' (+ the old build's copy) · 'changed' (the network, no wait) · null (unknown: wait for the carry as before) */
+async function carryLookup(cache, path, key) {
+  const lp = carryLists.get(cache);
+  if (!lp || slowCarry.old) return null;
+  const L = await within(lp, CARRY_WAIT_MS, null);
+  if (!L) return null;
+  if (!L.oldH[path] || !L.newH[path]) return null;
+  if (L.oldH[path] !== L.newH[path]) return { changed: true };
+  const hit = await within(L.src.match(key), STORE_WAIT_MS, null);
+  return hit ? { hit } : null;
+}
+/** every file of the OLD build whose hash is the same in the NEW build: its copy carried into the new cache → how many */
+async function carryUnchanged(from, to, v, lp = listsFor(from, v)) {
+  const t0 = Date.now(), L = await lp;
+  if (!L) return 0;
+  const { oldH, newH, src } = L, dst = await caches.open(to);
   let n = 0;
-  for (const req of await src.keys()) {
-    const p = new URL(req.url).pathname;
-    if (!oldH[p] || oldH[p] !== newH[p] || await dst.match(req)) continue;
+  const reqs = (await src.keys()).filter(req => { const p = new URL(req.url).pathname; return oldH[p] && oldH[p] === newH[p]; });
+  const one = async req => {
+    if (slowCarry.ms) await wait(slowCarry.ms);
+    if (await dst.match(req)) return;
     const res = await src.match(req);
     if (res) { await dst.put(req, res); n++; }
-  }
+  };
+  for (let i = 0; i < reqs.length; i += 6) await Promise.all(reqs.slice(i, i + 6).map(r => one(r).catch(() => {})));   // (a few at a time)
   stats.carried += n; stats.carryMs = Date.now() - t0;
   return n;
 }
@@ -180,7 +204,9 @@ async function modeFor() {
     } catch { /* polish: the network path still works */ }
     // (CITY A — item 14: THE CARRY first — the unchanged files from the old build's cache — then the old cache goes (unless a page is still on
     //  it). The page's files don't wait for the whole carry: a miss waits for it ≤ CARRY_WAIT_MS, then the network)
-    const c = (held ? carryUnchanged(held, name, v) : hashesFor(v).then(() => 0)).catch(() => 0).then(n => { carries.delete(name); return n; });
+    const lp = held ? listsFor(held, v).catch(() => null) : null;
+    if (lp) carryLists.set(name, lp);
+    const c = (held ? carryUnchanged(held, name, v, lp) : hashesFor(v).then(() => 0)).catch(() => 0).then(n => { carries.delete(name); carryLists.delete(name); return n; });
     carries.set(name, c);
     c.then(() => within(dropUnpinned(name), STORE_WAIT_MS * 2, null)).catch(() => {});
   } else {
@@ -298,7 +324,14 @@ self.addEventListener('fetch', event => {
         try { const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ }
         // (CITY A — item 14: a new build's CARRY still running — the file may be on its way from the old build's cache: wait for it, bounded)
         const cr = carries.get(M.cache);
-        if (cr) { try { await within(cr, CARRY_WAIT_MS, 0); const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ } }
+        const look = cr ? await carryLookup(M.cache, url.pathname, key).catch(() => null) : null;   // (THE BOOT HANG: the lists first — never the whole carry)
+        if (look && look.hit) {
+          stats.hits++; stats.carryHits = (stats.carryHits || 0) + 1; stats.mode = 'build';
+          const copy = look.hit.clone();
+          event.waitUntil(within(caches.open(M.cache).then(c => c.match(key).then(x => x || c.put(key, copy))), STORE_WAIT_MS * 2, null));
+          return toPage(look.hit);
+        }
+        if (cr && !(look && look.changed)) { try { await within(cr, CARRY_WAIT_MS, 0); const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ } }
         stats.misses++;
       }
     }
@@ -315,7 +348,14 @@ self.addEventListener('fetch', event => {
     try {
       // (LOAD FIX 3 — THE FREEZE: one failed request among the boot's ~310 module files held the boot screen forever — a Wi-Fi blip gets
       //  ONE more try on the network before the cache's copy, which may be an older deploy's)
-      const net = () => fetch(req, { cache: 'no-cache' });
+      // (THE CITY POLISH PASS — THE BOOT HANG: a module request whose answer never STARTS is given up after NET_STALL_MS and asked once more —
+      //  one stuck request no longer holds the boot until the watchdog; a body already flowing is never cut)
+      const bound = code && req.mode !== 'navigate' && url.pathname !== '/boot-bundle.json';
+      const net = () => {
+        if (!bound) return fetch(req, { cache: 'no-cache' });
+        const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), NET_STALL_MS);
+        return fetch(req, { cache: 'no-cache', signal: ctl.signal }).finally(() => clearTimeout(t));
+      };
       const res = await net().catch(() => new Promise(r => setTimeout(r, 250)).then(net));
       stats.net++; if (req.mode !== 'navigate') stats.mode = M.mode;
       if (res.ok && res.type === 'basic') {
@@ -384,6 +424,8 @@ self.addEventListener('message', e => {
   if (d.t === 'ns:build?') e.waitUntil(Promise.resolve(pageMode(src.id)).then(M => src.postMessage({ t: 'ns:build', v: (M && M.v) || null })).catch(() => {}));
   // (its answer to ns:build-gone: mix = a match on screen — the network's files until its reload; else it reloads now)
   if (d.t === 'ns:build-gone-ans') { const a = asks.get(src.id); if (a) a.r(!!d.mix); else if (d.mix) mixOk.add(src.id); }
+  // (THE BOOT HANG's rig — wk-edge.mjs --slowcarry: an iPhone's slow store, only ever on a local test host)
+  if (d.t === 'ns:test-slow-carry' && /^(localhost|127\.0\.0\.1)$/.test(self.location.hostname)) slowCarry = { ms: Math.max(0, Number(d.ms) || 0), old: !!d.old };
 });
 
 // CITY CONTROLS B — "A ROOM JUST OPENED" (the owner's phone only: api/_lib/push.js sends it — Web Push, a site added to the Home Screen on

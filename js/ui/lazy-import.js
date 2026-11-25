@@ -119,6 +119,20 @@ async function doReload() {
   location.reload();
 }
 
+/** THE CITY POLISH PASS — THE PLAY BOUNCE: a PLAY NOW whose cartridge failed to link after a deploy is a SAFE moment (the city, no match, no
+ *  sheet, the finger up) — the queued ONE reload runs NOW (logged as ever), so the next tap plays on the live build; never a dead tap.
+ *  → true when the page is reloading */
+export async function reloadNowIfQueued() {
+  try { if (busy) await busy; } catch { /* fine */ }
+  if (!pending) return false;
+  let holding = true, gated = true;
+  try { holding = !!hold(); gated = !!gate(); } catch { /* wait */ }
+  if (holding || gated) return false;
+  pending.tag = `${pending.tag} (PLAY NOW: the cartridge could not link)`;
+  doReload();
+  return true;
+}
+
 // PLAY NOW — Group 0a: ONE BUILD PER PAGE (sw.js) — the worker tells this page its build (ns:build) and asks before it leaves it
 // (ns:build-gone: the network moved to another deploy and this page wants a file its build's copy doesn't hold). The answer: no match on
 // screen → `mix: false` + ONE reload now (the file is refused — the page is leaving); a match on screen → `mix: true` (the network's files

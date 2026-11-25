@@ -23,7 +23,7 @@ import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { rngFrom, hashString } from '../../core/rng.js';
-import { tierVal, budgetDpr, weakDevice, weakDpr } from '../../core/harbor-tiers.js';
+import { tierVal, budgetDpr, weakDevice, weakDpr, lowCoreDesk } from '../../core/harbor-tiers.js';
 import { LIVE_ROOMS } from '../../core/harbor-moments.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../../core/palette.js';
@@ -208,6 +208,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   //  &weakdev=1 (a test keeps the tier it was given); a tier a test sets by hand (setTier) still wins
   const weak = (() => { try { return (!navigator.webdriver || new URLSearchParams(location.search).has('weakdev')) && weakDevice(navigator); } catch { return false; } })();
   if (weak) tier0 = 0;
+  // (THE CITY POLISH PASS — THE SCHOOL CHROMEBOOKS: a low-core desktop Chrome (core/harbor-tiers.js#lowCoreDesk) starts ONE tier lower on its
+  //  FIRST visit, before the first bake — remembered (`na:tier`), so it never pays the tier-2 stall first; under automation only with &lowdesk=1)
+  const lowDesk = !weak && !tierMem && (() => { try { return (!navigator.webdriver || new URLSearchParams(location.search).has('lowdesk')) && lowCoreDesk(navigator, window.devicePixelRatio || 1); } catch { return false; } })();
+  if (lowDesk && tier0 > 1) { tier0 = 1; if (tierMemOn || /[?&]lowdesk/.test(q)) { try { localStorage.setItem(TIER_MEM, JSON.stringify({ t: 1, at: Date.now(), why: 'low-core desktop' })); } catch { /* fine */ } } }
   // (CITY F: before the reveal nothing is on screen — a weak device's bake takes bigger slices of a frame then, so the first full picture
   //  is ready sooner on one core; after the reveal the tier's own slices, as everywhere)
   const WEAK_PRE_SLICE = 90;
