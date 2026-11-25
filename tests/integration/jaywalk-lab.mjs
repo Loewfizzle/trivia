@@ -1142,12 +1142,19 @@ try {
         rate = r2; slipped = fr[Math.floor(fr.length * 0.75)] || 0;
         if (slipped > 19.5 || (await st(o.p)).tier < 2) break;
       }
+      // (LAST MILE — TIER SWITCHES ONLY AT QUIET MOMENTS: the rule DECIDES in play, the step waits — the canvas untouched — and is made at the
+      //  next quiet moment: here a restart's start line, as a run's end is in the game)
       const end = Date.now() + 40000;
-      while (Date.now() < end && (await st(o.p)).tier > 0) await sleep(250);
+      let pend = -1;
+      while (Date.now() < end && (pend = await o.p.evaluate(() => window.__jwLab.tierPending())) < 0 && (await st(o.p)).tier === 2) await sleep(250);
+      const mid = (await st(o.p)).tier;
+      await o.p.evaluate(() => window.__jwLab.restart());
+      await sleep(1500);
       const seen = (await st(o.p)).tierPath;
       await o.p.emulateCPUThrottling(1);
-      console.log('STEP', JSON.stringify({ cpu: `${rate}×`, p75Ms: +slipped.toFixed(1), tiers: seen }));
-      ok(t0 === 2 && seen.length > 1 && Math.min(...seen) < 2, `THE AUTOMATIC STEP: at ${rate}× CPU the frames slip (p75 ${slipped.toFixed(1)} ms) → the tiers step by themselves: ${seen.join(' → ')}`);
+      console.log('STEP', JSON.stringify({ cpu: `${rate}×`, p75Ms: +slipped.toFixed(1), decidedMidRun: pend, tierMidRun: mid, tiers: seen }));
+      ok(t0 === 2 && pend >= 0 && pend < 2 && mid === 2, `THE AUTOMATIC STEP: at ${rate}× CPU the frames slip (p75 ${slipped.toFixed(1)} ms) → the rule decides a step to tier ${pend} — and WAITS mid-run (the tier still ${mid})`);
+      ok(seen.length > 1 && Math.min(...seen) < 2, `… and the step is made by itself at the next quiet moment (a restart's start line): ${seen.join(' → ')}`);
       rows2.push({ step: { cpu: `${rate}×`, p75Ms: +slipped.toFixed(1), tiers: seen } });
       await o.close();
     }

@@ -1,3 +1,67 @@
-# JAYWALK — LAST MILE (Nov 24 2026)
+# JAYWALK — LAST MILE: THE REUSED START · QUIET TIER SWITCHES · LIGHTER MATCH SYNC · WINTER GROUND · SUN SHADOWS · SMALL GUARDS · THE CROUCH (Nov 24 2026)
 
-(the pass log — written at the close)
+The owner's prompt (Nov 24), from Grok's front-to-back review; his decisions: `docs/games/plan.md` "JAYWALK — LAST MILE"; as built: `docs/jaywalk.md` "LAST MILE" + `docs/harbor.md` "THE PLAY BOUNCE" (the reused start).
+**No rules change.** Course rules, replay, proof (THE STAMP at the tap, GO within 5 s) and `database.rules.json` are untouched; three stays the readable r160 build; the uploads keep `_updateRange`; `DPR_AT` is unchanged; the zero-garbage tests stay green.
+THE ADD-ON INBOX: no open entry for this pass at the start, after each group, or before the final runs. THE CARD LAB: `lab-export` read, 226 marks, no open FIX. Logs + shots: `Downloads\NEON\jaywalk-lastmile\`.
+
+**NOT MEASURED ON AN iPHONE.** Everything ran on the Beelink (Chromium, its Radeon GPU through ANGLE / D3D11). Two results below could not be shown on this machine at all and are the owner's meter to judge: the tier-switch stall (Group 1) and the winter ground's hash table (Group 3).
+
+**Two look changes, both on purpose:** the snow's sparkle is tier 2 only now (tier 1 loses it — the owner's line); the kid crouches while a finger is down.
+
+## GROUP 0 — THE REUSED START (`js/host.js`, shared)
+`startGame` kept its in-flight promise in one module variable, and for the start's walk inside (~2 s for THE SOLO START) after it resolved. PLAY NOW → leave → PLAY NOW inside that window got the LAST room's `true`: no game written, the player on the title in an orphan solo room.
+- The start is its ROOM's now: `core/room-show.js#startLock` (pure) keys it by the room code; it is dropped at a leave (`room.js#onRoomLeft`, called from `leaveRoom` and every `exitRoom`) and at a room-code change (in `syncStallClock`, beside the city pass's `tickCode` reset).
+- `playSoloNow` counts a start only as THIS room's NEW match on screen (1.5 s for the mirror); otherwise the city pass's failed-start path (COULDN'T START — TAP PLAY AGAIN, then the leave).
+- **Proof** (`e2e-play-bounce --only quick --cpu 1`: PLAY NOW → the match written → leave → PLAY NOW again inside 500 ms, 10 rounds): the code before **0 of 10** (every round: `playSolo → true`, match NONE, the title, a room code held); now **10 of 10** on `game:jaywalk:*` in the new room. The leave has to fall inside the first start's walk: once the game screen is up the 2 s have passed (the first version of the test, which waited for the game screen, was green on the old code).
+- Unit: `tests/jaywalk-lastmile.test.mjs` (the lock's behaviour + the wiring).
+
+## GROUP 1 — TIER SWITCHES ONLY AT QUIET MOMENTS
+- `kit/tiers.js` gains an opt-in `quiet: () => bool`. With it, a step the rule decides in play is only remembered (the rule rests: one decision at a time) and made at the next quiet moment; a still screen is never judged (its samples go when play resumes, a probe's clock starts there). `ask(t)` queues a step from outside; `set(t)` (a pin) stays at once. Without `quiet` the rule is step for step the old one: HIGH RISE + HOLD'EM do not opt in (a unit pins it).
+- JAYWALK's view: quiet = the start line / TAP TO START, a match's count, a run's end, while watching, the final screen; the view now ticks the rule on the final screen too, so a step decided in a run's last seconds lands there. The lab the same (`&tierq=0` = at once, the A/B).
+- Tier 2's programs stay warm at any tier: the glow is ONE object for the scene's life, parked at 8 px when unused (it used to be disposed at every end screen and at tier < 2, so every PLAY AGAIN linked its two programs again); a tier-1 start makes it at the warm-up and draws through it once; the sun's depth material is kept and drawn once into a 4 px target at the warm-up.
+- **Proof** (`jaywalk-lab.mjs --smooth=tier`, noon + Dec 24 heavy night, 390 @3, **12 / 12**): a step asked mid-run leaves the tier, the dpr and the canvas alone (worst frame in the 3 s after the ask 17.4 / 17.5 ms); it is made at the start line (tier 1, dpr 2); the run after it links nothing; a step back UP waits the same way and the run after it links NOTHING (0 `linkProgram` calls in its first 3 s, worst frame 17.6 / 17.4 ms).
+- **NOT SHOWN: the stall itself.** On the Beelink the old at-once step (`&tierq=0`) has no long frame either (worst 17.3–17.8 ms): its desktop GPU reallocates the canvas inside a frame. Whether this was the owner's single ~130–190 ms frame is his meter's to say.
+
+## GROUP 2 — THE LIGHTER MATCH SYNC (client only)
+- **The pick: incremental, not a throttle** (a 4 Hz throttle would add up to 250 ms to every ghost's data). A cartridge names its proof trees (`liveTrees` — JAYWALK's `runs`); `room.js#watchLive` mirrors such a tree IN PLACE through `core/room-logic.js#mirrorTree`: each snapshot is only walked — the small leaves re-read, `c` appended (its last two chunks re-read: this phone's own write shows first with an estimated `at`). A hole, a chunk gone or a sparse list = that player's `c` read whole. The same listener, the same events, the same `setState`: nothing arrives later than before. `flushMatchMs`, the write format, the rules and the proof are untouched. HIGH RISE keeps the old mirror (one line to opt in).
+- **Proof:** the mirror deep-equals `val()` after every event of a scripted 4-player match incl. the odd cases (unit; it builds ~9× fewer values at 60 chunks a player, and the gap grows with the tree) · `e2e-jaywalk-match --perf` **114 / 114** (three phones through the whole flow — ghosts, the out banners, Call the Winner, the podium, the server's replay = LIVE for all three, the rematch — then the 4-player match): at the podium every phone's mirror = the database's tree.
+- **The measure** (the host's phone, 4 players, 4× CPU, the same page and match, `__nsLiveStat`): the whole tree rebuilt **0.258 ms an event (1.39 ms a second)** → in place **0.21 ms an event (1.05 ms a second)**, at ~5 events a second and a 3.7–4.7 KB tree (116–148 chunks). **Small here**: the test's lazy bots write far fewer chunks than four people hopping (~8 a second each), and the match was 20 s old. The old cost grows with the tree; the new one does not.
+
+## GROUP 3 — THE WINTER GROUND
+- **The sparkle is tier 2's** (`uQ > 1.5`; `uQ` now carries the tier 0 · 1 · 2).
+- **A baked snow PICTURE was not built:** the same-picture allowance is 2 / 255 on 99.99 % of pixels; a bilinear 8-bit (or half-float) bake of the coverage misses it at any texture size a phone should hold (the fine noise octaves need ~16 texels a lattice cell: 2048 × 4096).
+- **THE HASH TABLE — built, OFF:** the one exact route. The snow's five value noises (20 sin-hashes a pixel) read their lattice hashes from a 256 × 256 half-float table baked once ON THE GPU by the ground's own hash (`seasonal-fx.js#bakeHashTable`, SEA_GLSL `JW_HT`); a phone that can't make the target keeps the sin path. **The picture is the same here:** `--smooth=same` with the table ON against the code before, Dec 3 / Dec 24 / Jan 20, day + night, tier 2: 0.0000 % of pixels differ on 23 of 24 cases (largest 1–2 / 255; the 24th is the come-and-go frame below). **Its speed is not shown:** the Beelink's GPU timer reads the snow scene's main pass at 3.75 ms before and 3.71 ms after (noise). So it ships OFF: `seasonal.js#HASH_TABLE_LIVE = false`, the lab's `&snowht=1` turns it on for the owner's A/B (OPEN FOR BEN 2).
+- The wet-road loop is untouched.
+
+## GROUP 4 — SUN SHADOWS: nothing kept
+- **A 512 × 1024 map:** `--smooth=same:noon` against the code before: 0.88–1.21 % of pixels differ, by up to 95 / 255, on all four tier-2 areas. Visible. Dropped.
+- **The map every 2nd frame:** dropped by arithmetic, not by a capture: cars move 1.3–6.4 cells a second on the v2 course (median 2.9), a cell is ~41 css px at 390, so a shadow drawn one frame late trails its car by 2 css px at the median and 4.4 at the fastest, on every other frame.
+- **Casters limited to on-screen lanes:** the far side is already cut (SMOOTH's `sunCap`: a caster past the last ground the fog leaves visible is not drawn). The near side was not tried: only the few lanes below the screen are laid there, and a low sun's shadows from them reach into view.
+- The cost as it stands (Beelink GPU timer, noon, 390 @3): tier 2 70 draws, main pass 3.24 ms + the sun's target pass 0.21 ms (+ 0.4 ms of its JS); tier 1 40 draws.
+
+## GROUP 5 — SMALL GUARDS
+- **THE GO GUARD** (`kit/proof-writer.js#goBehind`, pure; `view.js#askGo`): the solo GO goes up behind the stamp and the start hold, and only while the run still waits for it (the view not gone, the same match, `mode === 'wait'`). Unit (mock timers): a 2 s stamp + a 2.4 s hold + a 1.8 s round trip still adopt a PROVEN run (the no-answer timer counts from the GO's own write); a player who left, or a run that went unproven meanwhile, writes no GO.
+- **THE VISIBILITY GUARD** (`gl-upload.js#emptyHide`, pure; `night.js#kind().show`): `done()` re-shows only an emptiness it hid itself; `hid` is dropped when the owner sets the visibility (`show()` — the pack's three sites use it) or the mesh is found shown. Unit.
+
+## GROUP 6 — THE CROUCH ON TOUCH (visual only)
+`controls.js#wireControls` reports a press from `pointerdown` until that touch is spent (its hop fired, lifted, cancelled — `pressCount`, pure); `night.js#press` eases a 0.15 squash in (~45 ms) and out (~110 ms) on the player's own standing kid. The hop fires on the release exactly as before; the run, the log and the replay never see it. Never with reduce motion, never for a ghost, off again at every new run.
+
+## THE FINAL RUN (local, the Beelink; own emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`; the code before in a worktree on :5174)
+- unit **2,677 / 2,677**
+- side by side: `e2e-jaywalk` FAST today **122 / 122** · Dec 24 **123 / 123** · `e2e-highrise` FAST (the shared start code) **70 / 70** · `e2e-play-bounce --only quick` **12 / 12**
+- `e2e-jaywalk-match --perf` (the match suite + the 4-player match, once) **114 / 114**
+- **THE SAME PICTURE** (`--smooth=same --ab` the code before; noon · golden · night · autumn · Dec 24 day + night): tiers 2 + 1 of noon, golden, night, autumn and every tier-2 winter case but one: **0.0000 %** (largest 0–2 / 255). Three cases differ:
+  - **Dec 24 day + night, tier 1:** 0.027 % / 0.044 % — the sparkle, removed on purpose.
+  - **Dec 24 noon DOWNTOWN tier 2 (ticks 2400–2405): 0.0551 % in 3 of 6 runs, 0.0000 % in the other 3.** The 1,571 pixels are on two vehicles at the far-left screen edge, under the lab's own panel (the taxi's checker band, a car's top): `Downloads\NEON\jaywalk-lastmile\same\diff\`. The code before against itself: 0.0000 % in 3 of 3. It looks like the snow-on-tops layer landing late on two area-traffic models (a load-timing race in a frozen test frame), **not proven**; the same case is pixel-identical in half the runs on the same code. JAYWALK FINAL logged a come-and-go frame of the same kind at noon DOWNTOWN.
+  - One lab page did not come up in the first full run (the snow tier-1 case threw); it did not repeat in six later runs.
+- `--smooth=tier` **12 / 12** (again on the final code) · `e2e-jaywalk` today **122 / 122** again after the last change (the flush below)
+- `jaywalk-lab.mjs --perf` (once, alone): **165 / 166** — tiers 2 · 1 · 0 at 1× and 4× CPU: 60 fps, worst frame 16.9–17.9 ms, 0 over 33 ms; 63–65 / 32–33 / 32 calls; the GL line at tier 2 4×: bufferSubData 80.2 (79.3 KB) · draws 67.5 · useProgram 24.2 a frame (JAYWALK FINAL's numbers). **The one red was Group 1's own consequence:** THE AUTOMATIC STEP expected the lab's tier to step by itself mid-run at 12× CPU; it now waits. The check follows (the rule decides mid-run, the tier stays, the step lands at a restart's start line) and was proven by a standalone run of the same steps (decided: tier 1 waiting, tier 2 kept; after the restart 2 → 1) — the 20-minute suite was not run a second time.
+- **A gap that check found, fixed:** a quiet moment shorter than one frame (the lab's restart with the bot already hopping) was never seen by the rule's tick, so the waiting step did not land. `tiers.flush(now)` makes it at once; the view's `reset()` (a new run's start line) and the lab's `restart()` call it. Unit.
+- **The GL counter on the three looks** (`--smooth=gl:noon+autumnNight+snowNight --ab` the code before, tier 2, 390 @3, DOWNTOWN): day noon bufferSubData 86.3 → 85.8 · 77 KB · draws 64 → 63.7; autumn night 89.2 → 89.2 · 105 KB · draws 76.8; winter heavy night 89.5 → 89.5 · 110 KB · draws 76.8. Unchanged, as it should be: nothing in this pass touches the per-frame GL work.
+- rules: not touched · `/api`: not touched
+
+## OPEN FOR BEN
+1. RE-PUBLISH: nothing (no rules change).
+2. **THE WINTER GROUND's HASH TABLE — your meter decides.** Open each FRESH, tap straight away, three 10 S TESTs each, phone cool: `https://neonspeakeasy.com/jaywalk-lab.html?cv=2&tod=night&date=2026-12-24&snow=heavy&hud=1` against the same link with `&snowht=1`. Fewer DROPS / a lower BIG with `&snowht=1` = turn it on for everyone (one constant: `seasonal.js#HASH_TABLE_LIVE = true`). The snow should look the same in both.
+3. **Named calls (overrule any):** the tier rule never steps mid-run now, so a phone that slips in a long run stays on its tier until the run ends (your line; `&tierq=0` in the lab is the old way) · PLAY NOW's start waits up to 1.5 s for the match to show before it calls it failed · the crouch is 15 % and is off with reduce motion · the sun-shadow options were all dropped (numbers above).
+4. **The first-run spike:** nothing here proves the tier switch was it (this machine shows no stall either way). The links in the summary are the check.

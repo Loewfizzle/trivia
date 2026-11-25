@@ -279,6 +279,7 @@ export function createView() {
     newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset(); everProven = false;
     cues = createCues(); quiet(); if (night) night.rest(false); if (night) night.press(false);
+    if (tiers && !pinned) tiers.flush(performance.now());   // (LAST MILE: a new run's start line is a quiet moment)
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
     // THE LINES: the best the server last told this phone at once; the table (the server's own, ONE call a run at most) right behind it

@@ -287,3 +287,14 @@ test('SUN SHADOWS: nothing kept — the map is 1024 × 2048, drawn every frame (
   assert.match(n, /const SUN_LAYER = 5, SUN_MAP = \[1024, 2048\], NO_DEPTH = \[36096\];/);
   assert.match(n, /if \(sunReal\) sunPass\(camY\); else if \(SHD && tier < 2\) sunFree\(\);/, 'every frame the sun is real');
 });
+
+test('QUIET TIERS: flush(now) makes the waiting step at a quiet moment shorter than a frame (a new run\'s start line — the view\'s reset, the lab\'s restart)', async () => {
+  const { createTiers } = await import('../js/games/kit/tiers.js');
+  const applied = [];
+  const T = createTiers({ apply: t => applied.push(t), initial: 2, quiet: () => false });
+  T.flush(10); assert.deepEqual(applied, [], 'nothing waits: nothing happens');
+  T.ask(1); assert.equal(T.pending(), 1);
+  T.flush(20); assert.deepEqual(applied, [1]); assert.equal(T.pending(), -1); assert.equal(T.get(), 1);
+  assert.match(src('js/games/jaywalk/view.js'), /if \(tiers && !pinned\) tiers\.flush\(performance\.now\(\)\);/);
+  assert.match(src('js/games/jaywalk/lab.js'), /if \(pin == null && QUIET_TIERS\) tiers\.flush\(performance\.now\(\)\);/);
+});

@@ -167,6 +167,7 @@ async function mount() {
     return null;
   }
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
+    if (pin == null && QUIET_TIERS) tiers.flush(performance.now());   // (LAST MILE: a restart's start line is a quiet moment — it may last less than a frame)
     mode = m; seed = s; course = createCourse(seed, { cv: CV }); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false; tapAt = 0;
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;

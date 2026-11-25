@@ -2871,3 +2871,9 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - **S8 (Group 3):** `profiles/{pid}` owner + room-mate only, `pfr/` server-only, the friends API names strangers by board id.
 - **SMALL ONES (Group 4):** the quiet kinds' ONE list (no TAP rows, no empty rows); HIGH RISE's two reds (see the pass log).
 
+
+## JAYWALK — LAST MILE (Nov 24, 2026 — docs/games/passes/jaywalk-lastmile.md; no rules change)
+- THE REUSED START (`host.js`, `core/room-show.js#startLock`): the start in flight is its ROOM's — reused only for the same room code, dropped at a leave + a code change; PLAY NOW counts a start only as this room's new match on screen (else the message + the leave). `e2e-play-bounce --only quick`: 0 of 10 on the code before, 10 of 10 after.
+- TIER SWITCHES ONLY AT QUIET MOMENTS (`kit/tiers.js` `quiet` — opt-in, JAYWALK only) + tier 2's programs kept warm (`--smooth=tier`).
+- THE LIGHTER MATCH SYNC (`liveTrees` → `core/room-logic.js#mirrorTree`): the proof tree mirrored in place, chunk by chunk.
+- THE WINTER GROUND: the sparkle on tier 2 only; THE HASH TABLE built + OFF. SUN SHADOWS: nothing kept. THE GO GUARD, THE VISIBILITY GUARD, THE CROUCH ON TOUCH.

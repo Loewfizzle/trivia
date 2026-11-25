@@ -1722,6 +1722,11 @@ The pass log: [passes/city-part1.md](harbor/passes/city-part1.md).
   a deploy broke (the module could not link) runs THE SKEW WRAPPER's queued ONE reload at that safe moment (`lazy-import.js#reloadNowIfQueued`
   — the city, no sheet, no match, logged as ever), so the next tap plays on the live build.
 - The mid-match WAKE HOLD is exactly as strict (a tick gap / a ≥ 5 s hide WHILE host of the SAME room).
+- **THE REUSED START (JAYWALK LAST MILE, Nov 24 — docs/games/passes/jaywalk-lastmile.md):** ONE START AT A TIME's promise was module-global too, and
+  stays held for the start's walk inside (~2 s solo) after it resolves — PLAY NOW → leave → PLAY NOW inside that window got the LAST room's `true`
+  and wrote no game (the title in an orphan solo room). The start is now its ROOM's (`core/room-show.js#startLock`: reused only for the same room
+  code; dropped at a leave — `room.js#onRoomLeft` — and at a code change, beside the stall clock's reset); PLAY NOW counts a start only as THIS
+  room's NEW match on screen, else the failed-start path above. `e2e-play-bounce --only quick`.
 - Tests: `tests/play-bounce.test.mjs` (no compare across codes), `e2e-play-bounce.mjs` (bounce · newphone · deploy — Chromium 4× + WebKit; the
   old code woke at every second start and left a dead tap across a deploy).
 
