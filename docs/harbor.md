@@ -649,7 +649,8 @@ size again. `__district.away()`.
 
 ### THE FIRST-VISIT BUNDLE (THE BEFORE-LAUNCH PASS, Nov 22 — the owner's ONE generated file, the preload-graph pattern)
 **THE DECISION (named):** a FIRST visit on a SLOW line boots from ONE file instead of ~300 modules. `node scripts/build-boot-bundle.mjs`
-(after ANY boot module changes — `tests/boot-bundle.test.mjs` fails when stale, like the preload graph's) writes **`/boot-bundle.json`**:
+(after ANY boot module changes — `tests/boot-bundle.test.mjs` fails when stale, like the preload graph's — **until Nov 25: the bundle is now
+BUILT AT DEPLOY, never committed — the section after this one**) writes **`/boot-bundle.json`**:
 THE BOOT PRELOAD's 304 modules (js/app.js + its ENTRIES' static graphs), each REWRITTEN at build time — a static relative import →
 `@ns/<path>`, `import.meta.url` → the module's REAL URL (`__nsMeta`), a dynamic `import(x)` → `__nsI(x)` (a relative x resolved against the
 real URL — a blob URL is no base). **index.html's ONE loader** (an inline classic script where the import map was) fetches it (its bytes
@@ -693,6 +694,33 @@ above are the history; the rules now —
 - Tests: `tests/boot-bundle.test.mjs` (the chooser, the bail, the worker pin, `z`), `e2e-bundle.mjs` (Chromium: no flag = the bundle;
   WebKit: the modules; `?nobundle`), `wk-edge.mjs` (both paths 6/6 — its deploy step now changes the file's HASH too: THE CARRY had carried
   the old config.js, red on the old code).
+
+### THE FIRST-VISIT BUNDLE IS BUILT AT DEPLOY (THE HOUSEKEEPING PASS, Nov 25 — the ONE narrow exception to "no build step")
+**THE DECISION (the owner, Nov 24):** `boot-bundle.json` (6.8 MB) was committed and rewritten on most deploys — 20 copies in four days,
+51 MB of `.git`. It is **no longer committed** (`.gitignore`; history untouched). Everything above about what the bundle IS still holds;
+what changed is WHO writes it:
+- **At deploy — `scripts/deploy-build.mjs`** (vercel.json's `buildCommand`: `node scripts/deploy-build.mjs --prune`; the deploy tags rule,
+  the root as the output and the `/api` install are unchanged). ONE step writes, into the root, the three files that must match:
+  `/boot-bundle.json` · `/index.html` (THE BOOT PRELOAD's block from the same graph + `boot-bundle.json?v=<the bundle's own hash>`) ·
+  `/file-hashes.json` (THE CARRY's list, hashed from the deploy's own bytes, + the bundle's row). `checkDeploy()` holds them against each
+  other before AND after writing (the bundle parses + holds the boot list in order + every `@ns/…` import inside it is in it + `z` = its
+  size; the page's `?v=` = its hash; the list's row = its hash) — anything wrong = exit 1 = **the deploy fails**, the last good one stays
+  live, nothing half ships. `--prune` then removes `scripts/` from the output (`.vercelignore` keeps ONLY the step + the three builders it
+  imports in the build: `/scripts/*` + five `!` lines — `tests/deploy-build.test.mjs` holds that list = the step's import graph).
+- **In git:** the committed `index.html` asks for `boot-bundle.json` with NO `?v=`; the committed `file-hashes.json` has no row for it. A
+  server with no bundle at all (a plain static copy of the repo) = a 404 = the loader's fallback: the modules. "Run
+  `build-boot-bundle.mjs` after ANY boot module change" is GONE — there is nothing to keep current (`build-file-hashes.mjs` after a change
+  under js/ css/ assets/ data/ and `build-boot-preload.mjs` / `build-preload-graph.mjs` after an import change still are).
+- **Locally — `scripts/serve.mjs` answers the same three files FROM MEMORY** through the same `deployFiles()`, rebuilt whenever a boot
+  module, the page or the list changes on disk (≈ 1 s once, then a stat of each file a request): nothing is written to the working tree and
+  a test page never boots a stale bundle. `--raw` = the files as they are on disk; `--root <dir>` = another folder (a deploy's output).
+  `node scripts/build-boot-bundle.mjs` still writes a copy to look at (ignored by git).
+- **THE CRLF TRAP:** every source is read with LF (`build-boot-bundle.mjs#sourceOf`) — a Windows working copy with CRLF builds the same
+  bundle + the same `?v=` as Vercel's LF checkout.
+- **Tests:** `tests/boot-bundle.test.mjs` (deterministic + the whole boot graph, built in the test) · `tests/deploy-build.test.mjs` ·
+  **`tests/integration/deploy-sim.mjs`** = Vercel's step on a clean copy of the tracked files with `.vercelignore` applied (then
+  `serve.mjs <port> --emu --root <dir>` + `E2E_BASE=…` for `e2e-bundle.mjs` / the smoke test) · `BUNDLE_MISSING=1 e2e-bundle.mjs` (no bundle
+  on the server). The pass log: docs/harbor/passes/housekeeping.md.
 
 ### ONE DEPLOY AT A TIME
 
@@ -1345,6 +1373,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | THE BEFORE-LAUNCH PASS | Nov 22 | [passes/before-launch.md](harbor/passes/before-launch.md) | HOST TRUST (PRISM + OVERCLOCK + HOLD'EM, THE REPORT LOCK — rules), THE FIRST-VISIT BUNDLE, the MEMORY red (the idle chain + the WeakMap), the backup's DEEP SLICES, the JPEG link card, the review's before-launch items |
 | THE FIX PASS | Nov 22 | [passes/fix-pass.md](harbor/passes/fix-pass.md) | THE FABLE REVIEW's fixes: THE ROOM LIST closed (rules), the bundle for every non-Safari visit, THE CHUNK CEILING, THE WAKE HOLD's write, THE ERROR BOUNDARY, the dailies' holes, before FREEFALL |
 | THE CITY POLISH PASS | Nov 24 | [passes/city-polish.md](harbor/passes/city-polish.md) | THE PLAY BOUNCE (the stall clock is the room's), THE BOOT HANG (the carry by the lists), the school Chromebooks, THE BOARD's sideways tabs, THE CONTROLLER MARK, S8's pid (rules), the quiet kinds |
+| THE HOUSEKEEPING + AUDIO PASS | Nov 25 | [passes/housekeeping.md](harbor/passes/housekeeping.md) | THE BOOT BUNDLE BUILT AT DEPLOY (never committed — `scripts/deploy-build.mjs`, the local server from memory, `deploy-sim.mjs`), SCREENSHOTS OUT OF GIT (LEGACY / REFERENCE), THE CLAUDE.md TRIM (35.7 KB), THE AUDIO FIXES (onUnlock one-shot, THE LEAVE CUT ORDER, the lead-in helper, the rebuild, THE SONG CAP) |
 | THE GARDEN PARTY PASS | Nov 21 | [passes/garden-party.md](harbor/passes/garden-party.md) | MUSIC OFF = HEAR THE HARBOR (THE SOUND TABLE), GARDEN PARTY (LV 34), THE LAST FOUR SLIM CARDS, THE CODE BOX's first tap, THE PERSONAL-BEST SHARE CARD, NO RESET |
 | CITY I — HOUSEKEEPING | Nov 18 | [passes/city-i.md](harbor/passes/city-i.md) | H2's cloud reds (the plate, REMATCH in the ring, the dock labels) + the two pre-existing (THE FROZEN-GAME HANG behind e2e-profiles' CIPHER podium + THE LOST SEAT LINK; strip-match's 13 named), HOW TO PLAY out of the boot (ui/help-open.js), THE CLAUDE.md TRIM (→ 31.5 KB), SECOND ACCOUNTS + DON'T COUNT, the idempotent close; the inbox: MUSIC OFF = PODCAST MODE, THE LATE PROOF CHUNK, THE BOARD's controls row, THE WEEK as rows |
 | CITY D — FIXES | Nov 15 | [passes/city-d.md](harbor/passes/city-d.md) | the presence red = a test flake (DUMB LUCK dealt first) · THE LIVE LANE (every slim-card list = stills, ≤ 3 live on screen, no GPU canvas) + CUSTOMIZE stills · a killed-page marker · the leaving squeal with effects on (master 0 at once, beds stopped) · THE DROP's end card → a bar · no room messages for a solo player · the owner's slim card LV · four different games on the four named signs, the hotel blade PRISM / HOLDEM · SCORES at once (kept scores + the server's trips cut) · add-ons: gesture taps at the lift, STATS fixed + WHO, THE DROP in the roof rotation |

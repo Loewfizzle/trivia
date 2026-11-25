@@ -1321,3 +1321,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 
 ## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
 - THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
+
+## THE HOUSEKEEPING + AUDIO PASS (Nov 25)
+- **THE BUNDLE IS NEVER STALE LOCALLY:** `scripts/serve.mjs` builds `/boot-bundle.json` (+ the page's `?v=` + the hash list's row) IN MEMORY
+  and again when a boot module changes — the old step "rebuild the boot bundle before a Chromium E2E" is gone. `--raw` = the files as they
+  are on disk (no bundle at all: `BUNDLE_MISSING=1 E2E_BASE=… node e2e-bundle.mjs`); `--root <dir>` = another folder.
+- **`node tests/integration/deploy-sim.mjs [--out <dir>]`** = Vercel's deploy step on a clean copy of the tracked files (`.vercelignore`
+  applied, vercel.json's buildCommand run as written, the output checked, a broken checkout must fail). Then
+  `node scripts/serve.mjs 5197 --emu --root <dir>` and `E2E_BASE=http://localhost:5197` for `e2e-bundle.mjs` / `e2e-smoke.mjs`. Run it in a
+  pass that touches the boot graph's builders, vercel.json or `.vercelignore` (a preview deploy is not available).
+- `tests/integration/sw-audio-cap.mjs "<chromium>"` — THE SONG CAP in a real worker (a small cap through `ns:test-audio-cap`, localhost only).
+- `tests/audio-fixes.test.mjs` — the real audio engine + music.js + both games' sounds on fakes (≈ 15 s: it waits out real timers).
+- `audio-cut.mjs` is flaky on the Beelink (one check of 33, about every second or third run, on old and new code): several runs, never one.

@@ -229,6 +229,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - THE IDLE CUTOFF · LEAVING + MUTED: THE CUT IN ONE ORDER · MUTED = NOTHING RUNS · THE THREE-WAY BUTTON + THE SESSION BY STATE (`audio/sound-state.js`) → docs/audio.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 - MUSIC OFF = HEAR THE HARBOR: ONE row of THE SOUND TABLE (`sound-state.js`) applied whole on every change (`engine.js#applySound`); ALL OFF = nothing runs → docs/audio.md (moved Nov 25).
 - AN EFFECT ASKS `isUnlocked()`, NEVER THE CONTEXT's STATE (CITY PART 1 — the sweep; `tests/podcast-sweep.test.mjs` allows `running` only in the music / clock files) → docs/audio.md.
+- THE AUDIO FIXES (Nov 25): `onUnlock` is ONE-SHOT; a game's sounds use `audio/sfx-kit.js` (`lateGate` · `decodeOnce` · `leadIn`); THE LEAVE CUT ORDER (`onLeaveCut(fn(left, why, late))`: direct at once, routed after the ramp); no failed load kept; THE SONG CAP (`sw.js`) → docs/audio.md.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
 ## Design system (the full text: docs/title.md (moved) + "THE SHELL")

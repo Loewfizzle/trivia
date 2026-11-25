@@ -2273,3 +2273,61 @@ The engine fixes of this pass grew the boot past THE BOOT BUDGET (6,503 of 6,500
 // itself (audioHealth().held) — kept so a game's call stays valid + any future idle rule must honour it. A LAZY chunk reaches it through the
 // hub globalThis.__nsHoldAwake (THE STALE-MODULE RULE).
 ```
+
+## THE AUDIO FIXES (Nov 25) — THE HOUSEKEEPING + AUDIO PASS (an outside review of js/audio/ + the games' sounds; docs/harbor/passes/housekeeping.md)
+Every hush / sound-table rule is kept: THE CUT IN ONE ORDER, MUTED = NOTHING RUNS, HEAR THE HARBOR, THE SESSION BY STATE — none changed.
+
+**1. `onUnlock` IS ONE-SHOT + ONE WAIT A GAME.** `engine.js#onUnlock(fn)` kept fn in its set FOR GOOD and called it at once when already
+unlocked — and both games' `sfx.js#play` asked it at EVERY call while `unlocked` was true but the context was not running (muted,
+interrupted): a closure kept a play + a `decode()` of every file a play (measured: 10 muted JAYWALK hops → 120 `decodeAudioData`). Now:
+- `onUnlock`: already unlocked → fn() at once, NOTHING kept; before it → kept until the first tap, the set LET GO once it fired; it returns
+  its unsubscribe (`unlockWaiters()` = the test's read).
+- **`js/audio/sfx-kit.js`** (lazy — only a game's sounds import it; it reads engine exports that have existed for long: THE STALE-MODULE
+  RULE): `lateGate()` — `when(fn)`: running → fn now; before the first tap → ONE `onUnlock`; unlocked but asleep → ONE `onResume` (the
+  listener taken back when it fires); HUSHED → nothing (NOTHING RUNS). Only the LATEST fn is kept. `decodeOnce()` — a decode in flight is
+  shared (ten asks = one `decodeAudioData` a file), a failed one is forgotten with its bytes (the next ask fetches + decodes again).
+- HIGH RISE's late path keeps its numbers in five module slots (no closure a drop: THE LAG RULES); `whenReady()` takes its waiter back.
+
+**2. THE LEAVE CUT ORDER** (the squeal's code — the order is THE CUT IN ONE ORDER's, one step made honest). CITY G's media cut paused EVERY
+element at t = 0, before the master's 25 ms ramp had run — which defeated music.js's own ~30 ms delay for ROUTED `<audio>` voices (a pause
+mid-buffer under full gain is a click). The timing now, from the first leave signal (a touch phone's blur · hidden · pagehide · freeze · an
+interruption):
+
+| t | what | where |
+| --- | --- | --- |
+| 0 | the master's ramp to 0 SCHEDULED (`quiet(c, LEAVE_S)`, 25 ms) — first | `engine.js#fadeOut` / `onBlur` |
+| 0 | THE MEDIA CUT, first step: `onLeaveCut(fn(true, why, false))` — the UNROUTED elements paused: THE DIRECT PATH (iOS ignores its volume: a pause is its only clean stop), a voice still on its silent blob, any DOM `<audio>` / `<video>`; the record: `media after: …` (a routed voice reads `UNDER THE RAMP`, never `PLAYING`) | `engine.js#mediaCut`, `music.js` |
+| 30 ms (`MEDIA_LATE_MS` = LEAVE_S + 5) | second step, ONLY IF THE PAGE IS STILL LEFT: `fn(true, why, true)` — the ROUTED voices paused, under silence; the record: `media after the ramp: all paused` | the same |
+| 35 ms | the loops (the beds) stopped | unchanged |
+| 125 ms | THE ZEROS FIRST → the suspend | unchanged |
+
+A blur that comes straight back (the share sheet, an alert) clears the late step: the routed voice is never paused. A listener that takes
+two arguments still pauses at once (a game's own DOM audio). MUTED = NOTHING RUNS is untouched (THE HUSH pauses + releases every element,
+as before). The AUDIO LEAVE row's end: `media after: voice … UNDER THE RAMP (…) → after the ramp: all paused` (one moment when they agree).
+
+**3. A FAILED LOAD IS NOT KEPT FOR THE SESSION:** `jaywalk/flyers.js`, `audio/ambience.js` (ONE `loadOnce` for the neon + the weather),
+`daily/sfx.js`, `overclock/sfx.js` cached a null on a failed fetch / decode — its key is now forgotten `RETRY_MS` (8 s) later and the next
+ask loads again (not at once: a missing file would be asked for every time its sound is wanted). Bytes that are kept are decoded from a copy
+(`a.slice(0)`).
+
+**4. THE LATE CUES — ONE LEAD-IN HELPER** (`sfx-kit.js#leadOf` / `leadIn`): an MP3 starts with its encoder's lead-in; JAYWALK always
+started at offset 0 (measured silent lead-ins: out-drop 27.9 ms, runway-tick 26.8, leaf-crunch 22.4, area-arrive 15.5). Both games now start
+a sound at its first audible sample less a millisecond — measured once a buffer at its decode, a `WeakMap` read at the play (nothing made).
+
+**5. THE REBUILD:** `jaywalk/sfx.js` + `highrise/sfx.js` listen to `engine.js#onRebuild` — the old context's voices are let go (they
+would never fire `ended`: the voice cap filled for good), the bus + the buffers are the new context's (decoded again at once), JAYWALK's
+bell comes back if its signals are still flashing, the stopwatch at its next cue.
+
+**6.** JAYWALK's per-play `GainNode` + `StereoPanner` are disconnected at the voice's `ended` (they stayed wired to the limiter).
+
+**7. Small:** the first unlock tap blips ONCE (the guard is on the blip — the tap still asks the context to run) · `lobby-music.js` connects
+through `musicInput() || getMusicBus()` like `party-music.js` · `overclock/sfx.js#ocLoop` reads `getContext()` again at a restart and
+disconnects its gain after its stop's fade · **THE SONG CAP** (`sw.js`): the `na-audio-v1` cache kept every song a phone ever heard (the
+catalog is ~242 MB) — the SONGS (`/audio/music/`) are capped at `AUDIO_SONG_MAX` (60 MB), the least recently USED out first (a hit — every
+range request of the song playing — is a use; the index: META `/__ause`), the `AUDIO_KEEP_NEWEST` (3) most recently used never evicted
+(the song playing + the station's next); the effects (~35 MB in all) are not counted.
+
+**Tests:** `tests/audio-fixes.test.mjs` (the real engine.js, music.js, sfx-kit.js + both games' sfx.js over a fake DOM + AudioContext) ·
+`tests/integration/sw-audio-cap.mjs` (Chromium, the worker's local-only rig `ns:test-audio-cap`) · the harbor `mediacut` group.
+`tests/integration/audio-cut.mjs` is FLAKY on the Beelink on the code before AND after this pass (one of its 33 checks red in 5 of 10 runs
+before, 3 of 10 after — a timing measure in headless Chromium): read it over several runs, never one.
