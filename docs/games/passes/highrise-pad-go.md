@@ -84,7 +84,12 @@ it) or `· PAD = FRAME` (no usable stamp on this browser — the old behaviour).
   a fake line (late answer · dead line · refusals · a rejoin · the late refusal · the GO guard), the pins).
 - `e2e-highrise.mjs` (+ step 7 THE CONTROLLER, step 8 THE SOLO GO; `HI_ONLY=padgo` = those alone) · `wk-highrise-pad.mjs` (the same pad
   checks in WebKit — `kit/highrise-pad.mjs`) · `e2e-highrise-daily.mjs` (+ the pad's daily case) · `e2e-play-bounce.mjs --game highrise`.
-- The final run's counts: the summary + the commit message.
+- **THE FINAL RUN (the Beelink, one suite at a time, on this pass's own emulators + server):** unit 2,691 · rules 104/104 (untouched —
+  run anyway) · `e2e-highrise` 125/125 (the long run in it) · the pad case in WebKit 22/22 · `e2e-highrise-match` 59/59 ·
+  `e2e-highrise-daily` ALL GREEN (37) · `e2e-highrise-daily-b` ALL GREEN (16) · `e2e-play-bounce --game highrise` 34/34 (Chromium 4× CPU;
+  WebKit 22/22) + JAYWALK's quick 12/12 in both · `e2e-jaywalk` 122/122 (the kit + `host.js` changed) · smoke 24/24 · harbor
+  `ONLY=gamestart,newstart` 23/23. Budgets: THE BOOT 306 modules (unchanged — the limit 310; the pad kit is not in it), HIGH RISE's graph
+  42 modules / 487 KB of 48 / 560 (+ `go.js`). `/api` untouched: `server.test.mjs` not run.
 
 ## OPEN FOR BEN
 1. **RE-PUBLISH: nothing.**
