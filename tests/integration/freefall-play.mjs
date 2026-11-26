@@ -711,7 +711,7 @@ async function checks4() {
     await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash === 2', 4000);
     s = await st(t.p);
     const w = await wanted(t.p);
-    ok(mid.info.breaks.splash >= 1 && s.info.breaks.splash === 2 && !s.info.breaks.water && s.muffles === 1 && w.includes('splashdown+0.133') && !t.errs.length, `${lk} — THE SPLASHDOWN: the plunge at floor 120, THE WATERLINE swept up the screen (the plane is gone: under water), the mix muffled once, its own sound at the plunge`);
+    ok(mid.info.breaks.splash >= 1 && s.info.breaks.splash === 2 && !s.info.breaks.water && s.muffles === 1 && w.includes('splashdown+0.133') && !t.errs.length, `${lk} — THE SPLASHDOWN: the plunge at floor 120, THE WATERLINE swept up the screen (the plane is gone: under water), the mix muffled once, its own sound at the plunge (splash ${mid.info.breaks.splash} → ${s.info.breaks.splash}, water ${s.info.breaks.water}, muffles ${s.muffles}, wanted ${w.filter(x => x.startsWith('splash')).join(' ') || '—'}, errors ${t.errs.length}${t.errs.length ? ': ' + String(t.errs[0]).slice(0, 160) : ''})`);
     await t.close();
   }
   // ---- THE BOTTOM (floor 200), SOLO: the seabed rises into view, the impact, the gold band, then it CRACKS OPEN into THE TRENCH

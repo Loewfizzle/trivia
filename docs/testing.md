@@ -1357,8 +1357,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   the speakeasy's gold the one named exception), the sounds' twelve + the breakthroughs' cues, the bands as kept nodes (an arrival
   touches no DOM), PAUSED's cover, + F3B's block: a view only, the pictures, ONE roof plane, the fixed sprite pool, ZERO GARBAGE in
   `roofPlane` + `breaks.js`'s frame code, the pictures all asked for behind the opening, the finish's hook).
-- The browser: `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--f3b] [--look …] [--perf …] [--stutters]` — **131 checks**
-  (`--f3b` = F3B's 26 alone: the roof on the title screen + rising, the skylight / the splashdown / THE BOTTOM in both looks, the finish +
+- The browser: `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--f3b] [--look …] [--perf …] [--stutters]` — **134 checks**
+  (`--f3b` = F3B's 29 alone — with the review's: THE TRENCH's MOUTH open in solo + whole in a finish, the run handed on before the card: the roof on the title screen + rising, the skylight / the splashdown / THE BOTTOM in both looks, the finish +
   its hook + the firework by night only, PAUSED, the darkness at depth on the page, the tape on gold) · `--look --scenes=roof,breaks,colours,paused`
   = F3B's shots (`f3b-<look>-30…60-…`: the title + floors 0 / 15 / 30 / 39 at three phone sizes, each breakthrough mid-play at four sizes,
   each area's floor beside a red slice + its greyscale) · `--perf` = + 28 rows: each breakthrough playing, both looks, tiers 2 + 0, 1× + 4×

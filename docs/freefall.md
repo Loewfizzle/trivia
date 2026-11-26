@@ -58,7 +58,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
   it moves down to at least f − LEAD, and its pace starts again from there). It only ever moves down. When it reaches the ball's floor
   → OUT (`dark`). A ball that stops moving has LEAD × the pace = **6 s**; a run nobody touches ends at **9.0 s**. It is always in
   sight ("THE DARKNESS — SEEN + HEARD", below). **IT EASES WITH DEPTH (F3B — the owner, Nov 26: he tested F3's darkness and loves it;
-  the stall budget follows the layout's difficulty):** floors 0–100 EXACTLY as above (a floor every 2 s: 6 s stopped), a straight
+  the stall budget follows the layout's difficulty):** floors 0–100 EXACTLY as above (a floor every 2 s: 6 s stopped — whole ticks: the first floor whose pace moves is 102, 121 ticks), a straight
   line over floors 100–160, **a floor every 160 ticks from floor 160 on — 8 s stopped** (THE DEEP + THE TRENCH); the pace is the one
   AT THE BALL's FLOOR when a step is set (`tuning.js#darkPaceAt` — pure, integers; the judge replays it; no new rule-set row).
 - **THE AREAS** (by floor, for the views): 0 THE ROOFTOP · 40 THE OFFICES · 80 THE SPEAKEASY · 120 UNDER THE HARBOR · 160 THE DEEP ·
@@ -392,7 +392,7 @@ rate + HITCH n: the frames over 33 ms in the run — **F3B: + what landed before
   slices adopted from the events — no effect played again) the moment the context is restored, or after 1.5 s; no context to be had:
   the line says so, the run goes on, the rebuild tries again (every 1.5 s × 8, and when the page is back in front).
 - **Locally:** `http://localhost:5173/freefall-play` · `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--look] [--perf]`
-  (**131 checks** at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900 · 844 × 390 — they pin `look=night`: AUTO would follow the machine's
+  (**134 checks** at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900 · 844 × 390 — they pin `look=night`: AUTO would follow the machine's
   clock; `--f3b` = F3B's 26 alone; `--look [--looks=night,day] [--scenes=opening,blaze,areas,banner,best,dark,hold,sizes,roof,breaks,colours,paused]`
   = the review's shots, both looks (`f3b-<look>-<nn>-<name>.png`); `--perf [--one=day-84-1-4]` = the speed test, both looks, + each
   breakthrough playing; `--stutters` = a whole run at 4× CPU, the long frames named, by area). The page's
@@ -784,7 +784,7 @@ js/games/freefall/bot.js                            the sim bots          script
 js/games/freefall/lab.js graybox.js                 THE LAB's page · its three.js graybox
 api/_lib/freefall.js                                THE JUDGE's server half (pure, NOT wired)
 tests/freefall-engine.test.mjs (25) · freefall-tower.test.mjs (11) · freefall-server.test.mjs (8) · freefall-sim.test.mjs (9) · freefall-lab.test.mjs (5 — the static half) · freefall-play.test.mjs (16 — F2 + F3 + F3B, static)
-tests/integration/freefall-play.mjs (131 — the browser: the test page, both looks; --f3b · --look · --perf · --stutters)
+tests/integration/freefall-play.mjs (134 — the browser: the test page, both looks; --f3b · --look · --perf · --stutters)
 tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900; scripts/serve.mjs is enough) · kit/page-loads.mjs (/freefall-lab)
 ```
 

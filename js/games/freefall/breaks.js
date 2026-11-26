@@ -354,7 +354,6 @@ export function createBreaks(X) {
 
     // ---- THE SPLASHDOWN
     if (spSt === 0 && spHit >= 0 && tau >= spHit) splash(bx, bz);
-    const spNear = spSt < 2 && camY > 104 && camY < 128;
     if (spSt === 1) {
       const k = (now - spT - WATER.lineAt) / WATER.lineFor;
       waterU.uLine.value = k <= 0 ? -2 : -1.15 + 2.4 * (k >= 1 ? 1 : k * k * (3 - 2 * k));
@@ -365,6 +364,7 @@ export function createBreaks(X) {
         for (let i = 0; i < share(16); i++) { const a = rnd() * 6.2832, o = 0.2 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.15, by + (rnd() - 0.3) * 0.5, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 0.7 + rnd() * 1.3, Math.sin(a) * o, 1 + rnd() * 0.7, 0.035, 0.08, 3, 0.5, 0.8, 0.06, 0, 0.8, 1, 1, 0.12); }
       }
     }
+    const spNear = spSt < 2 && camY > 104 && camY < 128;   // (asked AFTER the sweep's own step: the plane is gone in the very frame the camera is under)
     water.visible = spNear;
     if (spNear) {
       const n = pics.water;
