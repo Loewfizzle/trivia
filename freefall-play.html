@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" class="ff-play-html">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05030d">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Freefall — NEON SPEAKEASY</title>
+  <link rel="icon" href="assets/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/freefall-play.css">
+  <!-- FREEFALL, THE TEST PAGE (F2 — docs/freefall.md "THE TEST PAGE"): the real game's night look + SOLO. UNLISTED (noindex nofollow,
+       linked from nowhere), OPEN (no gate, no sign-in). NOTHING COUNTS UNTIL GO-LIVE: zero server calls, zero database writes — only
+       this page's own static files, three.js 0.160 from its CDN and the fonts. YOUR BEST = this phone only. -->
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+</head>
+<body class="ff-play-on">
+  <main id="app" class="ff-app"><p class="ff-wait">Opening Freefall…</p></main>
+  <script type="module" src="js/games/freefall/play.js" onerror="document.getElementById('app').firstElementChild.textContent = 'Can’t open Freefall — check the connection, then reload.'"></script>
+</body>
+</html>

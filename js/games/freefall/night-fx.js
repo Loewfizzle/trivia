@@ -1,0 +1,419 @@
+// FREEFALL — THE NIGHT LOOK's SHADERS + THE BLOOM (F2 — docs/freefall.md "THE NIGHT LOOK"; night.js builds the scene). HIGH RISE's way
+// (js/games/highrise/night-fx.js): three.js core only — no add-on, no post-processing library; everything is written in LINEAR light and
+// ends in three's own colour-space chunk. Every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn).
+import * as THREE from 'three';
+
+// ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each
+// pixel's ray meets THE WALL — a cylinder round the tower's axis, seen from outside through its near side (the far inside face) — and
+// reads the area's painted wall there (seamless: it wraps round the shaft and repeats down it). Two walls cross-fade BY DEPTH at the seam
+// between two areas (the next area's wall is seen coming up from below). THE ROOFTOP has no wall: the open night sky + JAYWALK's
+// skyline painting on the horizon. THE GLOW rises from the shaft's bottom (pink → violet); THE DARKNESS: above its line the wall is out.
+export const WALL_V = /* glsl */`
+varying vec2 vS;
+void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9999, 1.0); }`;
+export const WALL_F = /* glsl */`
+uniform sampler2D tA, tB, tSky;
+uniform vec3 uCam, uRight, uUp, uFwd, uTintA, uTintB;
+uniform float uTan, uAspect, uHaveA, uHaveB, uFlipA, uFlipB, uSkyA, uSkyB, uHaveSky, uFlipSky, uSeamY, uBallY, uDarkY, uTime, uRW, uTile, uSink;
+varying vec2 vS;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// THE OPEN SKY (THE ROOFTOP): deep navy overhead, a violet haze low; stars; the skyline painting a band on the horizon line (uSink
+// lifts it out of sight as the ball goes down the first floors); under it the dark roof, lit pink round the tower's foot
+vec3 sky(vec3 d) {
+  float el = asin(clamp(d.y, -1.0, 1.0)) + uSink;            // the ray's elevation (0 = the horizon)
+  float az = atan(d.x, -d.z) * 0.15915494;                   // −0.5 … 0.5 round the compass (0 = straight ahead)
+  vec3 top = vec3(0.003, 0.002, 0.016), haze = vec3(0.035, 0.01, 0.08);
+  vec3 c = mix(haze, top, smoothstep(-0.25, 0.5, el));
+  // stars (two sizes), only above the skyline
+  vec2 g = vec2(az * 220.0, el * 70.0), cell = floor(g), f = fract(g) - 0.5;
+  float h = hash(cell), tw = 0.6 + 0.4 * sin(uTime * (0.8 + 2.0 * h) + h * 31.0);
+  c += vec3(0.8, 0.85, 1.0) * step(0.93, h) * smoothstep(0.16, 0.02, length(f - (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.6)) * tw * smoothstep(-0.02, 0.1, el) * 0.9;
+  // the skyline: the painting's lower part (its buildings + the water's edge) across ~150° of the compass, its foot on the horizon
+  float u = az * 5.2 + 0.5, v = (el + 0.52) / 0.4;
+  if (uHaveSky > 0.5 && v > 0.0 && v < 1.0) {
+    vec3 s = texture2D(tSky, vec2(fract(u), mix(v, 1.0 - v, uFlipSky))).rgb;
+    s = pow(s, vec3(2.2));
+    float k = smoothstep(0.0, 0.1, v) * smoothstep(1.0, 0.72, v);
+    c = mix(c, s * 1.9 + c * 0.2, k);
+  }
+  // the roof below the skyline: near black, a pink pool of light round the tower
+  float roof = smoothstep(-0.47, -0.53, el);
+  vec3 ground = vec3(0.012, 0.004, 0.035) + vec3(0.42, 0.06, 0.5) * exp(-pow((el + 1.25) / 0.42, 2.0)) * 0.3;
+  return mix(c, ground, roof);
+}
+vec3 wallTex(sampler2D t, float have, float flip, vec3 tint, vec2 uv) {
+  vec3 w = texture2D(t, vec2(uv.x, mix(uv.y, 1.0 - uv.y, flip))).rgb;
+  w = pow(w, vec3(2.2));
+  return mix(vec3(0.012, 0.006, 0.03), w * tint, have);
+}
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vS.x * uTan * uAspect) + uUp * (vS.y * uTan));
+  // the far face of the wall's cylinder (x² + z² = RW²)
+  float a = dot(d.xz, d.xz), b = dot(uCam.xz, d.xz), cc = dot(uCam.xz, uCam.xz) - uRW * uRW, disc = b * b - a * cc;
+  vec3 col;
+  float hitY = uCam.y + d.y * 40.0;
+  if (disc > 0.0 && a > 1e-6) {
+    float t = (-b + sqrt(disc)) / a;
+    vec3 hit = uCam + d * t;
+    hitY = hit.y;
+    vec2 uv = vec2(atan(hit.x, hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
+    vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv);
+    vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv);
+    // (the seam between two areas lies at a world height: below it the next area's wall — it is seen rising from the dark)
+    float k = smoothstep(uSeamY + 1.6, uSeamY - 1.6, hit.y);
+    col = mix(A, B, k);
+    // the wall curves away to the shaft's sides: darker towards its edges (a round room, not a flat picture)
+    float side = abs(hit.x) / uRW;
+    col *= mix(1.0, 0.42, smoothstep(0.35, 1.0, side));
+  } else {
+    col = uSkyA > 0.5 ? sky(d) : vec3(0.004, 0.002, 0.012);
+  }
+  // THE GLOW FROM BELOW: pink at the shaft's foot, violet above it — it rises with the depth under the ball
+  float deep = uBallY - hitY;
+  float fog = smoothstep(4.5, 15.0, deep);
+  vec3 glow = mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(8.0, 18.0, deep));
+  col = mix(col, glow, fog * 0.85);
+  col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.3;
+  // (the top of the screen is the HUD's: the wall steps back behind the big number)
+  col *= mix(1.0, 0.5, smoothstep(0.3, 1.0, vS.y));
+  // THE DARKNESS: above its line the lights are out (a thin live edge where it stands) — the wall only; never the ball or its floor
+  float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
+  float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
+  col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
+  // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
+  gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
+}`;
+/** the half-res wall, copied to the screen (its target holds display-ready colour: a plain copy) */
+export const COPY_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }';
+export const COPY_F = 'precision highp float; uniform sampler2D tMap; uniform float uBloom; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb * (1.0 - uBloom), 1.0); }';
+
+// ---- THE SLICES: ONE instanced mesh for every solid slice in sight. A slice = a wedge of the ring (aE = its own coordinates: across the
+// wedge −1 … 1 · from the pillar 0 … 1 out to the rim · the face: 0 top, 1 the outer wall, 2 a cut side · down the wall 0 … 1).
+// Per slice: aI = (its angle on the floor, its floor's height, how far it stands PROUD — red only —, its kind: 0 safe · 1 red · 2 red
+// that MOVES) · aC = (its colour, its alpha) · aF = (a white flash, a red WARNING — the moving red steps here next —, cracked, it flies
+// outward: a floor just passed).
+export const SLICE_V = /* glsl */`
+attribute vec4 aE, aI, aC, aF;
+uniform float uSpin;
+varying vec4 vE, vC, vF;
+varying vec3 vW, vN;
+varying float vKind;
+void main() {
+  vec3 p = position;
+  if (aE.z < 0.5) p.y += aI.z; else if (aE.z < 2.5) p.y += aI.z * (1.0 - aE.w);   // (a red slice stands proud: its top lifted, its walls stretched)
+  // a floor just passed lets go: its slices drift out + up as they fade
+  float out_ = aF.w;
+  p.xz *= 1.0 + out_ * 0.22; p.y += out_ * 0.3;
+  float a = aI.x + uSpin, c = cos(a), s = sin(a);
+  vec3 w = vec3(p.x * c + p.z * s, p.y + aI.y, -p.x * s + p.z * c);
+  vN = vec3(normal.x * c + normal.z * s, normal.y, -normal.x * s + normal.z * c);
+  vW = w; vE = aE; vC = aC; vF = aF; vKind = aI.w;
+  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
+}`;
+export const SLICE_F = /* glsl */`
+uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey;
+varying vec4 vE, vC, vF;
+varying vec3 vW, vN;
+varying float vKind;
+const vec3 RED = vec3(1.0, 0.03, 0.09), RED_DARK = vec3(0.16, 0.0, 0.012);
+void main() {
+  float face = vE.z, ang = vE.x, rad = vE.y;
+  float red = step(0.5, vKind);
+  // how deep under the ball's floor this slice lies (floors): the tower falls away into blue, then into the dark
+  float depth = max(0.0, uTopY - vW.y);
+  float far = clamp(depth / 7.0, 0.0, 1.0);
+  vec3 base = vC.rgb;
+  // (the hue walks with depth: a gap two floors down never shows the same flat colour — pink → violet → blue → teal)
+  vec3 deepCol = mix(vec3(0.10, 0.07, 0.75), vec3(0.03, 0.34, 0.62), smoothstep(0.5, 1.0, far));
+  base = mix(base, deepCol, smoothstep(0.08, 0.85, far) * 0.78 * (1.0 - red));
+  float dim = mix(1.0, 0.3, far);
+  // distances to this face's edges, in world units
+  float dOut = (1.0 - rad) * uRing;                      // to the rim
+  float dSide = (1.0 - abs(ang)) * uWidth * (0.2 + 0.8 * rad);   // to a cut side (a wedge is narrow at the pillar)
+  float aa = fwidth(dOut) * 1.2 + 1e-5, aas = fwidth(dSide) * 1.2 + 1e-5;
+  vec3 col; float emit = 0.0; vec3 emitC = vec3(0.0);
+  if (face < 0.5) {
+    // THE TOP: the colour at full strength, brighter out at the rim; a soft pool of light where the ball's glow falls
+    float lit = 0.52 + 0.48 * smoothstep(0.0, 1.0, rad);
+    col = base * lit;
+    // THE NEON RIM: a white-hot line along the outer edge, a halo in the slice's own colour behind it
+    float rim = 1.0 - smoothstep(0.016 - aa, 0.016 + aa, dOut), halo = exp(-dOut / 0.06);
+    // a thin dark line along each cut (the slices read apart), a darker foot at the pillar
+    float cut = 1.0 - smoothstep(0.0, 0.012 + aas, dSide);
+    col *= 1.0 - 0.55 * cut;
+    col *= 0.72 + 0.28 * smoothstep(0.0, 0.16, rad);
+    if (red > 0.5) {
+      // RED = DANGER, readable with the colour removed: it stands proud of the floor, dark hazard chevrons run across it, it pulses
+      float pulse = 0.86 + 0.14 * sin(uTime * 3.1 + vW.y * 2.0);
+      float chev = step(0.52, fract(rad * 2.6 - abs(ang) * 0.9 + 0.15));
+      vec3 hz = mix(RED, RED_DARK, chev * 0.72);
+      col = hz * (0.8 + 0.3 * rad) * pulse;
+      col *= 1.0 - 0.5 * cut;
+      emit = (1.0 - chev) * 0.4 * pulse; emitC = RED;
+      // (a red that MOVES: a bright edge all round it)
+      float edge = 1.0 - smoothstep(0.022 - aas, 0.022 + aas, min(dSide, min(dOut, rad * uRing)));
+      col = mix(col, vec3(1.0, 0.55, 0.55), edge * step(1.5, vKind) * 0.9);
+      rim *= 1.0; base = RED;
+    }
+    vec3 rimC = mix(base, vec3(1.0), 0.72) * 1.75;
+    col = mix(col, rimC, rim * (red > 0.5 ? 0.85 : 1.0));
+    col += base * halo * 0.3;
+    emit += rim * 1.0 + halo * 0.22; emitC = mix(emitC, rimC, rim);
+    if (emit > 0.0 && red < 0.5) emitC = mix(base, rimC, rim);
+    // THE WARNING (the moving red steps onto this slice next): red hatching that blinks
+    float warn = vF.y * (0.55 + 0.45 * sin(uTime * 12.0));
+    float hatch = step(0.62, fract(rad * 2.6 - abs(ang) * 0.9 + 0.15));
+    col = mix(col, RED, warn * (0.25 + 0.6 * hatch));
+    // CRACKED (the landing right after a shatter came down on red): dark cracks run out from its middle
+    if (vF.z > 0.5) {
+      vec2 q = vec2(ang, rad * 2.0 - 1.0);
+      float c1 = abs(q.y - 0.55 * q.x - 0.1 * sin(q.x * 9.0)), c2 = abs(q.y + 0.8 * q.x + 0.12 * sin(q.x * 7.0 + 1.0)), c3 = abs(q.x - 0.15 * sin(q.y * 8.0) + 0.1);
+      float crack = 1.0 - smoothstep(0.0, 0.07, min(c1, min(c2, c3)));
+      col = mix(col, vec3(0.02, 0.0, 0.01), crack * 0.9);
+    }
+    // THE BALL's LIGHT on its own floor (never under it by more than a floor: the eye goes to where the ball is)
+    float pool = exp(-dot(vW.xz - vec2(0.0, 0.66), vW.xz - vec2(0.0, 0.66)) / 0.2) * smoothstep(1.2, 0.0, depth);
+    col += base * pool * 0.3;
+  } else if (face < 1.5) {
+    // THE OUTER WALL: darker than the top; the rim seen from the side = a bright line along its top edge
+    float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.1);
+    col = base * mix(0.5, 0.2, vE.w);
+    if (red > 0.5) { float chev = step(0.5, fract(ang * 1.5 + vE.w * 0.5)); col = mix(RED * 0.55, RED_DARK, chev * 0.6); emit = (1.0 - chev) * 0.15; emitC = RED; base = RED; }
+    vec3 rimC = mix(base, vec3(1.0), 0.6) * 1.5;
+    col = mix(col, rimC, topEdge);
+    emit += topEdge * 0.9; emitC = mix(emitC, rimC, topEdge);
+  } else {
+    // A CUT SIDE: in shade
+    col = base * 0.22;
+    if (red > 0.5) col = RED * 0.3;
+  }
+  col *= dim;
+  float flash = vF.x;
+  col += vec3(1.0, 0.9, 0.95) * flash * (face < 0.5 ? 0.7 : 0.25);
+  if (uGrey > 0.5) { float g = dot(col, vec3(0.2126, 0.7152, 0.0722)); col = vec3(g); }   // (the review's shot: red must read with the colour removed)
+  float alpha = vC.a;
+  if (uBloom > 0.5) col = (emitC * emit * 0.85 * mix(1.0, 0.3, far) + vec3(1.0, 0.9, 0.95) * flash * 0.3);
+  gl_FragColor = vec4(col * alpha, alpha);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE PILLAR: the tower's dark core (a soft light down its front, a ring of light where each floor meets it)
+export const PILLAR_V = /* glsl */`
+varying vec3 vW, vN;
+void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
+export const PILLAR_F = /* glsl */`
+uniform float uBloom, uTopY;
+uniform vec3 uCol;
+varying vec3 vW, vN;
+void main() {
+  vec3 V = normalize(cameraPosition - vW);
+  float nv = max(dot(normalize(vN), V), 0.0);
+  float far = clamp((uTopY - vW.y) / 7.0, 0.0, 1.0);
+  vec3 col = uCol * (0.25 + 0.75 * nv * nv) * mix(1.0, 0.2, far) + uCol * 1.6 * pow(1.0 - nv, 3.0) * 0.5 * (1.0 - far);
+  if (uBloom > 0.5) col = vec3(0.0);
+  gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE BALL: a white-hot core (its CENTRE decides — the hottest point IS the centre), a warm edge; THE BLAZE turns it to fire
+export const BALL_V = /* glsl */`
+uniform vec3 uSquash;
+varying vec3 vN, vW;
+void main() {
+  vec3 p = position * uSquash;
+  vec4 w = modelMatrix * vec4(p, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * (normal / uSquash));
+  gl_Position = projectionMatrix * viewMatrix * w;
+}`;
+export const BALL_F = /* glsl */`
+uniform float uBloom, uBlaze, uTime, uOut;
+uniform vec3 uEdge;
+varying vec3 vN, vW;
+void main() {
+  vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+  float nv = max(dot(N, V), 0.0);
+  vec3 core = vec3(1.0, 0.985, 0.96) * 1.5;
+  vec3 edge = mix(uEdge, vec3(1.0, 0.42, 0.06), uBlaze);
+  float k = smoothstep(0.1, 0.9, nv);
+  vec3 col = mix(edge * (1.1 + 0.25 * sin(uTime * 22.0 + N.y * 9.0) * uBlaze), core, k * k);
+  col = mix(col, vec3(0.2, 0.2, 0.26) * (0.4 + 0.6 * nv), uOut);   // (the lights took it: a dead grey ball)
+  if (uBloom > 0.5) col *= 0.9 * (1.0 - uOut);
+  gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE LIGHTS (one instanced quad, added light): aP = (its place, its half size) · aQ = (its kind, its strength, stretch up — a
+// trail's length —, a seed) · aC its colour. Kinds: 0 a round glow (the ball's halo) · 1 THE TRAIL (a flame rising from the ball: wide
+// at its foot, a point at its tip, flickering) · 2 THE MARK on the floor (flat: where the ball's centre comes down — a hot point in a
+// thin ring) · 3 a PUNCH (flat: a ring of light running out from a shatter; aQ.z = its age 0 … 1)
+export const LIGHT_V = /* glsl */`
+attribute vec4 aP, aQ;
+attribute vec3 aC;
+uniform float uAspect;
+varying vec2 vQ; varying vec4 vK; varying vec3 vC;
+void main() {
+  float kind = aQ.x;
+  vec4 c;
+  if (kind > 1.5) {
+    // flat on a floor: a quad in the world's XZ plane
+    c = projectionMatrix * viewMatrix * vec4(aP.xyz + vec3(position.x, 0.0, position.y) * 2.0 * aP.w, 1.0);
+  } else {
+    c = projectionMatrix * viewMatrix * vec4(aP.xyz, 1.0);
+    float sx = projectionMatrix[0][0], sy = projectionMatrix[1][1];
+    vec2 off = vec2(position.x * 2.0 * aP.w, kind > 0.5 ? (position.y + 0.5) * aQ.z : position.y * 2.0 * aP.w);
+    c.xy += vec2(off.x * sx, off.y * sy);
+  }
+  gl_Position = c;
+  vQ = position.xy * 2.0; vK = aQ; vC = aC;
+}`;
+export const LIGHT_F = /* glsl */`
+uniform float uTime, uBloom;
+varying vec2 vQ; varying vec4 vK; varying vec3 vC;
+void main() {
+  float kind = vK.x, a = 0.0, heart = 0.0;
+  if (kind < 0.5) { float r = min(1.0, length(vQ)); a = exp(-r * r * 5.5) * (1.0 - r * r) * (1.0 - r * r); heart = a * a * 0.6; }
+  else if (kind < 1.5) {
+    // THE TRAIL: t = 0 at the ball … 1 at its tip
+    float t = vQ.y * 0.5 + 0.5, w = mix(1.0, 0.08, pow(t, 0.7));
+    float wob = sin(t * 13.0 - uTime * 17.0 + vK.w) * 0.16 * t + sin(t * 29.0 - uTime * 31.0) * 0.07 * t;
+    float x = abs(vQ.x + wob) / w;
+    a = smoothstep(1.0, 0.0, x) * (1.0 - t) * (1.0 - t * 0.35) * smoothstep(0.0, 0.04, t);
+    heart = smoothstep(0.5, 0.0, x) * (1.0 - t) * 0.7;
+  }
+  else if (kind < 2.5) { float r = length(vQ); a = exp(-r * r * 5.0) * 0.55 + (1.0 - smoothstep(0.0, 0.07, abs(r - 0.62))) * 0.9 + (1.0 - smoothstep(0.08, 0.2, r)) * 1.2; a *= smoothstep(1.0, 0.85, r); heart = (1.0 - smoothstep(0.08, 0.2, r)); }
+  else { float r = length(vQ), k = vK.z, rr = 0.15 + 0.8 * (1.0 - (1.0 - k) * (1.0 - k)); a = exp(-pow((r - rr) / (0.05 + 0.08 * k), 2.0)) * (1.0 - k) * (1.0 - k) + exp(-r * r * 6.0) * (1.0 - k) * 0.6 * step(k, 0.5); heart = a * 0.4; }
+  a *= vK.y;
+  vec3 col = mix(vC, vec3(1.0), min(1.0, heart)) * a;
+  if (uBloom > 0.5) col *= 0.55;
+  gl_FragColor = vec4(col, 0.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE SHARDS: a shattered slice's pieces — real 3D chips thrown out + down, tumbling, flown HERE (a shard = its start, its throw,
+// its tumble axis, (its birth, its life, its size, its spin), its colour: nothing is stepped on the CPU)
+export const SHARD_V = /* glsl */`
+attribute vec3 aO, aV, aAx, aC;
+attribute vec4 aT;
+uniform float uTime;
+varying vec3 vC, vN; varying float vK;
+vec3 rot(vec3 p, vec3 ax, float a) { float c = cos(a), s = sin(a); return p * c + cross(ax, p) * s + ax * dot(ax, p) * (1.0 - c); }
+void main() {
+  float age = uTime - aT.x, k = age / aT.y;
+  if (age < 0.0 || k > 1.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vK = 1.0; vC = vec3(0.0); vN = vec3(0.0, 1.0, 0.0); return; }
+  vec3 ax = normalize(aAx);
+  vec3 p = rot(position * aT.z, ax, age * aT.w) + aO + aV * age + vec3(0.0, -6.5 * age * age, 0.0);
+  vN = rot(normal, ax, age * aT.w); vC = aC; vK = k;
+  gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+}`;
+export const SHARD_F = /* glsl */`
+uniform float uBloom;
+varying vec3 vC, vN; varying float vK;
+void main() {
+  float l = 0.45 + 0.55 * abs(normalize(vN).y);
+  float fade = 1.0 - vK * vK;
+  vec3 col = vC * l * 1.25 + vec3(1.0) * pow(abs(normalize(vN).y), 8.0) * 0.5;
+  if (uBloom > 0.5) col = vC * 0.5;
+  gl_FragColor = vec4(col * fade, fade);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE SPARKS (HIGH RISE's): a spark = its start (aO), its throw (aV), (its birth s, its life s, its width) in aT, its colour — a
+// streak from where it was 35 ms ago to where it is, under gravity. Added light.
+export const SPARK_V = /* glsl */`
+attribute vec3 aO, aV, aT, aC;
+uniform float uTime, uAspect, uGrav;
+varying float vK; varying vec2 vQ; varying vec3 vC;
+vec3 at(float t) { return aO + aV * t + vec3(0.0, uGrav * t * t, 0.0); }
+void main() {
+  float age = uTime - aT.x, k = age / aT.y;
+  if (age < 0.0 || k > 1.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vK = 1.0; vQ = vec2(0.0); vC = vec3(0.0); return; }
+  vec4 c1 = projectionMatrix * viewMatrix * vec4(at(age), 1.0);
+  vec4 c0 = projectionMatrix * viewMatrix * vec4(at(max(0.0, age - 0.035)), 1.0);
+  vec2 p1 = c1.xy / c1.w, p0 = c0.xy / c0.w;
+  vec2 dir = (p1 - p0) * vec2(uAspect, 1.0);
+  float len = length(dir);
+  dir = len > 1e-5 ? dir / len : vec2(0.0, 1.0);
+  float wid = aT.z * (1.0 - 0.6 * k) * 1.1;
+  vec2 off = dir * position.y * (len + wid) + vec2(dir.y, -dir.x) * position.x * wid;
+  off.x /= uAspect;
+  gl_Position = vec4(((p0 + p1) * 0.5 + off) * c1.w, c1.z, c1.w);
+  vK = k; vQ = position.xy * 2.0; vC = aC;
+}`;
+export const SPARK_F = /* glsl */`
+varying float vK; varying vec2 vQ; varying vec3 vC;
+void main() {
+  float a = (1.0 - abs(vQ.x)) * (1.0 - vQ.y * vQ.y) * (1.0 - vK * vK);
+  vec3 hue = mix(vec3(1.0, 0.97, 0.92), vC, smoothstep(0.0, 0.55, vK));
+  gl_FragColor = vec4(hue * a * 1.7, 0.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- YOUR BEST's GOLD TAPE (HIGH RISE's idea, round a ring): ONE thin line of gold light round the rim of your best floor + a soft glow
+// off it — never a fill. The line covers what is behind it (its gold stays gold on a pink floor); held down in the bloom pass.
+export const TAPE_V = /* glsl */`
+varying float vY;
+void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+export const TAPE_F = /* glsl */`
+uniform vec3 uCol;
+uniform float uGlow, uBloom, uHalf;
+varying float vY;
+void main() {
+  float px = fwidth(vY) + 1e-6, a = abs(vY);
+  float hw = max(1.2 * px, uHalf * 0.2);
+  float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);
+  float halo = exp(-a / (uHalf * 0.5)) * 0.5 * smoothstep(uHalf, uHalf * 0.6, a);
+  float k = uGlow * (uBloom > 0.5 ? 0.45 : 1.0);
+  vec3 c = (uCol * line + uCol * halo * (1.0 - line)) * k + vec3(1.0, 0.95, 0.8) * line * 0.25 * k;
+  gl_FragColor = vec4(c, min(1.0, line + halo * 0.6) * k);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE HALF-RES BLOOM (HIGH RISE's — tier 2 only): the scene's LIGHTS again (every material's uBloom pass) → a half-res target →
+// blurred at a quarter → added back over the picture
+const QUAD_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+const BLUR_F = `precision highp float; uniform sampler2D tMap; uniform vec2 uStep; varying vec2 vUv;
+void main() {
+  vec3 c = texture2D(tMap, vUv).rgb * 0.227027;
+  c += (texture2D(tMap, vUv + uStep * 1.3846).rgb + texture2D(tMap, vUv - uStep * 1.3846).rgb) * 0.316216;
+  c += (texture2D(tMap, vUv + uStep * 3.2308).rgb + texture2D(tMap, vUv - uStep * 3.2308).rgb) * 0.070270;
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const ADD_F = 'precision highp float; uniform sampler2D tMap; uniform float uK; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb * uK, 1.0); }';
+export const BLOOM_K = 0.7;
+export function createBloom(renderer, uBloom) {
+  const opt = { depthBuffer: true, stencilBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
+  const a = new THREE.WebGLRenderTarget(4, 4, opt), b = new THREE.WebGLRenderTarget(4, 4, { ...opt, depthBuffer: false }), c = new THREE.WebGLRenderTarget(4, 4, { ...opt, depthBuffer: false });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2)), qs = new THREE.Scene(), qc = new THREE.Camera();
+  quad.frustumCulled = false; qs.add(quad);
+  const blur = new THREE.ShaderMaterial({ vertexShader: QUAD_V, fragmentShader: BLUR_F, uniforms: { tMap: { value: null }, uStep: { value: new THREE.Vector2() } }, depthTest: false, depthWrite: false });
+  const add = new THREE.ShaderMaterial({ vertexShader: QUAD_V, fragmentShader: ADD_F, uniforms: { tMap: { value: null }, uK: { value: BLOOM_K } }, depthTest: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending });
+  const black = new THREE.Color(0x000000), keep = new THREE.Color();
+  return {
+    size(w, h) { a.setSize(Math.max(2, w >> 1), Math.max(2, h >> 1)); b.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); c.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); },
+    /** after the main picture: the lights again → blur → add. `twins` = [mesh, its material for THIS pass, (a slot)] — a material drawn
+     *  to the screen AND into a target changes program each time in three.js (HIGH RISE's LAG RULES 2): a twin is only ever drawn here. */
+    render(scene, cam, twins, k = 1) {
+      const auto = renderer.autoClear;
+      renderer.getClearColor(keep); const alpha = renderer.getClearAlpha();
+      renderer.setClearColor(black, 1);
+      uBloom.value = 1;
+      for (let i = 0; i < twins.length; i++) { const t = twins[i]; t[2] = t[0].material; t[0].material = t[1]; }
+      renderer.setRenderTarget(a); renderer.clear(); renderer.render(scene, cam);
+      for (let i = 0; i < twins.length; i++) { const t = twins[i]; t[0].material = t[2]; }
+      uBloom.value = 0;
+      quad.material = blur;
+      blur.uniforms.tMap.value = a.texture; blur.uniforms.uStep.value.set(1 / b.width, 0); renderer.setRenderTarget(b); renderer.render(qs, qc);
+      blur.uniforms.tMap.value = b.texture; blur.uniforms.uStep.value.set(0, 1 / c.height); renderer.setRenderTarget(c); renderer.render(qs, qc);
+      renderer.setRenderTarget(null); renderer.setClearColor(keep, alpha);
+      quad.material = add; add.uniforms.tMap.value = c.texture; add.uniforms.uK.value = BLOOM_K * k;
+      renderer.autoClear = false; renderer.render(qs, qc); renderer.autoClear = auto;
+    },
+    dispose() { a.dispose(); b.dispose(); c.dispose(); quad.geometry.dispose(); blur.dispose(); add.dispose(); },
+  };
+}
