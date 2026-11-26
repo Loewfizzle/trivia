@@ -58,20 +58,34 @@
 .ff-stage.is-near .ff-warn { opacity: 1; animation: ff-blink 0.7s steps(2, jump-none) infinite; }
 @keyframes ff-blink { 0% { opacity: 1; } 100% { opacity: 0.62; } }
 
-/* THE OPENING — the live scene, no menu page: the sign FREE / FALL in neon tubes (FALL slipped a step down-right, a blazing ball dropping
-   past it), FALL AS DEEP AS YOU CAN; at the foot the thumb-sweep hint + DRAG TO SPIN + THE ROOFTOP · FLOOR 0. The first drag fades it. */
+/* THE OPENING — the live scene, no menu page (F3: title-05, the owner's pick): Grok's lettering centred in the top third, 85 % of the
+   width (≈ 330 pt at 390), its tagline just under it — two pictures over the LIVE tower; at the foot the thumb-sweep hint + DRAG TO
+   SPIN. The first drag fades it. (F2's tube sign FREE / FALL + its dropping ball are gone.) */
 .ff-open, .ff-foot { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.45s; }
 .ff-stage.is-open .ff-open, .ff-stage.is-open .ff-foot { opacity: 1; }
-.ff-open { top: calc(env(safe-area-inset-top, 0px) + 9.5%); }
-.ff-logo { position: relative; display: inline-grid; justify-items: start; font: 900 calc(var(--ff-w) * 0.2)/0.92 var(--font-display); letter-spacing: 0.01em; color: #fff; text-align: left; }
-.ff-free { text-shadow: 0 0 2px #fff, 0 0 12px rgba(214, 120, 255, 1), 0 0 30px rgba(195, 91, 255, 0.85), 0 0 62px rgba(155, 92, 255, 0.55); }
-.ff-fall { margin-left: 0.56em; margin-top: 0.06em; text-shadow: 0 0 2px #fff, 0 0 12px rgba(200, 255, 100, 1), 0 0 30px rgba(184, 255, 59, 0.8), 0 0 62px rgba(140, 220, 40, 0.5); color: #fbfff2; }
-/* the blazing ball dropping past FALL: a hot ball under its flame (ONE element: the flame is its own gradient tail) */
-.ff-drop { position: absolute; right: 0.14em; top: -0.12em; width: 0.19em; height: 1.25em; clip-path: polygon(50% 0%, 100% 80%, 100% 100%, 0% 100%, 0% 80%); opacity: 0; will-change: transform, opacity;   /* (a flame tapering to a point over a round ball — NO PILLS: never a capsule) */
-  background: radial-gradient(circle at 50% calc(100% - 0.095em), #fff 0 0.05em, #ffd27a 0.07em, #ff9a2a 0.095em, rgba(255, 150, 40, 0) 0.1em), linear-gradient(to bottom, rgba(255, 170, 60, 0) 0%, rgba(255, 170, 60, 0.75) 80%, rgba(255, 190, 90, 0) 100%);
-  filter: drop-shadow(0 0 0.07em rgba(255, 170, 60, 0.9)); animation: ff-drop 2.8s cubic-bezier(0.5, 0, 0.9, 0.6) infinite; }
-@keyframes ff-drop { 0% { transform: translateY(-0.7em); opacity: 0; } 12% { opacity: 1; } 62% { transform: translateY(0.95em); opacity: 1; } 78%, 100% { transform: translateY(1.5em); opacity: 0; } }
-.ff-tag { margin: calc(var(--ff-w) * 0.058) 0 0; font: 600 clamp(13px, calc(var(--ff-w) * 0.04), 16px)/1 var(--font-ui); letter-spacing: 0.3em; text-indent: 0.3em; color: #e6e0fa; text-shadow: 0 1px 0 #07040f, 0 0 12px #07040f; }
+.ff-open { top: calc(env(safe-area-inset-top, 0px) + 9.6%); display: grid; justify-items: center; }
+.ff-title { position: relative; width: calc(var(--ff-w) * 0.85); aspect-ratio: 2340 / 1137; }
+.ff-title-img, .ff-tagline { display: block; width: 100%; height: 100%; -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+.ff-stage.is-open .ff-title { animation: ff-title-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes ff-title-in { 0% { opacity: 0; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
+.ff-tagline { width: calc(var(--ff-w) * 0.62); height: auto; aspect-ratio: 2340 / 200; margin-top: calc(var(--ff-w) * 0.012); }
+.ff-stage[data-look='day'] .ff-tagline { filter: drop-shadow(0 1px 1px rgba(8, 20, 48, 0.9)) drop-shadow(0 0 5px rgba(8, 20, 48, 0.6)); }   /* (white caps on a pale sky: a deeper dark shadow — static) */
+/* THE GLINT: a soft diagonal band of light swept LEFT → RIGHT over the lettering (0.8 s, eased), then a rest — every 7 s while the
+   opening waits; masked to the lettering's own alpha (stage.js sets the mask to the file the <img> picked). NIGHT = a pink-white neon
+   glare · DAY = a clean white sun glint. Transform + opacity only; it stops with the first drag (is-open leaves); reduced motion = ONE sweep. */
+.ff-glint { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0; -webkit-mask: center / 100% 100% no-repeat; mask: center / 100% 100% no-repeat; --ff-glint: 255, 214, 240; --ff-glint-core: 255, 246, 252; }
+.ff-glint.is-ready { opacity: 1; }
+.ff-stage[data-look='day'] .ff-glint { --ff-glint: 255, 255, 255; --ff-glint-core: 255, 255, 255; }
+.ff-glint::before { content: ''; position: absolute; top: -12%; bottom: -12%; left: 0; width: 36%; transform: translate3d(-150%, 0, 0) skewX(-22deg); will-change: transform;
+  background: linear-gradient(90deg, rgba(var(--ff-glint), 0) 0%, rgba(var(--ff-glint), 0.42) 30%, rgba(var(--ff-glint-core), 0.86) 50%, rgba(var(--ff-glint), 0.42) 70%, rgba(var(--ff-glint), 0) 100%); }
+.ff-stage.is-open .ff-glint::before { animation: ff-glint 7s cubic-bezier(0.45, 0, 0.3, 1) 0.35s infinite both; }
+@keyframes ff-glint { 0% { transform: translate3d(-150%, 0, 0) skewX(-22deg); } 11.4%, 100% { transform: translate3d(330%, 0, 0) skewX(-22deg); } }
+/* … and a tiny 4-point star twinkling on the last letter as the band leaves it */
+.ff-star { position: absolute; left: 88.5%; top: 5%; width: calc(var(--ff-w) * 0.062); aspect-ratio: 1; margin: calc(var(--ff-w) * -0.031) 0 0 calc(var(--ff-w) * -0.031); opacity: 0; pointer-events: none; will-change: transform, opacity;
+  background: radial-gradient(circle, #fff 0 18%, rgb(var(--ff-star, 255, 214, 240)) 46%, rgba(255, 255, 255, 0) 72%); clip-path: polygon(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%); }
+.ff-stage[data-look='day'] .ff-star { --ff-star: 255, 255, 255; }
+.ff-stage.is-open .ff-star { animation: ff-star 7s ease-in-out 0.35s infinite both; }
+@keyframes ff-star { 0%, 8.5% { opacity: 0; transform: scale(0.2) rotate(0deg); } 12.5% { opacity: 1; transform: scale(1.15) rotate(40deg); } 17%, 100% { opacity: 0; transform: scale(0.2) rotate(90deg); } }
 .ff-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 44px); }
 .ff-hint { display: inline-flex; align-items: center; gap: 10px; color: #fff; }
 .ff-hint-a { font: 700 40px/0.8 var(--font-ui); font-style: normal; text-shadow: 0 0 10px rgba(39, 224, 230, 0.8); }
@@ -79,7 +93,6 @@
 .ff-hint-dot { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid var(--ff-teal); background: radial-gradient(circle, #fff 0 5px, #07040f 6px); box-shadow: 0 0 12px rgba(39, 224, 230, 0.8); animation: ff-sweep 2.4s ease-in-out infinite; will-change: transform; }
 @keyframes ff-sweep { 0%, 100% { transform: translateX(-46px); } 50% { transform: translateX(46px); } }
 .ff-foot-t { margin-top: 14px; font: 900 clamp(22px, calc(var(--ff-w) * 0.07), 28px)/1 var(--font-display); letter-spacing: 0.08em; text-indent: 0.08em; color: #fff; text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 168, 0.95), 0 2px 0 rgba(8, 4, 20, 0.7); }
-.ff-foot-l { margin-top: 12px; font: 600 13px/1 var(--font-ui); letter-spacing: 0.3em; text-indent: 0.3em; color: #d9d4f2; text-shadow: 0 1px 0 #07040f, 0 0 10px #07040f; }
 
 /* THE HOLD: the run is held (the page was hidden) — PAUSED, then 3 · 2 · 1 */
 .ff-hold { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 10px; text-align: center; pointer-events: none; background: rgba(5, 3, 13, 0.6); }
@@ -134,19 +147,24 @@
 
 @media (max-height: 700px) {
   .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 40px); } .ff-num { font-size: 60px; } .ff-call { margin-top: 4px; min-height: 28px; font-size: 24px; } .ff-area { margin-top: 3px; }
-  .ff-open { top: calc(env(safe-area-inset-top, 0px) + 8%); } .ff-logo { font-size: calc(var(--ff-w) * 0.18); } .ff-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 34px); } .ff-foot-t { margin-top: 8px; }
+  .ff-open { top: calc(env(safe-area-inset-top, 0px) + 8.4%); } .ff-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 34px); } .ff-foot-t { margin-top: 8px; }
   .ff-ec { gap: 7px; margin-top: calc(env(safe-area-inset-top, 0px) + 52px); } .ff-ec-cause { font-size: min(29px, calc(var(--ff-w) * 0.078)); } .ff-ec-n { margin-top: 2px; font-size: 78px; } .ff-ec-fl { font-size: 14px; }
   .ff-ec-best { margin-top: 2px; font-size: 15px; } .ff-ec-best.is-new { font-size: 20px; } .ff-again { min-height: 58px; } .ff-endfoot { gap: 9px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ff-drop, .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-drop { opacity: 1; transform: translateY(0.5em); } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
+  .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
+  /* THE GLINT: ONE sweep only (+ its star once), then nothing moves */
+  .ff-stage.is-open .ff-title { animation: none; } .ff-stage.is-open .ff-glint::before { animation: ff-glint-once 0.8s cubic-bezier(0.45, 0, 0.3, 1) 0.35s 1 both; } .ff-stage.is-open .ff-star { animation: ff-star-once 0.9s ease-in-out 0.95s 1 both; }
 }
+
+@keyframes ff-glint-once { 0% { transform: translate3d(-150%, 0, 0) skewX(-22deg); } 100% { transform: translate3d(330%, 0, 0) skewX(-22deg); } }
+@keyframes ff-star-once { 0% { opacity: 0; transform: scale(0.2); } 45% { opacity: 1; transform: scale(1.15) rotate(40deg); } 100% { opacity: 0; transform: scale(0.2) rotate(90deg); } }
 
 /* A PHONE HELD SIDEWAYS (the review: 844 × 390 — a 234 px column; the end card ran out of it, PAUSED sat on its number): sized by the column */
 @media (max-height: 480px) {
   .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 26px); } .ff-num { font-size: 40px; } .ff-area { font-size: 9px; letter-spacing: 0.2em; text-indent: 0.2em; } .ff-call { margin-top: 2px; min-height: 20px; font-size: 16px; } .ff-warn { font-size: 9px; padding: 4px 6px; }
   .ff-best { left: 4px; right: 4px; font-size: 10px; letter-spacing: 0.12em; text-indent: 0.12em; min-height: 24px; top: 0; } .ff-snd { display: none; }
-  .ff-tag { font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; } .ff-hint { transform: scale(0.6); } .ff-foot { bottom: 20px; } .ff-foot-t { margin-top: 0; font-size: 15px; } .ff-foot-l { margin-top: 5px; font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; } .ff-note { font-size: 7px; letter-spacing: 0.1em; text-indent: 0.1em; padding: 2px 0; }
+  .ff-open { top: 26px; } .ff-hint { transform: scale(0.6); } .ff-foot { bottom: 20px; } .ff-foot-t { margin-top: 0; font-size: 15px; } .ff-note { font-size: 7px; letter-spacing: 0.1em; text-indent: 0.1em; padding: 2px 0; }
   .ff-hold { gap: 4px; } .ff-hold-t { font-size: 14px; } .ff-hold-n { min-height: 64px; font-size: 64px; } .ff-hold-l { font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; }
   .ff-ec { margin-top: 8px; gap: 3px; padding: 0 4px; } .ff-ec-hd { font-size: 11px; margin-bottom: 0; } .ff-ec-cause { font-size: 15px; } .ff-ec-n { margin-top: 0; font-size: 46px; } .ff-ec-fl { font-size: 9px; margin-top: -2px; }
   .ff-ec-best { min-height: 12px; margin-top: 0; font-size: 10px; letter-spacing: 0.1em; } .ff-ec-best.is-new { font-size: 12px; } .ff-ec-line { font-size: 7.5px; letter-spacing: 0.06em; padding-left: 0; }

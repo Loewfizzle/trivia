@@ -21,7 +21,7 @@ import { endWords, tickOf, areaOf } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
 import { CUE_NEW_BEST } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
-import { createNight } from './night.js';
+import { createNight, FF_ART_REV } from './night.js';
 import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 
@@ -72,10 +72,21 @@ export function createStage(app, o = {}) {
   const num = h('div.ff-num', { 'aria-label': '0' }, h('span.ff-dg', { 'aria-hidden': 'true' }, '0'));
   const areaL = h('div.ff-area', 'THE ROOFTOP'), call = h('div.ff-call', { 'aria-live': 'polite' }), warn = h('div.ff-warn', 'THE LIGHTS ARE GOING OUT');
   const hud = h('div.ff-hud', num, areaL, call, warn);
-  const logo = h('div.ff-logo', { role: 'img', 'aria-label': 'FREEFALL' }, h('span.ff-free', { 'aria-hidden': 'true' }, 'FREE'), h('span.ff-fall', { 'aria-hidden': 'true' }, 'FALL'), h('i.ff-drop', { 'aria-hidden': 'true' }));
-  const open = h('div.ff-open', logo, h('p.ff-tag', 'FALL AS DEEP AS YOU CAN'));
+  // THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube
+  // sign + its dropping ball are gone). THE GLINT (.ff-glint): a band of light swept across the lettering, MASKED TO THE LETTERING's
+  // OWN ALPHA (the mask = the very file the <img> picked — no second download), a 4-point star on the last letter as it leaves — CSS
+  // only (transform + opacity), running only while the opening waits
+  const art = (name, w) => new URL(`../../../assets/freefall/title/${name}-${w}.webp?v=${FF_ART_REV}`, import.meta.url).href;
+  const sizesOf = k => `min(${Math.round(k * 100)}vw, ${Math.round(k * 60)}vh)`;   // (the stage's column: min(100vw, 60dvh) wide)
+  const glint = h('i.ff-glint', { 'aria-hidden': 'true' }), star = h('i.ff-star', { 'aria-hidden': 'true' });
+  const titleImg = h('img.ff-title-img', { alt: 'Freefall', decoding: 'async', draggable: 'false', sizes: sizesOf(0.85), srcset: `${art('lettering', 780)} 780w, ${art('lettering', 1170)} 1170w`, src: art('lettering', 780) });
+  const maskNow = () => { const u = titleImg.currentSrc || titleImg.src; if (u) { const v = `url("${u}")`; glint.style.webkitMaskImage = v; glint.style.maskImage = v; glint.classList.add('is-ready'); } };
+  titleImg.addEventListener('load', maskNow);
+  const title = h('div.ff-title', titleImg, glint, star);
+  const tagline = h('img.ff-tagline', { alt: 'Fall as deep as you can', decoding: 'async', draggable: 'false', sizes: sizesOf(0.62), srcset: `${art('tagline', 780)} 780w, ${art('tagline', 1170)} 1170w`, src: art('tagline', 780) });
+  const open = h('div.ff-open', title, tagline);
   const hint = h('div.ff-hint', { 'aria-hidden': 'true' }, h('i.ff-hint-a', '‹'), h('span.ff-hint-track', h('b.ff-hint-dot')), h('i.ff-hint-a', '›'));
-  const foot = h('div.ff-foot', hint, h('div.ff-foot-t', 'DRAG TO SPIN'), h('div.ff-foot-l', 'THE ROOFTOP · FLOOR 0'));
+  const foot = h('div.ff-foot', hint, h('div.ff-foot-t', 'DRAG TO SPIN'));
   const holdN = h('div.ff-hold-n'), holdL = h('div.ff-hold-l');
   const holdEl = h('div.ff-hold', { hidden: true, role: 'status' }, h('div.ff-hold-t', 'PAUSED'), holdN, holdL);
   const EC = endCard({ header: MODE === 'solo' ? 'solo' : MODE });

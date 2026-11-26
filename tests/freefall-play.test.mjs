@@ -261,6 +261,30 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
 });
 
+test('THE OPENING = title-05 (F3 — the owner\'s pick): Grok\'s lettering + tagline as two pictures over the LIVE tower (WebP with alpha, two widths, small), 85 % of the width in the top third; F2\'s tube sign + its dropping ball are gone; THE GLINT = a CSS band masked to the lettering\'s alpha every 7 s while the opening waits — transform + opacity only, ONE sweep under reduced motion', () => {
+  const st = code(`${FF}stage.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const [name, max] of [['lettering-1170', 190000], ['lettering-780', 110000], ['tagline-1170', 40000], ['tagline-780', 26000]]) { const u = new URL(`../assets/freefall/title/${name}.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < max, `${name}.webp ships, small`); }
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/title/', import.meta.url)).sort(), ['lettering-1170.webp', 'lettering-780.webp', 'tagline-1170.webp', 'tagline-780.webp']);
+  assert.match(st, /const titleImg = h\('img\.ff-title-img', \{ alt: 'Freefall'/); assert.match(st, /srcset: `\$\{art\('lettering', 780\)\} 780w, \$\{art\('lettering', 1170\)\} 1170w`/, 'two widths: the phone picks its own');
+  assert.match(st, /const tagline = h\('img\.ff-tagline', \{ alt: 'Fall as deep as you can'/);
+  assert.match(st, /const open = h\('div\.ff-open', title, tagline\);/);
+  assert.doesNotMatch(st + css, /ff-logo|ff-free|ff-fall\b|ff-drop|ff-tag\b/, 'F2\'s tube sign FREE / FALL + its dropping ball are REMOVED');
+  assert.match(css, /\.ff-title \{ position: relative; width: calc\(var\(--ff-w\) \* 0\.85\); aspect-ratio: 2340 \/ 1137; \}/, '85 % of the width (≈ 330 pt at 390)');
+  // THE GLINT: masked to the lettering's own alpha — the mask is the very file the picture picked (no second download)
+  assert.match(st, /const maskNow = \(\) => \{ const u = titleImg\.currentSrc \|\| titleImg\.src;/); assert.match(st, /glint\.style\.webkitMaskImage = v; glint\.style\.maskImage = v;/);
+  assert.match(css, /\.ff-stage\.is-open \.ff-glint::before \{ animation: ff-glint 7s /, 'every 7 s, only while the opening waits (is-open leaves at the first drag: it stops)');
+  assert.match(css, /@keyframes ff-glint \{ 0% \{ transform: translate3d\(-150%, 0, 0\) skewX\(-22deg\); \} 11\.4%, 100% \{ transform: translate3d\(330%, 0, 0\) skewX\(-22deg\); \} \}/, 'the sweep = 0.8 s of the 7 (LEFT → RIGHT), a transform only');
+  assert.match(css, /\.ff-stage\.is-open \.ff-star \{ animation: ff-star 7s /, 'the 4-point star on the last letter');
+  assert.match(css, /clip-path: polygon\(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%\)/, 'a 4-point star');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-glint \{ --ff-glint: 255, 255, 255;/, 'by day: a clean white sun glint (the night\'s is pink-white)');
+  assert.match(css, /\.ff-stage\.is-open \.ff-glint::before \{ animation: ff-glint-once 0\.8s [^;]* 1 both; \}/, 'reduced motion: ONE sweep only');
+  const frames = [...css.matchAll(/@keyframes (ff-glint[\w-]*|ff-star[\w-]*|ff-title-in) \{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+  assert.equal(frames.length, 5, 'the glint, its star (each + its one-sweep twin), the title\'s way in');
+  for (const k of frames) assert.doesNotMatch(k[2].replace(/transform|opacity/g, ''), /[a-z-]+\s*:/, `${k[1]} moves transform + opacity only`);
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-tagline \{ filter: drop-shadow\(/, 'by day the tagline wears a deeper dark shadow (white caps on a pale sky)');
+  assert.doesNotMatch(css, /184, 255, 59|ff-lime|ff-uv\b|#b8ff3b|#9b5cff/i, 'F2\'s ultraviolet + lime are gone from the stylesheet');
+});
+
 test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s colour): one palette an area in tuning.js#AREAS\' order, each its own hue, RED IS THE ONLY RED — no colour within 25° of hue 352; the last three floors of an area lean to the next one\'s', () => {
   const hsl = hex => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(mx + mn - 1)) : 0, (mx + mn) / 2]; };
   const far = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };

@@ -197,11 +197,15 @@ async function checks1() {
   await sleep(600);
   let s = await st(t.p);
   ok(/\bis-open\b/.test(s.cls) && !s.started && s.floor === 0 && s.info.pose[0] === 27, `THE OPENING = the live scene: not started, the ball on floor 0, the camera high over the tower top (pitch ${s.info.pose[0]}°)`);
-  const free = await box(t.p, '.ff-free'), fall = await box(t.p, '.ff-fall'), tag = await box(t.p, '.ff-tag'), bestL = await box(t.p, '.ff-best'), ft = await box(t.p, '.ff-foot-t'), fl = await box(t.p, '.ff-foot-l'), hint = await box(t.p, '.ff-hint'), sndB = await box(t.p, '.ff-snd'), note = await box(t.p, '.ff-note');
-  ok(free.text === 'FREE' && fall.text === 'FALL' && free.x >= 8 && fall.r <= 390 - 8 && fall.x > free.x + 20 && fall.y > free.y + 40 && free.fs >= 70, `the sign FREE / FALL stacked (FALL a step down-right), ${free.fs.toFixed(0)} px, inside the screen (${free.x.toFixed(0)} … ${fall.r.toFixed(0)})`);
-  ok(tag.text === 'FALL AS DEEP AS YOU CAN' && tag.fs >= 13 && tag.y > fall.b, `"${tag.text}" under it`);
-  ok(bestL.text === 'YOUR BEST 88' && bestL.fs >= 13 && bestL.y < free.y, `"${bestL.text}" at the top`);
-  ok(ft.text === 'DRAG TO SPIN' && ft.fs >= 22 && fl.text === 'THE ROOFTOP · FLOOR 0' && hint.y < ft.y && fl.b < 844 - 20, `at the foot: the thumb-sweep hint · ${ft.text} (${ft.fs.toFixed(0)} px) · ${fl.text}`);
+  const ttl = await box(t.p, '.ff-title'), tagl = await box(t.p, '.ff-tagline'), bestL = await box(t.p, '.ff-best'), ft = await box(t.p, '.ff-foot-t'), hint = await box(t.p, '.ff-hint'), sndB = await box(t.p, '.ff-snd'), note = await box(t.p, '.ff-note');
+  await waitFor(t.p, "document.querySelector('.ff-title-img').complete && document.querySelector('.ff-tagline').complete && document.querySelector('.ff-glint').classList.contains('is-ready')", 8000);
+  const glintOf = () => t.p.evaluate(() => { const a = document.querySelector('.ff-title-img'), b = document.querySelector('.ff-tagline'), g = document.querySelector('.ff-glint'), gs = getComputedStyle(g), an = getComputedStyle(g, '::before'), file = u => u.split('/').pop().split('?')[0]; return { a: [a.complete, a.naturalWidth, file(a.currentSrc), a.alt], b: [b.complete, b.naturalWidth, file(b.currentSrc), b.alt], mask: (gs.webkitMaskImage || gs.maskImage || '').includes(file(a.currentSrc)), ready: g.classList.contains('is-ready'), anim: an.animationName, dur: an.animationDuration, star: getComputedStyle(document.querySelector('.ff-star')).animationName, old: !!document.querySelector('.ff-logo, .ff-free, .ff-fall, .ff-drop, .ff-tag') }; });
+  const pics = await glintOf();
+  ok(pics.a[0] && pics.a[2] === 'lettering-1170.webp' && pics.a[3] === 'Freefall' && Math.abs(ttl.w / 390 - 0.85) < 0.01 && Math.abs(ttl.x + ttl.w / 2 - 195) < 1 && ttl.y >= 60 && ttl.b <= 844 * 0.35 && !pics.old, `THE OPENING's title = title-05's lettering (${pics.a[2]}, ${pics.a[1]} px at 3×): ${ttl.w.toFixed(0)} pt wide = 85 % of the width, centred, in the top 35 % (${ttl.y.toFixed(0)} … ${ttl.b.toFixed(0)} of 844); F2's tube sign + its dropping ball are gone`);
+  ok(pics.b[0] && pics.b[3] === 'Fall as deep as you can' && tagl.y >= ttl.b - 2 && tagl.y - ttl.b < 24 && tagl.w >= 220 && Math.abs(tagl.x + tagl.w / 2 - 195) < 1, `its tagline (${pics.b[2]}) just under it (${tagl.y.toFixed(0)} … ${tagl.b.toFixed(0)}, ${tagl.w.toFixed(0)} pt wide)`);
+  ok(pics.ready && pics.mask && pics.anim === 'ff-glint' && pics.dur === '7s' && pics.star === 'ff-star', `THE GLINT: a band swept over the lettering every ${pics.dur} while the opening waits, MASKED to the lettering's own alpha (the mask = the file the picture picked: ${pics.mask}), its star (${pics.star})`);
+  ok(bestL.text === 'YOUR BEST 88' && bestL.fs >= 13 && bestL.b <= ttl.y + 8, `"${bestL.text}" at the top`);
+  ok(ft.text === 'DRAG TO SPIN' && ft.fs >= 22 && hint.y < ft.y && ft.b < 844 - 20 && hint.y > ttl.b + 200, `at the foot: the thumb-sweep hint · ${ft.text} (${ft.fs.toFixed(0)} px)`);
   ok(sndB && sndB.w >= 44 && sndB.h >= 44 && note.text === 'TEST PAGE — NOTHING COUNTS YET', `SOUNDS ≥ 44 pt (${sndB.w.toFixed(0)} × ${sndB.h.toFixed(0)}) · the note "${note.text}"`);
   ok(s.warmed && s.info.programs >= 9 && /sky:1/.test(s.info.walls) && /offices:1/.test(s.info.walls), `THE WARM FRAME behind the opening: ${s.info.programs} programs built, the skyline + the first wall uploaded (${s.info.walls})`);
   await shot(t.p, 'chk-01-opening.png');
@@ -401,6 +405,7 @@ async function checks2() {
   await waitFor(t.p, 'window.__ffPlay.msToLanding() > 420');
   const pt = (id, x) => ({ x, y: 600, id, radiusX: 4, radiusY: 4, force: 1 });
   await auto(t.p, null);
+  await waitFor(t.p, 'window.__ffPlay.state().owed === 0', 2000);   // (F3: the checks' own hand may still owe a turn when it is let go — since THE HOLD = EXACT RESUME it comes back mid-flight; the tower rests before the finger's turn is measured)
   const aA = (await st(t.p)).a;
   await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(1, 120)] });
   await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(1, 150)] });
@@ -457,8 +462,8 @@ async function checks2() {
   for (const [w, h, dpr] of [[375, 667, 2], [430, 932, 3], [1440, 900, 1]]) {
     t = await open(w, h, dpr, '?seed=chk8', { best: 88 });
     await sleep(400);
-    const stg = await box(t.p, '.ff-stage'), free = await box(t.p, '.ff-free'), fall = await box(t.p, '.ff-fall'), ft = await box(t.p, '.ff-foot-t'), tag = await box(t.p, '.ff-tag');
-    ok(free.x >= stg.x + 6 && fall.r <= stg.r - 6 && tag.b < ft.y && ft.b < h, `${w} × ${h}: the opening fits its column (the sign ${free.x.toFixed(0)} … ${fall.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)})`);
+    const stg = await box(t.p, '.ff-stage'), ttl = await box(t.p, '.ff-title'), ft = await box(t.p, '.ff-foot-t'), tagl = await box(t.p, '.ff-tagline');
+    ok(ttl.x >= stg.x + 6 && ttl.r <= stg.r - 6 && Math.abs(ttl.w / stg.w - 0.85) < 0.01 && ttl.b <= stg.h * 0.37 && tagl.b < ft.y && ft.b < h, `${w} × ${h}: the opening fits its column (the lettering ${ttl.x.toFixed(0)} … ${ttl.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}, 85 % of it, in its top ${(100 * ttl.b / stg.h).toFixed(0)} %)`);
     await start(t); await sleep(1200);
     s = await st(t.p);
     const apex = await t.p.evaluate(() => window.__ffPlay.apexY()), area = await box(t.p, '.ff-area'), below = s.frame.rows.filter(y => y < 1).length - 1;
