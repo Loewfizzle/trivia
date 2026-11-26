@@ -75,7 +75,7 @@ const t = await open(390, 844, 3, '?seed=lab1');
       restart: box(q('.ff-restart')), tabs: [...document.querySelectorAll('.ff-tab')].map(e => ({ ...box(e), on: e.classList.contains('is-on') })), seed: box(q('.ff-seed')), fps: !!q('.ff-fps'), w: innerWidth, h: innerHeight, scroll: document.documentElement.scrollWidth };
   });
   ok(dom.floor.text === '0' && dom.floor.fs >= 54 && dom.floor.y < 844 * 0.12 && dom.k.text === 'FLOOR', `FLOOR big at the top (${dom.floor.fs} px)`);
-  ok(dom.stats.text === 'CLEAN 0 · BLAZE — · DARK 6' && dom.stats.fs >= 16, `the plain-text HUD: "${dom.stats.text}" (${dom.stats.fs} px)`);
+  ok(dom.stats.text === 'CLEAN 0 · BLAZE — · DARK 3' && dom.stats.fs >= 16, `the plain-text HUD: "${dom.stats.text}" (${dom.stats.fs} px)`);
   ok(dom.area.text === 'THE ROOFTOP' && dom.area.fs >= 14 && dom.sub.text === 'SOLO · 30:00' && dom.sub.fs >= 13, `the area name + the mode's clock: "${dom.area.text}" · "${dom.sub.text}"`);
   ok(!dom.startBox.hidden && dom.start.text === 'TOUCH TO START' && dom.start.fs >= 20 && dom.end.hidden, 'TOUCH TO START up, the end card hidden');
   ok(dom.restart.text === 'RESTART' && dom.restart.h >= 44 && dom.restart.w >= 44 && dom.restart.x + dom.restart.w <= dom.w && dom.restart.y >= 0, `a RESTART button, ${dom.restart.w.toFixed(0)} × ${dom.restart.h.toFixed(0)} pt, in the top-right corner`);

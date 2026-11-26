@@ -1335,6 +1335,21 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   go out), REPLAY = LIVE ✓ + the judge, RESTART, the network log, `?mode=` `?seed=` `?fps=1`, + 375 × 667 · 430 × 932 · 1440 × 900 (the
   mouse + the arrow keys). THE PAGES LOAD (`kit/page-loads.mjs`) covers `/freefall-lab`.
 
+## FREEFALL F3 (Nov 26 2026 — docs/games/passes/freefall-f3.md)
+- Unit (`node --test tests/freefall-*.test.mjs`): `freefall-engine.test.mjs` (24 — THE HOLD = EXACT RESUME: the frozen state, a hold before /
+  at a red landing, live == replay == judge == the same log without its holds) · `freefall-play.test.mjs` (15, static — + the area
+  palettes (no colour within 25° of red), THE OPENING = title-05 + THE GLINT, THE DAY LOOK, THE ARRIVAL BANNERS + `logic.js`'s arrivals).
+- The browser: `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--look [--looks=night,day] [--scenes=…]] [--perf [--one=day-84-1-4]]`
+  — **104 checks** (they pin `look=night`: AUTO follows the machine's clock; + the opening's title + glint, the look turned LIVE mid-run,
+  a lost context by day, the bubbles + caustics by tier, each area's motes, AUTO, the banners in both looks) · `--look` = both looks'
+  shots (`f3-<look>-…`: every area + border, the opening, a banner, the blaze on the day's water, the darkness, the four sizes) ·
+  `--perf` = 18 rows: night THE SPEAKEASY, day THE SPEAKEASY + UNDER THE HARBOR, every tier at 1× + 4× CPU (its 10th row falls on this
+  machine's 2-minute headless stall: one 250 ms frame in a full run — `--one=day-84-1-4` measures it alone). The rules tests carry the
+  darkness's new row (3 s · 120 · 3); `tests/integration/freefall-lab.mjs` reads DARK 3.
+- THE ADD-ON (TWO SONGS AT ONCE — js/app.js): `tests/daily-music.test.mjs` (2, static) + `node tests/integration/daily-music.mjs "<chromium>"`
+  (7 — the REAL app on the emulators + `serve.mjs <port> --emu`, `E2E_BASE`: the radio synced, the picker keeps it, a daily run rests it,
+  ONE song, the radio back).
+
 ## FREEFALL F2 (Nov 26 2026 — docs/games/passes/freefall-f2.md)
 - Unit (`node --test tests/freefall-*.test.mjs`, ≈ 20 s, no install): the rules fixes in `freefall-engine.test.mjs` (23 — + the landing
   right after a shatter · MOVING RED in the engine · THE HOLD · REPLAY = LIVE with holds, the judge's refusals, the packed log with
