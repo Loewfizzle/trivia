@@ -11,7 +11,7 @@ import { BEST_KEY, cleanBest, bestLine, crossedBest, nextBest } from '../js/game
 import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, BOUNCE_VARY_DB, MUSIC, SCALE_STEPS, scaleRate, cuesOf, admitSlot, CUE_NEW_BEST } from '../js/games/freefall/sounds.js';
 import { createRun, stepTo, turn, isOver } from '../js/games/freefall/engine.js';
 import { makeBot, planFlight } from '../js/games/freefall/bot.js';
-import { MODES, AREAS } from '../js/games/freefall/tuning.js';
+import { MODES, AREAS, DARK } from '../js/games/freefall/tuning.js';
 import { PALETTES, TRENCH_PALETTES } from '../js/games/freefall/palettes.js';
 import { nextArrival, isArrival, arrivalWords } from '../js/games/freefall/logic.js';
 
@@ -222,7 +222,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /createImageBitmap\(bl\)/); assert.match(n, /try \{ renderer\.initTexture\(tex\); \}/, 'a picture is decoded off the frame + uploaded at once (LAG RULES 1)');
   assert.match(n, /renderer\.compile\(scene, cam\); renderer\.compile\(wallScene, wallCam\);/, 'THE WARM FRAME builds every program');
   assert.match(n, /renderer\.sortObjects = false;/); assert.match(n, /scene\.matrixAutoUpdate = false; scene\.matrixWorldAutoUpdate = false;/);
-  assert.match(n, /assets\/freefall\/walls\/\$\{name\}-\$\{lk\}\.webp/); assert.match(n, /assets\/jaywalk\/skyline-night\.webp/, 'THE ROOFTOP: JAYWALK\'s night skyline (reused, no copy)');
+  assert.match(n, /assets\/freefall\/walls\/\$\{name\}-\$\{lk\}\.webp/); assert.match(n, /assets\/freefall\/sky\/rooftop-\$\{lk\}\.webp/, 'THE ROOFTOP: FREEFALL\'s own panorama (the add-on, Nov 26)'); assert.doesNotMatch(n, /assets\/jaywalk/, 'JAYWALK\'s skyline is no longer used');
   for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-night.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 120000, `${w}: its night wall ships, small`); }
   // RED: hsl(352) — and readable with the colour removed: it stands proud, dark chevrons, a pulse
   assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the chevrons, their edges smoothed by their own width on the screen (THE REVIEW: never a stair-step)'); assert.match(fx, /vec3 rimC = red > 0\.5 \? vec3\(1\.0, 0\.2, 0\.24\) \* 1\.7 : mix\(rimHue, vec3\(1\.0\), 0\.22\) \* 1\.75;/, 'THE REVIEW: a red slice\'s rim is hot red — never the safe slices\' white line'); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
@@ -230,7 +230,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   // THE DARKNESS: the wall only (above its line) + the screen's edges — never the slices, never the ball
   assert.match(fx, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/); assert.doesNotMatch(fx.slice(fx.indexOf('export const SLICE_F'), fx.indexOf('export const PILLAR_V')), /uDarkY/, 'the slices never read the darkness');
   assert.doesNotMatch(fx.slice(fx.indexOf('export const BALL_F'), fx.indexOf('export const LIGHT_V')), /uDarkY/);
-  assert.match(read('css/freefall-play.css'), /\.ff-dark \{[^}]*radial-gradient\(ellipse 66% 46% at 50% 45%, rgba\(3, 0, 10, 0\) 44%/, 'the edges close in round a clear window where the ball is');
+  assert.match(read('css/freefall-play.css'), /\.ff-dark::after \{[^}]*radial-gradient\(ellipse 66% 46% at 50% 45%, rgba\(var\(--ff-dk\), 0\) 44%/, 'the edges close in round a clear window where the ball is');
   // THE COLOURS: red is danger on the tower and NOTHING else — no red in the page's stylesheet, the end's cause is ultraviolet
   const css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of css.matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g)) { const [r, g, b] = [+m[1], +m[2], +m[3]]; assert.ok(!(r > 200 && g < 90 && b < 110), `no red in the stylesheet: ${m[0]}`); }
@@ -264,6 +264,41 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
 });
 
+test('THE ADD-ONS (the owner, Nov 26) — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE seen + heard · FREEFALL\'s OWN ROOFTOP PANORAMAS at full resolution · THE NIGHT WALLS v2, a scale a wall, the glow from below eased', () => {
+  const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`), st = code(`${FF}stage.js`), sf = code(`${FF}sfx.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  // THE PRESSURE: the rule's numbers (the rules tests prove what they do); the stage's data-dark = the floors the darkness is above the ball
+  assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3 }, 'a stopped ball has 6 s; the darkness is never more than 3 floors above');
+  assert.match(st, /stage\.dataset\.dark = on \? String\(Math\.max\(1, Math\.min\(3, gap\)\)\) : '';/);
+  assert.match(css, /\.ff-stage\[data-dark='3'\] \.ff-dark::before \{ transform: translate3d\(0, -80%, 0\); \}/, '3 floors off: a faint edge at the very top — a calm run sees no more');
+  assert.match(css, /\.ff-stage\[data-dark='2'\] \.ff-dark::before \{ transform: translate3d\(0, -36%, 0\); \}/); assert.match(css, /\.ff-stage\[data-dark='1'\] \.ff-dark::before \{ transform: translate3d\(0, 0, 0\); \}/, 'it creeps down IN STEP: one transform a step');
+  assert.match(css, /\.ff-dark::before \{[^}]*height: 24%;/, 'the edge ends above the ball\'s bounce: never over the ball or its floor');
+  assert.doesNotMatch(body(bare(read(`${FF}stage.js`)), '  function frame(now) {'), /dataset|rumble/, 'the frame writes neither (the gap\'s change function does)');
+  // THE RUMBLE: the lights-out sound an octave down through a low-pass, looped softly, its own voice; the full sound only when it catches
+  assert.match(sf, /export const RUMBLE = Object\.freeze\(\{ id: 'lights-out', rate: 0\.5, lowpass: 240, max: 0\.36, ease: 0\.3 \}\);/);
+  assert.match(sf, /if \(!lv \|\| !ctx \|\| !isUnlocked\(\)\) return false;/, 'an effect asks isUnlocked()'); assert.match(sf, /src\.loop = true;/);
+  assert.match(st, /if \(snd && snd\.rumble\) snd\.rumble\(!on \|\| held \? 0 : gap <= 1 \? 1 : gap === 2 \? 0\.5 : 0\);/, 'it swells as the darkness closes; silent 3 floors off, held, or over');
+  // THE PANORAMAS: FREEFALL's own files, kept 3072 wide; a FULL-RESOLUTION layer of its own (never the half-res wall pass), mipmaps + anisotropy
+  for (const lk of ['night', 'day']) { const u = new URL(`../assets/freefall/sky/rooftop-${lk}.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 420000, `rooftop-${lk}.webp ships`); }
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/sky/', import.meta.url)).sort(), ['rooftop-day.webp', 'rooftop-night.webp']);
+  assert.match(n, /const skyQuad = new THREE\.Mesh\(new THREE\.PlaneGeometry\(2, 2\), skyMat\);/); assert.match(n, /skyQuad\.frustumCulled = false; skyQuad\.renderOrder = -99; scene\.add\(skyQuad\);/, 'in the MAIN scene (full resolution) — right over the half-res wall');
+  assert.doesNotMatch(fx.slice(fx.indexOf('export const WALL_F'), fx.indexOf('export const SKY_V')), /tPano|tSky/, 'the half-res wall pass draws no sky picture any more');
+  assert.match(n, /if \(repeat === 2\) \{ try \{ tex\.anisotropy = Math\.min\(8, renderer\.capabilities\.getMaxAnisotropy\(\)\); \}/, 'mipmaps + anisotropy');
+  assert.match(n, /skyQuad\.visible = wallU\.uSkyA\.value > 0\.5;/, 'drawn only while the rooftop is on screen');
+  assert.match(n, /transparent: false, blending: THREE\.CustomBlending,/, 'an opaque-pass mesh (three.js draws transparent meshes after the pillar + the ball)');
+  assert.match(n, /export const PANO = Object\.freeze\(\{ az: 1\.2, el: 0\.4, top: 0\.012, rise: 0\.06, riseK: 0\.004, glow: 0\.4 \}\);/);
+  // (no stretching past ~1.3 ×: the panorama's texels a radian against a 390 / 430-wide phone's pixels a radian at 3×)
+  const texPerRad = 3072 / 1.2, pxPerRad = w => w * 3 / (2 * Math.atan(Math.tan(23 * Math.PI / 180) * w / (w === 390 ? 844 : 932)));
+  assert.ok(pxPerRad(390) / texPerRad < 1.3 && pxPerRad(430) / texPerRad < 1.35, `a texel is ${(pxPerRad(390) / texPerRad).toFixed(2)} screen pixels at 390 @3, ${(pxPerRad(430) / texPerRad).toFixed(2)} at 430 @3`);
+  assert.match(fx, /p\.b = mix\(p\.b, max\(p\.b, p\.r \* 0\.85\), step\(p\.g, p\.r \* 0\.5\)\);/, 'the red guard stays: a red light of the painting leans to pink');
+  const build = read('scripts/build-freefall-assets.py');
+  assert.match(build, /SMEAR = \(930, 360, 1270, 575\)/, 'the day file\'s smear patch is softened in the script, in that patch only'); assert.match(build, /'only the patch is touched'/);
+  // THE NIGHT WALLS v2: the three relit walls under the SAME names; a scale a wall (THE DEEP's night wall larger); the glow from below eased
+  assert.match(build, /WALL_SRC = \{\('offices', 'night'\): 'ff-offices-night-v2\.png', \('harbor', 'night'\): 'ff-harbor-night-v2\.png', \('deep', 'night'\): 'ff-deep-night-v2\.png'\}/);
+  assert.match(n, /const DEEP_N = \[1\.25, 1\.25, 1\.4, 0, 0, 0, 0, 0, 0, 0, 0, 2\]/, 'THE DEEP by night repeats twice round the shaft (the others four times): a larger scale');
+  assert.match(fx, /vec3 A = uSkyA > 0\.5 \? sky\(d\) : wallTex\(tA, uHaveA, uFlipA, uTintA, uv \* uTileA\);/);
+  assert.match(fx, /col = mix\(col, glow, fog \* uGlow\);/, 'the pink / violet glow from below: eased (0.4 — it was 0.85)');
+});
+
 test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench lap\'s first floor (pure — logic.js); the band\'s words BAKED ahead of the arrival, one one-shot of opacity + transform, 1.6 s; night a dark band between pink rules, day a frosted pale band with navy words; F2\'s small area name is gone', () => {
   assert.deepEqual([0, 1, 39, 40, 79, 80, 119, 159, 160, 199, 200, 201, 240, 241, 280, 281, 600].map(nextArrival), [40, 40, 40, 80, 80, 120, 120, 160, 200, 200, 201, 241, 241, 281, 281, 321, 601]);
   const arrivals = []; for (let i = 0; i <= 330; i++) if (isArrival(i)) arrivals.push(i);
@@ -293,8 +328,7 @@ test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material 
   // the pictures: the APPROVED day walls ship, small; the rooftop = JAYWALK's day skyline (reused, no copy); the caustics picture is NOT shipped
   for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-day.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 160000, `${w}: its day wall ships, small`); }
   assert.deepEqual(readdirSync(new URL('../assets/freefall/walls/', import.meta.url)).sort(), ['deep-day.webp', 'deep-night.webp', 'harbor-day.webp', 'harbor-night.webp', 'offices-day.webp', 'offices-night.webp', 'speakeasy-day.webp', 'speakeasy-night.webp'], 'eight walls — no caustics picture, no -v1 / -v2');
-  assert.match(n, /assets\/jaywalk\/skyline-day\.webp/); assert.ok(existsSync(new URL('../assets/jaywalk/skyline-day.webp', import.meta.url)));
-  assert.match(n, /const skyNow = \(\) => \(day \? picture\('sky-day', SKY_URL\[1\], false\) : picture\('sky', SKY_URL\[0\], false\)\);/, 'the day skyline is asked for only when the look is day');
+  assert.match(n, /const skyNow = \(\) => \(day \? picture\('pano-day', PANO_URL\[1\], 2\) : picture\('pano', PANO_URL\[0\], 2\)\);/, 'the day panorama is asked for only when the look is day');
   // ONE scene: the look is a uniform every material reads — never a second scene, never a rebuild
   assert.match(n, /uDay: \{ value: 0 \}, uCover: \{ value: 0 \}, uFog: \{ value: new THREE\.Vector3\(0\.62, 0\.84, 0\.98\) \}, uCaust: \{ value: 0 \}/);
   assert.match(n, /function setLook\(l\) \{\s+day = l === 'day';\s+G\.uDay\.value = day \? 1 : 0; G\.uCover\.value = day \? 1 : 0;/, 'setLook: at once');
@@ -311,9 +345,9 @@ test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material 
   assert.match(dfx, /float caust\(vec2 p, float t\)/); assert.doesNotMatch(n + code(`${FF}day-fx.js`), /ff-caustics|caustics\.(png|webp)/, 'no caustics picture');
   // THE DARKNESS by day: the same line + timing, another look (the wall + the screen's edges; never the ball or its floor)
   assert.match(main, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/, 'the same line as the night\'s');
-  assert.match(css, /\.ff-stage\[data-look='day'\]\[data-area='rooftop'\] \.ff-dark \{ --ff-dk: 50, 56, 74; \}/, 'THE STORM CLOUD over the rooftop');
-  assert.match(css, /\.ff-stage\[data-look='day'\]:is\(\[data-area='harbor'\], \[data-area='deep'\], \[data-area='bottom'\], \[data-area='trench'\]\) \.ff-dark \{ --ff-dk: 5, 36, 40; \}/, 'THE MURK under the water');
-  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-dark \{ background: radial-gradient\(ellipse 66% 46% at 50% 45%, rgba\(var\(--ff-dk\), 0\) 44%/, 'the same clear window round the ball');
+  assert.match(css, /\.ff-stage\[data-look='day'\]\[data-area='rooftop'\] \.ff-dark \{ --ff-dk: 50, 56, 74; --ff-dk-edge: 222, 230, 244; \}/, 'THE STORM CLOUD over the rooftop');
+  assert.match(css, /\.ff-stage\[data-look='day'\]:is\(\[data-area='harbor'\], \[data-area='deep'\], \[data-area='bottom'\], \[data-area='trench'\]\) \.ff-dark \{ --ff-dk: 5, 36, 40; --ff-dk-edge: 70, 200, 180; \}/, 'THE MURK under the water');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-dark \{ --ff-dk: 12, 14, 26;/, 'the same dark edge + clear window, in the day\'s colours — round the ball');
   // THE MOTES: a fixed pool, the tiers trim how many are drawn; an area's kind
   assert.match(n, /export const MOTES = 48, MOTE_N = Object\.freeze\(\[18, 32, 48\]\), MOTE_SPAN = 12;/); assert.match(n, /mGeo\.instanceCount = MOTE_N\[t\];/);
   assert.equal(AREA_DAY_KINDS(n).join(' '), '0 3 3 1 2', 'the rooftop none · dust in the two rooms · bubbles under the harbor · drifting particles in the deep');
@@ -348,12 +382,12 @@ test('THE OPENING = title-05 (F3 — the owner\'s pick): Grok\'s lettering + tag
   assert.match(css, /\.ff-title \{ position: relative; width: calc\(var\(--ff-w\) \* 0\.85\); aspect-ratio: 2340 \/ 1137; \}/, '85 % of the width (≈ 330 pt at 390)');
   // THE GLINT: masked to the lettering's own alpha — the mask is the very file the picture picked (no second download)
   assert.match(st, /const maskNow = \(\) => \{ const u = titleImg\.currentSrc \|\| titleImg\.src;/); assert.match(st, /glint\.style\.webkitMaskImage = v; glint\.style\.maskImage = v;/);
-  assert.match(css, /\.ff-stage\.is-open \.ff-glint::before \{ animation: ff-glint 7s /, 'every 7 s, only while the opening waits (is-open leaves at the first drag: it stops)');
+  assert.match(css, /\.ff-stage\.is-open \.ff-title\.is-ready \.ff-glint::before \{ animation: ff-glint 7s /, 'every 7 s, only while the opening waits (is-open leaves at the first drag: it stops)');
   assert.match(css, /@keyframes ff-glint \{ 0% \{ transform: translate3d\(-150%, 0, 0\) skewX\(-22deg\); \} 11\.4%, 100% \{ transform: translate3d\(330%, 0, 0\) skewX\(-22deg\); \} \}/, 'the sweep = 0.8 s of the 7 (LEFT → RIGHT), a transform only');
-  assert.match(css, /\.ff-stage\.is-open \.ff-star \{ animation: ff-star 7s /, 'the 4-point star on the last letter');
+  assert.match(css, /\.ff-stage\.is-open \.ff-title\.is-ready \.ff-star \{ animation: ff-star 7s /, 'the 4-point star on the last letter');
   assert.match(css, /clip-path: polygon\(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%\)/, 'a 4-point star');
   assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-glint \{ --ff-glint: 255, 255, 255;/, 'by day: a clean white sun glint (the night\'s is pink-white)');
-  assert.match(css, /\.ff-stage\.is-open \.ff-glint::before \{ animation: ff-glint-once 0\.8s [^;]* 1 both; \}/, 'reduced motion: ONE sweep only');
+  assert.match(css, /\.ff-stage\.is-open \.ff-title\.is-ready \.ff-glint::before \{ animation: ff-glint-once 0\.8s [^;]* 1 both; \}/, 'reduced motion: ONE sweep only');
   const frames = [...css.matchAll(/@keyframes (ff-glint[\w-]*|ff-star[\w-]*|ff-title-in) \{((?:[^{}]|\{[^{}]*\})*)\}/g)];
   assert.equal(frames.length, 5, 'the glint, its star (each + its one-sweep twin), the title\'s way in');
   for (const k of frames) assert.doesNotMatch(k[2].replace(/transform|opacity/g, ''), /[a-z-]+\s*:/, `${k[1]} moves transform + opacity only`);
@@ -365,7 +399,7 @@ test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s co
   const hsl = hex => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(mx + mn - 1)) : 0, (mx + mn) / 2]; };
   const far = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
   assert.equal(PALETTES.length, AREAS.length - 1, 'one palette an area — THE TRENCH has its own four (a lap each)');
-  for (const [i, p] of [...PALETTES, ...TRENCH_PALETTES].entries()) for (const k of ['a', 'b', 'rim', 'day']) {
+  for (const [i, p] of [...PALETTES, ...TRENCH_PALETTES].entries()) for (const k of ['a', 'b', 'rim', 'day', 'dayRim']) {
     const [h, s] = hsl(p[k]);
     assert.ok(s < 0.12 || far(h, 352) > 25, `palette ${i}.${k} #${p[k].toString(16)} — hue ${h.toFixed(0)}: RED IS THE ONLY RED`);
   }
@@ -376,6 +410,19 @@ test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s co
   assert.ok(inR(hue(PALETTES[2].a), 300, 327) && inR(hue(PALETTES[2].b), 280, 300) && inR(hue(PALETTES[2].rim), 30, 55) && hsl(PALETTES[2].a)[2] < hsl(PALETTES[0].a)[2] - 0.1, 'THE SPEAKEASY: DEEP rose + plum, warm brass rims');
   assert.ok(inR(hue(PALETTES[3].a), 165, 185) && inR(hue(PALETTES[3].b), 180, 195), 'UNDER THE HARBOR: teal + aqua');
   assert.ok(inR(hue(PALETTES[4].a), 235, 255) && hsl(PALETTES[4].a)[2] < 0.35 && inR(hue(PALETTES[4].rim), 265, 285) && hsl(PALETTES[4].rim)[2] > 0.6, 'THE DEEP: dark indigo, glowing ultraviolet rims');
+  // BY DAY — CLEARLY COLOURED (the owner's add-on, Nov 26: never near-white ice everywhere): each area's faces a pastel of 35–65 % saturation,
+  // its rim a brighter (more saturated, no lighter) version of that colour; five clearly different towers; the rooftop cool — never peach
+  const sat = hex => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx ? (mx - mn) / mx : 0; };   // (HSV: how far from white a face is)
+  for (const [i, p] of [...PALETTES, ...TRENCH_PALETTES].entries()) {
+    const l = hsl(p.day)[2];
+    assert.ok(sat(p.day) >= 0.35 && sat(p.day) <= 0.55 && l > 0.6 && l < 0.86, `palette ${i}: its day face #${p.day.toString(16)} is a clear pastel — ${(100 * sat(p.day)).toFixed(0)} % saturation (the owner: roughly 35–55 %), lightness ${l.toFixed(2)}`);
+    assert.ok(sat(p.dayRim) > sat(p.day) + 0.1 && hsl(p.dayRim)[2] < l, `palette ${i}: its day rim is a brighter version of the colour`);
+  }
+  const dayHues = PALETTES.slice(0, 5).map(p => hue(p.day));
+  assert.ok(inR(dayHues[0], 280, 315), 'THE ROOFTOP by day: a soft pink-lavender — cool, never peach / orange'); assert.ok(inR(dayHues[1], 215, 240), 'THE OFFICES: periwinkle blue');
+  assert.ok(inR(dayHues[2], 315, 330) && inR(hue(PALETTES[2].dayRim), 30, 50), 'THE SPEAKEASY: blush rose + warm brass rims'); assert.ok(inR(dayHues[3], 160, 180), 'UNDER THE HARBOR: aqua / mint'); assert.ok(inR(dayHues[4], 245, 265), 'THE DEEP: soft indigo / lilac');
+  for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) assert.ok(far(dayHues[i], dayHues[j]) >= 18, `five clearly different towers by day (${i} · ${j}: ${dayHues[i].toFixed(0)}° · ${dayHues[j].toFixed(0)}°)`);
+  assert.match(read(`${FF}day-fx.js`), /vec3 tint = vC\.rgb, ice = tint, rimC = vR;/, 'the day face IS the area\'s pastel — white only in the frost, the highlights + the seams');
   // the scene: a floor's own colour (never its place on the screen), the border's lean
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`);
   assert.match(n, /const t = len > 1 \? \(i - from\) \/ \(len - 1\) : 0, d = from \+ len - i, q = d <= 3 \? palOf\(i \+ d\) : p, tt = q !== p \? \(4 - d\) \/ 4 : 0;/, 'a → b down the area; its last three floors lean ¼ · ½ · ¾ to the next area\'s');

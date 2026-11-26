@@ -2,7 +2,7 @@
 """FREEFALL F2 + F3 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
 (Downloads\\grok\\freefall\\ by default) are only READ — never moved, renamed or edited. HIGH RISE's pattern (build-highrise-assets.py).
 
-    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title]
+    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title,sky]
     (-P -E: nothing is imported from the script's folder / the working folder / the environment; numpy lives in the user's site-packages,
      which -I would hide)
 
@@ -27,6 +27,15 @@
               srcset). Resized PREMULTIPLIED (a plain resize of straight alpha drags the clear pixels' black into the edge: a dark
               fringe); THE EDGES ARE MEASURED on hot pink and on a pale sky against the full-size picture laid on the same ground and
               resized — a fringe fails the build.
+  F3 (the add-on, Nov 26) — rooftop\\ff-rooftop-night.png + ff-rooftop-day.png → assets/freefall/sky/rooftop-night.webp · rooftop-day.webp — FREEFALL's
+              OWN ROOFTOP PANORAMAS (Grok-made, approved: no credit needed; 3072 × 1024, a 360° wrap — u = 0 and u = 1 match; the same framing
+              + horizon in both): kept 3072 wide, WebP q 80; the left | right join is measured (a panorama that no longer wraps fails the
+              build). THE DAY FILE's faint vertical smears under the clouds (x ≈ 950–1250, y ≈ 380–560) are softened HERE, in that patch only:
+              the sky pixels of the patch (never a cloud, never a building) are blurred ACROSS — a horizontal Gaussian over the sky alone —
+              under a feathered mask: a streak is narrow across + long down; the sky's own gradient is untouched. Deterministic. They replace JAYWALK's skyline on THE ROOFTOP.
+  F3 (the add-on, Nov 26) — THE NIGHT WALLS v2: ff-offices-night-v2.png · ff-harbor-night-v2.png · ff-deep-night-v2.png (relit from the approved DAY
+              walls) take the place of the three old night walls — the same pipeline, size, format + NAMES (walls/<area>-night.webp), the
+              same wrap check both ways. THE SPEAKEASY's night wall + every day wall are as they were.
   The breakthrough assets are F3B's. Area arrival + new best = JAYWALK's files (reused).
 """
 import sys, os, re, io, shutil, hashlib, zipfile
@@ -42,7 +51,8 @@ OUT_W = os.path.join(ROOT, 'assets', 'freefall', 'walls')
 OUT_A = os.path.join(ROOT, 'audio', 'freefall')
 OUT_F = os.path.join(ROOT, 'assets', 'freefall', 'fx')
 OUT_T = os.path.join(ROOT, 'assets', 'freefall', 'title')
-for d in (OUT_W, OUT_A, OUT_F, OUT_T):
+OUT_S = os.path.join(ROOT, 'assets', 'freefall', 'sky')
+for d in (OUT_W, OUT_A, OUT_F, OUT_T, OUT_S):
     os.makedirs(d, exist_ok=True)
 want = lambda step: ONLY is None or step in ONLY
 kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
@@ -50,6 +60,11 @@ kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
 WALLS = ['offices', 'speakeasy', 'harbor', 'deep']
 WALL_PX = 1024
 LOOKS = ['night', 'day']
+# THE NIGHT WALLS v2 (the add-on, Nov 26): the delivery's file a wall is read from when it is not ff-<area>-<look>.png
+WALL_SRC = {('offices', 'night'): 'ff-offices-night-v2.png', ('harbor', 'night'): 'ff-harbor-night-v2.png', ('deep', 'night'): 'ff-deep-night-v2.png'}
+# THE ROOFTOP PANORAMAS: the day file's patch of faint vertical smears under the clouds (x0, y0, x1, y1 of the 3072 × 1024 picture) + its feather
+SMEAR = (930, 360, 1270, 575)
+SMEAR_FEATHER = 28
 # THE TITLE (F3): [the delivery's file, the name in the repo] at these widths (the page's srcset: a 390-wide phone at 3× shows 330 pt = 990 px)
 TITLE = [('title-05-lettering.png', 'lettering'), ('title-05-tagline.png', 'tagline')]
 TITLE_W = [1170, 780]
@@ -87,7 +102,7 @@ def walls():
     for look in LOOKS:
         total = 0
         for name in WALLS:
-            src = os.path.join(SRC, 'backdrops', f'ff-{name}-{look}.png')
+            src = os.path.join(SRC, 'backdrops', WALL_SRC.get((name, look), f'ff-{name}-{look}.png'))
             im = Image.open(src).convert('RGB')
             assert im.size == (2048, 2048), (name, im.size)
             # (a BOX average of each 2 × 2 block: the exact inverse of the delivery's 2× upscale — it can not open the seam a Lanczos window would)
@@ -102,10 +117,60 @@ def walls():
             back = Image.open(out).convert('RGB')
             lr, tb, ix, iy = seam(back)
             total += os.path.getsize(out)
-            print(f'  backdrops/ff-{name}-{look}.png → {os.path.relpath(out, ROOT)}  {kb(out)}  mean luminance {np.asarray(back.convert("L"), np.float32).mean():.0f}'
+            print(f'  backdrops/{os.path.basename(src)} → {os.path.relpath(out, ROOT)}  {kb(out)}  mean luminance {np.asarray(back.convert("L"), np.float32).mean():.0f}'
                   f'  seam left|right {lr:.1f} (a column step inside: {ix:.1f}) · top|bottom {tb:.1f} (a row step: {iy:.1f}){note}')
             assert lr < 2.5 * ix + 4 and tb < 2.5 * iy + 4, f'{name}-{look}: the wall no longer wraps'
         print(f'  the four {look} walls: {total / 1024:.0f} KB')
+
+
+def soften_smears(im):
+    """THE DAY PANORAMA: the faint VERTICAL smears under the clouds — in the patch only, the sky is blurred ACROSS (a horizontal Gaussian
+    over the SKY pixels alone: a cloud never bleeds into it, the sky's own gradient down the picture is untouched) and laid back over the
+    sky pixels under a feathered mask. A streak is narrow across and long down: the blur across takes it out. → (the picture, the pixels touched)"""
+    a = np.asarray(im, np.float32).copy()
+    x0, y0, x1, y1 = SMEAR
+    sig = 22
+    m = 3 * sig                                                          # (the blur reads past the patch's sides: no edge of its own)
+    wide = a[y0:y1, x0 - m:x1 + m]
+    skyw = np.clip((188 - wide[..., 0]) / 24, 0, 1)                      # 1 = sky (its red is low; a cloud's is high) — soft at a cloud's rim
+    k = np.exp(-0.5 * (np.arange(-m, m + 1) / sig) ** 2).astype(np.float32)
+    conv = lambda rows: np.stack([np.convolve(r, k, mode='same') for r in rows])
+    den = conv(skyw)
+    blur = np.stack([conv(wide[..., c] * skyw) for c in range(3)], -1) / np.maximum(den, 1e-3)[..., None]
+    patch, blur, skyp = wide[:, m:-m], blur[:, m:-m], skyw[:, m:-m]
+    yy, xx = np.mgrid[0:y1 - y0, 0:x1 - x0]
+    edge = np.minimum(np.minimum(xx, x1 - x0 - 1 - xx), np.minimum(yy, y1 - y0 - 1 - yy)).astype(np.float32)
+    w = (skyp * np.clip(edge / SMEAR_FEATHER, 0, 1))[..., None]
+    a[y0:y1, x0:x1] = patch * (1 - w) + blur * w
+    return Image.fromarray(np.uint8(np.clip(a + 0.5, 0, 255)), 'RGB'), int((w[..., 0] > 0.5).sum())
+
+
+def sky():
+    total = 0
+    for look in LOOKS:
+        src = os.path.join(SRC, 'rooftop', f'ff-rooftop-{look}.png')
+        im = Image.open(src).convert('RGB')
+        assert im.size == (3072, 1024), (look, im.size)
+        note = ''
+        if look == 'day':
+            before = np.asarray(im, np.float32)
+            im, n = soften_smears(im)
+            x0, y0, x1, y1 = SMEAR
+            d = np.abs(np.asarray(im, np.float32) - before)
+            assert float(d[:y0].max()) == 0 and float(d[y1:].max()) == 0 and float(d[:, :x0].max()) == 0 and float(d[:, x1:].max()) == 0, 'only the patch is touched'
+            col = np.asarray(im, np.float32)[y0:y1, x0:x1].mean(-1)
+            was = before[y0:y1, x0:x1].mean(-1)
+            # (the smears are VERTICAL: how much a column's sky differs from its neighbours' — before + after)
+            rough = lambda m: float(np.abs(np.diff(np.median(m, axis=0))).mean())
+            note = f'  (the smear patch softened: {n} sky pixels blended; column-to-column roughness {rough(was):.2f} → {rough(col):.2f})'
+        out = os.path.join(OUT_S, f'rooftop-{look}.webp')
+        im.save(out, 'WEBP', quality=80, method=6)
+        back = Image.open(out).convert('RGB')
+        lr, tb, ix, iy = seam(back)
+        total += os.path.getsize(out)
+        print(f'  rooftop/ff-rooftop-{look}.png → {os.path.relpath(out, ROOT)}  {back.size[0]} × {back.size[1]}  {kb(out)}  the join left|right {lr:.1f} (a column step inside: {ix:.1f}){note}')
+        assert back.size == (3072, 1024) and lr < 2.5 * ix + 4, f'rooftop-{look}: the panorama no longer wraps'
+    print(f'  the two rooftop panoramas: {total / 1024:.0f} KB')
 
 
 def over(rgba, ground):
@@ -208,7 +273,8 @@ def fx():
         f.write('  no third-party credit needed (`Downloads/grok/freefall/final/notes.txt`).\n')
         f.write("- `fx/blaze.webp` — THE BLAZE's flame sprites: `" + '`, `'.join(SPRITES) + '` from **Particle Pack** by Kenney Vleugels (kenney.nl),\n')
         f.write('  Creative Commons Zero (CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/); four of its sprites, greyscale, in one atlas.\n')
-        f.write("- THE ROOFTOP's skyline is JAYWALK's painting (`assets/jaywalk/skyline-night.webp` · `skyline-day.webp`).\n\n")
+        f.write("- `sky/rooftop-night.webp` · `sky/rooftop-day.webp` — THE ROOFTOP's 360° panoramas: made with Grok for this game (approved —\n")
+        f.write('  no third-party credit needed; `Downloads/grok/freefall/rooftop/`).\n\n')
         f.write('`python -P -E scripts/build-freefall-assets.py` builds them; the delivery is only read.\n')
 
 
@@ -220,3 +286,5 @@ if want('fx'):
     print('THE BLAZE (the sprites)'); fx()
 if want('title'):
     print('THE TITLE'); title()
+if want('sky'):
+    print('THE ROOFTOP PANORAMAS'); sky()

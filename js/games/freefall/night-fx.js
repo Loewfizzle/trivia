@@ -24,9 +24,9 @@ export const WALL_V = /* glsl */`
 varying vec2 vS;
 void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9999, 1.0); }`;
 export const WALL_F = /* glsl */`
-uniform sampler2D tA, tB, tSky;
+uniform sampler2D tA, tB;
 uniform vec3 uCam, uRight, uUp, uFwd, uTintA, uTintB;
-uniform float uTan, uAspect, uHaveA, uHaveB, uFlipA, uFlipB, uSkyA, uSkyB, uHaveSky, uFlipSky, uSeamY, uBallY, uDarkY, uTime, uRW, uTile, uSink;
+uniform float uTan, uAspect, uHaveA, uHaveB, uFlipA, uFlipB, uSkyA, uSkyB, uSeamY, uBallY, uDarkY, uTime, uRW, uTileA, uTileB, uGlow;
 // (F3 — THE DAY LOOK: day-fx.js) the look · each wall's area (tuning.js#AREAS' index) + whether it is under water · the surface's height ·
 // the haze below + THE DARKNESS's colour, wall A + wall B
 uniform float uDay, uAreaA, uAreaB, uWetA, uWetB, uSurfY;
@@ -35,31 +35,9 @@ varying vec2 vS;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 ${NOISE}
 ${CAUST}
-// THE OPEN SKY (THE ROOFTOP): deep navy overhead, a violet haze low; stars; the skyline painting a band on the horizon line (uSink
-// lifts it out of sight as the ball goes down the first floors); under it the dark roof, lit pink round the tower's foot
-vec3 sky(vec3 d) {
-  float el = asin(clamp(d.y, -1.0, 1.0)) + uSink;            // the ray's elevation (0 = the horizon)
-  float az = atan(d.x, -d.z) * 0.15915494;                   // −0.5 … 0.5 round the compass (0 = straight ahead)
-  vec3 top = vec3(0.003, 0.002, 0.016), haze = vec3(0.035, 0.01, 0.08);
-  vec3 c = mix(haze, top, smoothstep(-0.25, 0.5, el));
-  // stars (two sizes), only above the skyline
-  vec2 g = vec2(az * 220.0, el * 70.0), cell = floor(g), f = fract(g) - 0.5;
-  float h = hash(cell), tw = 0.6 + 0.4 * sin(uTime * (0.8 + 2.0 * h) + h * 31.0);
-  c += vec3(0.8, 0.85, 1.0) * step(0.93, h) * smoothstep(0.16, 0.02, length(f - (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.6)) * tw * smoothstep(-0.02, 0.1, el) * 0.9;
-  // the skyline: the painting's lower part (its buildings + the water's edge) across ~150° of the compass, its foot on the horizon
-  float u = az * 5.2 + 0.5, v = (el + 0.52) / 0.4;
-  if (uHaveSky > 0.5 && v > 0.0 && v < 1.0) {
-    vec3 s = texture2D(tSky, vec2(fract(u), mix(v, 1.0 - v, uFlipSky))).rgb;
-    s = pow(s, vec3(2.2));
-    s.b = mix(s.b, max(s.b, s.r * 0.85), step(s.g, s.r * 0.5));   // (RED IS DANGER ONLY: a red window / beacon of the painting reads pink here)
-    float k = smoothstep(0.0, 0.1, v) * smoothstep(1.0, 0.72, v);
-    c = mix(c, s * 1.9 + c * 0.2, k);
-  }
-  // the roof below the skyline: near black, a pink pool of light round the tower
-  float roof = smoothstep(-0.47, -0.53, el);
-  vec3 ground = vec3(0.012, 0.004, 0.035) + vec3(0.42, 0.06, 0.5) * exp(-pow((el + 1.25) / 0.42, 2.0)) * 0.3;
-  return mix(c, ground, roof);
-}
+// THE ROOFTOP has no wall: its sky is FREEFALL's own panorama, drawn at FULL resolution by its own layer over this one (SKY_F, below — F3:
+// the half-res pass made its windows blocks). Here the rooftop is only the flat ground that layer covers.
+vec3 sky(vec3 d) { return vec3(0.012, 0.004, 0.035); }
 vec3 wallTex(sampler2D t, float have, float flip, vec3 tint, vec2 uv) {
   vec3 w = texture2D(t, vec2(uv.x, mix(uv.y, 1.0 - uv.y, flip))).rgb;
   w = pow(w, vec3(2.2));
@@ -77,7 +55,7 @@ void main() {
   if (on) {
     hit = uCam + d * ((-b + sqrt(disc)) / a);
     // (the angle's own seam lies on the NEAR side — never seen through; on the far face it was a 1 px line from the top of the screen to the tower)
-    uv = vec2(atan(hit.x, -hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
+    uv = vec2(atan(hit.x, -hit.z) * 0.15915494, hit.y / (6.2831853 * uRW));   // (once round the shaft = 1; a wall repeats uTileA / uTileB times — THE DEEP's night wall fewer: its vents made a lattice)
     // (the seam between two areas lies at a world height: below it the next area's wall — it is seen rising from below)
     k = smoothstep(uSeamY + 1.6, uSeamY - 1.6, hit.y);
   }
@@ -85,8 +63,8 @@ void main() {
   if (uDay > 0.5) {${DAY_MAIN}
   } else {
     if (on) {
-      vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv);
-      vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv);
+      vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv * uTileA);
+      vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv * uTileB);
       col = mix(A, B, k);
       // the wall curves away to the shaft's sides: darker towards its edges (a round room, not a flat picture)
       float side = abs(hit.x) / uRW;
@@ -94,12 +72,13 @@ void main() {
     } else {
       col = uSkyA > 0.5 ? sky(d) : vec3(0.004, 0.002, 0.012);
     }
-    // THE GLOW FROM BELOW: pink at the shaft's foot, violet above it — it rises with the depth under the ball
+    // THE GLOW FROM BELOW: pink at the shaft's foot, violet above it — it rises with the depth under the ball. EASED (the owner, Nov 26:
+    // it washed every area into the same purple — uGlow 0.4, it was 0.85; it starts deeper): the walls show, each its own place
     float deep = uBallY - hitY;
-    float fog = smoothstep(4.5, 15.0, deep);
-    vec3 glow = mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(8.0, 18.0, deep));
-    col = mix(col, glow, fog * 0.85);
-    col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.3;
+    float fog = smoothstep(6.5, 17.0, deep);
+    vec3 glow = mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(9.0, 19.0, deep));
+    col = mix(col, glow, fog * uGlow);
+    col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.35 * uGlow;
     // (the top of the screen is the HUD's: the wall steps back behind the big number)
     col *= mix(1.0, 0.5, smoothstep(0.3, 1.0, vS.y));
     // THE DARKNESS: above its line the lights are out (a thin live edge where it stands) — the wall only; never the ball or its floor
@@ -109,6 +88,58 @@ void main() {
   }
   // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
   gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
+}`;
+// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL RESOLUTION (the add-on, Nov 26 — the owner: JAYWALK's skyline stretched round the
+// compass in the half-res pass was blurry, blocky windows). A screen-filling quad over the half-res wall, drawn ONLY while the rooftop is
+// on screen (the opening + floors 0–39): each pixel's ray reads the 3072 × 1024 panorama (a 360° picture; mipmaps + anisotropy; it
+// repeats on u — u = 0 and u = 1 match) — shown across uSpanAz of the compass so a texel is never stretched past ~1.3 screen pixels on a
+// phone at 3×; the city's horizon near eye level from the top floor, the buildings in the lower part — ONE horizon height for both looks;
+// it rises a little as the ball goes down (uRise: the ball sinks between the buildings). Under its foot: by night the dark roof + the
+// glow, by day the open air + soft clouds. Where the next area's wall begins (the seam, a world height) it fades out: the wall is under
+// it. THE DARKNESS reads here as on the walls (above its line: the lights out · by day THE STORM CLOUD). A red pixel leans to pink.
+export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9998, 1.0); }';
+export const SKY_F = /* glsl */`
+uniform sampler2D tPano;
+uniform vec3 uCam, uRight, uUp, uFwd, uDarkA;
+uniform float uTan, uAspect, uHave, uFlip, uSeamY, uBallY, uDarkY, uTime, uRW, uRise, uShift, uDay, uBloom, uSpanAz, uSpanEl, uTopEl, uGlow;
+varying vec2 vS;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+${NOISE}
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vS.x * uTan * uAspect) + uUp * (vS.y * uTan));
+  float a = dot(d.xz, d.xz), b = dot(uCam.xz, d.xz), cc = dot(uCam.xz, uCam.xz) - uRW * uRW, disc = b * b - a * cc;
+  float hitY = uCam.y + d.y * 40.0, k = 0.0;
+  if (disc > 0.0 && a > 1e-6) { hitY = uCam.y + d.y * ((-b + sqrt(disc)) / a); k = smoothstep(uSeamY + 1.6, uSeamY - 1.6, hitY); }
+  float az = atan(d.x, -d.z), el = asin(clamp(d.y, -1.0, 1.0));
+  float v = (uTopEl + uRise - el) / uSpanEl, vc = clamp(v, 0.003, 0.997);
+  vec3 p = pow(texture2D(tPano, vec2(az / uSpanAz + 0.5 + uShift, mix(1.0 - vc, vc, uFlip))).rgb, vec3(2.2));
+  p.b = mix(p.b, max(p.b, p.r * 0.85), step(p.g, p.r * 0.5));   // (RED IS DANGER ONLY: a red light of the painting reads pink here)
+  float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
+  vec3 col;
+  if (uDay > 0.5) {
+    p = mix(mix(vec3(0.62, 0.84, 0.98), vec3(0.13, 0.42, 0.9), smoothstep(0.9, 0.0, v)), p, uHave);
+    // under the painting's foot: the open air the tower stands in — a pale haze, soft clouds drifting through it
+    col = mix(p, mix(vec3(0.6, 0.84, 0.98), vec3(0.86, 0.95, 1.0), smoothstep(1.0, 2.8, v)), smoothstep(0.88, 1.02, v));
+    float cl = fbm(vec2(az * 1.6 + uTime * 0.012, v * 2.2 - uTime * 0.004));
+    col = mix(col, vec3(1.0), smoothstep(0.5, 0.8, cl) * 0.6 * smoothstep(1.02, 1.6, v));
+    // THE STORM CLOUD above the darkness's line: slate, rolling
+    float roll = fbm(vec2(az * 3.0 + uTime * 0.05, hitY * 0.6 - uTime * 0.03));
+    col = mix(uDarkA * (0.65 + 0.7 * roll), col, lit);
+    col = mix(col, uDarkA * 0.5, exp(-pow((hitY - uDarkY - 0.3) / 0.24, 2.0)) * 0.55);
+  } else {
+    p = mix(mix(vec3(0.035, 0.01, 0.08), vec3(0.003, 0.002, 0.016), smoothstep(0.9, 0.0, v)), p * 1.2, uHave);
+    // under its foot: the dark roof; the glow from below (eased with the walls')
+    col = mix(p, vec3(0.012, 0.004, 0.035), smoothstep(0.86, 1.02, v));
+    float deep = uBallY - hitY;
+    col = mix(col, mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(9.0, 19.0, deep)), smoothstep(6.5, 17.0, deep) * uGlow);
+    col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.35 * uGlow;
+    col *= mix(1.0, 0.62, smoothstep(0.45, 1.0, vS.y));   // (the top of the screen is the HUD's: the sky steps back behind the big number)
+    float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
+    col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
+  }
+  gl_FragColor = vec4(col, (1.0 - k) * (1.0 - uBloom));
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }`;
 /** the half-res wall, copied to the screen (its target holds display-ready colour: a plain copy) */
 export const COPY_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }';

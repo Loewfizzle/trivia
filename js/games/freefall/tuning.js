@@ -91,7 +91,7 @@ export const RULE_SETS = Object.freeze({
     first: 18, bounce: 36, fall: 18,
     blaze: 3,
     shatterSafe: true,
-    dark: { grace: 4 * TICK_HZ, pace: 150, lead: 6 },
+    dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3 },   // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW the darkness; now a stopped ball has 6 s and it is always in sight)
     human: { react: 12, spin: 68 },
     gen: {
       gaps: [[0, 512], [80, 448], [120, 384], [160, 300], [200, 256]],

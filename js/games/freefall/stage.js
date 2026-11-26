@@ -27,6 +27,8 @@ import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS } from './banner.js';
 
+/** the wall behind the top of the screen is the area's of this many floors up (night.js#walls keeps a seam in sight that long) */
+const INK_LAG = 5;
 /** THE TRENCH's first floor: past it an arrival is a LAP's first floor (241 · 281 · …) */
 const LAP0 = 201;
 export const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
@@ -95,7 +97,7 @@ export function createStage(app, o = {}) {
   const sizesOf = k => `min(${Math.round(k * 100)}vw, ${Math.round(k * 60)}vh)`;   // (the stage's column: min(100vw, 60dvh) wide)
   const glint = h('i.ff-glint', { 'aria-hidden': 'true' }), star = h('i.ff-star', { 'aria-hidden': 'true' });
   const titleImg = h('img.ff-title-img', { alt: 'Freefall', decoding: 'async', draggable: 'false', sizes: sizesOf(0.85), srcset: `${art('lettering', 780)} 780w, ${art('lettering', 1170)} 1170w`, src: art('lettering', 780) });
-  const maskNow = () => { const u = titleImg.currentSrc || titleImg.src; if (u) { const v = `url("${u}")`; glint.style.webkitMaskImage = v; glint.style.maskImage = v; glint.classList.add('is-ready'); } };
+  const maskNow = () => { const u = titleImg.currentSrc || titleImg.src; if (u) { const v = `url("${u}")`; glint.style.webkitMaskImage = v; glint.style.maskImage = v; glint.classList.add('is-ready'); title.classList.add('is-ready'); } };
   titleImg.addEventListener('load', maskNow);
   const title = h('div.ff-title', titleImg, glint, star);
   const tagline = h('img.ff-tagline', { alt: 'Fall as deep as you can', decoding: 'async', draggable: 'false', sizes: sizesOf(0.62), srcset: `${art('tagline', 780)} 780w, ${art('tagline', 1170)} 1170w`, src: art('tagline', 780) });
@@ -129,7 +131,7 @@ export function createStage(app, o = {}) {
   const pin = o.tier == null ? null : Math.max(0, Math.min(2, o.tier));
   const noGL = () => h('p.ff-nogl', 'This browser can’t draw the game here (it has no WebGL).');
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0 }); }
   catch { stage.append(noGL()); return null; }
   hook.view = view;
   const tierPath = [pin == null ? 2 : pin];
@@ -146,7 +148,7 @@ export function createStage(app, o = {}) {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT }); }
+    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0 }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -208,7 +210,7 @@ export function createStage(app, o = {}) {
   let seed = '', run = null, t0 = null, shown = false, endedAt = 0, starting = false, startN = 0, warmed = false;
   let owed = 0, carry = 0, pre = 0, clamped = 0, drag = null, keyDir = 0, keyTick = 0, autoTick = 0;
   let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
-  let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hitches = 0;
+  let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hudInk = '', hitches = 0;
   let ev = [], fed = 0;
   const cues = [];
   function restart(s = FIXED || newSeed()) {
@@ -223,9 +225,9 @@ export function createStage(app, o = {}) {
     hudFloor = -1; hudGap = -99; hudArea = ''; callUntil = 0; callPri = 0; if (callAnim) { callAnim.cancel(); callAnim = null; } call.textContent = ''; call.className = 'ff-call';
     // (THE BAKED HUD's warm-up: the plain + the gold digits are baked behind the opening — a NEW BEST bakes nothing in its frame)
     stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); BN.dirty();
-    setNum(0); hudArea = areaOf(0).name; stage.dataset.area = areaOf(0).id;
+    setNum(0); hudArea = areaOf(0).name; hudInk = areaOf(0).id; stage.dataset.area = hudInk;
     bnrQueued = -1; clearTimeout(bnrTimer); BNR.clear(); prepBanner(0);
-    dark.style.opacity = '0';
+    stage.dataset.dark = '';
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
   function dive(n) {
@@ -324,7 +326,7 @@ export function createStage(app, o = {}) {
     if (shown && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); playAgain(); return; }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    if (shown) return;
+    if (shown || held) return;   // (THE REVIEW: no input counts while PAUSED or in the 3 · 2 · 1 — the arrow keys neither)
     if (t0 == null) begin(stamp(e.timeStamp));
     keyDir = e.key === 'ArrowLeft' ? -1 : 1;
   }, sig);
@@ -333,6 +335,7 @@ export function createStage(app, o = {}) {
   // ---- THE HOLD: the page hidden / the phone locked holds a SOLO run (engine.js#hold — a logged event); back = 3 · 2 · 1, then on
   function hide() {
     awake(false);
+    if (snd && snd.rumble) snd.rumble(0);
     view.rest(true);
     if (held) { countAt = 0; countShown = 0; holdN.textContent = ''; return; }   // (hidden again during the 3 · 2 · 1: the count starts over when the page is back — never skipped)
     if (t0 == null || isOver(run)) return;
@@ -416,7 +419,7 @@ export function createStage(app, o = {}) {
           const left = countAt - now;
           if (left <= 0) {
             // … then on: the clock picks up at the hold's tick (the time away + the 3 · 2 · 1 never were run time)
-            held = false; countAt = 0; t0 = now - heldT * TICK_MS; holdEl.hidden = true; stage.classList.remove('is-held'); awakeAt = performance.now(); awake(true);
+            held = false; countAt = 0; t0 = now - heldT * TICK_MS; hudGap = -99; keyTick = heldT; holdEl.hidden = true; stage.classList.remove('is-held'); awakeAt = performance.now(); awake(true);
           } else { const c = Math.ceil(left / COUNT_MS); if (c !== countShown) countLine(c); }
         }
       } else {
@@ -460,15 +463,20 @@ export function createStage(app, o = {}) {
   /** a floor was passed: the big number, the area (YOUR BEST's line once it is beaten) */
   function hudFloorNow() {
     hudFloor = run.floor; setNum(hudFloor);
-    const ar = areaOf(hudFloor), a = ar.name;
-    if (a !== hudArea) { hudArea = a; stage.dataset.area = ar.id; }   // (`data-area`: THE DARKNESS's look by day — the storm cloud · the murk)
+    const a = areaOf(hudFloor).name, ink = areaOf(Math.max(0, hudFloor - INK_LAG)).id;
+    if (a !== hudArea) hudArea = a;
+    if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; }   // (`data-area` = the area whose WALL is behind the top of the screen — THE REVIEW: it changes INK_LAG floors after a border, as the wall does: the day's inks + THE DARKNESS's look read it)
     if (newBest) topL.textContent = bestLine(hudFloor);
   }
-  /** THE DARKNESS: the screen's edges close in from above as it comes nearer (6 floors off — its lead — = nothing) — never over the ball or its floor */
+  /** THE DARKNESS — ALWAYS IN SIGHT (F3: JAYWALK-style pressure — never more than 3 floors above): the stage's data-dark = the floors it is
+   *  above the ball (3 · 2 · 1; '' = no run / over): the stylesheet's dark edge creeps down from the top IN STEP with it — never over the
+   *  ball or its floor; the warning + THE RUMBLE (sfx.js — it swells as the darkness closes) from 2 floors, loudest on the last one */
   function hudDarkNow(gap, over) {
     hudGap = gap;
-    dark.style.opacity = t0 == null ? '0' : String(Math.max(0, Math.min(1, (6 - gap) / 5)));
-    stage.classList.toggle('is-near', gap <= 2 && t0 != null && !over);
+    const on = t0 != null && !over;
+    stage.dataset.dark = on ? String(Math.max(1, Math.min(3, gap))) : '';
+    stage.classList.toggle('is-near', gap <= 1 && on);
+    if (snd && snd.rumble) snd.rumble(!on || held ? 0 : gap <= 1 ? 1 : gap === 2 ? 0.5 : 0);
   }
   function countLine(c) { countShown = c; holdN.textContent = String(c); }
   /** `?fps=1`: the last 120 frames, twice a second */
@@ -482,7 +490,7 @@ export function createStage(app, o = {}) {
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
   Object.assign(hook, {
-    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** the top of the ball at the top of its bounce, in px from the top of the screen (the HUD ends above it) */

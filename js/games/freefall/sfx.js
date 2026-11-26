@@ -135,8 +135,39 @@ export function playCues(cues, rnd = Math.random) {
     start(c.id, c.rate || 1, (c.vol == null ? 1 : c.vol) * (c.vary ? Math.pow(10, (rnd() * 2 - 1) * BOUNCE_VARY_DB / 20) : 1), c.delay || 0, false);
   }
 }
+// THE RUMBLE (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE): a low rumble swells under the mix as the darkness closes — the lights-out
+// sound itself, an octave down through a low-pass, looped softly: ONE voice of its own (outside the pool: it never takes a landing's
+// sound). `level` 0 … 1 = how near the darkness is (0 = off: it fades + stops). The full lights-out sound plays only when the darkness
+// catches the ball (sounds.js#cuesOf). Muted / locked / not decoded yet = nothing, nothing thrown.
+export const RUMBLE = Object.freeze({ id: 'lights-out', rate: 0.5, lowpass: 240, max: 0.36, ease: 0.3 });
+let rum = null, rumBed = null;   // { src, g, ctx } · its place among the engine's beds
+export function rumble(level) {
+  try {
+    const lv = level > 0 ? Math.min(1, level) : 0, ctx = getContext();
+    if (rum && (!lv || rum.ctx !== ctx || !isUnlocked())) {
+      const r = rum; rum = null;
+      try { r.g.gain.setTargetAtTime(0, r.ctx.currentTime, 0.1); r.src.stop(r.ctx.currentTime + 0.6); } catch { /* it is gone already */ }
+    }
+    if (!lv || !ctx || !isUnlocked()) return false;
+    if (!rum) {
+      const buf = bufs.get(keyOf(BY[RUMBLE.id]));
+      if (!buf || bufCtx !== ctx) return false;
+      const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = buf; src.loop = true; src.loopStart = buf.duration * 0.18; src.loopEnd = buf.duration * 0.62; src.playbackRate.value = RUMBLE.rate;
+      lp.type = 'lowpass'; lp.frequency.value = RUMBLE.lowpass;
+      g.gain.value = 0; src.connect(lp); lp.connect(g); g.connect(out(ctx)); src.start(0, src.loopStart);
+      rum = { src, g, ctx };
+      // (EVERY LOOPING SOURCE IS A BED — engine.js#holdBed through its hub: leaving the page stops it AT ONCE; the stage starts it again from the gap)
+      if (!rumBed && globalThis.__nsAudioBeds) rumBed = globalThis.__nsAudioBeds({ pause() { rumble(0); }, resume() {} });
+    }
+    rum.g.gain.setTargetAtTime(RUMBLE.max * lv * lv, ctx.currentTime, RUMBLE.ease);
+    return true;
+  } catch { return false; }
+}
+/** the rumble's level now (0 = silent) — the checks */
+export const rumbling = () => { try { return rum ? rum.g.gain.value : 0; } catch { return 0; } };
 /** silence everything still sounding (the sheet closing, the page leaving) */
-export function stopAll() { for (let i = 0; i < POOL; i++) endVoice(slots[i]); }
+export function stopAll() { for (let i = 0; i < POOL; i++) endVoice(slots[i]); rumble(0); }
 /** the test hooks: what started on the audio context · what was asked for · the voices sounding */
 export const played = () => ringOut(log, logN, l => ({ id: l.id, rate: l.rate, gain: l.gain }));
 export const wanted = () => ringOut(asked, askedN, q => ({ id: q.id, rate: q.rate, delay: q.delay }));

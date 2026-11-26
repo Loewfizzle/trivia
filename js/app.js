@@ -202,8 +202,7 @@ const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || 
 let cityUpAt = 0;
 cityShown().then(() => { cityUpAt = performance.now(); });
 function musicTick() {
-  // (TWO SONGS AT ONCE — the owner's iPhone, Nov 26: a daily RUN is neither the city's menus nor the lobby FOR THE MUSIC — `inDailyRun`, below: the
-  //  synced city radio + the room's synced song REST while it plays its own track; the host's duty to the room's queue goes on — its third argument)
+  // (TWO SONGS AT ONCE — docs/audio.md: a daily RUN rests both synced players; the host's duty to the room's queue goes on — the third argument)
   const run = inDailyRun(state);
   const was = lobbySynced, wasP = partySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob && !run, lob);
   // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
@@ -242,10 +241,7 @@ if (/[?&]daily=1(?:&|$)/.test(location.search)) {
   }, 400);
 }
 const dailyOn = st => !!(st.daily && !roomGameOn(st));
-// TWO SONGS AT ONCE (the inbox, Nov 26 — the owner saw it on his iPhone: city music → THE DAILIES → start a daily → the daily's song AND the
-// city's): a daily RUN (state.daily = { v: 'run', id }) keeps state.code null — or a room's lobby up — so the synced city radio / the room's
-// synced song played on UNDER the track musicFor() gives the run. A run rests both synced players (musicTick's gates + AT ONCE in render()); the
-// radio stays ON on the daily PICKER (v: 'screen'). ONE song at a time (docs/audio.md).
+// TWO SONGS AT ONCE (Nov 26 — docs/audio.md): a daily RUN rests the synced radio + the room's song (the PICKER keeps them)
 const inDailyRun = st => !!(dailyOn(st) && st.daily.v === 'run');
 let dailyMod = null;
 function paintDaily(st) {
@@ -314,7 +310,7 @@ function render(st0) {
     if (key.startsWith('game:')) { lastGame = st0.game; lastLive = st0.live; lastLiveKey = st0.liveKey; lastMeta = st0.meta; lastNight = st0.night; }
   }
   if (!(st.ready && st.code && !st.meta)) { clearTimeout(deadT); deadT = 0; } else if (!deadT) deadT = setTimeout(() => { deadT = 0; if (state.ready && state.code && !state.meta) dead(); }, UPLINK_WAIT_MS);
-  // (TWO SONGS AT ONCE: a daily run begins → a synced player still sounding stops NOW — its fade starts here, not at the next 250-ms tick)
+  // (TWO SONGS AT ONCE: a synced player still sounding stops NOW, not at the next tick)
   if (inDailyRun(st)) { if (partySynced) partySynced = partyMusicTick(false, false, false); if (lobbySynced) lobbySynced = lobbyMusicTick(st, false, false); }
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game

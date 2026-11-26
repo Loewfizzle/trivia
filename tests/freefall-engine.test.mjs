@@ -51,13 +51,13 @@ function runAt(f, { seed = 'eng', mode = 'solo' } = {}) {
 function floorWith(seed, kind, from = 0) { const h = seedHash(seed); for (let i = from; i < from + 400; i++) { const fl = floorAt(h, i); for (let s = 0; s < SLICES; s++) if (kindAt(fl, s) === kind) return i; } return -1; }
 const names = ev => ev.map(e => e.e).join(' ');
 
-test('THE NUMBERS: 60 ticks a second · one turn = 4096 units, 12 slices · MAX SPIN 171 a tick (≈ 2.5 turns a second) · BOUNCE + FALL fixed · THE BLAZE after 3 · THE DARKNESS: 4 s of grace, a floor every 2.5 s, never more than 6 floors above · the modes · the areas · the feats', () => {
+test('THE NUMBERS: 60 ticks a second · one turn = 4096 units, 12 slices · MAX SPIN 171 a tick (≈ 2.5 turns a second) · BOUNCE + FALL fixed · THE BLAZE after 3 · THE DARKNESS (F3 — JAYWALK-style pressure): 3 s of grace, a floor every 2 s, never more than 3 floors above · the modes · the areas · the feats', () => {
   assert.deepEqual([TICK_HZ, TURN, SLICES, BALL, MAX_SPIN, BLAZE], [60, 4096, 12, 0, 171, 3]);
   assert.equal(TICK_MS, 1000 / 60);
   assert.ok(MAX_SPIN * TICK_HZ / TURN > 2.49 && MAX_SPIN * TICK_HZ / TURN < 2.51, '171 a tick = 2.5 turns a second');
   assert.deepEqual([BOUNCE, FALL, FIRST], [C.bounce, C.fall, C.first]);
   assert.ok(Number.isInteger(BOUNCE) && Number.isInteger(FALL) && BOUNCE > FALL && FALL > HUMAN.react, 'a fall is shorter than a bounce — and longer than a human reaction');
-  assert.deepEqual(DARK, { grace: 240, pace: 150, lead: 6 });
+  assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3 });   // (F3 — the owner, Nov 26: it was 240 · 150 · 6; a stopped ball has 6 s now, and the darkness is always in sight)
   assert.deepEqual(MODES, { solo: { finish: null, capTicks: 30 * 60 * 60, holds: 3 }, match: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 }, daily: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 } });
   assert.deepEqual(MODE_IDS, ['solo', 'match', 'daily']);
   assert.deepEqual(AREAS.map(a => [a.from, a.id, a.name]), [[0, 'rooftop', 'THE ROOFTOP'], [40, 'offices', 'THE OFFICES'], [80, 'speakeasy', 'THE SPEAKEASY'], [120, 'harbor', 'UNDER THE HARBOR'], [160, 'deep', 'THE DEEP'], [200, 'bottom', 'THE BOTTOM'], [201, 'trench', 'THE TRENCH']]);
@@ -239,8 +239,8 @@ test('THE LIGHTS GO OUT: the grace, then one floor every PACE ticks · never mor
   assert.deepEqual([run.st, run.dk, darkGap(run)], ['live', -1, 1]);
   stepTo(run, OUT + 999, ev);
   assert.deepEqual([run.st, run.cause, run.end, run.dk, run.floor, run.t], ['out', 'dark', OUT, 0, 0, OUT]);
-  assert.equal(OUT / TICK_HZ, 19, 'a staller is caught after 19 s');
-  assert.deepEqual(ev.filter(e => e.e === 'dark').map(e => [e.floor, e.t]), [1, 2, 3, 4, 5, 6].map(k => [-DARK.lead + k, DARK.grace + k * DARK.pace]));
+  assert.equal(OUT / TICK_HZ, 9, 'a run nobody touches is caught after 9 s (the 3 s of grace + 3 floors × 2 s)');
+  assert.deepEqual(ev.filter(e => e.e === 'dark').map(e => [e.floor, e.t]), Array.from({ length: DARK.lead }, (_, i) => i + 1).map(k => [-DARK.lead + k, DARK.grace + k * DARK.pace]));
   assert.deepEqual(ev.slice(-2), [{ e: 'dark', floor: 0, t: OUT }, { e: 'out', cause: 'dark', t: OUT }]);
   assert.equal(endWords(resultOf(run)), 'THE LIGHTS WENT OUT');
   // every seed, every mode: the same tick
@@ -252,7 +252,7 @@ test('THE LIGHTS GO OUT: the grace, then one floor every PACE ticks · never mor
   const Lf = d.at;
   assert.equal(d.floor, 9);
   assert.deepEqual([d.dk, d.dn, darkGap(d)], [9 - DARK.lead, Lf + DARK.pace, DARK.lead]);
-  assert.deepEqual(dev.filter(e => e.e === 'dark').map(e => e.floor), [-5, -4, -3, -2, -1, 0, 1, 2, 3], 'it started exactly the lead above: every floor the ball fell pulled it one down');
+  assert.deepEqual(dev.filter(e => e.e === 'dark').map(e => e.floor), Array.from({ length: 9 }, (_, i) => i + 1 - DARK.lead), 'it started exactly the lead above: every floor the ball fell pulled it one down');
   assert.ok(dev.filter(e => e.e === 'dark').every((e, k) => e.t === dev.filter(x => x.e === 'fall')[k].t), '… at the tick of that fall');
   // … then the ball stalls on floor 9 (bouncing on solid ground): out LEAD × PACE ticks after it got there
   if (d.blaze) { /* (the next landing would shatter — let it, then stall one floor lower) */ }
@@ -265,7 +265,7 @@ test('THE LIGHTS GO OUT: the grace, then one floor every PACE ticks · never mor
   // A SLOW PLAYER LOSES GROUND: no catch-up while the ball is within the lead — the darkness keeps its own pace from where it stands
   const slow = createRun({ seed: 'dark3' });
   const seenDk = [slow.dk];
-  for (let k = 0; k < 6 && !isOver(slow); k++) { for (let b = 0; b < 5; b++) { aim(slow, SAFE); land(slow); } aim(slow, GAP); land(slow); seenDk.push(slow.dk); }   // (a floor every 5 bounces: slower than the darkness)
+  for (let k = 0; k < 6 && !isOver(slow); k++) { for (let b = 0; b < 5 && !isOver(slow); b++) { aim(slow, SAFE); land(slow); } if (!isOver(slow)) { aim(slow, GAP); land(slow); } seenDk.push(slow.dk); }   // (a floor every 5 bounces: slower than the darkness — F3: it is caught within the six floors)
   for (let k = 1; k < seenDk.length; k++) assert.ok(seenDk[k] >= seenDk[k - 1]);
   assert.ok(darkGap(slow) < DARK.lead, `after 6 slow floors the darkness is ${darkGap(slow)} floors above (it started ${DARK.lead})`);
 
@@ -316,11 +316,12 @@ test('THE FINISH + THE CAP, per mode: MATCH + DAILY end ON floor 200 ("made" —
   assert.deepEqual(sev.filter(e => e.e === 'area').slice(-2).map(e => [e.id, e.floor]), [['bottom', 200], ['trench', 201]]);
   assert.deepEqual(resultOf(solo).feats, { reachedHarbor: true, terminal: true, reachedBottom: true });
 
-  // THE CAP: a careful player (three bounces a floor — ahead of the darkness) is stopped where they stand AT the cap's tick, before anything else that tick
+  // THE CAP: a careful player (two bounces a floor: 90 ticks — ahead of the darkness's 120; F3: THREE a floor is 126, and the darkness
+  // gains on it floor by floor) is stopped where they stand AT the cap's tick, before anything else that tick
   for (const mode of MODE_IDS) {
     const cap = MODES[mode].capTicks, run = createRun({ seed: 'cap', mode }), ev = [];
     while (!isOver(run) && run.nl < cap) {
-      if (run.bounces % 3 === 2 && run.fl !== 'fall') aim(run, GAP, ev); else aim(run, SAFE, ev);
+      if (run.bounces % 2 === 1 && run.fl !== 'fall') aim(run, GAP, ev); else aim(run, SAFE, ev);
       if (run.nl >= cap) break;
       land(run, ev);
     }
@@ -813,7 +814,7 @@ test('THE HOLD = EXACT RESUME (F3 — the owner, Nov 26; SOLO only: 3 a run; a m
   assert.equal(hold(createRun({ seed: 'hold-cap' }), MODES.solo.capTicks), false, 'at the cap');
   // THE DARKNESS: a hold gives NOTHING back — a staller with three holds is out at the very tick of one with none
   const st = createRun({ seed: 'hold-stall' });
-  for (const t of [100, 400, 700]) assert.equal(hold(st, t), true);
+  for (const t of [100, 300, 500]) assert.equal(hold(st, t), true);
   stepTo(st, 5000); assert.deepEqual([st.st, st.cause, st.end], ['out', 'dark', DARK.grace + DARK.lead * DARK.pace]);
 });
 
@@ -902,7 +903,7 @@ test('THE HOLD = EXACT RESUME: REPLAY = LIVE with holds at random ticks (300 ses
   assert.equal(why([{ t: 10, a: 5 }, H(9)]), 'ticks not rising', 'a hold before the move before it');
   assert.equal(why([H(9), { t: 9, a: 5 }]), 'ticks not rising', 'a move at a hold\'s own tick comes BEFORE it');
   assert.equal(judgeRun({ seed: 'hj', mode: 'solo', log: [{ t: 9, a: 5 }, H(9), { t: 10, a: 9 }] }).ok, true, 'a move, a hold at its tick, the next move a tick later');
-  for (const e of [{ k: 'hold' }, { k: 'hold', t: -1 }, { k: 'hold', t: 1.5 }, { k: 'hold', t: '5' }, { k: 'hold', t: -0 }, { k: 'hold', t: 2 ** 53 }]) assert.equal(why([e]), 'entry', JSON.stringify(e));
+  for (const e of [{ k: 'hold', t: 5, a: 3 }, { k: 'hold', t: 5, x: 1 }, Object.assign(Object.create({ k: 'hold' }), { t: 5 }), { k: 'hold' }, { k: 'hold', t: -1 }, { k: 'hold', t: 1.5 }, { k: 'hold', t: '5' }, { k: 'hold', t: -0 }, { k: 'hold', t: 2 ** 53 }]) assert.equal(why([e]), 'entry', JSON.stringify(e));
   assert.equal(why([H(MODES.solo.capTicks)]), 'past the cap');
   assert.equal(why([H(0)]), 'hold', 'tick 0 is the tick the run stands at: nothing to hold yet');
   assert.equal(why([H(30000)]), 'past the end', 'a hold after the lights went out');

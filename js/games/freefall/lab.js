@@ -171,8 +171,8 @@ function mount() {
       areaN.textContent = areaOf(run.floor).name;
       sub.textContent = `${mode.toUpperCase()} · ${left}`;
       // the darkness, as plain as it gets: the screen's edges close in as it comes nearer (6 floors off = nothing) — never over the ball
-      dark.style.opacity = String(Math.max(0, Math.min(1, (6 - gap) / 6)));
-      stats.classList.toggle('is-near', gap <= 2);
+      dark.style.opacity = String(Math.max(0, Math.min(1, (4 - gap) / 4)));   // (F3: the darkness is never more than 3 floors above)
+      stats.classList.toggle('is-near', gap <= 1);
     }
     if (frames.length < 20000) frames.push(dt);
     if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t} · owed ${owed}`; }

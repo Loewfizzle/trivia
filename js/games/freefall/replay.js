@@ -37,7 +37,8 @@ export function logProblem(log, mode, R = CLASSIC) {
     if (e === null || typeof e !== 'object') return 'entry';
     const t = e.t, a = e.a;
     if (isHold(e)) {
-      if (!tickOk(t)) return 'entry';
+      // (THE REVIEW, F3: exactly its two OWN keys — { k: 'hold', t, a: 'x' } or a `k` inherited from a prototype was judged as a hold: two JSON texts for one log)
+      if (!tickOk(t) || !Object.prototype.hasOwnProperty.call(e, 'k') || Object.keys(e).length !== 2) return 'entry';
       if (t < pt || t <= ph) return 'ticks not rising';
       if (M.capTicks != null && t >= M.capTicks) return 'past the cap';
       if (++held > (M.holds || 0)) return 'too many holds';

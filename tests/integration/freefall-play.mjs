@@ -71,7 +71,7 @@ const SCENES = (argv.find(a => a.startsWith('--scenes=')) || '').slice(9).split(
 const want = s => !SCENES.length || SCENES.includes(s);
 const grey = async (p, on) => { await p.evaluate(g => { document.querySelector('.ff-stage').style.filter = g ? 'grayscale(1)' : ''; }, on); await sleep(120); };
 /** the areas' shots: [name, the floor the run starts from] — the ball bouncing two floors on */
-const AREA_SHOTS = [['rooftop', 0], ['border-offices', 36], ['offices', 46], ['border-speakeasy', 77], ['speakeasy', 88], ['border-harbor', 116], ['harbor', 128], ['border-deep', 157], ['deep', 168], ['trench', 205], ['trench-lap2', 250], ['trench-lap3', 300]];
+const AREA_SHOTS = [['rooftop', 0], ['rooftop-30', 28], ['border-offices', 36], ['offices', 46], ['border-speakeasy', 77], ['speakeasy', 88], ['border-harbor', 116], ['harbor', 128], ['border-deep', 157], ['deep', 168], ['trench', 205], ['trench-lap2', 250], ['trench-lap3', 300]];
 async function look() {
   const [w, h, dpr] = [390, 844, 3];
   for (const lk of LOOKS) {
@@ -80,8 +80,13 @@ async function look() {
     if (want('opening')) {
       // THE OPENING: the title as it fades in, mid-GLINT, at rest
       t = await open(w, h, dpr, `?seed=look1${q}`, { best: 88 });
-      await sleep(520); await shot(t.p, f('01a-opening-glint'));
-      await sleep(900); await shot(t.p, f('01-opening'));
+      // (THE REVIEW: the glint's shots at a FIXED moment of its animation — mid-sweep, then the star at its fullest; then on, at rest)
+      await waitFor(t.p, "document.querySelector('.ff-title').classList.contains('is-ready') && document.getAnimations().some(a => a.animationName === 'ff-glint')", 8000);
+      const at = ms => t.p.evaluate(m => { for (const a of document.getAnimations()) if (a.animationName === 'ff-glint' || a.animationName === 'ff-star') { a.pause(); a.currentTime = m; } }, ms);
+      await at(350 + 430); await sleep(120); await shot(t.p, f('01a-opening-glint'));
+      await at(350 + 875); await sleep(120); await shot(t.p, f('01b-opening-star'));
+      await at(350 + 2400); await sleep(120); await shot(t.p, f('01-opening'));
+      if (lk === LOOKS[0]) { const j = await open(w, h, dpr, `?seed=look1${q}&pano=0.5`, { best: 88 }); await waitFor(j.p, '/pano(-day)?:1/.test(window.__ffPlay.state().info.walls)', 12000); await sleep(600); await shot(j.p, f('01c-opening-the-join')); await j.close(); }
       console.log(lk, 'opening', JSON.stringify((await st(t.p)).info), t.errs, t.logs.slice(0, 6));
       await t.close();
     }
@@ -109,7 +114,7 @@ async function look() {
     }
     if (want('areas')) {
       for (const [name, floor] of AREA_SHOTS) {
-        if (SCENES.length && argv.includes('--few') && /border|lap/.test(name)) continue;
+        if (argv.includes('--few') && /border|lap/.test(name)) continue;
         t = await open(w, h, dpr, `?seed=look2${q}${floor ? `&floor=${floor}` : ''}`, { best: 141 });
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
@@ -147,8 +152,8 @@ async function look() {
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
         await auto(t.p, 'safe');
-        await waitFor(t.p, 'window.__ffPlay.state().dark <= 2', 30000);
-        await sleep(500); await shot(t.p, f(`09-darkness-${name}`));
+        // (F3 — JAYWALK-style pressure: a stalled run, the darkness 3 · 2 · 1 floors above — the edge creeps down in step)
+        for (const gap of [3, 2, 1]) { await waitFor(t.p, `window.__ffPlay.state().dark === ${gap} && window.__ffPlay.state().fl === "bounce"`, 30000); await sleep(700); await shot(t.p, f(`09-darkness-${name}-${gap}`)); }
         if (name === 'rooftop') { await waitFor(t.p, 'window.__ffPlay.state().shown', 30000); await sleep(500); await shot(t.p, f('10-end-dark')); }
         await t.close();
       }
@@ -210,7 +215,7 @@ async function checks1() {
   ok(bestL.text === 'YOUR BEST 88' && bestL.fs >= 13 && bestL.b <= ttl.y + 8, `"${bestL.text}" at the top`);
   ok(ft.text === 'DRAG TO SPIN' && ft.fs >= 22 && hint.y < ft.y && ft.b < 844 - 20 && hint.y > ttl.b + 200, `at the foot: the thumb-sweep hint · ${ft.text} (${ft.fs.toFixed(0)} px)`);
   ok(sndB && sndB.w >= 44 && sndB.h >= 44 && note.text === 'TEST PAGE — NOTHING COUNTS YET', `SOUNDS ≥ 44 pt (${sndB.w.toFixed(0)} × ${sndB.h.toFixed(0)}) · the note "${note.text}"`);
-  ok(s.warmed && s.info.programs >= 9 && /sky:1/.test(s.info.walls) && /offices:1/.test(s.info.walls), `THE WARM FRAME behind the opening: ${s.info.programs} programs built, the skyline + the first wall uploaded (${s.info.walls})`);
+  ok(s.warmed && s.info.programs >= 9 && /pano:1/.test(s.info.walls) && /offices:1/.test(s.info.walls), `THE WARM FRAME behind the opening: ${s.info.programs} programs built, the rooftop's panorama + the first wall uploaded (${s.info.walls})`);
   await shot(t.p, 'chk-01-opening.png');
 
   // ---- THE FIRST DRAG starts the run
@@ -483,10 +488,10 @@ async function checks2() {
 async function checks3() {
   // ---- `?look=day`: the day scene, the page's inks, the day pictures — and nothing asked of a server
   let t = await open(390, 844, 3, '?seed=day1&look=day', { best: 88 });
-  await waitFor(t.p, '/sky-day:1/.test(window.__ffPlay.state().info.walls)', 8000);
+  await waitFor(t.p, '/pano-day:1/.test(window.__ffPlay.state().info.walls) && /offices-day:1/.test(window.__ffPlay.state().info.walls)', 12000);
   let s = await st(t.p);
-  const pics = t.reqs.filter(r => /\/walls\/|skyline/.test(r)).map(r => r.split('/').pop().split('?')[0]);
-  ok(t.up && !t.errs.length && s.look === 'day' && s.lookAttr === 'day' && s.info.look === 'day' && /sky-day:1/.test(s.info.walls), `?look=day: the page loads in THE DAY LOOK — the scene, the stage's data-look (${s.lookAttr}), no error (${t.errs.join(' | ') || 'none'})`);
+  const pics = t.reqs.filter(r => /\/walls\/|\/sky\/|skyline/.test(r)).map(r => r.split('/').pop().split('?')[0]);
+  ok(t.up && !t.errs.length && s.look === 'day' && s.lookAttr === 'day' && s.info.look === 'day' && /pano-day:1/.test(s.info.walls), `?look=day: the page loads in THE DAY LOOK — the scene, the stage's data-look (${s.lookAttr}), no error (${t.errs.join(' | ') || 'none'})`);
   ok(pics.length >= 2 && pics.every(p => /-day\.webp$/.test(p)), `by day only the DAY pictures are asked for: ${pics.join(' · ')}`);
   await start(t); await auto(t.p, 'play');
   await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');

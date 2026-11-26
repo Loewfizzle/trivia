@@ -16,10 +16,23 @@
 .ff-play { position: absolute; inset: 0; outline: none; }
 .ff-canvas { display: block; width: 100%; height: 100%; }
 
-/* THE DARKNESS (the lights go out): the screen's edges close in FROM ABOVE as it comes nearer — a clear window stays round the ball and
-   its floor (never dimmed); its strength is ONE opacity the stage writes when the gap changes */
-.ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.45s linear;
-  background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(3, 0, 10, 0) 44%, rgba(3, 0, 10, 0.97) 100%), linear-gradient(to bottom, rgba(3, 0, 10, 0.97) 0%, rgba(3, 0, 10, 0.8) 13%, rgba(3, 0, 10, 0) 27%); }
+/* THE DARKNESS (the lights go out) — F3: JAYWALK-STYLE PRESSURE, ALWAYS IN SIGHT (the owner, Nov 26: the darkness is never more than
+   3 floors above the ball now). A dark EDGE creeps down from the TOP of the screen IN STEP with it (the stage's data-dark = the floors
+   it is above the ball: 3 · 2 · 1): 3 = a faint edge at the very top (a calm run sees no more), 2 = it has come down over the top of
+   the screen, 1 = it is on the floor above — the edge down to the ball's bounce + the screen's sides closing in round a clear window
+   where the ball is. NEVER over the ball or its floor; the HUD lies on top of it (the number stays read). One transform + one opacity,
+   each written at a step — never in a frame. --ff-dk = its colour (the night's black-violet; by day the storm cloud's slate, the murk). */
+.ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.45s linear; --ff-dk: 3, 0, 10; --ff-dk-edge: 150, 100, 255; }
+.ff-stage:is([data-dark='3'], [data-dark='2'], [data-dark='1']) .ff-dark { opacity: 1; }
+.ff-dark::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 24%; transform: translate3d(0, -100%, 0); transition: transform 0.55s cubic-bezier(0.3, 0, 0.2, 1); will-change: transform;
+  /* (its LIVE EDGE: a soft line of light along its foot — the step is seen on a dark night screen too: violet by night, the cloud's pale lining / the murk's green by day) */
+  background: linear-gradient(to bottom, rgba(var(--ff-dk-edge), 0) 86%, rgba(var(--ff-dk-edge), 0.7) 92%, rgba(var(--ff-dk-edge), 0) 98%), linear-gradient(to bottom, rgba(var(--ff-dk), 0.97) 0%, rgba(var(--ff-dk), 0.84) 55%, rgba(var(--ff-dk), 0.5) 84%, rgba(var(--ff-dk), 0) 100%); }
+.ff-dark::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.55s linear; background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(var(--ff-dk), 0) 44%, rgba(var(--ff-dk), 0.97) 100%); }
+.ff-stage[data-dark='3'] .ff-dark::before { transform: translate3d(0, -80%, 0); }
+.ff-stage[data-dark='2'] .ff-dark::before { transform: translate3d(0, -36%, 0); }
+.ff-stage[data-dark='2'] .ff-dark::after { opacity: 0.38; }
+.ff-stage[data-dark='1'] .ff-dark::before { transform: translate3d(0, 0, 0); }
+.ff-stage[data-dark='1'] .ff-dark::after { opacity: 0.95; }
 
 /* THE SHADE (the review: the HUD's words sat on the floor flying past, DRAG TO SPIN on bright rims): a dark fall behind the HUD's column
    while a run is on (it ends above the ball's highest point), a dark rise behind the opening's foot — two static gradients, ONE opacity each */
@@ -95,13 +108,13 @@
 .ff-stage[data-look='day'] .ff-glint { --ff-glint: 255, 255, 255; --ff-glint-core: 255, 255, 255; }
 .ff-glint::before { content: ''; position: absolute; top: -12%; bottom: -12%; left: 0; width: 36%; transform: translate3d(-150%, 0, 0) skewX(-22deg); will-change: transform;
   background: linear-gradient(90deg, rgba(var(--ff-glint), 0) 0%, rgba(var(--ff-glint), 0.42) 30%, rgba(var(--ff-glint-core), 0.86) 50%, rgba(var(--ff-glint), 0.42) 70%, rgba(var(--ff-glint), 0) 100%); }
-.ff-stage.is-open .ff-glint::before { animation: ff-glint 7s cubic-bezier(0.45, 0, 0.3, 1) 0.35s infinite both; }
+.ff-stage.is-open .ff-title.is-ready .ff-glint::before { animation: ff-glint 7s cubic-bezier(0.45, 0, 0.3, 1) 0.35s infinite both; }   /* (is-ready: its mask is in — THE REVIEW: on a cold load the first sweep ran before the lettering had landed) */
 @keyframes ff-glint { 0% { transform: translate3d(-150%, 0, 0) skewX(-22deg); } 11.4%, 100% { transform: translate3d(330%, 0, 0) skewX(-22deg); } }
 /* … and a tiny 4-point star twinkling on the last letter as the band leaves it */
 .ff-star { position: absolute; left: 88.5%; top: 5%; width: calc(var(--ff-w) * 0.062); aspect-ratio: 1; margin: calc(var(--ff-w) * -0.031) 0 0 calc(var(--ff-w) * -0.031); opacity: 0; pointer-events: none; will-change: transform, opacity;
   background: radial-gradient(circle, #fff 0 18%, rgb(var(--ff-star, 255, 214, 240)) 46%, rgba(255, 255, 255, 0) 72%); clip-path: polygon(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%); }
 .ff-stage[data-look='day'] .ff-star { --ff-star: 255, 255, 255; }
-.ff-stage.is-open .ff-star { animation: ff-star 7s ease-in-out 0.35s infinite both; }
+.ff-stage.is-open .ff-title.is-ready .ff-star { animation: ff-star 7s ease-in-out 0.35s infinite both; }
 @keyframes ff-star { 0%, 8.5% { opacity: 0; transform: scale(0.2) rotate(0deg); } 12.5% { opacity: 1; transform: scale(1.15) rotate(40deg); } 17%, 100% { opacity: 0; transform: scale(0.2) rotate(90deg); } }
 .ff-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 44px); }
 .ff-hint { display: inline-flex; align-items: center; gap: 10px; color: #fff; }
@@ -117,7 +130,9 @@
    brick, THE DEEP, THE TRENCH: data-area). No dark fall behind the HUD by day: the inks carry themselves. Static shadows only. */
 .ff-stage[data-look='day'] { --ff-ink: #0b2a4a; --ff-ink-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.55); --ff-out: 0 0 2px rgba(8, 28, 58, 1), 0 2px 0 rgba(8, 28, 58, 0.95), 0 0 3px rgba(8, 28, 58, 0.95), 0 0 9px rgba(8, 28, 58, 0.6); }
 .ff-stage[data-look='day']:is([data-area='offices'], [data-area='speakeasy'], [data-area='deep'], [data-area='bottom'], [data-area='trench']) { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }
-.ff-stage[data-look='day'].is-near { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }   /* (THE DARKNESS has closed in over the top: light ink on it) */
+.ff-stage[data-look='day']:is([data-dark='2'], [data-dark='1']) { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }   /* (THE DARKNESS has come down over the top of the screen: light ink on it) */
+.ff-stage[data-look='day'].is-held { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }   /* (THE REVIEW: under PAUSED's dark plate) */
+.ff-stage[data-look='day'] .ff-hold { background: rgba(5, 3, 13, 0.72); }
 .ff-stage[data-look='day'] .ff-shade::before { background: none; }
 .ff-stage[data-look='day'] .ff-shade::after { background: linear-gradient(to top, rgba(6, 22, 52, 0.82) 0%, rgba(6, 22, 52, 0.6) 55%, rgba(6, 22, 52, 0) 100%); }
 .ff-stage[data-look='day'] :is(.ff-best, .ff-snd, .ff-note) { color: var(--ff-ink); text-shadow: var(--ff-ink-halo); }
@@ -131,9 +146,9 @@
 .ff-stage[data-look='day'] .ff-call.is-teal { color: #37ecf0; text-shadow: var(--ff-out); }
 /* THE DARKNESS BY DAY — the same rule + timing, another look: THE STORM CLOUD closes in over the rooftop (slate), indoors the lights go
    out, THE MURK closes in under the water — the same clear window round the ball + its floor (never dimmed) */
-.ff-stage[data-look='day'] .ff-dark { background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(var(--ff-dk), 0) 44%, rgba(var(--ff-dk), 0.95) 100%), linear-gradient(to bottom, rgba(var(--ff-dk), 0.96) 0%, rgba(var(--ff-dk), 0.8) 13%, rgba(var(--ff-dk), 0) 27%); --ff-dk: 12, 14, 26; }
-.ff-stage[data-look='day'][data-area='rooftop'] .ff-dark { --ff-dk: 50, 56, 74; }
-.ff-stage[data-look='day']:is([data-area='harbor'], [data-area='deep'], [data-area='bottom'], [data-area='trench']) .ff-dark { --ff-dk: 5, 36, 40; }
+.ff-stage[data-look='day'] .ff-dark { --ff-dk: 12, 14, 26; --ff-dk-edge: 150, 165, 215; }
+.ff-stage[data-look='day'][data-area='rooftop'] .ff-dark { --ff-dk: 50, 56, 74; --ff-dk-edge: 222, 230, 244; }
+.ff-stage[data-look='day']:is([data-area='harbor'], [data-area='deep'], [data-area='bottom'], [data-area='trench']) .ff-dark { --ff-dk: 5, 36, 40; --ff-dk-edge: 70, 200, 180; }
 
 /* THE HOLD: the run is held (the page was hidden) — PAUSED, then 3 · 2 · 1 */
 .ff-hold { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 10px; text-align: center; pointer-events: none; background: rgba(5, 3, 13, 0.6); }
@@ -193,9 +208,10 @@
   .ff-ec-best { margin-top: 2px; font-size: 15px; } .ff-ec-best.is-new { font-size: 20px; } .ff-again { min-height: 58px; } .ff-endfoot { gap: 9px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .ff-dark::before { transition: none; }
   .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
   /* THE GLINT: ONE sweep only (+ its star once), then nothing moves */
-  .ff-stage.is-open .ff-title { animation: none; } .ff-stage.is-open .ff-glint::before { animation: ff-glint-once 0.8s cubic-bezier(0.45, 0, 0.3, 1) 0.35s 1 both; } .ff-stage.is-open .ff-star { animation: ff-star-once 0.9s ease-in-out 0.95s 1 both; }
+  .ff-stage.is-open .ff-title { animation: none; } .ff-stage.is-open .ff-title.is-ready .ff-glint::before { animation: ff-glint-once 0.8s cubic-bezier(0.45, 0, 0.3, 1) 0.35s 1 both; } .ff-stage.is-open .ff-title.is-ready .ff-star { animation: ff-star-once 0.9s ease-in-out 0.95s 1 both; }
 }
 
 @keyframes ff-glint-once { 0% { transform: translate3d(-150%, 0, 0) skewX(-22deg); } 100% { transform: translate3d(330%, 0, 0) skewX(-22deg); } }

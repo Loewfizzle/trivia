@@ -33,11 +33,12 @@ const MODE = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo';
 const FROM = Math.max(0, Math.min(600, Math.floor(Number(Q.get('floor')) || 0)));
 /** `?look=day|night` (F3 — THE LOOK CHECK): that look for this visit; without it the page is AUTO — the phone's clock, then the site's sun rule */
 const LOOK = Q.get('look') === 'day' || Q.get('look') === 'night' ? Q.get('look') : null;
+// (`?pano=0.5` — THE LOOK CHECK: the rooftop's panorama turned half a picture round, so its join (u = 0 / 1) is in the middle of the screen)
 const readBest = () => { try { return cleanBest(localStorage.getItem(BEST_KEY)); } catch { return 0; } };
 const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catch { /* a private window forgets: fine */ } };
 
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds) with the page's own pieces on (`page`): the SOUNDS
 // list, the note; YOUR BEST = this phone's (`ff:play:best`)
 try {
-  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, look: LOOK, fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest } });
+  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest } });
 } catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); }

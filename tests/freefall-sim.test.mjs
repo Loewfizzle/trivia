@@ -59,17 +59,18 @@ test('THE TARGETS (GREAT): floor 200 in ≈ 2:30, MOST of its runs — inside th
   assert.deepEqual([solo.sloppy.floor.med, solo.good.floor.med], [match.sloppy.floor.med, match.good.floor.med], 'above the bottom solo + match are the same game');
 });
 
-test('THE LIGHTS GO OUT — tuned so a normal player never meets it: NO bot run ends in the dark, the longest any bot stays on one floor is far under the 15 s the darkness needs; a STALLER is caught within 15–25 s', () => {
+test('THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE (F3 — 3 s · a floor every 2 s · lead 3): NO bot run ends in the dark — GREAT, GOOD, the human, even SLOPPY (its longest stay on one floor is under the 6 s a stopped ball has); a run nobody touches is caught in 9 s, a ball that stops mid-run in ~6 s', () => {
   for (const id of BOT_IDS) {
     assert.equal(match[id].causes.dark, 0, `${id}: no run ends in the dark`);
     assert.equal(solo[id].causes.dark, 0);
-    assert.ok(match[id].stayMax < DARK.lead * DARK.pace / TICK_HZ / 2, `${id}: the longest stay on one floor ${match[id].stayMax.toFixed(1)} s`);
+    assert.ok(match[id].stayMax < DARK.lead * DARK.pace / TICK_HZ, `${id}: the longest stay on one floor ${match[id].stayMax.toFixed(1)} s — under the 6 s a stopped ball has`);
+    if (id !== 'sloppy') assert.ok(match[id].stayMax < DARK.lead * DARK.pace / TICK_HZ / 2, `${id}: … and under half of it (${match[id].stayMax.toFixed(1)} s): the darkness is pressure, never a trap, for a player who plays`);
   }
-  assert.equal(DARK.lead * DARK.pace / TICK_HZ, 15, 'a ball that stops moving has 15 s');
+  assert.equal(DARK.lead * DARK.pace / TICK_HZ, 6, 'a ball that stops moving has 6 s (JAYWALK\'s wall: ~8 s)');
   for (const mode of MODE_IDS) {
     const st = simStaller(40, mode, 't');
     assert.equal(st.dark, 40, 'every staller is taken by the darkness');
-    assert.ok(st.lo >= 15 && st.hi <= 25, `${mode}: caught between ${st.lo} s and ${st.hi} s`);
+    assert.ok(st.lo >= 6 && st.hi <= 12, `${mode}: caught between ${st.lo} s and ${st.hi} s`);
   }
   // a mid-run staller: a good bot plays 40 floors, then lets go — caught 15 s after its last floor (± the bounces)
   for (let i = 0; i < 10; i++) {

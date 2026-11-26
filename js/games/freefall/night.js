@@ -11,7 +11,7 @@ import { TURN, SLICES, AREAS, FIRST, RULE_SETS, RULES_DEFAULT } from './tuning.j
 import { floorInto, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
 import { areaIndex } from './logic.js';
 import { PALETTES, TRENCH_PALETTES } from './palettes.js';
-import { WALL_V, WALL_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, FLAME_V, FLAME_F, RIBBON_V, RIBBON_F, createBloom } from './night-fx.js';
+import { WALL_V, WALL_F, SKY_V, SKY_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, FLAME_V, FLAME_F, RIBBON_V, RIBBON_F, createBloom } from './night-fx.js';
 import { MOTE_V, MOTE_F } from './day-fx.js';
 
 /** bump when a picture is replaced (the walls' cache key) */
@@ -41,19 +41,26 @@ export const WALLS = Object.freeze([null, 'offices', 'speakeasy', 'harbor', 'dee
 /** an area's numbers by look (tuning.js#AREAS' order — THE BOTTOM + THE TRENCH wear THE DEEP's): the wall's tint (3) · BY DAY: the haze the
  *  tower fades into below (3) · THE DARKNESS's colour — THE STORM CLOUD on the rooftop, the lights out indoors, THE MURK under the water (3)
  *  · 1 = under the water (the water's gradient, the sun rays, the caustics) · its MOTES (0 none · 1 rising bubbles · 2 drifting particles ·
- *  3 dust in a sunlit room). Linear light. */
-const DEEP_N = [1.5, 1.45, 1.7, 0, 0, 0, 0, 0, 0, 0, 0], DEEP_D = [0.9, 1.0, 1.5, 0.004, 0.012, 0.05, 0.006, 0.02, 0.022, 0, 2];
-export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], [0.5, 0.56, 0.82, 0, 0, 0, 0, 0, 0, 0, 0], [0.82, 0.74, 0.86, 0, 0, 0, 0, 0, 0, 0, 0], [1.9, 2.3, 2.5, 0, 0, 0, 0, 0, 0, 0, 0], DEEP_N, DEEP_N, DEEP_N]);
+ *  3 dust in a sunlit room) · how often its wall repeats round the shaft (4 — THE DEEP's night wall 2: a LARGER scale, its vents made a
+ *  lattice at 4). Linear light. THE NIGHT WALLS v2 (the add-on, Nov 26: offices · harbor · deep, relit from the day walls) are shown near
+ *  their own light (the old offices wall was held down to 0.5, the old harbor wall pushed × 2). */
+const DEEP_N = [1.25, 1.25, 1.4, 0, 0, 0, 0, 0, 0, 0, 0, 2], DEEP_D = [0.9, 1.0, 1.5, 0.004, 0.012, 0.05, 0.006, 0.02, 0.022, 0, 2, 4];
+export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.3, 1.3, 1.45, 0, 0, 0, 0, 0, 0, 0, 0, 4], [0.95, 0.86, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.05, 1.1, 1.15, 0, 0, 0, 0, 0, 0, 0, 0, 4], DEEP_N, DEEP_N, DEEP_N]);
 export const AREA_DAY = Object.freeze([
-  [1, 1, 1, 0.62, 0.84, 0.98, 0.09, 0.105, 0.15, 0, 0],             // THE ROOFTOP: the open air · THE STORM CLOUD
-  [0.5, 0.62, 0.86, 0.5, 0.68, 0.92, 0.03, 0.04, 0.08, 0, 3],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it)
-  [0.82, 0.68, 0.6, 0.5, 0.33, 0.22, 0.035, 0.02, 0.02, 0, 3],      // THE SPEAKEASY: brick + brass, a warm dusty haze
-  [1, 1.08, 1.1, 0.0018, 0.042, 0.107, 0.012, 0.045, 0.04, 1, 1],   // UNDER THE HARBOR: the water (#063a5c below) · THE MURK · bubbles
+  [1, 1, 1, 0.62, 0.84, 0.98, 0.09, 0.105, 0.15, 0, 0, 4],           // THE ROOFTOP: the open air · THE STORM CLOUD
+  [0.5, 0.62, 0.86, 0.5, 0.68, 0.92, 0.03, 0.04, 0.08, 0, 3, 4],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it)
+  [0.82, 0.68, 0.6, 0.5, 0.33, 0.22, 0.035, 0.02, 0.02, 0, 3, 4],      // THE SPEAKEASY: brick + brass, a warm dusty haze
+  [1, 1.08, 1.1, 0.0018, 0.042, 0.107, 0.012, 0.045, 0.04, 1, 1, 4],   // UNDER THE HARBOR: the water (#063a5c below) · THE MURK · bubbles
   DEEP_D, DEEP_D, DEEP_D,                                             // THE DEEP: deep blue, the wreck's warm lamps · drifting particles
 ]);
 /** THE MOTES by kind: [the shader's kind (1 a bubble · 2 a soft dot), its speed in floors a second (+ = rising), its size, its strength, its colour] */
 export const MOTE_KINDS = Object.freeze([null, [1, 0.55, 0.05, 0.9, 0.85, 1, 1], [2, -0.07, 0.024, 0.7, 0.75, 0.9, 1], [2, 0.04, 0.015, 0.5, 1, 0.98, 0.9]]);
 /** the motes' FIXED pool — the tiers trim how many are drawn (tier 0 · 1 · 2) */
+/** THE ROOFTOP's PANORAMA (the add-on, Nov 26 — FREEFALL's own, 3072 × 1024, a 360° picture): shown across `az` radians of the compass (it
+ *  repeats round it — a texel is never stretched past ~1.3 screen pixels on a 390 / 430-wide phone at 3×), `el` radians tall, its top at
+ *  `top` (so its horizon — 63 % down it — sits in the upper quarter of the opening); it rises up to `rise` as the ball goes down; the
+ *  night's GLOW FROM BELOW (`glow`: 0.4 — it was 0.85 and washed every area purple) */
+export const PANO = Object.freeze({ az: 1.2, el: 0.4, top: 0.012, rise: 0.06, riseK: 0.004, glow: 0.4 });
 export const MOTES = 48, MOTE_N = Object.freeze([18, 32, 48]), MOTE_SPAN = 12;
 const GOLD = 0xffc83c, GOLD_DAY = 0xe89400, LAP = 40, TRENCH_FROM = 201;
 
@@ -115,9 +122,9 @@ export function createNight(host, o = {}) {
   const R = RULE_SETS[RULES_DEFAULT], PACE = R.gen.move.pace;
   const col = new THREE.Color();
   const lin = hex => { col.set(hex); return [col.r, col.g, col.b]; };
-  // (the palettes in linear light, flat: an area's 12 numbers — a · b · rim · day; the trench's laps after the areas')
-  const PL = new Float32Array((PALETTES.length + TRENCH_PALETTES.length) * 12);
-  [...PALETTES, ...TRENCH_PALETTES].forEach((p, i) => { PL.set([...lin(p.a), ...lin(p.b), ...lin(p.rim), ...lin(p.day)], i * 12); });
+  // (the palettes in linear light, flat: an area's 15 numbers — a · b · rim · day · dayRim; the trench's laps after the areas')
+  const PL = new Float32Array((PALETTES.length + TRENCH_PALETTES.length) * 15);
+  [...PALETTES, ...TRENCH_PALETTES].forEach((p, i) => { PL.set([...lin(p.a), ...lin(p.b), ...lin(p.rim), ...lin(p.day), ...lin(p.dayRim)], i * 15); });
 
   // ---- the uniforms every material shares (ONE object each: a twin material in the bloom pass reads the same values)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uSpin: { value: 0 }, uAspect: { value: 1 }, uGrey: { value: 0 },
@@ -135,10 +142,10 @@ export function createNight(host, o = {}) {
 
   // ---- THE SHAFT: the wall, drawn into a half-res target by its own little scene, then copied up behind everything
   const wallU = {
-    tA: { value: null }, tB: { value: null }, tSky: { value: null }, uCam: { value: new THREE.Vector3() }, uRight: { value: new THREE.Vector3() }, uUp: { value: new THREE.Vector3() }, uFwd: { value: new THREE.Vector3() },
+    tA: { value: null }, tB: { value: null }, uCam: { value: new THREE.Vector3() }, uRight: { value: new THREE.Vector3() }, uUp: { value: new THREE.Vector3() }, uFwd: { value: new THREE.Vector3() },
     uTintA: { value: new THREE.Vector3(1, 1, 1) }, uTintB: { value: new THREE.Vector3(1, 1, 1) }, uTan: { value: Math.tan(CAM.fov * RAD / 2) }, uAspect: G.uAspect,
-    uHaveA: { value: 0 }, uHaveB: { value: 0 }, uFlipA: { value: 0 }, uFlipB: { value: 0 }, uSkyA: { value: 1 }, uSkyB: { value: 0 }, uHaveSky: { value: 0 }, uFlipSky: { value: 0 },
-    uSeamY: { value: -1e4 }, uBallY: { value: 0 }, uDarkY: { value: 1e4 }, uTime: G.uTime, uRW: { value: SHAPE.RW }, uTile: { value: 4 }, uSink: { value: 0 },
+    uHaveA: { value: 0 }, uHaveB: { value: 0 }, uFlipA: { value: 0 }, uFlipB: { value: 0 }, uSkyA: { value: 1 }, uSkyB: { value: 0 },
+    uSeamY: { value: -1e4 }, uBallY: { value: 0 }, uDarkY: { value: 1e4 }, uTime: G.uTime, uRW: { value: SHAPE.RW }, uTileA: { value: 4 }, uTileB: { value: 4 }, uGlow: { value: PANO.glow },
     uDay: G.uDay, uAreaA: { value: 0 }, uAreaB: { value: 0 }, uWetA: { value: 0 }, uWetB: { value: 0 }, uSurfY: { value: -AREAS[3].from * SHAPE.H },
     uFogA: { value: new THREE.Vector3() }, uFogB: { value: new THREE.Vector3() }, uDarkA: { value: new THREE.Vector3() }, uDarkB: { value: new THREE.Vector3() },
   };
@@ -150,6 +157,17 @@ export function createNight(host, o = {}) {
   const copyMat = new THREE.ShaderMaterial({ vertexShader: COPY_V, fragmentShader: COPY_F, uniforms: copyU, depthTest: false, depthWrite: false });
   const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), copyMat);
   backdrop.frustumCulled = false; backdrop.renderOrder = -100; scene.add(backdrop); twin(backdrop, copyMat);
+  // THE ROOFTOP's SKY (the add-on, Nov 26): FREEFALL's own panorama on a FULL-RESOLUTION quad over the half-res wall — drawn only while
+  // the rooftop is on screen (the opening + floors 0–39); it shares the wall's camera + seam + darkness uniforms (the same objects)
+  const skyU = { tPano: { value: null }, uHave: { value: 0 }, uFlip: { value: 0 }, uCam: wallU.uCam, uRight: wallU.uRight, uUp: wallU.uUp, uFwd: wallU.uFwd, uDarkA: wallU.uDarkA,
+    uTan: wallU.uTan, uAspect: G.uAspect, uSeamY: wallU.uSeamY, uBallY: wallU.uBallY, uDarkY: wallU.uDarkY, uTime: G.uTime, uRW: wallU.uRW, uRise: { value: 0 }, uShift: { value: Number(o.skyShift) || 0 },
+    uDay: G.uDay, uBloom: G.uBloom, uSpanAz: { value: PANO.az }, uSpanEl: { value: PANO.el }, uTopEl: { value: PANO.top }, uGlow: wallU.uGlow };
+  const skyMat = new THREE.ShaderMaterial({ vertexShader: SKY_V, fragmentShader: SKY_F, uniforms: skyU, depthTest: false, depthWrite: false,
+    // (NOT `transparent`: three.js draws every transparent mesh after the opaque ones — the sky would lie over the pillar + the ball. It is
+    //  an opaque-pass mesh, second in the scene's order, that blends itself over the wall by its own alpha)
+    transparent: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor });
+  const skyQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), skyMat);
+  skyQuad.frustumCulled = false; skyQuad.renderOrder = -99; scene.add(skyQuad); twin(skyQuad, skyMat);
 
   // the pictures: decoded off the frame (createImageBitmap) and uploaded AT ONCE (HIGH RISE's LAG RULES 1) — never at their first draw
   const texs = new Map();   // name → { tex, flip, have }
@@ -166,9 +184,11 @@ export function createNight(host, o = {}) {
     loadPicture(url).then(({ image, flip }) => {
       if (gone) { if (image.close) image.close(); return; }
       const tex = new THREE.Texture(image);
-      tex.wrapS = tex.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-      if (!repeat) tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapS = tex.wrapT = repeat === true ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+      if (repeat !== true) tex.wrapS = THREE.RepeatWrapping;
       tex.generateMipmaps = !!repeat; tex.minFilter = repeat ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+      // (`repeat` 2 = THE PANORAMA: it repeats on u only, its mipmaps + the GPU's anisotropy keep its windows windows at every tier)
+      if (repeat === 2) { try { tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); } catch { /* none */ } }
       tex.flipY = false; tex.needsUpdate = true;
       try { renderer.initTexture(tex); } catch { /* it uploads at its first draw */ }
       t.tex = tex; t.flip = flip; t.have = 1; workAt = performance.now(); wK = -1;
@@ -179,9 +199,9 @@ export function createNight(host, o = {}) {
   const WALL_KEY = ['night', 'day'].map(lk => WALLS.map(name => (name ? (lk === 'day' ? `${name}-day` : name) : null)));
   const WALL_URL = ['night', 'day'].map(lk => WALLS.map(name => (name ? new URL(`../../../assets/freefall/walls/${name}-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href : null)));
   const wantWall = k => { const L = day ? 1 : 0; return WALL_KEY[L][k] ? picture(WALL_KEY[L][k], WALL_URL[L][k], true) : null; };
-  // THE ROOFTOP: JAYWALK's skyline painting — the night's, the day's (reused, no copy; the day's is asked for only when the look is day)
-  const SKY_URL = [new URL('../../../assets/jaywalk/skyline-night.webp', import.meta.url).href, new URL('../../../assets/jaywalk/skyline-day.webp', import.meta.url).href];
-  const skyNow = () => (day ? picture('sky-day', SKY_URL[1], false) : picture('sky', SKY_URL[0], false));
+  // THE ROOFTOP: FREEFALL's own panoramas — the night's, the day's (the look's own is the only one asked for; JAYWALK's skyline is no longer used)
+  const PANO_URL = ['night', 'day'].map(lk => new URL(`../../../assets/freefall/sky/rooftop-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href);
+  const skyNow = () => (day ? picture('pano-day', PANO_URL[1], 2) : picture('pano', PANO_URL[0], 2));
   // (THE BLAZE's sprites — Kenney's Particle Pack: two flames, the hot speckle, the smoke, side by side)
   const fxTex = picture('blaze', new URL(`../../../assets/freefall/fx/blaze.webp?v=${FF_ART_REV}`, import.meta.url).href, false);
 
@@ -252,10 +272,10 @@ export function createNight(host, o = {}) {
 
   // ---- the floors in sight: a ring of records written INTO (never a new object in play) + what happened to each (broken · cracked · its flashes)
   let run0 = null, h = 0, RR = R;
-  const FL = [], FLi = new Int32Array(RING).fill(-1), broken = new Uint16Array(RING), cracked = new Uint16Array(RING), flash = new Float32Array(RING * SLICES), fcol = new Float32Array(RING * 3), frim = new Float32Array(RING * 3), fday = new Float32Array(RING * 3);
+  const FL = [], FLi = new Int32Array(RING).fill(-1), broken = new Uint16Array(RING), cracked = new Uint16Array(RING), flash = new Float32Array(RING * SLICES), fcol = new Float32Array(RING * 3), frim = new Float32Array(RING * 3), fday = new Float32Array(RING * 3), fdrim = new Float32Array(RING * 3);
   for (let i = 0; i < RING; i++) FL.push({ i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 });
   /** a floor's palette (its place in PL): its area's — THE TRENCH's by its lap */
-  const palOf = i => { const k = areaIndex(i); return (k >= 6 ? PALETTES.length + Math.floor((i - TRENCH_FROM) / LAP) % TRENCH_PALETTES.length : k) * 12; };
+  const palOf = i => { const k = areaIndex(i); return (k >= 6 ? PALETTES.length + Math.floor((i - TRENCH_FROM) / LAP) % TRENCH_PALETTES.length : k) * 15; };
   function colourOf(i, slot) {
     // THE AREA PALETTE, DEPTH-RELATIVE: this floor's own colour — a → b down its area; its last three floors lean to the next area's
     const k = areaIndex(i), p = palOf(i), from = k >= 6 ? TRENCH_FROM + Math.floor((i - TRENCH_FROM) / LAP) * LAP : AREAS[k].from, len = k === 5 ? 1 : LAP;
@@ -265,7 +285,8 @@ export function createNight(host, o = {}) {
       const top = PL[p + c] + (PL[p + 3 + c] - PL[p + c]) * t;
       fcol[s3 + c] = (top + (PL[q + c] - top) * tt) * lean;
       frim[s3 + c] = PL[p + 6 + c] + (PL[q + 6 + c] - PL[p + 6 + c]) * tt;
-      fday[s3 + c] = PL[p + 9 + c] + (PL[q + 9 + c] - PL[p + 9 + c]) * tt;
+      fday[s3 + c] = (PL[p + 9 + c] + (PL[q + 9 + c] - PL[p + 9 + c]) * tt) * (i & 1 ? 0.94 : 1);
+      fdrim[s3 + c] = PL[p + 12 + c] + (PL[q + 12 + c] - PL[p + 12 + c]) * tt;
     }
   }
   function floorRec(i) {
@@ -325,8 +346,8 @@ export function createNight(host, o = {}) {
   }
   function shatter(floor, red) {
     const y = -floor * SHAPE.H - SHAPE.THICK / 2, slot = floor % RING;
-    // (by day a shard is ICE: the floor's glass, a breath of its area's tint)
-    const cr = red ? 1 : day ? 0.8 + 0.2 * fday[slot * 3] : fcol[slot * 3], cg = red ? 0.03 : day ? 0.86 + 0.14 * fday[slot * 3 + 1] : fcol[slot * 3 + 1], cb = red ? 0.09 : day ? 0.9 + 0.1 * fday[slot * 3 + 2] : fcol[slot * 3 + 2];
+    // (by day a shard is the floor's own pastel glass, a little frosted)
+    const cr = red ? 1 : day ? 0.25 + 0.75 * fday[slot * 3] : fcol[slot * 3], cg = red ? 0.03 : day ? 0.25 + 0.75 * fday[slot * 3 + 1] : fcol[slot * 3 + 1], cb = red ? 0.09 : day ? 0.25 + 0.75 * fday[slot * 3 + 2] : fcol[slot * 3 + 2];
     const n = reduce ? 4 : tier === 0 ? 8 : 14;
     for (let k = 0; k < n; k++) {
       const i = shardN++ % SHARDS, a = (rnd() - 0.5) * 1.5, v = 1.2 + rnd() * 2.2, rr = SHAPE.RI + (SHAPE.RO - SHAPE.RI) * (0.2 + 0.75 * rnd()), th = (rnd() - 0.5) * 0.45;
@@ -458,7 +479,8 @@ export function createNight(host, o = {}) {
     wallU.uSkyA.value = WALLS[k] ? 0 : 1; wallU.uSkyB.value = WALLS[nk] ? 0 : 1;
     wallU.tA.value = A && A.tex; wallU.uHaveA.value = A ? A.have : 0; wallU.uFlipA.value = A ? A.flip : 0;
     wallU.tB.value = B && B.tex; wallU.uHaveB.value = B ? B.have : 0; wallU.uFlipB.value = B ? B.flip : 0;
-    wallU.tSky.value = sk.tex; wallU.uHaveSky.value = sk.have; wallU.uFlipSky.value = sk.flip;
+    skyU.tPano.value = sk.tex; skyU.uHave.value = sk.have; skyU.uFlip.value = sk.flip;
+    wallU.uTileA.value = (day ? AREA_DAY : AREA_NIGHT)[k][11]; wallU.uTileB.value = (day ? AREA_DAY : AREA_NIGHT)[nk][11];
     const T = day ? AREA_DAY : AREA_NIGHT, ta = T[k], tb = T[nk];
     wallU.uTintA.value.set(ta[0], ta[1], ta[2]); wallU.uTintB.value.set(tb[0], tb[1], tb[2]);
     wallU.uFogA.value.set(ta[3], ta[4], ta[5]); wallU.uFogB.value.set(tb[3], tb[4], tb[5]);
@@ -473,7 +495,7 @@ export function createNight(host, o = {}) {
     const mv = rec.m1 ? moversAt(rec, tick, RR) : 0;
     let warn = 0, wk = 0;
     if (rec.m1) { warn = moversAt(rec, tick + PACE, RR) & ~mv; const into = tick % PACE; wk = 0.35 + 0.65 * Math.min(1, Math.max(0, (into - (PACE - 18)) / 18)); }
-    const y = -i * SHAPE.H, s3 = slot * 3, tc = day ? fday : fcol, r = tc[s3], g = tc[s3 + 1], b = tc[s3 + 2], I = aI.array, C = aC.array, F = aF.array, RM = aR.array;
+    const y = -i * SHAPE.H, s3 = slot * 3, tc = day ? fday : fcol, rc = day ? fdrim : frim, r = tc[s3], g = tc[s3 + 1], b = tc[s3 + 2], I = aI.array, C = aC.array, F = aF.array, RM = aR.array;
     for (let s = 0; s < SLICES; s++) {
       if (((rec.gap | gone_) >> s) & 1) continue;
       if (n >= MAXI) return n;
@@ -481,7 +503,7 @@ export function createNight(host, o = {}) {
       I[q] = (sliceStart(s) + rec.twist) * UNIT; I[q + 1] = y; I[q + 2] = kind ? SHAPE.RISE : 0; I[q + 3] = kind;
       C[q] = r * shade; C[q + 1] = g * shade; C[q + 2] = b * shade; C[q + 3] = alpha;
       F[q] = flash[slot * SLICES + s]; F[q + 1] = (warn >> s) & 1 ? wk : 0; F[q + 2] = (crk >> s) & 1; F[q + 3] = out;
-      RM[n * 3] = frim[s3]; RM[n * 3 + 1] = frim[s3 + 1]; RM[n * 3 + 2] = frim[s3 + 2];
+      RM[n * 3] = rc[s3]; RM[n * 3 + 1] = rc[s3 + 1]; RM[n * 3 + 2] = rc[s3 + 2];
       n++;
     }
     return n;
@@ -613,7 +635,8 @@ export function createNight(host, o = {}) {
     wallU.uCam.value.copy(cam.position); wallU.uRight.value.set(e[0], e[1], e[2]); wallU.uUp.value.set(e[4], e[5], e[6]); wallU.uFwd.value.set(-e[8], -e[9], -e[10]);
     wallU.uBallY.value = -S[CAMY] * SHAPE.H;
     wallU.uDarkY.value = run.st === 'live' || state === 'dark' ? -run.dk * SHAPE.H : 1e4;
-    wallU.uSink.value = Math.min(0.9, S[CAMY] * 0.022);
+    skyQuad.visible = wallU.uSkyA.value > 0.5;   // (only while the rooftop is on screen — no full-screen pass below it)
+    skyU.uRise.value = Math.min(PANO.rise, S[CAMY] * PANO.riseK);
     renderer.setRenderTarget(wallRT); renderer.render(wallScene, wallCam); renderer.setRenderTarget(null);
     renderer.render(scene, cam);
     if (bloom && tier === 2) bloom.render(scene, cam, TWINS, day ? 0.4 : 1);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
@@ -630,7 +653,7 @@ export function createNight(host, o = {}) {
     if (!w) return false;
     try {
       const t = S[TIME];
-      shatter(BELOW, false); burst(4, -3, 1, 1, 1, 1, 1); tape.visible = true; ribbonU.uOn.value = 1;
+      shatter(BELOW, false); burst(4, -3, 1, 1, 1, 1, 1); tape.visible = true; ribbonU.uOn.value = 1; skyQuad.visible = true;
       renderer.compile(scene, cam); renderer.compile(wallScene, wallCam);
       draw(run, FIRST, 16);
       for (let i = 0; i < SHARDS; i++) cT.array[i * 4] = -100;
@@ -680,7 +703,7 @@ export function createNight(host, o = {}) {
       gone = true;
       ro.disconnect();
       for (const t of texs.values()) if (t.tex) { const im = t.tex.image; t.tex.dispose(); if (im && im.close) im.close(); }
-      for (const m of [pillar, slices, tape, ball, shards, sparks, flames, ribbon, lights, motes, backdrop, wallQuad]) { m.geometry.dispose(); m.material.dispose(); }
+      for (const m of [pillar, slices, tape, ball, shards, sparks, flames, ribbon, lights, motes, backdrop, skyQuad, wallQuad]) { m.geometry.dispose(); m.material.dispose(); }
       for (const t of TWINS) t[1].dispose();
       wallRT.dispose(); if (bloom) bloom.dispose();
       renderer.dispose();
