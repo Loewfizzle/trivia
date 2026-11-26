@@ -31,6 +31,23 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## TWO SONGS AT ONCE — A DAILY RUN RESTS THE SYNCED RADIO (Nov 26 2026 — the inbox's 9:25 am entry: the owner's iPhone; built in FREEFALL F3) — `js/app.js`
+City music playing → THE DAILIES → start a daily → the daily's song started AND the city's song kept playing. **The cause:** `app.js#musicTick`
+gated the synced city radio (`partyMusicTick`) only on `!state.code` and the room's synced song (`lobbyMusicTick`) only on the lobby; a daily
+RUN (`state.daily = { v: 'run', id }`) keeps `state.code` null — or a room's lobby up — so `musicFor()` gave the run its own track (the day /
+evening deck, or nothing for a row with `ownMusic`: THE DROP) while the synced player was never stopped. **The fix (app.js only):**
+`inDailyRun(st)` = a daily run that is on screen (never a room match being played) —
+- `musicTick`: the room's song is not ACTIVE on this phone in a run (its third argument stays the lobby's: the HOST's duty to the room's queue
+  goes on — the others still hear the room song), the city radio's first argument + the warm-up exclude a run;
+- `render()`: right before `musicFor` / `playMusic`, a synced player still sounding is stopped AT ONCE (its fade starts there, not at the
+  next 250-ms tick).
+THE PICKER (`v: 'screen'`) keeps the radio. ONE song at a time; THE CUT IN ONE ORDER + MUTED = NOTHING RUNS are untouched (both stops are the
+players' own). **Tests:** `tests/daily-music.test.mjs` (the gates + `inDailyRun`'s truth table — the city, a room's lobby, the picker, a room
+match) · `tests/integration/daily-music.mjs` (the REAL app on the emulators, 402 × 874, a real tap: the radio synced → the picker keeps it →
+a run rests it in 195 ms and exactly ONE song plays, the run's deck on this phone's own player → the radio back, alone; against the old
+app.js the same test fails at the run: the radio still on after 1.5 s). The room-lobby case + THE DROP's own music are the static test's —
+not run in a browser (the same gate; a JAYWALK / HIGH RISE daily takes the same path: a run is a run).
+
 ## THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (Nov 21 2026 — the owner's call, the inbox's 10:08 am entry; retires CITY I's PODCAST MODE; docs/harbor/passes/garden-party.md)
 **Why:** in PODCAST MODE the city's background sounds (the water, the hum, the boats, the city's one-offs) only ever played UNDER the music, where
 they can't be heard — "why are we even having background sounds". And THE TOGGLE BUG (the owner's iPhone, the home-screen app, Nov 21 ~10 am): load
