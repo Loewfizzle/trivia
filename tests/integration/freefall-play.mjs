@@ -720,6 +720,7 @@ async function checks4() {
   await waitFor(t.p, 'window.__ffPlay.state().floor >= 198 && window.__ffPlay.state().info.breaks.bed', 30000);
   s = await st(t.p);
   ok(s.info.breaks.bed && s.info.breaks.bottom === 0, `SOLO: on floor ${s.floor} the seabed has risen into view`);
+  ok(s.info.breaks.mouth > 1 && s.info.breaks.rocks === 9, `SOLO — THE TRENCH's MOUTH (the fresh-eyes review): the bed is open round the tower + along the cleft toward the viewer (${s.info.breaks.mouth} wide a side) — the floor under the ball is in sight before, on and after floor 200`);
   await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 2', 30000);
   s = await st(t.p);
   let w = await wanted(t.p);
@@ -736,14 +737,15 @@ async function checks4() {
     const t0 = Date.now();
     await sleep(1500);
     s = await st(t.p);
-    const midShown = s.shown, midBand = s.banner;
+    const midShown = s.shown, midBand = s.banner, midFin = s.finished;
     await waitFor(t.p, 'window.__ffPlay.state().shown', 6000);
     const cardMs = Date.now() - t0;
     s = await st(t.p);
     w = await wanted(t.p);
     const words = await t.p.evaluate(() => document.querySelector('.ff-ec-cause').textContent);
     ok(!midShown && midBand.key === 'YOU HIT THE BOTTOM|FLOOR 200' && midBand.gold && s.info.breaks.bottom === 1 && cardMs >= 2200 && words === 'MADE IT TO THE BOTTOM', `${lk} — THE FINISH: the ball drops onto the seabed, the gold band, the card waits for the moment (${cardMs} ms) — "${words}"`);
-    ok(s.finished && s.finished.floor === 200 && s.finished.mode === 'match' && s.finished.same === true && s.finished.judged === true && s.finished.look === lk, `${lk}: THE FINISH's HOOK — the run handed on once: floor ${s.finished && s.finished.floor}, REPLAY = LIVE, the judge's own verdict`);
+    ok(midFin && midFin.floor === 200 && midFin.same === null && s.finished && s.finished.floor === 200 && s.finished.mode === 'match' && s.finished.same === true && s.finished.judged === true && s.finished.look === lk, `${lk}: THE FINISH's HOOK — the run handed on once, AT THE made EVENT (there before the card): floor ${s.finished && s.finished.floor}; with the card: REPLAY = LIVE, the judge's own verdict`);
+    ok(s.info.breaks.mouth === 0 && s.info.breaks.rocks === 14, `${lk}: a finish's bed is whole (no mouth) — rocks in front of the ball too (${s.info.breaks.rocks})`);
     ok(w.includes('bottom+0.3') && (lk === 'night' ? w.includes('fireworks+1.2') && s.info.breaks.played >= 3 : !w.some(x => x.startsWith('fireworks')) && s.info.breaks.played === 1) && !t.errs.length, `${lk}: bottom.mp3 at the hit${lk === 'night' ? ', then the FIREWORK (its sound softly, 0.9 s on; the bursts played)' : ' — no firework by day'}`);
     await t.close();
   }

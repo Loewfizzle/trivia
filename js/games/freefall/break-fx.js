@@ -11,7 +11,8 @@ export const CRACK = 11;
 const ROT = /* glsl */`
 vec3 rot(vec3 p, vec3 ax, float a) { float c = cos(a), s = sin(a); return p * c + cross(ax, p) * s + ax * dot(ax, p) * (1.0 - c); }`;
 const HASH = /* glsl */`
-float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`;
+float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }`;
 
 // ---- THE SPRITES (a FIXED pool of quads, flown HERE — the tiers trim how many are shed, never the pool): dust + foam + mist (soft
 // clouds), plankton + sediment + a firework's stars (a soft dot), bubbles (a ring), sand + spray (specks), a glint, the impact's burst —
@@ -47,6 +48,7 @@ void main() {
   float t = texture2D(tFx, vec2((cx + uv.x) * 0.25, mix(1.0 - fromTop, fromTop, uFlip))).r;
   float r = length(vUv - 0.5) * 2.0;
   t = mix(1.0 - smoothstep(0.2, 1.0, r), t, uHave);   // (no picture yet: a soft round puff)
+  t *= 1.0 - smoothstep(0.7, 0.97, r);                // (the fresh-eyes review: a smoke cell reaches its border — faded out round, a cloud never shows its square)
   float k = vK.x, a = t * smoothstep(0.0, 0.07, k) * (1.0 - k * k);
   // (BY DAY added light is lost on a bright ground: a light covers what is behind it — uCover)
   float cover = mix(vC.a, max(vC.a, 0.88), uCover);
@@ -194,7 +196,8 @@ void main() {
   c = mix(mix(vec3(0.016, 0.012, 0.04), vec3(0.3, 0.33, 0.38), uDay), c, uHaveR) * mix(1.5, 1.0, uDay);
   // ITS OWN DETAIL, coming in as the roof comes close (uNear — the painting was made at 1024: soft this near): the roofing felt's fine grain,
   // a coarser mottle, the seams between its sheets — sharp at any distance, laid over the painting's own light + colour
-  float grain = h21(floor(q * 58.0)) * 0.6 + h21(floor(q * 23.0) + 7.0) * 0.4, mott = h21(floor(q * 5.0) + 3.0);
+  // (the fresh-eyes review: SMOOTH noise — square cells read as a pixel mosaic on the soft painting by day)
+  float grain = vn2(q * 96.0) * 0.45 + vn2(q * 41.0 + 7.0) * 0.35 + vn2(q * 17.0 + 13.0) * 0.2, mott = vn2(q * 3.7 + 3.0);
   vec2 sheet = abs(fract(q / 0.74 + 0.5) - 0.5) * 0.74, sw = fwidth(q) * 1.2 + 0.004;
   float seam = 1.0 - smoothstep(0.0, sw.x + 0.006, sheet.x) * smoothstep(0.0, sw.y + 0.006, sheet.y);
   c *= mix(1.0, (0.8 + 0.36 * grain) * (0.93 + 0.14 * mott) * (1.0 - 0.3 * seam), uNear);
@@ -202,6 +205,7 @@ void main() {
   float lit = 1.0 - smoothstep(0.0, 0.5, uTime - uBreakT - 0.3);
   c += mix(vec3(0.2, 0.75, 0.95), vec3(0.95, 0.25, 0.8), smoothstep(-0.4, 0.4, q.x * sign(q.y + 0.001))) * exp(-(inside - uHalf) / 0.28) * 0.55 * lit * (1.0 - uDay);
   float alpha = 1.0 - smoothstep(uHalf + 2.2, uHalf + 3.1, length(q));
+  alpha *= 1.0 - smoothstep(0.25, 0.8, uTime - uBreakT);   // (the fresh-eyes review: the roof is gone with its glass — the deck round it never stays on as a flat band over the offices)
   if (alpha < 0.004) discard;
   if (uBloom > 0.5) c = vec3(0.0);
   gl_FragColor = vec4(c * alpha, alpha);
@@ -239,7 +243,10 @@ void main() {
     ring = cos(ph) * env;
     nm.xy += normalize(vW.xz - uImpact + 1e-4) * sin(ph) * env * 1.6;
   }
-  vec3 N = normalize(vec3(nm.x * 0.8, 1.0, nm.y * 0.8));
+  // (the fresh-eyes review: by day the ripples lie flatter — a calm sunlit surface, never a slate of blotches)
+  // (… and flatter with distance, both looks: far ripples are finer than a pixel — left sharp they flicker between a lamp and the dark)
+  float bump = mix(0.8, 0.42, uDay) * mix(1.0, 0.3, clamp((length(cameraPosition - vW) - 2.5) / 5.0, 0.0, 1.0));
+  vec3 N = normalize(vec3(nm.x * bump, 1.0, nm.y * bump));
   float nv = max(dot(N, V), 0.0), fres = 0.06 + 0.94 * pow(1.0 - nv, 4.0);
   vec3 R = reflect(-V, N);
   R.y = abs(R.y) + 0.02;
@@ -249,21 +256,24 @@ void main() {
   vec2 wu = vec2(atan(hit.x, -hit.z) * 0.15915494, hit.y / (6.2831853 * uRW)) * uTileW;
   vec3 wall = pow(texture2D(tWall, vec2(wu.x, mix(wu.y, 1.0 - wu.y, uFlipW))).rgb, vec3(2.2)) * uTintW * uHaveW;
   wall *= exp(-max(0.0, hit.y - vW.y) / 9.0);
-  vec3 refl = wall * mix(1.6, 1.0, uDay);
+  // (… and by day the open daylight of the room lies on it as well: the water is never darker than what stands round it)
+  vec3 refl = wall * mix(1.6, 1.15, uDay) + vec3(0.2, 0.36, 0.42) * uDay;
   // … the tower's rings over it (three floors of them): their lit rims, as rippling streaks
   for (int j = 0; j < 3; j++) {
     float fy = uFloorY + float(j), tt = (fy - vW.y) / R.y;
     vec3 p = vW + R * tt;
-    float pr = length(p.xz), on = step(0.2, pr) * step(pr, 1.0);
+    float pr = length(p.xz), on = smoothstep(0.12, 0.3, pr) * (1.0 - smoothstep(0.86, 1.06, pr));   // (soft edges: a mirror image in moving water)
     refl = mix(refl, uFaceC * 0.42 + uRingC * (0.12 + 0.75 * exp(-(1.0 - pr) / 0.07)), on * (0.85 - 0.22 * float(j)));
   }
   // … and the ball: its light on the water
   vec3 tb = normalize(uBall - vW);
-  refl += vec3(1.0, 0.75, 0.82) * pow(max(dot(R, tb), 0.0), 90.0) * 1.3 * step(vW.y, uBall.y);
-  vec3 deep = mix(vec3(0.003, 0.012, 0.022), vec3(0.008, 0.11, 0.17), uDay);
-  vec3 col = mix(deep, refl, clamp(fres * 1.5 + 0.2, 0.0, 1.0));
+  refl += vec3(1.0, 0.62, 0.8) * pow(max(dot(R, tb), 0.0), 160.0) * 0.16 * step(vW.y, uBall.y);   // (a small pink gleam — never a white lump)
+  vec3 deep = mix(vec3(0.003, 0.012, 0.022), vec3(0.03, 0.24, 0.3), uDay);
+  vec3 col = mix(deep, refl, clamp(fres * 1.5 + mix(0.2, 0.34, uDay), 0.0, 1.0));
+  col = min(col, vec3(mix(0.24, 1.0, uDay)));   // (LINEAR light — by night a mirror image stays a dim one: never a white shore, never a blown-out lump)
   col += mix(vec3(0.5, 0.95, 1.0), vec3(1.0), 0.5) * max(ring, 0.0) * 0.5;                    // the ring's crest catches the light
-  col += vec3(1.0) * pow(max(dot(R, normalize(vec3(-0.25, 0.9, 0.35))), 0.0), 180.0) * 0.8;      // a lamp's sparkle
+  col += vec3(1.0) * pow(max(dot(R, normalize(vec3(-0.25, 0.9, 0.35))), 0.0), 180.0) * 0.4;      // a lamp's sparkle
+  col = min(col, vec3(1.0));                                                    // (… never a blown-out lump of white where the reflections pile up)
   // the meniscus: a bright wet line where the surface meets the lens
   float men = 1.0 - smoothstep(0.0, 0.05, ndc.y - wl);
   col = mix(col, mix(vec3(0.6, 1.0, 1.0), vec3(1.0), 0.4), men * step(-1.5, uLine) * 0.85);
@@ -278,9 +288,22 @@ void main() {
 // SAND = the look, shared by the plane (SEABED_F — outside the square that cracks) and the pieces (CHUNK_F — the square that cracks open).
 const SAND = /* glsl */`
 uniform sampler2D tSand, tSandN;
-uniform float uHaveS, uFlipS, uHaveSN, uFlipSN, uTime, uDay, uBloom, uImpT, uRW;
+uniform float uHaveS, uFlipS, uHaveSN, uFlipSN, uTime, uDay, uBloom, uImpT, uRW, uHole;
 uniform vec3 uRimC, uBall;
 uniform vec2 uImpact;
+/** THE TRENCH's MOUTH (SOLO — the tower goes on down; the fresh-eyes review: the floor under the ball is ALWAYS in sight): the bed is open
+ *  round the tower's foot + along the cleft that runs from it toward the viewer — everything the camera sees the lower floors through.
+ *  → how far outside the mouth's ragged edge a point of the bed is (under 0 = in it). uHole = 0 (a finish): no mouth, the bed is whole. */
+float mouth(vec2 xz) {
+  float d = length(vec2(xz.x, min(xz.y, 0.0)));
+  return d - uHole - 0.06 * sin(xz.y * 2.9 + xz.x * 1.3) - 0.035 * sin(xz.y * 7.3 - xz.x * 5.1 + 1.7) - 0.02 * sin(xz.x * 13.0 + xz.y * 11.0);
+}
+/** … its lip: the sand darkens into the cleft, the trench's own light glows up along its edge */
+vec3 lipped(vec3 col, float m) {
+  if (uHole <= 0.0) return col;
+  float lip = 1.0 - smoothstep(0.0, 0.24, m), edge = exp(-max(m, 0.0) / 0.04);
+  return mix(col, col * 0.28, lip * 0.85) + mix(uRimC, vec3(0.25, 0.8, 0.95), uDay * 0.7) * edge * mix(0.55, 0.25, uDay);
+}
 float sc1(vec2 p, float t) {
   vec2 q = p + 0.35 * vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.9 - t * 0.8));
   float a = sin(q.x * 3.1 + t) + sin(q.y * 2.7 - t * 1.2) + sin((q.x + q.y) * 2.2 + t * 0.7) + sin((q.x - q.y) * 2.9 - t * 0.5);
@@ -321,8 +344,10 @@ void main() {
   vec2 q = vW.xz;
   if (max(abs(q.x), abs(q.y)) < uHalf - 0.002) discard;      // (the square that cracks open is the pieces')
   if (q.y < 0.0 && length(q) > uRW) discard;                  // (its far side ends at the shaft's wall)
+  float m = mouth(q);
+  if (uHole > 0.0 && m < 0.0) discard;                        // (SOLO: the trench's mouth)
   vec4 s = sand(q, 0.0, 1.0);
-  vec3 col = uBloom > 0.5 ? mix(uRimC, vec3(1.0), 0.3) * s.w * 0.6 : s.rgb;
+  vec3 col = uBloom > 0.5 ? mix(uRimC, vec3(1.0), 0.3) * s.w * 0.6 : lipped(s.rgb, m);
   gl_FragColor = vec4(col * uOuter, uOuter);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -335,7 +360,10 @@ varying float vK, vSeed;
 void main() {
   vec3 V = normalize(cameraPosition - vW);
   float under = step(dot(normalize(vN), V), 0.0), fly = step(0.0001, vK);
+  float m = mouth(vRest.xz);
+  if (uHole > 0.0 && m < 0.0) discard;                        // (SOLO: the trench's mouth — a piece keeps its own bite of it as it falls)
   vec4 s = sand(vRest.xz, under, 1.0 - 0.85 * fly);
+  s.rgb = mix(lipped(s.rgb, m), s.rgb, under);
   // THE CRACKS: dark clefts along the lines it breaks on — the trench's own light glows up through them
   float e = min(vB.x, min(vB.y, vB.z)), ew = fwidth(e) * 1.4 + 0.002, line = 1.0 - smoothstep(0.0, ew * 2.2, e);
   float dI = length(vRest.xz - uImpact), front = (uTime - uBreakT) * uCrack, crack = line * smoothstep(0.0, 0.4, front - dI) * step(uBreakT, uTime);

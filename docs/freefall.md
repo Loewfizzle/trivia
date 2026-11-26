@@ -373,10 +373,12 @@ rate + HITCH n: the frames over 33 ms in the run — **F3B: + what landed before
   BEST in the announcer, JAYWALK's new-best sound, the number turns gold. A first-ever run has no best: no tape, no line.
 - **THE FINISH's HOOK (F3B — match + daily: THE BOTTOM is their finish; the page only prepares it — `?mode=match`):** the run ends
   (`made`) at the tick the 200th floor is passed; the VIEW plays the ball's last drop onto the seabed + the moment ("THE BREAKTHROUGHS",
-  below); the end card waits `END_HOLD_MADE_MS` (2.6 s — every other end 0.7 s), then the run is handed on ONCE:
-  `createStage(app, { onFinish(finished, log) })` — `finished` = `{ seed, mode, floor, tick, look, same (REPLAY = LIVE), judged (the
-  judge's verdict on its log) }`. **F4's cartridge wires the match / the daily there**; the test page keeps it for the checks
-  (`__ffPlay.state().finished`).
+  below). **The run is handed on ONCE, AT THE `made` EVENT** (`stage.js#handOn` — the frame the run ends in, or the `hide()` that
+  steps into it: a phone locked during the celebration still hands its run on; the fresh-eyes review):
+  `createStage(app, { onFinish(finished, log) })` — `finished` = `{ seed, mode, floor, tick, look, same, judged }` + the input log
+  (the server's judge replays it). Only the END CARD waits — `END_HOLD_MADE_MS` (2.6 s; every other end 0.7 s) — and adds the
+  page's own two checks to the record (`same` = REPLAY = LIVE, `judged` = the judge's verdict on the log: both `null` until the
+  card). **F4's cartridge wires the match / the daily there**; the test page keeps it for the checks (`__ffPlay.state().finished`).
 - **THE END SCREEN = JAYWALK's STANDARD** (`endscreen.js` — ONE builder for the page's card today and the cartridge's body in F4): the
   header **FREEFALL · SOLO** (F3 — THE ACCENT = title-05's colours: FREE hot pink #ff4fa8 · FALL electric teal #27e0e6 · the mode a pale
   ice — THE END NEON's shared classes; the card writes the colours itself until FREEFALL has its `metas.js` row) → the CAUSE in teal
@@ -546,7 +548,9 @@ foot — where F3 had a flat colour + the glow from below / the pale open air �
   **IT RISES TOWARD YOU FLOOR BY FLOOR:** its scale = how much of the painting the screen's width shows — `s0` **0.92** on the title screen
   + floor 0 → `s1` **0.4** by floor 34, by the same share each floor (you SEE yourself falling: first the city blocks in the margins, then
   the neon parapet sweeps out through them, then the deck's own things). Then **it has risen as far as the painting stays sharp** (made at
-  1024, shipped at 1536: ≈ 2½ screen pixels a source texel on a 390-wide phone at 3×).
+  1024, shipped at 1536: ≈ 2½ screen pixels a source texel on a 390-wide phone at 3× — **up to floor 34**. Over the LANDING, floors
+  36 – 39, the true roof is ≈ 4 pixels a texel: the softest thing in the game by day (night hides it) — the deck's own SMOOTH grain
+  + seams carry the close-up; a painting made at 2048 would end it: OPEN FOR BEN in the pass log).
   **LANDING** (floors 34 → `ROOF.land` 38.6): the plane settles into THE TRUE ROOF — level, at the skylight's own height (0.4 over floor
   40), the painting at the skylight's real size (`ROOF_WIDE` 10.15 world units) — and from there on it IS the world's roof, coming up in
   true perspective for the last floor.
@@ -594,14 +598,26 @@ happened — nothing is played. The pieces are REAL 3D in the ONE scene, each dr
   **CYAN PLANKTON** swirl in the ball's wake for 3 s (no sparks); by day a trail of small bubbles. Sound: `splashdown.mp3` at the plunge.
 - **THE BOTTOM (floor 200):** **a real seabed** (Ground 055 S: the sand's colour + normal map, lit from above; the tower's rim glow in
   a pool round its foot, the ball's own light; by day the water's caustics; nine boulders) rises into view from floor 195. **The
-  impact:** a SHOCKWAVE RING of lifted sand + light runs out from under the ball, a dust cloud rolls out (sand-coloured, it covers),
-  a camera kick, **the GOLD band "YOU HIT THE BOTTOM"** (the arrival's band, gold, with the impact). **NIGHT:** glowing sediment drifts
-  up out of the ring of light. **SOLO:** the ball lands on floor 200 as on any floor (the rules'); when it leaves it **the seabed
-  CRACKS OPEN** (the same pane-that-breaks: 60 pieces of sand-topped rock, the trench's light glowing up through the cracks) and the
-  run falls on into THE TRENCH — endless, as before. **MATCH + DAILY: THE BOTTOM is their finish (MADE IT):** no floor 200 is drawn —
-  the bed IS the floor —, the ball's last drop onto it is the view's own (the run is over: `night.js` carries its clock on), the same
-  impact; **by night a FIREWORK-STYLE burst** of gold + cyan glowing stars (three, 0.3 s apart) + `fireworks.mp3` softly, 0.9 s after
-  `bottom.mp3`; the end card waits 2.6 s, then THE FINISH's HOOK (above). Sound: `bottom.mp3` at the hit — in solo too now.
+  impact:** a SHOCKWAVE RING of lifted sand + light runs out from under the ball, a dust cloud rolls out (sand-coloured, it covers;
+  every cloud fades out ROUND — a sprite never shows its square), a camera kick, **the GOLD band "YOU HIT THE BOTTOM"** (the
+  arrival's band, gold, with the impact — the wait is the FRAME's, `bedDue`: a ball that falls straight on through floor 200 still
+  gets THE BOTTOM's band first, THE TRENCH's after it). **NIGHT:** glowing sediment drifts up out of the ring of light.
+  **SOLO — THE TRENCH's MOUTH (the fresh-eyes review; a fairness rule of the VIEW):** the tower goes on down, so **the floor under
+  the ball must be in sight before, on and after floor 200** — a whole bed hid floor 201 (the reviewer's probe: half of those blind
+  landings ended on red, against 0 – 3 % with sight). The bed is therefore OPEN round the tower's foot and along **the cleft that
+  runs from it toward the viewer** — everything the camera sees the lower floors through (`SEABED.mouth` 1.14 a side; the shaders'
+  `mouth()`: a ragged edge, the sand darkening into it, the trench's light glowing up along its lip) — the seabed reads as a shelf
+  of sand with a trench the tower stands in. The dust of the impact + the crack rises off the SHELVES beside + behind it (`shelf()`),
+  never over the floors below; no rock lies in the mouth. The ball lands on floor 200 as on any floor (the rules'); when it leaves
+  it **the seabed CRACKS OPEN** (the same pane-that-breaks: 60 pieces of sand-topped rock, each keeping its own bite of the mouth,
+  the trench's light glowing up through the cracks) and the run falls on into THE TRENCH — endless, as before.
+  **MATCH + DAILY: THE BOTTOM is their finish (MADE IT):** no floor 200 is drawn — the bed IS the floor and it is WHOLE (no mouth;
+  five more rocks in front of the ball) —, the tower's core ends as a STUMP in the sand beside the ball (`STUMP` 0.36), the camera
+  eases to THE FINISH's own pose (`POSE.finish`: the ball lower on the screen, the bed + what bursts over it in the picture's
+  middle), the ball's last drop onto the bed is the view's own (the run is over: `night.js` carries its clock on), the same impact;
+  **by night a FIREWORK-STYLE burst** of gold + cyan glowing stars (three, 0.3 s apart, ROUND THE BALL — each a ball of stars about
+  1 across with a glint at its heart) + `fireworks.mp3` softly, 0.9 s after `bottom.mp3` (reduced motion: neither); the run is
+  handed on at the `made` event, the end card waits 2.6 s (THE FINISH's HOOK, above). Sound: `bottom.mp3` at the hit — in solo too now.
 - **THE SPRITES = a FIXED pool of 176 GPU particles** (`BURSTS`; Kenney's Particle Pack: soft clouds · a soft dot · a ring · specks · a
   glint · a burst — `fx/burst.webp`), flown in their shader; **the tiers shed a SHARE of each burst** (0.45 · 0.7 · 1 — never none:
   the look's shape stays; reduced motion: a few). The sparks ride the scene's own streak pool (192). A cloud COVERS (dust is darker

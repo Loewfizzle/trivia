@@ -334,7 +334,11 @@ test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench la
   assert.match(read('css/freefall-play.css'), /\.ff-banner \{[^}]*opacity: 0\.001; will-change: transform, opacity;/);
   // F3B: THE BOTTOM's band is the GOLD one — "YOU HIT THE BOTTOM" — and comes with the impact (a whole fall after the arrival's event)
   assert.match(st, /export const BOTTOM_WORDS = 'YOU HIT THE BOTTOM';/); assert.match(st, /const bandName = \(floor, w\) => \(floor === BREAK_AT\.seabed \? BOTTOM_WORDS : w\.name\), bandCls = floor => \(floor === BREAK_AT\.seabed \? 'is-gold' : ''\);/);
-  assert.match(st, /if \(floor === BREAK_AT\.seabed && !bedTimer\) \{ bedTimer = setTimeout\(\(\) => \{ if \(!gone\) \{ arrive\(floor\); bedTimer = 0; \} \}, BOTTOM_HIT_S \* 1000\); return; \}/);
+  // (the fresh-eyes review: the wait is THE FRAME's — never a wall timer that could cross behind THE TRENCH's band; a ball already past it: THE BOTTOM's band first)
+  assert.match(st, /if \(floor === BREAK_AT\.seabed\) \{ bedDue = performance\.now\(\) \+ BOTTOM_HIT_S \* 1000; return; \}\n    if \(bedDue\) \{ bedDue = 0; band\(BREAK_AT\.seabed\); \}/);
+  assert.match(st, /if \(bedDue && now >= bedDue && !held\) \{ bedDue = 0; band\(BREAK_AT\.seabed\); \}/); assert.doesNotMatch(st, /bedTimer/);
+  // (… and a call that is UP when a band comes is taken down — said again after it, if its moment is not long gone)
+  assert.match(st, /if \(at < callUntil\) \{\n      if \(callPri >= pendPri\) \{ pendText = callText; pendCls = callCls; pendPri = callPri; pendMs = callMs; pendAt = callAt; \}\n      callUntil = 0; callPri = 0; if \(callAnim\) \{ callAnim\.cancel\(\); callAnim = null; \}/);
   assert.match(css, /\.ff-stage\[data-look\] \.ff-banner\.is-gold \{ border-block-color: var\(--ff-gold\);/, 'gold rules, in both looks');
   // F3B: the announcer never talks over a band (the band lies in its lane now): a call waits for it to leave
   assert.match(st, /if \(BNR\.showing\(\)\) \{ if \(pri >= pendPri\) \{ pendText = text; pendCls = cls; pendPri = pri; pendMs = ms; pendAt = now; \} return; \}/);
@@ -578,8 +582,17 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(st, /const HLOG = 24, hMs = new Float32Array\(HLOG\), hFloor = new Int32Array\(HLOG\), hWhy = new Uint8Array\(HLOG\), WHY = \['frame', 'pic', 'snd', 'band', 'tier', 'dom'\];/, 'THE HITCH LOG names what landed before a long frame');
   // THE FINISH: the moment plays (the card waits for it), then the run is handed on ONCE
   assert.match(st, /export const END_HOLD_MADE_MS = 2600;/); assert.match(st, /if \(over && !shown && now - endedAt >= \(run\.st === 'made' \? END_HOLD_MADE_MS : END_HOLD_MS\)\) showEnd\(now\);/);
-  assert.match(st, /if \(res\.made\) \{ finished = \{ seed, mode: MODE, floor: res\.floor, tick: res\.tick, look: lookT, same, judged: verdict\.ok === true \}; if \(o\.onFinish\) \{ try \{ o\.onFinish\(finished, log\); \}/, 'the hook F4 wires the match on');
+  // (the fresh-eyes review: handed on AT THE `made` EVENT — the frame it ends in, or the hide that steps into it; only the card waits)
+  assert.match(st, /function handOn\(\) \{\n    if \(handed \|\| run\.st !== 'made'\) return;\n    handed = true;\n    const res = resultOf\(run\), log = logOf\(run\);\n    finished = \{ seed, mode: MODE, floor: res\.floor, tick: res\.tick, look: lookT, same: null, judged: null \};\n    if \(o\.onFinish\) \{ try \{ o\.onFinish\(finished, log\); \}/, 'the hook F4 wires the match on');
+  assert.match(st, /if \(over && !endedAt\) \{ endedAt = now; awake\(false\); handOn\(\); \}/); assert.match(st, /if \(t0 == null \|\| isOver\(run\)\) \{ if \(t0 != null\) handOn\(\); return; \}/); assert.match(st, /settle\(T\); stepTo\(run, T, ev\);\n    handOn\(\);/);
+  assert.match(st, /if \(res\.made\) \{ handOn\(\); finished\.same = same; finished\.judged = verdict\.ok === true; \}/);
+  // THE TRENCH's MOUTH (the fresh-eyes review — SOLO: the floor under the ball is ALWAYS in sight): the bed is open round the tower + along the cleft toward the viewer; a finish's bed is whole
+  const bfx2 = read(`${FF}break-fx.js`), brk2 = read(`${FF}breaks.js`);
+  assert.match(bfx2, /float mouth\(vec2 xz\) \{\n  float d = length\(vec2\(xz\.x, min\(xz\.y, 0\.0\)\)\);/); assert.equal((bfx2.match(/if \(uHole > 0\.0 && m < 0\.0\) discard;/g) || []).length, 2, 'the plane + the pieces');
+  assert.match(brk2, /bedHole\.value = fin === BREAK_FLOORS\.bottom \? 0 : SEABED\.mouth;/); assert.match(brk2, /export const SEABED = Object\.freeze\(\{ down: 0\.26, half: 3\.3, mouth: 1\.14 \}\);/);
+  assert.match(brk2, /if \(solo\) shelf\(k\); else/, 'SOLO: the dust rises off the shelves — never over the floors below');
+  assert.match(n, /if \(poseTo !== POSE\.finish\) pose\('finish'\);/, 'THE FINISH has its own camera'); assert.match(n, /export const STUMP = 0\.36;/);
   assert.match(n, /if \(run\.st === 'made'\) return SHAPE\.H \* \(1 - u\) \* \(1 - 0\.45 \* u\);/, 'the last drop onto the seabed is the view\'s own');
   assert.match(st, /if \(e\.e === 'area' && e\.floor === BREAK_AT\.splash && snd && snd\.muffle\) snd\.muffle\(MUFFLE_S, BREAK_HIT_S \+ MUFFLE_AFTER_S\);/, 'THE SPLASHDOWN muffles the mix');
-  assert.match(st, /if \(e\.e === 'made' && lookT === 'night' && snd\) snd\.playCues\(FIREWORK_CUES\);/, 'the firework\'s sound: a night finish only');
+  assert.match(st, /if \(e\.e === 'made' && lookT === 'night' && snd && !reduceM\) snd\.playCues\(FIREWORK_CUES\);/, 'the firework\'s sound: a night finish only — and never without its firework (reduced motion)');
 });

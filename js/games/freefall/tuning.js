@@ -124,7 +124,7 @@ export const RULE_SETS = Object.freeze({
  */
 export function darkPaceAt(R, floor) {
   const D = R.dark;
-  if (D.paceDeep == null || floor <= D.easeFrom) return D.pace;
+  if (D.paceDeep == null || !(D.easeTo > D.easeFrom) || floor <= D.easeFrom) return D.pace;   // (a row with no ramp of its own — or half of one — keeps its one pace: never a NaN)
   if (floor >= D.easeTo) return D.paceDeep;
   return D.pace + Math.floor((D.paceDeep - D.pace) * (floor - D.easeFrom) / (D.easeTo - D.easeFrom));
 }

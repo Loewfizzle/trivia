@@ -75,8 +75,9 @@ export function createBanner() {
     b.cv.width = Math.ceil(box.width * dpr); b.cv.height = Math.ceil(box.height * dpr);
     const c = b.cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    line(c, b.name, nc, box.width / 2, nb.top - box.top + nb.height / 2, dpr);
-    line(c, b.sub, sc, box.width / 2, sb.top - box.top + sb.height / 2, dpr);
+    // (each line about ITS OWN middle: on a sideways phone the two stand side by side on one line)
+    line(c, b.name, nc, nb.left - box.left + nb.width / 2, nb.top - box.top + nb.height / 2, dpr);
+    line(c, b.sub, sc, sb.left - box.left + sb.width / 2, sb.top - box.top + sb.height / 2, dpr);
     b.node.classList.add('is-baked');
     bakes++; lastBake = performance.now();
     return true;

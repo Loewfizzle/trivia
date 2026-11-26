@@ -285,6 +285,9 @@ test('THE DARKNESS EASES WITH DEPTH (F3B — the owner, Nov 26): floors 0–100 
   // (a what-if row that names no ease — a sim's own, an older shape: ONE pace at every depth)
   const flat = makeRuleSet({ ...JSON.parse(JSON.stringify({ ...C, reach: undefined, hop: undefined })), id: 'flat', dark: { grace: 180, pace: 120, lead: 3 } });
   assert.deepEqual([0, 130, 400].map(f => darkPaceAt(flat, f)), [120, 120, 120]);
+  // (the fresh-eyes review: HALF a ramp — a deep pace with no floors to ease over — is no ramp: its one pace, never a NaN)
+  const half = makeRuleSet({ ...JSON.parse(JSON.stringify({ ...C, reach: undefined, hop: undefined })), id: 'half', dark: { grace: 180, pace: 120, lead: 3, paceDeep: 160 } });
+  assert.deepEqual([0, 130, 400].map(f => darkPaceAt(half, f)), [120, 120, 120]);
   // A BALL THAT STOPS at a depth is out EXACTLY lead × the pace at its floor after it got there — on the live engine and on the judge's replay
   for (const [f, pace] of [[60, 120], [100, 120], [130, 140], [150, 153], [160, 160], [205, 160], [262, 160]]) {
     assert.equal(darkPaceAt(C, f), pace);

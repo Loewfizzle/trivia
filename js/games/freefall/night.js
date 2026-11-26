@@ -24,7 +24,11 @@ export const SHAPE = Object.freeze({ H: 1, RO: 1, RI: 0.2, RB: 0.66, R_BALL: 0.1
 /** THE CAMERA (the graybox's): in front of the ball, `pitch`° down, a `fov`° lens; `ballY` = where the ball's floor sits on the screen */
 export const CAM = Object.freeze({ fov: 46, pitch: 33, fill: 0.8, ballY: 0.34, aspectMax: 0.47 });
 /** THE POSES: `play` (the graybox's camera) · `open` (THE OPENING: high over the tower top, further back — the skyline in sight) */
-export const POSE = Object.freeze({ play: Object.freeze({ pitch: 33, back: 1, ballY: 0.34 }), open: Object.freeze({ pitch: 27, back: 0.94, ballY: 0.56 }) });
+export const POSE = Object.freeze({ play: Object.freeze({ pitch: 33, back: 1, ballY: 0.34 }), open: Object.freeze({ pitch: 27, back: 0.94, ballY: 0.56 }),
+  // (F3B — the fresh-eyes review: THE FINISH's own camera — the ball lower on the screen, the bed + what bursts over it in the picture's middle)
+  finish: Object.freeze({ pitch: 29, back: 0.9, ballY: 0.55 }) });
+/** a FINISH: the tower's core ends as a broken stump in the sand beside the ball — this tall (never a ball on an empty beach) */
+export const STUMP = 0.36;
 export const POSE_MS = 950;
 /** the floors drawn under the ball's (only the nearest ~10 are ever in sight) */
 export const BELOW = 9;
@@ -603,7 +607,7 @@ export function createNight(host, o = {}) {
     S[TIME] += sec;
     // (F3B — a FINISH: the run is over at the tick the 200th floor is passed, the ball's last drop onto THE BOTTOM is the view's — its clock runs on)
     S[ENDAGE] = run.st === 'live' ? 0 : S[ENDAGE] + sec;
-    if (run.st === 'made') { tau = run.end + S[ENDAGE] * 60; if (S[ENDAGE] >= 0.3 && S[ENDAGE] - sec < 0.3) { S[SQUASH] = 1; S[LANDT] = S[TIME]; } }
+    if (run.st === 'made') { tau = run.end + S[ENDAGE] * 60; if (S[ENDAGE] >= 0.3 && S[ENDAGE] - sec < 0.3) { S[SQUASH] = 1; S[LANDT] = S[TIME]; } if (poseTo !== POSE.finish) pose('finish'); }
     tauNow = tau;
     const time = S[TIME], tick = Math.floor(tau);
     G.uTime.value = time;
@@ -618,7 +622,9 @@ export function createNight(host, o = {}) {
     S[KICK] *= Math.exp(-sec * 9); S[SHAKE] *= Math.exp(-sec * 11);
     const shake = S[SHAKE] > 0.01 ? Math.sin(time * 71) * 0.035 * S[SHAKE] : 0;
     const lookY = place(cam, S[PITCH], S[BACK], S[BALLY], S[CAMY], -S[KICK] + shake);
-    pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it goes down with the BALL's own glide: never a stub over the floor it lands on)
+    // (a FINISH: over the last floor's fall the core stays behind as a STUMP in the sand — it stops going down with the ball a little short of the bed)
+    const stump = fin >= 0 && S[CAMY] > fin - 1 ? STUMP * (S[CAMY] - fin + 1 > 1 ? 1 : S[CAMY] - fin + 1) : 0;
+    pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22 + stump; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it goes down with the BALL's own glide: never a stub over the floor it lands on)
     G.uSpin.value = (run.a + extra) * UNIT;
     G.uTopY.value = -S[CAMY] * SHAPE.H;
 
