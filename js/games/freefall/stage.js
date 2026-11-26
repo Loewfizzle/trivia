@@ -448,7 +448,9 @@ export function createStage(app0, o = {}) {
     if (!o.resume) return;
     const n = ++countN;
     Promise.resolve().then(() => o.resume(run.holds - 1)).then(at => {
-      if (gone || n !== countN || !held || !countAt || !(at > 0)) return;
+      if (gone || n !== countN || !held || !countAt) return;
+      if (at < 0) { countTries = RESUME_TRIES; return; }   // (F4B — THE PAUSE GAP: this pause was NOT GRANTED — its chunk arrived too late: no stamp will come, the count is not run again; the run goes on and says so)
+      if (!(at > 0)) return;
       const end = at + 3 * COUNT_MS;
       if (end - performance.now() < 200) return;   // (the stamp's answer came too late for this count: the next one writes it again)
       countAt = end; stamped = true;

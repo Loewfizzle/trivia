@@ -86,16 +86,19 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
       arm(retryAt - io.now());
     });
   }
-  /** `force` = these moves should leave NOW (the run's end, the page hidden) — at once, or the moment the chunk in the air is answered */
+  /** `force` = these moves should leave NOW (the run's end, the page hidden) — at once, or the moment the chunk in the air is answered.
+   *  `force === 'now'` (FREEFALL F4B — THE PAUSE GAP: a hold is granted only if its chunk ARRIVES in time, and a phone being locked may
+   *  not live to see the chunk in the air answered) = at once even BEHIND a chunk in the air: one socket, in order — a refusal among
+   *  them is found by settle()'s rewind as ever */
   function flush(force) {
     if (closed) return;
-    const now = io.now();
+    const now = io.now(), atOnce = force === 'now';
     if (force) urgent = true;
     if (reading) return;
     if (rewind || verify) { if (now >= retryAt && !flights.length) resync(); else later(); return; }
     const stalled = flights.length > 0 && now - flights[0].at >= STALL_MS;
     if (!dead && sent < count() && next < chunks) {
-      const wait = flights.length && !pipe ? (!stalled || now - lastSend < STALL_FLUSH_MS) : (!urgent && now - lastSend < flushMs());
+      const wait = atOnce ? false : flights.length && !pipe ? (!stalled || now - lastSend < STALL_FLUSH_MS) : (!urgent && now - lastSend < flushMs());
       if (!wait) {
         lastSend = now; urgent = false;
         if (left()) onLate('seen');

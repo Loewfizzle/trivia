@@ -229,3 +229,35 @@ test('BOTH GAMES USE THE ONE WRITER — and the screens never write a chunk them
   assert.ok(io.includes("expectRefusal(path, `${label} t0: the tree is already stamped or begun, or the rules are not re-published yet`, 8000, 'none');"), 'a refused stamp is EXPECTED and silent (no quiet count of its own)');
   assert.ok(io.includes("return stamp.then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))"), "the GO goes up behind the stamp's answer (THE CONSOLE FIX: the stamp needs the tree empty)");
 });
+
+// FREEFALL F4B — THE PAUSE GAP: a hold is GRANTED only if its own chunk ARRIVES within 2 s of the hold (js/games/freefall/proof.js CLOCK.grant).
+// A phone being locked may not live to see the chunk in the air answered — `flush('now')` sends what is logged AT ONCE, behind it.
+test("flush('now') (FREEFALL's pause): what is logged leaves AT ONCE even behind a chunk in the air — in order, no hole; a refusal among them is still found + sent again; flush(true) still waits", async () => {
+  // a slow line (a 600 ms round trip): a chunk is in the air when the page hides
+  const w = world({ lat: () => 600 });
+  w.W.reset();
+  w.moves.push('a0', 'a1'); w.W.flush(true);
+  await w.run(100);
+  assert.equal(w.W.state().flights, 1, 'the first chunk is in the air');
+  w.moves.push('hold');
+  w.W.flush(true);   // (the old path: it waits for the answer)
+  assert.equal(w.W.state().flights, 1, 'flush(true) sends nothing behind an unanswered chunk');
+  const sentAt = w.now();
+  w.W.flush('now');
+  assert.equal(w.W.state().flights, 2, 'flush("now") sends the hold\'s chunk at once');
+  await w.run(1500);
+  assert.equal(w.all(), 'a0.a1.hold'); assert.ok(w.contiguous());
+  assert.ok(w.srv.c[1].at - sentAt <= 620, `the hold's chunk arrived one WAY after the hide (${w.srv.c[1].at - sentAt} ms) — not a round trip + a way`);
+  assert.deepEqual(w.srv.log, ['c0', 'c1']);
+  // … the chunk in the air is REFUSED (the rules' hiccup): the one sent behind it is refused with it (a hole), both go again — nothing lost, nothing twice
+  let hiccup = true;
+  const w2 = world({ lat: () => 200, refuse: (kind, i) => kind === 'c' && (hiccup || !!(i > 0 && !w2.srv.c[i - 1])) });
+  w2.W.reset();
+  w2.moves.push('a0'); w2.W.flush(true);
+  await w2.run(50);
+  w2.moves.push('hold'); w2.W.flush('now');
+  await w2.run(400); hiccup = false;
+  await w2.run(6000, () => w2.W.flush(false));
+  assert.equal(w2.all(), 'a0.hold', 'both are there after the refusal — in order'); assert.ok(w2.contiguous());
+  assert.equal(w2.said.dead.length, 0);
+});

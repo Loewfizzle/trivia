@@ -339,7 +339,9 @@ export function createBreaks(X) {
     if (skSt === 0 && skHit >= 0 && tau >= skHit) breakSkylight();
     const skNear = skSt < 2 && camY < 46.5;   // (it rides the roof below from the title screen on — sharp at every distance)
     if (skSt === 1 && camY >= 46.5) skSt = 2;
-    deck.visible = skNear; frame.visible = skNear; glass.visible = skNear && (skSt === 0 || now - skT < 2.2);
+    // (F4B — THE FRAME BAR: once the pane breaks nothing of the skylight / the roof stays between the camera and the floors — the deck +
+    //  the outer frame + its tubes are gone in 0.25 s (their shaders), the glazing bars fall with the shards: not drawn at all 1.6 s on)
+    deck.visible = skNear && (skSt === 0 || now - skT < 0.3); frame.visible = skNear && (skSt === 0 || now - skT < 1.6); glass.visible = skNear && (skSt === 0 || now - skT < 2.2);
     if (skNear) {
       deck.matrixWorld.copy(X.roofM);
       const near = (X.roofM.elements[0] - 0.3) / 0.5; deckU.uNear.value = near <= 0 ? 0 : near >= 1 ? 1 : near;
@@ -426,6 +428,6 @@ export function createBreaks(X) {
     reset, feed, update, setLook, out, meshes, force,
     /** the seabed's height (a finish: the ball comes to rest on it) */
     bedY: () => bedY,
-    info: () => ({ skylight: skSt, splash: spSt, bottom: boSt, played, mouth: bedHole.value, rocks: rGeo.instanceCount, line: waterU.uLine.value, sprites: bursts.visible ? BURSTS : 0, deck: deck.visible, glass: glass.visible, water: water.visible, bed: bed.visible || chunks.visible, pieces: [glass.geometry.instanceCount, chunks.geometry.instanceCount] }),
+    info: () => ({ skylight: skSt, splash: spSt, bottom: boSt, played, mouth: bedHole.value, rocks: rGeo.instanceCount, line: waterU.uLine.value, sprites: bursts.visible ? BURSTS : 0, deck: deck.visible, frame: frame.visible, glass: glass.visible, water: water.visible, bed: bed.visible || chunks.visible, pieces: [glass.geometry.instanceCount, chunks.geometry.instanceCount] }),
   };
 }

@@ -124,15 +124,50 @@ test('THE HOLDS (solo): a held run is judged through its holds — the time away
   assert.deepEqual(stampsOf(P.node).length, 2);
   // … the SAME log with its holds taken out replays to the same run (THE HOLD = EXACT RESUME)
   assert.equal(judgeRun({ seed, mode: 'solo', log: logOf(P.run).filter(e => !e.k) }).floor, live.floor);
-  // the tail a locked phone could not send: the pre-hold chunk lands only when the phone is back (minutes late) — never held against the run
-  const late = structuredClone(P.node), keys = Object.keys(late.c).map(Number), T = chunkTimes(late.c);
-  const hk = keys.find(i => T[i].s1 === 1 && T[i].s0 === 1 && false) ?? keys.find(i => T[i].s0 === 1);   // the first chunk after hold 2 … (its arrival is the bound)
-  const pre = keys.filter(i => T[i].s1 === 0 || (T[i].s0 <= 1 && T[i].s1 <= 1)).pop();   // the last chunk of the segment the 3-minute hold closes
-  late.c[pre].at = late.h[1] - 50;   // … arriving just before the way back was stamped
-  for (const i of keys) if (i < pre && late.c[i].at > late.c[pre].at) late.c[i].at = late.c[pre].at;
-  assert.equal(judgeNode({ seed, node: late }).ok, true, 'a chunk held back by the lock screen is on time on the RUN\'s clock');
-  assert.equal(judgeNode({ seed, node: late }).cut, undefined);
-  void hk;
+  // F4B — THE PAUSE GAP (the owner, Nov 26: "a pause is granted only after the moves before it are sent + stamped; nothing arrives late").
+  // F4A let the chunk that carries a hold — and the 8 s of play before it — arrive at ANY time (the run's clock stood at the hold): the
+  // tail a locked phone "could not send" counted minutes later, and so did a modified phone's slow motion. Now the hold's own chunk must
+  // ARRIVE within CLOCK.grant (2 s) of the hold's tick — later = no pause was granted: the run is CUT before that chunk.
+  const keys = Object.keys(P.node.c).map(Number), T = chunkTimes(P.node.c);
+  const hc = keys.find(i => T[i].hn > 0 && T[i].s1 >= 1 && T[i].s0 <= 1);   // the chunk that carries the SECOND hold (tick 701)
+  const before = T.slice(0, hc).reduce((n, k) => n + k.n, 0), paused2 = P.node.c[hc].at - 80;   // (playLive: a chunk arrives 80 ms after its tick)
+  assert.equal(T[hc].hn, 1);
+  const cutAt = n => judgeRun({ seed, mode: 'solo', log: logOf(P.run).slice(0, n) });
+  for (const lateMs of [CLOCK.grant * MS + 400, 8000, 180_000 - 50]) {
+    const late = structuredClone(P.node);
+    late.c[hc].at = Math.round(paused2 + lateMs);   // … the hold's chunk lands late (the last: just before the way back was stamped, 3 minutes on)
+    const v = judgeNode({ seed, node: late });
+    assert.equal(v.ok, true, `a pause whose chunk came ${Math.round(lateMs)} ms late is never refused whole (${v.why})`);
+    assert.deepEqual(v.cut, { why: 'pause', tick: 701 }, 'no pause was granted: the run is CUT before the hold\'s own chunk');
+    assert.equal(v.holds, 1, 'the first (granted) pause stays; the late one is not in the judged run');
+    assert.deepEqual([v.floor, v.tick], [cutAt(before).floor, cutAt(before).tick], 'counted up to the events before that chunk — the tower standing still after them');
+    assert.ok(v.floor <= live.floor);
+  }
+  // … AN HONEST PAUSE STILL COUNTS: the hold's chunk a network's beat late — up to the grant — is the run whole
+  for (const lateMs of [300, 1200, CLOCK.grant * MS - 50]) {
+    const ok = structuredClone(P.node); ok.c[hc].at = Math.round(paused2 + lateMs);
+    const v = judgeNode({ seed, node: ok });
+    assert.equal(v.ok, true, v.why); assert.equal(v.cut, undefined, `${Math.round(lateMs)} ms: granted`); assert.deepEqual([v.floor, v.tick, v.holds], [live.floor, live.tick, 2]);
+  }
+  // … A PAUSE CAN NO LONGER CARRY LATE MOVES — the modified phone: the 8 s of play before the hold played in SLOW MOTION (a minute for 8 s),
+  // every chunk of them sent with the hold when it is done. F4A: counted whole. Now: nothing of the slow part counts — the cut lies at the
+  // last ON-TIME event before the silence (an open "dropped signal" is no excuse before a pause that was never granted)
+  {
+    const slow = structuredClone(P.node), from = keys.find(i => T[i].t1 >= 701 - CLOCK.behind + 30 && i <= hc);
+    assert.ok(from < hc, 'several chunks lie in the 8 s before the hold');
+    for (let i = from; i <= hc; i++) slow.c[i].at = Math.round(paused2 + 60_000);
+    const v = judgeNode({ seed, node: slow }), kept = T.slice(0, from).reduce((n, k) => n + k.n, 0);
+    assert.equal(v.ok, true, v.why); assert.deepEqual(v.cut, { why: 'pause', tick: 701 });
+    assert.deepEqual([v.floor, v.tick], [cutAt(kept).floor, cutAt(kept).tick], 'the slow-motion moves bought nothing');
+    assert.ok(cutAt(kept).floor <= cutAt(before).floor);
+  }
+  // … and the FIRST hold not granted: none of the run's later segments has a say (the clock never stood: holds 0)
+  {
+    const h0 = keys.find(i => T[i].hn > 0), late = structuredClone(P.node);
+    late.c[h0].at += 5000; for (const i of keys) if (i > h0 && late.c[i].at < late.c[h0].at) late.c[i].at = late.c[h0].at;
+    const v = judgeNode({ seed, node: late });
+    assert.equal(v.ok, true, v.why); assert.deepEqual(v.cut, { why: 'pause', tick: 201 }); assert.equal(v.holds, undefined);
+  }
   // no stamp for the first hold's way back: the run is CUT at that hold (it counts up to it — never refused, never counted past it)
   const P2 = playLive({ seed, log, holds: [{ at: 200, away: 4000 }], stamp: false });
   const v2 = judgeNode({ seed, node: P2.node });
@@ -170,8 +205,10 @@ test('THE HOLDS (solo): a held run is judged through its holds — the time away
   const hs = i => GO + START_LEAD_MS + 3000 * (i + 1);
   const four = { go: GO, c: { 0: { s: '+1!5!5!5!5', at: hs(2) + RESUME_LEAD_MS + 1000 } }, h: { 0: hs(0), 1: hs(1), 2: hs(2) } };
   assert.deepEqual(judgeNode({ seed, node: four }), { ok: false, why: 'too many holds' });
-  // (… the same log with no stamp at all is CUT at its first hold: one hold, counted to there)
-  assert.deepEqual((v => [v.ok, v.holds, v.cut])(judgeNode({ seed, node: { go: GO, c: four.c } })), [true, 1, { why: 'hold', tick: 5 }]);
+  // (F4B: … with no stamp at all too — more holds than the mode has is named BEFORE the clock: a cut never makes a shorter honest run of it)
+  assert.deepEqual(judgeNode({ seed, node: { go: GO, c: four.c } }), { ok: false, why: 'too many holds' });
+  // (… three holds, no stamp: CUT at the first hold — one hold, counted to there. The chunk is ON TIME for its first hold: tick 5)
+  assert.deepEqual((v => [v.ok, v.holds, v.cut])(judgeNode({ seed, node: { go: GO, c: { 0: { s: '+1!5!5!5', at: GO + START_LEAD_MS + 500 } } } })), [true, 1, { why: 'hold', tick: 5 }]);
 });
 
 test('THE SPEED CHECK: a log made in advance (AHEAD) is refused · slow motion (BEHIND, no silence) is CUT at its last on-time event · THE DROPPED SIGNAL (a silence, then a burst that catches up) is honest', () => {

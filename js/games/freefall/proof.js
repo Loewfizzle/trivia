@@ -12,7 +12,7 @@
 // THE JUDGE (judgeNode) = the chunks → the log + its clock → THE SPEED CHECK both ways + THE DROPPED SIGNAL + THE HOLDS' own clock →
 //   replay.js#judgeRun (the SAME engine the phone ran). A phone's claimed floor is never read — there is no field the judge takes one from.
 import { judgeRun, unpackLog, isHold, packMove } from './replay.js';
-import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX } from './tuning.js';
+import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX, MODES } from './tuning.js';
 import { seedOf } from './logic.js';
 import { overChunkCeiling } from '../../core/proof.js';
 
@@ -35,9 +35,16 @@ export const HOLD_STAMPS = HOLDS_MAX;
  *   behind  … its FIRST event at most 8 s behind it — more, with no silence to explain it = SLOW MOTION → the run is CUT there
  *   drop / catchUp / jitter   THE DROPPED SIGNAL: a silence (≤ 75 s), then the queued chunks landing together and back on the clock
  *           within 15 s, each less late than the one before — never held against the run
+ *   grant   THE PAUSE GAP (F4B): the chunk that CARRIES a hold — with every move before it — must ARRIVE within 2 s of the hold's own tick
+ *           (F4A froze the run's clock at any hold: the 8 s of play before it could arrive at any time). Later = no pause was granted: the
+ *           clock never stood, the run is CUT before that chunk
  *   flushMs the phone uploads its new FINAL events this often (the owner: chunked ~200–250 ms) · chunkMax / chunks = the rules' bounds
  */
-export const CLOCK = Object.freeze({ ahead: 2 * TICK_HZ, behind: 8 * TICK_HZ, drop: 75 * 1000, catchUp: 15 * 1000, jitter: 6, flushMs: 250, chunkMax: 400, chunks: 10000 });
+export const CLOCK = Object.freeze({ ahead: 2 * TICK_HZ, behind: 8 * TICK_HZ, grant: 2 * TICK_HZ, drop: 75 * 1000, catchUp: 15 * 1000, jitter: 6, flushMs: 250, chunkMax: 400, chunks: 10000 });
+/** THE PAUSE GAP (F4B — the owner, Nov 26: "a pause is granted only after the moves before it are sent + stamped; nothing arrives late"):
+ *  the phone's own margin — it calls a pause GRANTED only when the hold's chunk was stamped this long after the hold at the most (tighter
+ *  than the judge's CLOCK.grant: the phone's idea of the server's clock is a network's beat off) */
+export const GRANT_PHONE_MS = 1500;
 const MS = 1000 / TICK_HZ;
 
 // ---- the writer's half: the run's own log (engine.js: run.lt · run.la the moves, run.ht the holds), read in its merged order
@@ -107,7 +114,8 @@ export function logFromChunks(c) {
 export const eventsOf = c => { const L = logFromChunks(c); return L ? L.log.length : -1; };
 /**
  * THE CHUNKS' OWN CLOCK → [{ at (the server's time), n (its events), t0, t1 (its first + last event's tick), s0, s1 (the SEGMENT each
- * lies in: the holds before it in the log — a hold itself closes the segment it is in) }], or null (a broken node, a chunk without its timestamp)
+ * lies in: the holds before it in the log — a hold itself closes the segment it is in), hn (F4B: the HOLDS it carries) }], or null (a
+ * broken node, a chunk without its timestamp)
  */
 export function chunkTimes(c, L = logFromChunks(c)) {
   if (!L) return null;
@@ -120,7 +128,7 @@ export function chunkTimes(c, L = logFromChunks(c)) {
     const v = c[i], at = v && typeof v === 'object' ? v.at : null;
     if (typeof at !== 'number' || !Number.isFinite(at)) return null;
     const a = at0, b = at0 + L.n[i] - 1;
-    out.push({ at, n: L.n[i], t0: L.log[a].t, t1: L.log[b].t, s0: seg[a], s1: seg[b] });
+    out.push({ at, n: L.n[i], t0: L.log[a].t, t1: L.log[b].t, s0: seg[a], s1: seg[b], hn: seg[b] - seg[a] + (isHold(L.log[b]) ? 1 : 0) });
     at0 = b + 1;
   }
   return out;
@@ -141,16 +149,26 @@ export function stampsOf(node) {
  *           lateness: the tail a phone could not send before it was locked lands when it is back)
  *   a hold's stamp can not lie before the hold itself; events after a hold WITHOUT its stamp — or AHEAD of it (a stamp that landed late:
  *   the phone had gone on without it) — have no clock: the run is CUT at that hold
+ *   THE PAUSE GAP (F4B): a hold FREEZES the clock only when it was GRANTED — its own chunk (the hold + every move before it) arrived within
+ *   CLOCK.grant of the hold's tick on the wall. A hold whose chunk came later was no pause: the clock ran on, the chunks before it are
+ *   held to that running clock, and the run is CUT before the hold's own chunk ('pause')
  * → null (honest) | { why: 'go' | 'chunks' | 'clock' | 'ahead' | 'hold clock' } (refused) |
- *   { why: 'behind', tick, events (the events before the cut — the run counts up to them) } | { why: 'hold', tick, seg (the segments that have a clock) }
+ *   { why: 'behind' | 'pause', tick, events (the events before the cut — the run counts up to them) } | { why: 'hold', tick, seg (the segments that have a clock) }
  */
 export function clockProblem(go, times, holdTicks = [], stamps = []) {
   if (typeof go !== 'number' || !(go > 0)) return { why: 'go' };
   if (!Array.isArray(times)) return { why: 'chunks' };
   // the segments' clocks: base[s] = the server time segment s's first tick T[s] stands at
   const T = [0], base = [go + START_LEAD_MS];
-  for (let s = 0; s < holdTicks.length && s < stamps.length; s++) {
+  // (the server's time each hold's OWN chunk arrived at — the chunks are in the log's order: the s-th hold is in the first chunk whose holds reach it)
+  let frozen = holdTicks.length, hi = 0, ci = 0;
+  for (let s = 0; s < holdTicks.length; s++) {
     const paused = base[s] + (holdTicks[s] - T[s]) * MS;   // (the wall time the run was held at)
+    while (ci < times.length && hi + (times[ci].hn || 0) <= s) { hi += times[ci].hn || 0; ci++; }
+    // (THE PAUSE GAP: the hold's chunk arrived too late — no pause was granted, the clock ran on: it never froze at this hold. A hold
+    //  whose chunk is not there yet froze nothing either — nothing lies past it.)
+    if (ci < times.length && times[ci].at > paused + CLOCK.grant * MS) { frozen = s; break; }
+    if (s >= stamps.length) break;
     if (stamps[s] < paused - CLOCK.ahead * MS) return { why: 'hold clock' };
     T.push(holdTicks[s]); base.push(stamps[s] + RESUME_LEAD_MS);
   }
@@ -159,15 +177,18 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     for (let s = base.length - 1; s >= 0; s--) {
       if (at < base[s] && s > 0) continue;
       const t = T[s] + Math.floor((at - base[s]) / MS);
-      return s < holdTicks.length && t > holdTicks[s] ? holdTicks[s] : t;
+      return s < frozen && t > holdTicks[s] ? holdTicks[s] : t;
     }
     return 0;
   };
-  let last = go, events = 0, drop = null;
+  let last = go, events = 0, drop = null, holds = 0;
   for (const k of times) {
     if (!(k.at >= last)) return { why: 'clock' };   // (a chunk's time never runs backwards, never before GO)
     const prev = last;
     last = k.at;
+    // (THE PAUSE GAP: this chunk carries the hold that was NOT granted — the run counts up to the events before it)
+    holds += k.hn || 0;
+    if (holds > frozen) return { why: 'pause', tick: holdTicks[frozen], events: drop ? drop.events : events };   // (… or before the silence that is still open: late moves are no part of a pause that was never granted)
     // (events past a hold whose way back was never stamped: no clock — the run counts up to that hold)
     if (k.s1 >= base.length) return { why: 'hold', tick: holdTicks[base.length - 1], seg: base.length };
     // (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's
@@ -195,7 +216,8 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
  * real clock · a hold's stamp before its hold · everything replay.js#judgeRun refuses (the bounds, MAX SPIN, a move after the end, a HOLD
  * in a mode that has none: a match, the daily). A log that falls BEHIND the clock with no silence to explain it — or goes on past a hold
  * whose way back was never stamped — is CUT (`cut: { why, tick }`): judged up to its last on-time event (through that hold); the tower
- * then stands still and the run ends where the rules end it.
+ * then stands still and the run ends where the rules end it. F4B — THE PAUSE GAP: a hold whose own chunk arrived more than CLOCK.grant
+ * after the hold's tick was never a pause (`cut.why: 'pause'`): the run counts up to the events before that chunk.
  * `mirror` = THE HOST's PODIUM judging its own LIVE mirror (a chunk still in flight carries the phone's ESTIMATE of the server's time):
  * the times are taken as never running backwards. THE SERVER never sets it — strict.
  */
@@ -209,10 +231,12 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   let log = L.log;
   const holdTicks = [];
   for (const e of log) if (isHold(e)) holdTicks.push(e.t);
+  // (F4B: more holds than the mode has — a match / the daily: ANY hold — is refused by name BEFORE the clock: a cut never turns it into a shorter honest run)
+  if (holdTicks.length > ((Object.prototype.hasOwnProperty.call(MODES, mode) && MODES[mode].holds) || 0) && Object.prototype.hasOwnProperty.call(MODES, mode)) return { ok: false, why: 'too many holds' };
   const c = clockProblem(go, times, holdTicks, stampsOf(node));
   let cut = null;
-  if (c && c.why !== 'behind' && c.why !== 'hold') return { ok: false, why: c.why === 'ahead' ? 'ahead of the clock' : c.why === 'clock' ? 'the chunks\' clock' : c.why };
-  if (c && c.why === 'behind') { cut = { why: 'behind', tick: c.tick }; log = log.slice(0, c.events); }
+  if (c && c.why !== 'behind' && c.why !== 'hold' && c.why !== 'pause') return { ok: false, why: c.why === 'ahead' ? 'ahead of the clock' : c.why === 'clock' ? 'the chunks\' clock' : c.why };
+  if (c && (c.why === 'behind' || c.why === 'pause')) { cut = { why: c.why, tick: c.tick }; log = log.slice(0, c.events); }
   if (c && c.why === 'hold') {
     // (through the hold that has no way back: the events of the segments that HAVE a clock + that hold itself)
     let n = 0, h = 0;

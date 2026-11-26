@@ -132,6 +132,8 @@ void main() {
 // ---- THE SKYLIGHT's FRAME (instanced boxes: aP its place, aS its size, aQ = its kind — 0 the outer frame · 1 a glazing bar · 2 a NEON
 // TUBE —, its number round the frame, a seed): by night the tubes outline the frame; the hit SHORTS them — they flicker out one after the
 // other round it (uBreakT); the glazing bars fall away with the glass. By day the tubes are unlit.
+/** F4B — the skylight's outer frame + its tubes are gone this long after the break (the deck's own 0.25 s — DECK_F) */
+export const FRAME_GONE_S = 0.25;
 export const FRAME_V = /* glsl */`
 attribute vec3 aP, aS, aQ;
 uniform float uTime, uBreakT;
@@ -147,7 +149,16 @@ void main() {
     vec3 ax = normalize(aS.x > aS.z ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0));
     p = rot(p, ax, age * (3.0 + 5.0 * aQ.z)) + vec3((aQ.z - 0.5) * 0.5 * age, -5.5 * age * age - 0.4 * age, 0.3 * age);
     n = rot(n, ax, age * (3.0 + 5.0 * aQ.z));
-    gone = age / 1.3;
+    gone = age / 0.8;   // (F4B: 1.3 — the pieces of the glazing bars are clear of the floors with the shards)
+  }
+  // F4B — THE SKYLIGHT's FRAME BAR (the owner's iPhone, floor 40: the frame's near bar stayed across the screen at the ball's height, its
+  // far bar + sides as a dark bar at the top — in front of the tiles): THE OUTER FRAME + ITS TUBES LET GO WITH THE PANE — they drop
+  // away, each a touch after the other, and are GONE 0.25 s after the break. Nothing of the skylight stays between the camera and the floors.
+  float since = uTime - uBreakT;
+  if ((aQ.x < 0.5 || aQ.x > 1.5) && since > 0.0) {
+    float a2 = max(0.0, since - aQ.z * 0.05);
+    p += vec3((aQ.z - 0.5) * 0.8 * a2, -14.0 * a2 * a2 - 1.5 * a2, 0.0);
+    gone = since / ${FRAME_GONE_S.toFixed(2)};
   }
   vec4 w = uM * vec4(aP + p, 1.0);
   vW = w.xyz; vN = normalize(mat3(uM) * n); vQ = aQ; vGone = gone;
@@ -165,8 +176,9 @@ void main() {
   if (vQ.x > 1.5) {
     // A NEON TUBE: cyan · magenta · violet round the frame. The hit shorts them: each flickers, then dies — one after the other
     vec3 tube = vQ.y < 2.5 ? vec3(0.2, 0.9, 1.0) : vQ.y < 5.5 ? vec3(1.0, 0.25, 0.85) : vec3(0.62, 0.35, 1.0);
-    float since = uTime - uBreakT, dead = since - 0.06 - vQ.y * 0.085;
-    float flick = since < 0.0 ? 1.0 : dead > 0.22 ? 0.0 : step(0.42, fract(sin(floor(uTime * 38.0) * 12.9898 + vQ.y * 7.3) * 43758.5453));
+    // (F4B: the short's cascade runs inside the frame's 0.25 s — the tubes die one after the other as they drop away; the sparks carry the moment on)
+    float since = uTime - uBreakT, dead = since - 0.02 - vQ.y * 0.02;
+    float flick = since < 0.0 ? 1.0 : dead > 0.06 ? 0.0 : step(0.42, fract(sin(floor(uTime * 38.0) * 12.9898 + vQ.y * 7.3) * 43758.5453));
     float hum = 0.94 + 0.06 * sin(uTime * 31.0 + vQ.y * 2.0);
     emit = tube * flick * hum * (1.0 - uDay);
     col = mix(mix(vec3(0.08, 0.08, 0.12), vec3(0.78, 0.8, 0.84), uDay), tube * 1.7 + vec3(0.5), flick * (1.0 - uDay));

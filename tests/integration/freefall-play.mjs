@@ -192,6 +192,24 @@ async function look() {
         }
       }
     }
+    // F4B — THE SKYLIGHT's FRAME BAR (the owner's iPhone, night, floor 40: the frame's bar stayed across the screen at the ball's height + a
+    // dark bar at the top): floor 39 (the skylight whole) → the ball STANDING on floor 40 (0.3 s · 1 s · 2.2 s after the break) → floor 41
+    if (want('framebar')) {
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3]]) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=37`, { best: 141 });
+        await toFloor(t, 39); await shot(t.p, f(`45-framebar-39-${tag}`));
+        await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().info.breaks.skylight >= 1', 40000);
+        await auto(t.p, 'safe');
+        await sleep(300); await shot(t.p, f(`45-framebar-40-a-0.3s-${tag}`));
+        await sleep(700); await shot(t.p, f(`45-framebar-40-b-1.0s-${tag}`));
+        await sleep(1200); await shot(t.p, f(`45-framebar-40-c-2.2s-${tag}`));
+        await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().floor >= 41 && window.__ffPlay.state().fl === "bounce"', 20000); await auto(t.p, 'safe'); await sleep(450);
+        await shot(t.p, f(`45-framebar-41-${tag}`));
+        if (t.errs.length) console.log(lk, 'framebar', t.errs);
+        await t.close();
+      }
+    }
     if (want('breaks')) {
       // each breakthrough: the floor before it (the piece in sight), then a burst of frames through the moment
       const through = async (t2, name, until, n, gap, first = 0) => { await waitFor(t2.p, until, 40000); if (first) await sleep(first); for (let i = 0; i < n; i++) { await shot(t2.p, f(`${name}-${i + 1}`)); if (i + 1 < n) await sleep(gap); } };
@@ -980,13 +998,44 @@ async function stutters() {
   for (const r of out) AREAS.forEach(([name], k) => console.log(`| ${r.lk} | ${r.rate}× | ${name} | ${r.F[k]} | ${r.W[k].toFixed(1)} | ${r.N[k]} |`));
 }
 
+// =============================================================================================================== F4B — the test page's own checks
+async function checks6() {
+  // ---- THE SKYLIGHT's FRAME BAR (the owner's iPhone, night, floor 40: the frame's bar stayed across the screen at the ball's height + a
+  // dark bar at the top, in front of the tiles): once the pane breaks NOTHING of the skylight / the roof is between the camera and the
+  // floors — the deck + the outer frame + its tubes gone in 0.25 s, the glazing bars' pieces with the shards. The ball STANDS on floor 40.
+  for (const lk of ['night', 'day']) for (const [w, h, d] of [[390, 844, 2], [375, 667, 2], [430, 932, 2]]) {
+    const t = await open(w, h, d, `?seed=look2&look=${lk}&floor=37&tier=2`);
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().info.breaks.skylight >= 1', 30000);
+    const hit = Date.now();
+    await auto(t.p, 'safe');
+    // (the bar lay across the whole width at the ball's floor: two points of that line, left + right of the tower — and the top bar's line)
+    const pts = [[0.07, 0.32], [0.93, 0.32], [0.5, 0.135]];   // (fractions of the canvas)
+    const read = () => coloursAt(t.p, pts);
+    await sleep(Math.max(0, 450 - (Date.now() - hit)));
+    const b0 = (await st(t.p)).info.breaks;
+    await sleep(Math.max(0, 1000 - (Date.now() - hit)));
+    const c1 = await read();
+    await sleep(Math.max(0, 1750 - (Date.now() - hit)));
+    const b1 = (await st(t.p)).info.breaks;
+    await sleep(Math.max(0, 3200 - (Date.now() - hit)));
+    const c3 = await read(), s = await st(t.p);
+    const diff = c1.map((c, i) => (c && c3[i] ? Math.abs(lumOf(c) - lumOf(c3[i])) : 99));
+    const lit = c3.every(c => c && c.every(Number.isFinite)) && c3.some(c => lumOf(c) > 2);   // (the reading is a real one: the picture is there)
+    ok(s.floor === 40 && !s.over && b0.skylight >= 1 && b0.deck === false && b1.frame === false && lit && Math.max(...diff) <= 10 && !t.errs.length,
+      `${lk} ${w}×${h} — THE FRAME BAR: the ball stands on floor 40 — 0.45 s after the break the deck is not drawn, 1.75 s after it no piece of the frame is; the bar's line (left · right) + the top bar's line read at 1 s as they do at 3.2 s (lightness off by ${diff.map(v => v.toFixed(1)).join(' · ')} of 255 — nothing lies there)`);
+    await t.close();
+  }
+}
+
 if (LOOK) await look();
 else if (argv.includes('--stutters')) await stutters();
 else if (PERF) await perf();
 else if (argv.includes('--f3b')) await checks4();
 else if (argv.includes('--haze')) await haze(true);
 else if (argv.includes('--f4a')) await checks5();
-else { await checks1(); await checks2(); await checks3(); await checks4(); await checks5(); }
+else if (argv.includes('--f4b')) await checks6();
+else { await checks1(); await checks2(); await checks3(); await checks4(); await checks5(); await checks6(); }
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

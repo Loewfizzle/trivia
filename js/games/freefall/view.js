@@ -25,7 +25,7 @@ import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
 import { seedOf, gameStandings } from './logic.js';
-import { CLOCK, START_LEAD_MS, START_LATE_MS, finalCount, packRange, eventsOf } from './proof.js';
+import { CLOCK, START_LEAD_MS, START_LATE_MS, GRANT_PHONE_MS, finalCount, packRange, eventsOf, chunkTimes } from './proof.js';
 import { scoreNode } from './director.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { SRV_BEST_KEY } from './lines.js';
@@ -66,7 +66,7 @@ const drv = {
   onFrame: () => { if (cur) cur.frame(); },
   onOver: r => { if (cur) cur.over(r); },
   onEnd: r => (cur ? cur.end(r) : { own: true }),
-  onHide: () => { if (cur) cur.hide(); },
+  onHide: held => { if (cur) cur.hide(held); },
   onLeave: () => (cur ? cur.leave() : null),
   onAgain: () => (cur ? cur.again() : false),
   leaveWords: 'BACK',
@@ -76,6 +76,7 @@ export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '', whyNot = '', stranded = false;
   let final = null, finalWrap = null, goTimer = 0, finalTimer = 0, capN = -1, againing = false;   // (capN: the log's events through a hold whose way back got no stamp — nothing past them is sent)
+  let holdSrv = 0;   // (F4B — THE PAUSE GAP: the SERVER's time this phone's last hold was made at — its chunk must be stamped within GRANT_PHONE_MS of it)
   const mine = g => !!(g && g.participants && g.participants[uid]);
   const treePath = () => `rooms/${code}/ff/${matchId}`, nodePath = () => `${treePath()}/${uid}`;
   let lkGame = null, lkKey = null;
@@ -151,7 +152,22 @@ export function createView() {
     expectRefusal(path, 'freefall: a hold\'s stamp — the rules are not re-published yet, or the match moved on', STAMP_WAIT_MS + 4000);
     return new Promise(res => {
       const t = setTimeout(() => res(0), STAMP_WAIT_MS);
-      dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); }, () => { clearTimeout(t); res(0); });
+      const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); });
+      // F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own chunk (the hold + every move before it) must have ARRIVED — the SERVER's
+      // stamp on it — within GRANT_PHONE_MS of the hold (the judge's bound is CLOCK.grant: the phone keeps a margin). The server's copy of
+      // the chunks is read (it answers behind the writes still queued). Not there / too late → −1: no pause was granted — no stamp is
+      // written, the count is not run again, the run goes on and SAYS it is not counted past the pause
+      granted(i, holdSrv).then(ok => { if (ok === false) { clearTimeout(t); res(-1); return null; } return stamp(); }).catch(() => { clearTimeout(t); res(0); });
+    });
+  }
+  /** → true (the i-th hold's chunk was stamped in time) | false (it was not — or it is not there); rejects = no answer (the line) */
+  function granted(i, held) {
+    return dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
+      const T = chunkTimes(snap.val());
+      if (!T) return false;
+      let n = 0;
+      for (const k of T) { n += k.hn || 0; if (n > i) return !(held > 0) || k.at - held <= GRANT_PHONE_MS; }
+      return false;
     });
   }
   /** a hold's way back went on WITHOUT its stamp (three counts, no answer): the run says so, and nothing past that hold is sent — the judge
@@ -229,7 +245,8 @@ export function createView() {
   return {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
-      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end, hide: () => { if (S && started && !S.state().over) flush(true); }, leave };
+      // (F4B — THE PAUSE GAP: a HELD run's log — the hold with it — leaves AT ONCE, even behind a chunk in the air: its arrival is what grants the pause)
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end, hide: held => { if (S && started && !S.state().over) { if (held) holdSrv = serverNow(); flush(held ? 'now' : true); } }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);
