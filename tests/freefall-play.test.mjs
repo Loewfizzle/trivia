@@ -270,3 +270,37 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-lime\); color: #10210a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');
 });
+
+test('THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): ONE ramp white → yellow → orange → neon pink for everything that burns; flame SPRITES from Kenney\'s pack (only the four used), a FIXED pool the tiers only trim; a ribbon, embers, fire-lit shards, a fire shockwave; the unlit ball as it was', () => {
+  const fx = read(`${FF}night-fx.js`), n = code(`${FF}night.js`);
+  // the ramp: its four colours in order, the white heart on top
+  const ramp = fx.slice(fx.indexOf('export const FIRE_RAMP'), fx.indexOf('// ---- THE SHAFT'));
+  assert.ok(ramp.indexOf('vec3(1.0, 0.07, 0.6)') > 0 && ramp.indexOf('vec3(1.0, 0.07, 0.6)') < ramp.indexOf('vec3(1.0, 0.36, 0.04)') && ramp.indexOf('vec3(1.0, 0.36, 0.04)') < ramp.indexOf('vec3(1.0, 0.84, 0.16)') && ramp.indexOf('vec3(1.0, 0.84, 0.16)') < ramp.indexOf('vec3(1.0, 1.0, 0.92)'), 'neon pink → orange → yellow → white, by heat');
+  assert.ok(fx.indexOf('export const FIRE_RAMP') < fx.indexOf('export const WALL_V'), 'the ramp is defined before every shader that reads it');
+  for (const name of ['FLAME_F', 'RIBBON_F', 'BALL_F', 'LIGHT_F']) { const at = fx.indexOf(`export const ${name}`), end = fx.indexOf('export const', at + 20); assert.ok(fx.slice(at, end < 0 ? undefined : end).includes('${FIRE_RAMP}'), `${name} burns on the ONE ramp`); }
+  // the flames: GPU sprites, a FIXED pool — the tiers trim the rate only
+  assert.match(n, /export const FLAMES = 96, FLAME_RATE = Object\.freeze\(\[46, 84, 128\]\), EMBER_RATE = Object\.freeze\(\[10, 22, 36\]\);/);
+  assert.match(n, /flameOwed \+= sec \* FLAME_RATE\[tier\]; emberOwed \+= sec \* EMBER_RATE\[tier\];/);
+  assert.match(n, /fGeo\.instanceCount = FLAMES;/, 'the pool never changes size');
+  assert.match(fx, /vec3 curl = vec3\(sin\(age \* 7\.3 \+ s6 \* 3\.0\)/, 'each flame swirls off its line (a curl of sines by its own seed)');
+  assert.match(fx, /float body = mix\(fl, sm, smoothstep\(0\.4, 1\.0, k\)\)/, 'a flame turns to smoke as it ages');
+  assert.doesNotMatch(fx.slice(fx.indexOf('export const FLAME_V'), fx.indexOf('// ---- THE SHARDS')), /arc|bolt|lightning/i, 'no electric arcs');
+  // the sprites: ONLY the four used, CC0, read straight out of the archive
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/fx/', import.meta.url)), ['blaze.webp']);
+  assert.ok(statSync(new URL('../assets/freefall/fx/blaze.webp', import.meta.url)).size < 30000, 'the atlas is small');
+  const build = read('scripts/build-freefall-assets.py');
+  assert.match(build, /SPRITES = \['flame_01', 'flame_03', 'fire_01', 'smoke_01'\]/); assert.doesNotMatch(build, /extractall|\.extract\(/, 'nothing is unpacked to disk');
+  assert.match(read('assets/freefall/CREDITS.md'), /Particle Pack\*\* by Kenney Vleugels \(kenney\.nl\),\s+Creative Commons Zero \(CC0 1\.0/);
+  // the ribbon + the embers + the fire-lit shards + the fire shockwave
+  assert.match(n, /const ribbon = new THREE\.Mesh\(new THREE\.PlaneGeometry\(1, 1, 2, 16\), ribbonMat\);/, 'the ribbon: a strip mesh behind the ball');
+  assert.match(read(`${FF}night.js`), /an ember: gold or neon pink/); assert.match(fx, /LIT BY THE FIRE \(a shard only ever flies from THE BLAZE's shatter\): gold glints on the faces turned to it, a neon-pink rim/);
+  assert.match(fx, /THE FIRE SHOCKWAVE: a ring running out from the shatter — white-yellow at its inner lip, orange, neon pink at its outer edge/);
+  // the ball's normal UNLIT glow stays as it was (the halo's colour + size at blaze 0 = F2's own numbers)
+  assert.match(n, /LC\[0\] = 1; LC\[1\] = 0\.42 - 0\.2 \* bz; LC\[2\] = 0\.36 \+ 0\.22 \* bz;/); assert.match(n, /P\[3\] = SHAPE\.R_BALL \* \(3\.6 \+ 1\.6 \* bz\);/);
+  assert.match(fx, /vec3 col = mix\(uEdge \* 1\.1, core, k \* k\);/, 'unlit: the white-hot core + its warm edge');
+  // the greyscale check greys the WHOLE picture (the fire too)
+  assert.match(n, /grey\(on\) \{ G\.uGrey\.value = 0; el\.style\.filter = on \? 'grayscale\(1\)' : ''; \}/);
+  // ZERO GARBAGE: a flame is written into the pool
+  const bareN = bare(read(`${FF}night.js`));
+  for (const [re, what] of [[/=>/, 'an arrow'], [/\.\.\./, 'a spread'], [/[=(,:?]\s*\{/, 'a record'], [/`/, 'a template string']]) assert.doesNotMatch(body(bareN, '  function flame(x, y, z, vx, vy, vz, life, size) {'), re, `flame() builds ${what}`);
+});

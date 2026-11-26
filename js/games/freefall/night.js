@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { TURN, SLICES, AREAS, FIRST, RULE_SETS, RULES_DEFAULT } from './tuning.js';
 import { floorInto, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
 import { areaIndex } from './logic.js';
-import { WALL_V, WALL_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, createBloom } from './night-fx.js';
+import { WALL_V, WALL_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, FLAME_V, FLAME_F, RIBBON_V, RIBBON_F, createBloom } from './night-fx.js';
 
 /** bump when a picture is replaced (the walls' cache key) */
 export const FF_ART_REV = 1;
@@ -28,6 +28,8 @@ const RAD = Math.PI / 180, UNIT = 2 * Math.PI / TURN, WEDGE = 2 * Math.PI / SLIC
 const RING = 32;                 // the floors kept (a ring of records)
 const MAXI = (BELOW + 3) * SLICES;
 const SHARDS = 48, SPARKS = 192, LIGHTS = 8, PUNCH0 = 3, PUNCHES = 4;
+/** THE BLAZE's flame sprites: a FIXED pool — the tiers trim how many are lit a second (FLAME_RATE: tier 0 · 1 · 2), never the pool */
+export const FLAMES = 96, FLAME_RATE = Object.freeze([46, 84, 128]), EMBER_RATE = Object.freeze([10, 22, 36]);
 /** the wall of each area (tuning.js#AREAS, in order): null = the open sky (THE ROOFTOP) */
 export const WALLS = Object.freeze([null, 'offices', 'speakeasy', 'harbor', 'deep', 'deep', 'deep']);
 const WALL_TINT = { offices: [0.5, 0.56, 0.82], speakeasy: [0.82, 0.74, 0.86], harbor: [1.9, 2.3, 2.5], deep: [1.5, 1.45, 1.7] };
@@ -147,6 +149,8 @@ export function createNight(host, o = {}) {
   const wallUrl = name => new URL(`../../../assets/freefall/walls/${name}-night.webp?v=${FF_ART_REV}`, import.meta.url).href;
   const wantWall = name => (name ? picture(name, wallUrl(name), true) : null);
   const skyTex = picture('sky', new URL('../../../assets/jaywalk/skyline-night.webp', import.meta.url).href, false);
+  // (THE BLAZE's sprites — Kenney's Particle Pack: two flames, the hot speckle, the smoke, side by side)
+  const fxTex = picture('blaze', new URL(`../../../assets/freefall/fx/blaze.webp?v=${FF_ART_REV}`, import.meta.url).href, false);
 
   // ---- THE TOWER: the pillar + the slices (ONE instanced mesh)
   const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uCol: { value: new THREE.Color(0x2a1466) } } });
@@ -186,10 +190,22 @@ export function createNight(host, o = {}) {
   const lGeo = quadGeo(), lP = inst(lGeo, 'aP', LIGHTS, 4), lQ = inst(lGeo, 'aQ', LIGHTS, 4), lC = inst(lGeo, 'aC', LIGHTS, 3);
   lGeo.instanceCount = LIGHTS;
   const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uTime: G.uTime, uBloom: G.uBloom, uAspect: G.uAspect }, side: THREE.DoubleSide, ...addOpt });
+  // THE BLAZE = NEON FIRE: the flame sprites (a fixed pool, flown in their shader) + the ribbon behind the ball
+  const fGeo = quadGeo(), fO = inst(fGeo, 'aO', FLAMES, 3), fV = inst(fGeo, 'aV', FLAMES, 3), fT = inst(fGeo, 'aT', FLAMES, 4);
+  for (let i = 0; i < FLAMES; i++) { fT.array[i * 4] = -100; fT.array[i * 4 + 1] = 1; }
+  fGeo.instanceCount = FLAMES;
+  const flameU = { uTime: G.uTime, uBloom: G.uBloom, tFx: { value: null }, uHave: { value: 0 }, uFlip: { value: 0 } };
+  const flameMat = new THREE.ShaderMaterial({ vertexShader: FLAME_V, fragmentShader: FLAME_F, uniforms: flameU, ...addOpt });
+  const flames = new THREE.Mesh(fGeo, flameMat);
+  flames.frustumCulled = false; scene.add(flames); twin(flames, flameMat);
+  const ribbonU = { uAt: { value: new THREE.Vector3() }, uLen: { value: 1 }, uWid: { value: SHAPE.R_BALL * 1.5 }, uTime: G.uTime, uOn: { value: 0 }, uBloom: G.uBloom };
+  const ribbonMat = new THREE.ShaderMaterial({ vertexShader: RIBBON_V, fragmentShader: RIBBON_F, uniforms: ribbonU, side: THREE.DoubleSide, ...addOpt });
+  const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 2, 16), ribbonMat);
+  ribbon.frustumCulled = false; scene.add(ribbon); twin(ribbon, ribbonMat);
   const lights = new THREE.Mesh(lGeo, lightMat);
   lights.frustumCulled = false; scene.add(lights); twin(lights, lightMat);
-  // (the draw order, fixed once: the shaft · the pillar · the slices · the tape · the shards · the ball · the lights · the sparks)
-  backdrop.renderOrder = -100; pillar.renderOrder = 0; slices.renderOrder = 1; tape.renderOrder = 2; shards.renderOrder = 3; ball.renderOrder = 4; lights.renderOrder = 5; sparks.renderOrder = 6;
+  // (the draw order, fixed once: the shaft · the pillar · the slices · the tape · the shards · the fire's ribbon + flames · the ball — its white heart on top of its own fire · the lights · the sparks)
+  backdrop.renderOrder = -100; pillar.renderOrder = 0; slices.renderOrder = 1; tape.renderOrder = 2; shards.renderOrder = 3; ribbon.renderOrder = 3.4; flames.renderOrder = 3.6; ball.renderOrder = 4; lights.renderOrder = 5; sparks.renderOrder = 6;
   scene.children.sort((a, b) => a.renderOrder - b.renderOrder);
 
   // ---- the floors in sight: a ring of records written INTO (never a new object in play) + what happened to each (broken · cracked · its flashes)
@@ -221,7 +237,7 @@ export function createNight(host, o = {}) {
   const CAMY = 0, KICK = 1, SQUASH = 2, BLAZE = 3, TIME = 4, GH0 = 5, GH1 = 6, GT0 = 7, GT1 = 8, PITCH = 9, BACK = 10, BALLY = 11, PF = 12, PT = 13, OUTK = 14, BEST = 15, LANDT = 16, SHAKE = 17, LASTFLOOR = 18;
   S[GH0] = S[GH1] = -1; S[PITCH] = POSE.play.pitch; S[BACK] = 1; S[BALLY] = POSE.play.ballY; S[BEST] = 0; S[LANDT] = -10;
   let poseFrom = POSE.play, poseTo = POSE.play, poseT0 = -1e9, state = 'live', tier = o.tier == null ? 2 : o.tier, bloom = null;
-  let shardN = 0, sparkN = 0, punchN = 0, wK = -1, wA = 0, wB = 0, wS = 0, areaA = 0;
+  let shardN = 0, sparkN = 0, punchN = 0, flameN = 0, flameOwed = 0, emberOwed = 0, fxHave = 0, wK = -1, wA = 0, wB = 0, wS = 0, areaA = 0;
   const punchAt = new Float64Array(PUNCHES).fill(-10);
   const rnd = (() => { let x = 0x2545f491; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; })();
 
@@ -232,7 +248,8 @@ export function createNight(host, o = {}) {
     state = 'live'; areaA = 0; wK = -1;
     for (let i = 0; i < SHARDS; i++) cT.array[i * 4] = -100;
     for (let i = 0; i < SPARKS; i++) pT.array[i * 3] = -100;
-    cT.needsUpdate = true; pT.needsUpdate = true; punchAt.fill(-10);
+    for (let i = 0; i < FLAMES; i++) fT.array[i * 4] = -100;
+    cT.needsUpdate = true; pT.needsUpdate = true; fT.needsUpdate = true; punchAt.fill(-10); flameOwed = 0; emberOwed = 0;
     wantWall('offices');
   }
 
@@ -252,6 +269,13 @@ export function createNight(host, o = {}) {
     }
     pO.needsUpdate = pV.needsUpdate = pT.needsUpdate = pC.needsUpdate = true;
   }
+  /** one flame sprite into the pool (its start, its drift, its life, its size — the shader flies it) */
+  function flame(x, y, z, vx, vy, vz, life, size) {
+    const i = flameN++ % FLAMES;
+    fO.array[i * 3] = x; fO.array[i * 3 + 1] = y; fO.array[i * 3 + 2] = z;
+    fV.array[i * 3] = vx; fV.array[i * 3 + 1] = vy; fV.array[i * 3 + 2] = vz;
+    fT.array[i * 4] = S[TIME]; fT.array[i * 4 + 1] = life; fT.array[i * 4 + 2] = size; fT.array[i * 4 + 3] = rnd();
+  }
   function shatter(floor, red) {
     const y = -floor * SHAPE.H - SHAPE.THICK / 2, slot = floor % RING;
     const cr = red ? 1 : fcol[slot * 3], cg = red ? 0.03 : fcol[slot * 3 + 1], cb = red ? 0.09 : fcol[slot * 3 + 2];
@@ -266,11 +290,15 @@ export function createNight(host, o = {}) {
       cT.array[i * 4] = S[TIME]; cT.array[i * 4 + 1] = 0.75 + rnd() * 0.45; cT.array[i * 4 + 2] = 0.07 + rnd() * 0.11; cT.array[i * 4 + 3] = (rnd() - 0.5) * 22;
     }
     cO.needsUpdate = cV.needsUpdate = cAx.needsUpdate = cC.needsUpdate = cT.needsUpdate = true;
-    burst(tier === 0 ? 12 : 26, y + 0.08, 1, 0.75, 0.3, 3.4, 2.6);
+    burst(tier === 0 ? 8 : 16, y + 0.08, 1, 0.78, 0.3, 3.4, 2.6); burst(tier === 0 ? 4 : 10, y + 0.08, 1, 0.2, 0.62, 3, 2.2);   // (gold + neon-pink sparks)
     const p = punchN++ % PUNCHES;
     punchAt[p] = S[TIME];
     lP.array[(PUNCH0 + p) * 4] = 0; lP.array[(PUNCH0 + p) * 4 + 1] = -floor * SHAPE.H + 0.02; lP.array[(PUNCH0 + p) * 4 + 2] = SHAPE.RB; lP.array[(PUNCH0 + p) * 4 + 3] = 0.95;
-    lC.array[(PUNCH0 + p) * 3] = 1; lC.array[(PUNCH0 + p) * 3 + 1] = 0.72; lC.array[(PUNCH0 + p) * 3 + 2] = 0.3;
+    lP.array[(PUNCH0 + p) * 4 + 3] = 1.2;   // (THE FIRE SHOCKWAVE: its colours are the fire's own ramp — night-fx.js LIGHT_F kind 3)
+    // … and THE FIRE goes through with the ball: a burst of flame along the floor (its shockwave ring is the punch)
+    const fb = reduce ? 3 : tier === 0 ? 7 : 12;
+    for (let k = 0; k < fb; k++) { const a = rnd() * 6.2832, v = 1.1 + rnd() * 1.6; flame((rnd() - 0.5) * 0.15, y + 0.12, SHAPE.RB + (rnd() - 0.5) * 0.15, Math.cos(a) * v, 0.5 + rnd() * 0.9, Math.sin(a) * v * 0.6 + 0.3, 0.3 + rnd() * 0.25, 0.2 + rnd() * 0.16); }
+    fO.needsUpdate = fV.needsUpdate = fT.needsUpdate = true;
     if (!reduce) { S[KICK] = 0.2; S[SHAKE] = 1; }
   }
 
@@ -288,7 +316,7 @@ export function createNight(host, o = {}) {
         // the floor just passed lets go (it fades as the ball drops through it)
         const f = e.floor - 1;
         if (S[GH0] < 0 || S[TIME] - S[GT0] > 0.3) { S[GH0] = f; S[GT0] = S[TIME]; } else { S[GH1] = f; S[GT1] = S[TIME]; }
-      } else if (e.e === 'blaze') { S[BLAZE] = 1; burst(tier === 0 ? 8 : 18, -e.floor * SHAPE.H + SHAPE.H * 0.8, 1, 0.6, 0.15, 2.2, 1.6); }
+      } else if (e.e === 'blaze') { S[BLAZE] = 1; burst(tier === 0 ? 6 : 12, -e.floor * SHAPE.H + SHAPE.H * 0.8, 1, 0.78, 0.28, 2.2, 1.6); burst(tier === 0 ? 3 : 8, -e.floor * SHAPE.H + SHAPE.H * 0.8, 1, 0.2, 0.62, 2, 1.4); }   // (it catches fire: gold + pink sparks)
       else if (e.e === 'out') {
         state = e.cause;
         if (e.cause === 'red') { burst(tier === 0 ? 14 : 30, -run0.floor * SHAPE.H + 0.14, 1, 0.2, 0.25, 3.6, 3); if (!reduce) { S[KICK] = 0.12; S[SHAKE] = 1; } const fr = floorRec(run0.floor), su = sliceUnder(run0.a, fr.twist); flash[(run0.floor % RING) * SLICES + su] = 1.4; }
@@ -465,10 +493,10 @@ export function createNight(host, o = {}) {
     const P = lP.array, Q = lQ.array, LC = lC.array, alive = state === 'live' || state === 'made' || state === 'cap' ? 1 : 0, bz = S[BLAZE];
     P[0] = 0; P[1] = ball.position.y; P[2] = SHAPE.RB; P[3] = SHAPE.R_BALL * (3.6 + 1.6 * bz);
     Q[0] = 0; Q[1] = (0.5 + 0.45 * bz) * alive; Q[2] = 0; Q[3] = 0;
-    LC[0] = 1; LC[1] = 0.42 + 0.14 * bz; LC[2] = 0.36 - 0.26 * bz;
+    LC[0] = 1; LC[1] = 0.42 - 0.2 * bz; LC[2] = 0.36 + 0.22 * bz;   // (lit: the fire's own neon-pink outer glow; unlit: as it was)
     const falling = run.st === 'live' && run.fl === 'fall' ? 1 : 0;
     P[4] = 0; P[5] = ball.position.y; P[6] = SHAPE.RB; P[7] = SHAPE.R_BALL * (1.25 + 0.5 * bz);
-    Q[4] = 1; Q[5] = Math.max(bz * 1.25, falling * 0.3) * alive; Q[6] = 0.55 + 1.5 * bz; Q[7] = 1.7;
+    Q[4] = 1; Q[5] = falling * 0.3 * (1 - bz) * alive; Q[6] = 0.55; Q[7] = 1.7;   // (the plain fall's faint streak; THE BLAZE has its ribbon + its flames)
     LC[3] = 1; LC[4] = 0.47 + 0.2 * (1 - bz); LC[5] = 0.08 + 0.6 * (1 - bz);
     // THE MARK: on the slice under the ball's centre — through a gap, on the floor below (dimmer)
     let my = -run.floor * SHAPE.H + raised + 0.008, ms = solid ? 0.95 : 0;
@@ -481,6 +509,29 @@ export function createNight(host, o = {}) {
     LC[6] = 1; LC[7] = 0.82; LC[8] = 0.95;
     for (let p = 0; p < PUNCHES; p++) { const age = (time - punchAt[p]) / 0.5, q = (PUNCH0 + p) * 4; Q[q] = 3; Q[q + 1] = age >= 0 && age < 1 ? 1.2 : 0; Q[q + 2] = Math.min(1, Math.max(0, age)); Q[q + 3] = 0; }
     lP.needsUpdate = lQ.needsUpdate = lC.needsUpdate = true;
+
+    // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames shed where it has just been (it falls away from them: a billowing
+    // column), embers drifting off it — a fixed budget, the tier trims the rate
+    ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.75 + 0.95 * falling;
+    if (fxTex.have !== fxHave) { fxHave = fxTex.have; flameU.tFx.value = fxTex.tex; flameU.uHave.value = 1; flameU.uFlip.value = fxTex.flip; }
+    if (bz > 0.4 && alive && !reduce) {
+      flameOwed += sec * FLAME_RATE[tier]; emberOwed += sec * EMBER_RATE[tier];
+      let made = 0;
+      while (flameOwed >= 1 && made < 6) {
+        flameOwed -= 1; made++;
+        flame((rnd() - 0.5) * 0.12, ball.position.y + rnd() * 0.12, SHAPE.RB + (rnd() - 0.5) * 0.1, (rnd() - 0.5) * 0.6, 0.2 + rnd() * 0.55, (rnd() - 0.5) * 0.32 + 0.12, 0.24 + rnd() * 0.2, 0.18 + rnd() * 0.13);
+      }
+      if (flameOwed > 6) flameOwed = 0;
+      if (made) fO.needsUpdate = fV.needsUpdate = fT.needsUpdate = true;
+      if (emberOwed >= 1) {
+        emberOwed -= 1;
+        // an ember: gold or neon pink, slow, drifting out + up as the ball leaves it behind
+        const pink = rnd() < 0.4 ? 1 : 0, a = rnd() * 6.2832, v = 0.3 + rnd() * 0.8;
+        spark((rnd() - 0.5) * 0.14, ball.position.y + rnd() * 0.2, SHAPE.RB + (rnd() - 0.5) * 0.1, Math.cos(a) * v, 0.4 + rnd() * 1.1, Math.sin(a) * v * 0.6 + 0.2, 0.45 + rnd() * 0.45, 0.009 + rnd() * 0.009, 1, pink ? 0.2 : 0.74, pink ? 0.62 : 0.26);
+        pO.needsUpdate = pV.needsUpdate = pT.needsUpdate = pC.needsUpdate = true;
+        if (emberOwed > 4) emberOwed = 0;
+      }
+    } else { flameOwed = 0; emberOwed = 0; }
 
     // YOUR BEST's tape: round the rim of that floor while it is in sight below
     const best = S[BEST];
@@ -510,12 +561,13 @@ export function createNight(host, o = {}) {
     if (!w) return false;
     try {
       const t = S[TIME];
-      shatter(BELOW, false); burst(4, -3, 1, 1, 1, 1, 1); tape.visible = true;
+      shatter(BELOW, false); burst(4, -3, 1, 1, 1, 1, 1); tape.visible = true; ribbonU.uOn.value = 1;
       renderer.compile(scene, cam); renderer.compile(wallScene, wallCam);
       draw(run, FIRST, 16);
       for (let i = 0; i < SHARDS; i++) cT.array[i * 4] = -100;
       for (let i = 0; i < SPARKS; i++) pT.array[i * 3] = -100;
-      cT.needsUpdate = true; pT.needsUpdate = true; punchAt.fill(-10); S[KICK] = 0; S[SHAKE] = 0; S[TIME] = t;
+      for (let i = 0; i < FLAMES; i++) fT.array[i * 4] = -100;
+      cT.needsUpdate = true; pT.needsUpdate = true; fT.needsUpdate = true; punchAt.fill(-10); S[KICK] = 0; S[SHAKE] = 0; S[TIME] = t;
       return true;
     } catch { return false; }
   }
@@ -526,7 +578,7 @@ export function createNight(host, o = {}) {
     /** YOUR BEST's floor (0 = none): the gold tape lies round its rim */
     setBest(floor) { S[BEST] = floor > 0 ? floor : 0; },
     /** the review's shot: the picture with the colour removed (red must still read) */
-    grey(on) { G.uGrey.value = on ? 1 : 0; },
+    grey(on) { G.uGrey.value = 0; el.style.filter = on ? 'grayscale(1)' : ''; },   // (the WHOLE picture — the fire too; a check's tool, never on in play)
     /** the page went away / came back: the targets are let go while nobody looks (the memory a hidden tab holds) */
     rest(hidden) { if (hidden) { wallRT.setSize(2, 2); if (bloom) bloom.size(4, 4); } else sized = false; },
     /** the screen pixels one RADIAN of tower turn moves the ring under the ball (the play pose) — the drag's 1 : 1 */
@@ -542,14 +594,14 @@ export function createNight(host, o = {}) {
     },
     /** the screen y (0 … 1) of the TOP of the ball at the top of a bounce on its floor, in the PLAY pose — the HUD must end above it */
     apexY(run) { place(pcam, POSE.play.pitch, 1, POSE.play.ballY, run.floor, 0); return proj(0, -run.floor * SHAPE.H + 2 * SHAPE.R_BALL + SHAPE.HOP, SHAPE.RB, pcam)[1]; },
-    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
+    info: () => ({ flames: FLAMES, fx: fxTex.have, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
     /** the last time a picture landed (a frame after it may be a long one: the stage's hitch counter names it) */
     lastWork: () => workAt,
     destroy() {
       gone = true;
       ro.disconnect();
       for (const t of texs.values()) if (t.tex) { const im = t.tex.image; t.tex.dispose(); if (im && im.close) im.close(); }
-      for (const m of [pillar, slices, tape, ball, shards, sparks, lights, backdrop, wallQuad]) { m.geometry.dispose(); m.material.dispose(); }
+      for (const m of [pillar, slices, tape, ball, shards, sparks, flames, ribbon, lights, backdrop, wallQuad]) { m.geometry.dispose(); m.material.dispose(); }
       for (const t of TWINS) t[1].dispose();
       wallRT.dispose(); if (bloom) bloom.dispose();
       renderer.dispose();

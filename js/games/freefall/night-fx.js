@@ -3,6 +3,16 @@
 // ends in three's own colour-space chunk. Every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn).
 import * as THREE from 'three';
 
+// ---- THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): a WHITE core → YELLOW → ORANGE → NEON PINK outer flame (synthwave
+// fire). ONE ramp for everything that burns (the flame sprites, the ribbon, the ball, the shockwave): `heat` 1 = white-hot … 0 = out.
+// The white-yellow heart is the brightest thing on the screen (it reads with the colour removed); pink is only the outer edge.
+export const FIRE_RAMP = /* glsl */`
+vec3 fire(float h) {
+  vec3 c = mix(vec3(1.0, 0.07, 0.6), vec3(1.0, 0.36, 0.04), smoothstep(0.08, 0.3, h));   // neon pink → orange
+  c = mix(c, vec3(1.0, 0.84, 0.16), smoothstep(0.32, 0.58, h));                            // → yellow
+  return mix(c, vec3(1.0, 1.0, 0.92), smoothstep(0.64, 0.92, h));                           // → white
+}`;
+
 // ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each
 // pixel's ray meets THE WALL — a cylinder round the tower's axis, seen from outside through its near side (the far inside face) — and
 // reads the area's painted wall there (seamless: it wraps round the shaft and repeats down it). Two walls cross-fade BY DEPTH at the seam
@@ -230,13 +240,16 @@ export const BALL_F = /* glsl */`
 uniform float uBloom, uBlaze, uTime, uOut;
 uniform vec3 uEdge;
 varying vec3 vN, vW;
+${FIRE_RAMP}
 void main() {
   vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
   float nv = max(dot(N, V), 0.0);
   vec3 core = vec3(1.0, 0.985, 0.96) * 1.5;
-  vec3 edge = mix(uEdge, vec3(1.0, 0.42, 0.06), uBlaze);
   float k = smoothstep(0.1, 0.9, nv);
-  vec3 col = mix(edge * (1.1 + 0.25 * sin(uTime * 22.0 + N.y * 9.0) * uBlaze), core, k * k);
+  vec3 col = mix(uEdge * 1.1, core, k * k);
+  // THE BLAZE: the ball IS the fire's heart — white-yellow through its middle, orange, a neon-pink rim that flickers
+  vec3 burn = fire(clamp(0.12 + nv * 1.05 + 0.06 * sin(uTime * 22.0 + N.y * 9.0), 0.0, 1.0)) * (1.15 + 0.5 * k);
+  col = mix(col, burn, uBlaze);
   col = mix(col, vec3(0.2, 0.2, 0.26) * (0.4 + 0.6 * nv), uOut);   // (the lights took it: a dead grey ball)
   if (uBloom > 0.5) col *= 0.9 * (1.0 - uOut);
   gl_FragColor = vec4(col, 1.0);
@@ -271,8 +284,10 @@ void main() {
 export const LIGHT_F = /* glsl */`
 uniform float uTime, uBloom;
 varying vec2 vQ; varying vec4 vK; varying vec3 vC;
+${FIRE_RAMP}
 void main() {
-  float kind = vK.x, a = 0.0, heart = 0.0;
+  float kind = vK.x, a = 0.0, heart = 0.0, isRing = 0.0;
+  vec3 ring = vec3(0.0);
   if (kind < 0.5) { float r = min(1.0, length(vQ)); a = exp(-r * r * 5.5) * (1.0 - r * r) * (1.0 - r * r); heart = a * a * 0.6; }
   else if (kind < 1.5) {
     // THE TRAIL: t = 0 at the ball … 1 at its tip
@@ -283,10 +298,88 @@ void main() {
     heart = smoothstep(0.5, 0.0, x) * (1.0 - t) * 0.7;
   }
   else if (kind < 2.5) { float r = length(vQ); a = exp(-r * r * 5.0) * 0.55 + (1.0 - smoothstep(0.0, 0.07, abs(r - 0.62))) * 0.9 + (1.0 - smoothstep(0.08, 0.2, r)) * 1.2; a *= smoothstep(1.0, 0.85, r); heart = (1.0 - smoothstep(0.08, 0.2, r)); }
-  else { float r = length(vQ), k = vK.z, rr = 0.15 + 0.8 * (1.0 - (1.0 - k) * (1.0 - k)); a = exp(-pow((r - rr) / (0.05 + 0.08 * k), 2.0)) * (1.0 - k) * (1.0 - k) + exp(-r * r * 6.0) * (1.0 - k) * 0.6 * step(k, 0.5); heart = a * 0.4; }
+  else {
+    // THE FIRE SHOCKWAVE: a ring running out from the shatter — white-yellow at its inner lip, orange, neon pink at its outer edge
+    float r = length(vQ), k = vK.z, rr = 0.12 + 0.84 * (1.0 - (1.0 - k) * (1.0 - k)), wd = 0.06 + 0.1 * k, d = (r - rr) / wd;
+    a = exp(-d * d) * (1.0 - k) * (1.0 - k) + exp(-r * r * 6.0) * (1.0 - k) * 0.7 * step(k, 0.5);
+    ring = fire(clamp(0.78 - 0.34 * d - 0.3 * k, 0.0, 1.0)); isRing = 1.0; heart = 0.0;
+  }
   a *= vK.y;
-  vec3 col = mix(vC, vec3(1.0), min(1.0, heart)) * a;
+  vec3 col = mix(mix(vC, vec3(1.0), min(1.0, heart)), ring, isRing) * a;
   if (uBloom > 0.5) col *= 0.55;
+  gl_FragColor = vec4(col, 0.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke),
+// flown HERE (a flame = its start, its drift, (its birth, its life, its size, its seed)): it swells as it ages, swirls off its line
+// (a curl of sines by its own seed), turns from flame to smoke, cools down the ramp. Added light. A FIXED pool: the tiers trim how
+// many are lit at once, never the pool.
+export const FLAME_V = /* glsl */`
+attribute vec3 aO, aV;
+attribute vec4 aT;
+uniform float uTime;
+varying vec2 vUv; varying vec3 vK;
+void main() {
+  float age = uTime - aT.x, k = age / aT.y, seed = aT.w;
+  if (age < 0.0 || k > 1.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vUv = vec2(0.0); vK = vec3(1.0, 0.0, 0.0); return; }
+  float s6 = seed * 6.2832;
+  vec3 curl = vec3(sin(age * 7.3 + s6 * 3.0) + 0.5 * sin(age * 13.1 + s6), 0.4 * sin(age * 5.1 + s6 * 2.0), cos(age * 6.1 + s6 * 5.0)) * (0.11 * k);
+  vec4 c = projectionMatrix * viewMatrix * vec4(aO + aV * age + curl, 1.0);
+  float size = aT.z * (0.55 + 1.15 * k), a = s6 + age * 2.4 * (seed - 0.5), ca = cos(a), sa = sin(a);
+  vec2 q = vec2(position.x * ca - position.y * sa, position.x * sa + position.y * ca) * size;
+  c.xy += q * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
+  gl_Position = c;
+  vUv = position.xy + 0.5; vK = vec3(k, seed, 0.0);
+}`;
+export const FLAME_F = /* glsl */`
+uniform sampler2D tFx;
+uniform float uHave, uFlip, uBloom;
+varying vec2 vUv; varying vec3 vK;
+${FIRE_RAMP}
+float cell(float i, vec2 uv) { return texture2D(tFx, vec2((i + clamp(uv.x, 0.02, 0.98)) * 0.25, mix(uv.y, 1.0 - uv.y, uFlip))).r; }
+void main() {
+  float k = vK.x, seed = vK.y;
+  // (no picture yet: a soft round puff — the fire still burns)
+  float r = length(vUv - 0.5) * 2.0, puff = (1.0 - smoothstep(0.2, 1.0, r));
+  float fl = mix(puff, mix(cell(step(0.5, seed), vUv), cell(2.0, vUv), 0.35), uHave), sm = mix(puff, cell(3.0, vUv), uHave);
+  float body = mix(fl, sm, smoothstep(0.4, 1.0, k)) * (1.0 - smoothstep(0.85, 1.0, r));
+  // its heat: white-hot when it is born, down the ramp as it ages — the thick of the sprite is hotter than its wisps
+  float heat = clamp((1.0 - k) * (0.42 + 0.7 * body) + (1.0 - k) * (1.0 - k) * 0.2, 0.0, 1.0);
+  float a = body * smoothstep(0.0, 0.08, k) * pow(1.0 - k, 1.7);
+  vec3 col = fire(heat) * a * 1.35;
+  if (uBloom > 0.5) col *= 0.5;
+  gl_FragColor = vec4(col, 0.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+// THE RIBBON: the fire's tail behind the ball — a strip that waves like a flame (it bends more towards its tip), in the same ramp:
+// white along its heart at the ball, yellow, orange, neon pink at its edges + its tip
+export const RIBBON_V = /* glsl */`
+uniform vec3 uAt;
+uniform float uLen, uWid, uTime;
+varying vec2 vQ;
+void main() {
+  float t = position.y + 0.5;
+  float w = uWid * mix(1.0, 0.1, pow(t, 0.75));
+  float wave = (sin(t * 8.0 - uTime * 15.0) * 0.6 + sin(t * 17.0 - uTime * 26.0) * 0.3) * t * uWid;
+  vec4 c = projectionMatrix * viewMatrix * vec4(uAt + vec3(0.0, t * uLen, 0.0), 1.0);
+  c.x += (position.x * 2.0 * w + wave) * projectionMatrix[0][0];
+  gl_Position = c;
+  vQ = vec2(position.x * 2.0, t);
+}`;
+export const RIBBON_F = /* glsl */`
+uniform float uOn, uBloom, uTime;
+varying vec2 vQ;
+${FIRE_RAMP}
+void main() {
+  float x = abs(vQ.x), t = vQ.y, core = 1.0 - x;
+  float flick = 0.88 + 0.12 * sin(t * 31.0 - uTime * 40.0);
+  float heat = clamp(core * core * (1.0 - t * 0.85) * 1.15 * flick, 0.0, 1.0);
+  float a = smoothstep(0.0, 0.35, core) * (1.0 - t) * smoothstep(0.0, 0.03, t) * uOn;
+  vec3 col = fire(heat) * a * 1.25;
+  if (uBloom > 0.5) col *= 0.5;
   gl_FragColor = vec4(col, 0.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -312,10 +405,11 @@ export const SHARD_F = /* glsl */`
 uniform float uBloom;
 varying vec3 vC, vN; varying float vK;
 void main() {
-  float l = 0.45 + 0.55 * abs(normalize(vN).y);
-  float fade = 1.0 - vK * vK;
-  vec3 col = vC * l * 1.25 + vec3(1.0) * pow(abs(normalize(vN).y), 8.0) * 0.5;
-  if (uBloom > 0.5) col = vC * 0.5;
+  float ny = abs(normalize(vN).y), l = 0.45 + 0.55 * ny;
+  float fade = 1.0 - vK * vK, lit = 1.0 - vK;
+  // LIT BY THE FIRE (a shard only ever flies from THE BLAZE's shatter): gold glints on the faces turned to it, a neon-pink rim
+  vec3 col = vC * l * 1.1 + vec3(1.0, 0.8, 0.32) * pow(ny, 6.0) * 1.2 * lit + vec3(1.0, 0.16, 0.62) * pow(1.0 - ny, 2.5) * 0.5 * lit;
+  if (uBloom > 0.5) col = vC * 0.35 + vec3(1.0, 0.7, 0.3) * pow(ny, 6.0) * 0.6 * lit;
   gl_FragColor = vec4(col * fade, fade);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

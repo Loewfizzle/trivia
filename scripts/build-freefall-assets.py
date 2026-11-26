@@ -2,7 +2,7 @@
 """FREEFALL F2 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
 (Downloads\\grok\\freefall\\ by default) are only READ — never moved, renamed or edited. HIGH RISE's pattern (build-highrise-assets.py).
 
-    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx]
+    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx]
     (-P -E: nothing is imported from the script's folder / the working folder / the environment; numpy lives in the user's site-packages,
      which -I would hide)
 
@@ -14,9 +14,13 @@
   sfx\\<id>.mp3                  → audio/freefall/<id>.mp3 — the seven sounds, the owner's picks (take A of each): bounce · whoosh · blaze ·
               shatter · crash · lights-out · bottom. BYTE COPIES (the delivery is MP3 already: 192 kbps CBR, 44.1 kHz) + CREDITS.md
               from the delivery's notes.txt (every source CC0 1.0). The B takes stay in the delivery.
-  The day walls + the breakthrough assets are F3's. Area arrival + new best = JAYWALK's files; the reflection map = HIGH RISE's (reused).
+  breakthroughs\\kenney-particles\\kenney_particlePack.zip → assets/freefall/fx/blaze.webp — THE BLAZE's flame sprites (the F2 add-on, Nov 26: NEON
+              FIRE): ONLY the four sprites used — flame_01 · flame_03 · fire_01 · smoke_01 (Kenney's Particle Pack, CC0) — read straight
+              out of the archive (nothing is unpacked to disk), each 256 px, side by side in ONE grey atlas (1024 × 256: a sprite's light =
+              its alpha × its brightness; the shader tints it white → yellow → orange → neon pink) + assets/freefall/CREDITS.md.
+  The day walls + the other breakthrough assets are F3's. Area arrival + new best = JAYWALK's files; the reflection map = HIGH RISE's (reused).
 """
-import sys, os, re, shutil, hashlib
+import sys, os, re, io, shutil, hashlib, zipfile
 import numpy as np
 from PIL import Image
 
@@ -27,7 +31,8 @@ SRC = ARGS[0] if ARGS else r'C:\Users\benja\Downloads\grok\freefall'
 ONLY = next((a[7:].split(',') for a in sys.argv[1:] if a.startswith('--only=')), None)
 OUT_W = os.path.join(ROOT, 'assets', 'freefall', 'walls')
 OUT_A = os.path.join(ROOT, 'audio', 'freefall')
-for d in (OUT_W, OUT_A):
+OUT_F = os.path.join(ROOT, 'assets', 'freefall', 'fx')
+for d in (OUT_W, OUT_A, OUT_F):
     os.makedirs(d, exist_ok=True)
 want = lambda step: ONLY is None or step in ONLY
 kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
@@ -35,6 +40,9 @@ kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
 WALLS = ['offices', 'speakeasy', 'harbor', 'deep']
 WALL_PX = 1024
 SOUNDS = ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom']
+# THE BLAZE's sprites, in the atlas's order (night-fx.js FLAME_F reads them by index: 0 · 1 flames, 2 the hot core's speckle, 3 the smoke)
+SPRITES = ['flame_01', 'flame_03', 'fire_01', 'smoke_01']
+SPRITE_PX = 256
 
 
 def seam(im):
@@ -106,7 +114,34 @@ def sfx():
     print(f'  the seven sounds: {total / 1024:.0f} KB · audio/freefall/CREDITS.md')
 
 
+def fx():
+    z = zipfile.ZipFile(os.path.join(SRC, 'breakthroughs', 'kenney-particles', 'kenney_particlePack.zip'))
+    lic = z.read('License.txt').decode('utf-8', 'replace')
+    assert 'Creative Commons Zero' in lic, 'the pack is CC0'
+    atlas = Image.new('L', (SPRITE_PX * len(SPRITES), SPRITE_PX), 0)
+    for i, name in enumerate(SPRITES):
+        im = Image.open(io.BytesIO(z.read(f'PNG/{name}.png'))).convert('RGBA')
+        a = np.asarray(im, np.float32) / 255
+        light = a[..., 3] * (0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2])   # (white sprites on a clear ground: the light IS the alpha)
+        g = Image.fromarray(np.uint8(np.clip(light / max(1e-6, light.max()), 0, 1) * 255), 'L').resize((SPRITE_PX, SPRITE_PX), Image.LANCZOS)
+        atlas.paste(g, (i * SPRITE_PX, 0))
+        print(f'  kenney_particlePack.zip : PNG/{name}.png ({im.size[0]} px) → atlas cell {i}')
+    out = os.path.join(OUT_F, 'blaze.webp')
+    atlas.convert('RGB').save(out, 'WEBP', quality=82, method=6)
+    print(f'  → {os.path.relpath(out, ROOT)}  {kb(out)}  ({atlas.size[0]} × {atlas.size[1]})')
+    with open(os.path.join(ROOT, 'assets', 'freefall', 'CREDITS.md'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write('# FREEFALL — the pictures\n\n')
+        f.write("- `walls/*-night.webp` — the four night walls of the shaft: created with Grok Imagine for this game (the owner's delivery,\n")
+        f.write('  `Downloads/grok/freefall/backdrops/` — its `notes.txt`).\n')
+        f.write("- `fx/blaze.webp` — THE BLAZE's flame sprites: `" + '`, `'.join(SPRITES) + '` from **Particle Pack** by Kenney Vleugels (kenney.nl),\n')
+        f.write('  Creative Commons Zero (CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/); four of its sprites, greyscale, in one atlas.\n')
+        f.write("- THE ROOFTOP's skyline is JAYWALK's painting (`assets/jaywalk/skyline-night.webp`).\n\n")
+        f.write('`python -P -E scripts/build-freefall-assets.py` builds them; the delivery is only read.\n')
+
+
 if want('walls'):
     print('THE WALLS'); walls()
 if want('sfx'):
     print('THE SOUNDS'); sfx()
+if want('fx'):
+    print('THE BLAZE (the sprites)'); fx()

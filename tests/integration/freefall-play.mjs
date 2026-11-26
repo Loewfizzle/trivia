@@ -77,7 +77,9 @@ async function look() {
     // THE BLAZE
     await auto(t.p, 'gap');
     await waitFor(t.p, 'window.__ffPlay.state().blaze');
-    await sleep(120); await shot(t.p, 'f2-03-blaze.png');
+    await sleep(420); await shot(t.p, 'f2-03-blaze.png');
+    // (the F2 add-on — THE BLAZE = NEON FIRE: it must read with the colour removed, the brightest thing on the screen)
+    await t.p.evaluate(() => window.__ffPlay.view.grey(true)); await sleep(120); await shot(t.p, 'f2-03b-blaze-greyscale.png'); await t.p.evaluate(() => window.__ffPlay.view.grey(false));
     // … through a slice: SMASH
     await auto(t.p, 'smash');
     await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1');
@@ -192,6 +194,7 @@ async function checks1() {
   ok(s.num === String(s.floor), `the big number follows the floors (${s.num})`);
   await auto(t.p, 'gap');
   ok(await waitFor(t.p, 'window.__ffPlay.state().blaze'), 'three clean floors light THE BLAZE');
+  { const i = (await st(t.p)).info; ok(i.fx === 1 && i.flames === 96, `THE BLAZE = NEON FIRE: its flame sprites are in (the atlas uploaded), a fixed pool of ${i.flames}`); }
   const call = await box(t.p, '.ff-call');
   ok(call.text === 'BLAZE!' && call.fs >= 26, `the announcer: "${call.text}" (${call.fs.toFixed(0)} px)`);
   await auto(t.p, 'smash');
