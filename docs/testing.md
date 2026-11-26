@@ -1335,6 +1335,25 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   go out), REPLAY = LIVE ✓ + the judge, RESTART, the network log, `?mode=` `?seed=` `?fps=1`, + 375 × 667 · 430 × 932 · 1440 × 900 (the
   mouse + the arrow keys). THE PAGES LOAD (`kit/page-loads.mjs`) covers `/freefall-lab`.
 
+## FREEFALL F2 (Nov 26 2026 — docs/games/passes/freefall-f2.md)
+- Unit (`node --test tests/freefall-*.test.mjs`, ≈ 20 s, no install): the rules fixes in `freefall-engine.test.mjs` (23 — + the landing
+  right after a shatter · MOVING RED in the engine · THE HOLD · REPLAY = LIVE with holds, the judge's refusals, the packed log with
+  holds) · `freefall-tower.test.mjs` (11 — + floors 0–200 are F1's bit for bit (a digest) · MOVING RED fair at every stand, angle by
+  angle · a mover's slice a pure function of (seed, floor, tick)) · `freefall-server.test.mjs` (8 — + the hold through the server half)
+  · `freefall-sim.test.mjs` (8 — the bands re-measured + THE PROOF: on a row without the shatter rule F1's bot runs replay tick for
+  tick · the trench is harder with moving red) · **`freefall-play.test.mjs`** (10, static — the page unlisted + registered nowhere,
+  NOTHING COUNTS over its whole module graph, THE DOOR, the run + the hold on the page, best.js, the sounds' table + triggers on real
+  runs, the player, the night look's pins, ZERO GARBAGE in every frame function (HIGH RISE's scan), the end's standard, NEON FIRE).
+- The browser: `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--look] [--perf]` (outside the sandbox;
+  `scripts/serve.mjs` is enough — the page makes no server call): **74 checks** — THE OPENING, the first drag, the frame (the ball
+  ≥ 34 pt, its floor 34 % down, 4 floors below, the HUD above the ball), the drag 1 : 1 through REAL touches, THE BLAZE + a shatter,
+  THE HOLD (hidden → held, 3 · 2 · 1, three a run, a match runs on), the end's standard, REPLAY = LIVE, the sounds asked, PLAY AGAIN,
+  the network log (nothing counts), NEW BEST, `?floor=N`, THE TRENCH, the lost context, the review's cases (hidden again during the
+  count · a second finger · a double tap on PLAY AGAIN · a phone held sideways), the tiers, + 375 × 667 · 430 × 932 · 1440 × 900. `--look` = the review's shots (THE OPENING, every area, the moments, the two greyscale shots, the hold, the ends, the
+  sizes → `Downloads\NEON\freefall-f2\`). **`--perf` = FREEFALL's speed test** (every tier at 1× + 4× CPU, the bot shattering
+  through THE SPEAKEASY with the fire on: ≥ 58 fps, p95 ≤ 20 ms). THE PAGES LOAD covers `/freefall-play`.
+- The sims: `node scripts/freefall-sim.mjs 2000` (≈ 25 s) — F2's table: docs/freefall.md "THE SIMS — F2".
+
 ## THE RULES FROM CLAUDE.md (moved Nov 25 — THE HOUSEKEEPING PASS, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
 - THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}`, ONE list (`core/quiet-kinds.js`), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
 

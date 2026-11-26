@@ -99,7 +99,11 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
 
 test('THE RUN ON THE PAGE: FAIR INPUT (each move at its own event time, coalesced samples too), the drag 1 : 1, MAX SPIN\'s rest offered again, the moves BEFORE the landings, tick 0 = the first drag (after the sounds\' decode), THE HOLD on hide + 3 · 2 · 1, REPLAY = LIVE after every run (the console)', () => {
   const s = code(`${FF}stage.js`);
-  assert.match(s, /stage\.addEventListener\('pointerdown', e => \{/); assert.match(s, /stage\.addEventListener\('pointermove', e => \{/);
+  assert.match(s, /app\.addEventListener\('pointerdown', e => \{/); assert.match(s, /app\.addEventListener\('pointermove', e => \{/);   // (THE REVIEW: the whole page is the drag's ground — the bars beside the column too)
+  assert.match(s, /if \(drag\) return; /, 'THE REVIEW: a second finger never steals the drag');
+  assert.match(s, /if \(t0 == null\) \{ if \(performance\.now\(\) - restartAt < RESTART_GUARD_MS\) return; begin\(stamp\(e\.timeStamp\)\); \}/, 'THE REVIEW: the tail of a double tap on PLAY AGAIN is not a start');
+  assert.match(s, /if \(held\) \{ countAt = 0; countShown = 0; holdN\.textContent = ''; return; \}/, 'THE REVIEW: hidden again during the 3 · 2 · 1 — the count starts over, never skipped');
+  assert.match(s, /if \(document\.visibilityState === 'hidden'\) hide\(\);/, 'THE REVIEW: a run that goes live behind a hidden page is held at once');
   assert.doesNotMatch(s, /addEventListener\('click'/, 'never a click (TAPS ON PLAIN PAGE AREAS)');
   assert.match(s, /carry \+= \(s\.clientX - drag\.x\) \* TURN \/ \(2 \* Math\.PI \* view\.pxPerRad\(\)\);/, '1 : 1 — the finger\'s pixels → the ring\'s own radians → angle units (F1\'s scale)');
   assert.match(s, /typeof e\.getCoalescedEvents === 'function' \? e\.getCoalescedEvents\(\) : null/, 'every sample the browser gathered, each at its own time');
@@ -107,7 +111,7 @@ test('THE RUN ON THE PAGE: FAIR INPUT (each move at its own event time, coalesce
   assert.match(s, /owed -= turn\(run, T, owed, ev\);/, 'the engine\'s own turn(): it clamps to MAX SPIN and logs the move');
   assert.match(s, /export const OWED_MAX = 8 \* MAX_SPIN;/);
   assert.match(s, /settle\(T\);[^\n]*\n\s*stepTo\(run, T, ev\);/, 'in a frame: the moves first, THEN the landings up to that tick');
-  assert.match(s, /if \(t0 == null\) begin\(stamp\(e\.timeStamp\)\);/, 'the first drag starts the run');
+  assert.match(s, /begin\(stamp\(e\.timeStamp\)\);/, 'the first drag starts the run');
   assert.match(s, /snd\.whenReady\(START_WAIT_MS\)/); assert.match(s, /export const START_WAIT_MS = 600;/);
   assert.match(s, /if \(t0 == null\) \{ if \(starting\) pre \+= units; return; \}/, 'the finger\'s moves before tick 0 are kept');
   // THE HOLD
@@ -205,7 +209,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`);
   assert.match(n, /export const BELOW = 9;/, 'only the ~10 nearest floors are drawn');
   assert.match(n, /const sGeo = wedgeGeo\(\), aI = inst\(sGeo, 'aI', MAXI, 4\), aC = inst\(sGeo, 'aC', MAXI, 4\), aF = inst\(sGeo, 'aF', MAXI, 4\);/, 'the slices: ONE instanced mesh');
-  assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.11, HOP: 0\.42, RISE: 0\.07, RW: 2\.7 \}\);/);
+  assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.2, HOP: 0\.42, RISE: 0\.1, RW: 2\.7 \}\);/);
   assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/, 'the play camera = F1\'s graybox camera (the drag\'s 1 : 1 scale is the owner\'s phone check)');
   assert.match(read(`${FF}graybox.js`), /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/);
   assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, 1\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass');
@@ -217,7 +221,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /assets\/freefall\/walls\/\$\{name\}-night\.webp/); assert.match(n, /assets\/jaywalk\/skyline-night\.webp/, 'THE ROOFTOP: JAYWALK\'s night skyline (reused, no copy)');
   for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-night.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 120000, `${w}: its night wall ships, small`); }
   // RED: hsl(352) — and readable with the colour removed: it stands proud, dark chevrons, a pulse
-  assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float chev = step\(0\.52, fract\(rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15\)\);/); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
+  assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the chevrons, their edges smoothed by their own width on the screen (THE REVIEW: never a stair-step)'); assert.match(fx, /vec3 rimC = red > 0\.5 \? vec3\(1\.0, 0\.2, 0\.24\) \* 1\.7 : mix\(base, vec3\(1\.0\), 0\.72\) \* 1\.75;/, 'THE REVIEW: a red slice\'s rim is hot red — never the safe slices\' white line'); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
   assert.match(n, /I\[q \+ 2\] = kind \? SHAPE\.RISE : 0;/, 'a red slice stands proud of the floor');
   // THE DARKNESS: the wall only (above its line) + the screen's edges — never the slices, never the ball
   assert.match(fx, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/); assert.doesNotMatch(fx.slice(fx.indexOf('export const SLICE_F'), fx.indexOf('export const PILLAR_V')), /uDarkY/, 'the slices never read the darkness');

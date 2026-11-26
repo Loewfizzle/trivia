@@ -79,7 +79,7 @@ async function look() {
     await waitFor(t.p, 'window.__ffPlay.state().blaze');
     await sleep(420); await shot(t.p, 'f2-03-blaze.png');
     // (the F2 add-on — THE BLAZE = NEON FIRE: it must read with the colour removed, the brightest thing on the screen)
-    await t.p.evaluate(() => window.__ffPlay.view.grey(true)); await sleep(120); await shot(t.p, 'f2-03b-blaze-greyscale.png'); await t.p.evaluate(() => window.__ffPlay.view.grey(false));
+    await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = 'grayscale(1)'); await sleep(120); await shot(t.p, 'f2-03b-blaze-greyscale.png'); await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = '');
     // … through a slice: SMASH
     await auto(t.p, 'smash');
     await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1');
@@ -93,7 +93,7 @@ async function look() {
       await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
       await auto(t.p, 'safe');
       await sleep(500); await shot(t.p, `f2-05-${name}.png`);
-      if (name === 'speakeasy') { await t.p.evaluate(() => window.__ffPlay.view.grey(true)); await sleep(120); await shot(t.p, 'f2-06-red-greyscale.png'); await t.p.evaluate(() => window.__ffPlay.view.grey(false)); }
+      if (name === 'speakeasy') { await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = 'grayscale(1)'); await sleep(120); await shot(t.p, 'f2-06-red-greyscale.png'); await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = ''); }
       if (name === 'trench') console.log('trench', JSON.stringify((await st(t.p)).info));
       await t.close();
     }
@@ -110,6 +110,14 @@ async function look() {
     await sleep(300); await shot(t.p, 'f2-09-darkness.png');
     await waitFor(t.p, 'window.__ffPlay.state().shown', 30000);
     await sleep(500); await shot(t.p, 'f2-10-end-dark-newbest.png');
+    await t.close();
+    // THE DARKNESS in a walled area (the wall above its line goes out; the ball + its floor stay lit)
+    t = await open(w, h, dpr, '?seed=look5&tier=2&floor=86', { best: 141 });
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().floor >= 88 && window.__ffPlay.state().fl === "bounce"', 30000);
+    await auto(t.p, 'safe');
+    await waitFor(t.p, 'window.__ffPlay.state().dark <= 2', 30000);
+    await sleep(500); await shot(t.p, 'f2-09b-darkness-speakeasy.png');
     await t.close();
     // THE HOLD + the end on red
     t = await open(w, h, dpr, '?seed=look4&tier=2', { best: 88 });
@@ -331,6 +339,71 @@ async function checks2() {
   await waitFor(t.p, `window.__ffPlay.state().floor >= ${f1 + 2}`, 8000);
   const s3 = await st(t.p);
   ok(lost && back && s3.floor >= f1 + 2 && s3.info.frames > 5 && !t.errs.length, `a context lost mid-run: a new scene (${s3.rebuilds} rebuild), the run never stopped (floor ${f1} → ${s3.floor})`);
+  await t.close();
+
+  // ---- THE FRESH-EYES REVIEW's finds
+  t = await open(390, 844, 2, '?seed=chk9', { best: 88 });
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');
+  await auto(t.p, 'safe');
+  await hideShow(t.p, true); await sleep(80); await hideShow(t.p, false);
+  await sleep(1000);                                   // (the count is at 2 …)
+  const mid = (await box(t.p, '.ff-hold-n')).text;
+  await hideShow(t.p, true); await sleep(300);         // … hidden AGAIN during the 3 · 2 · 1
+  const blank = (await box(t.p, '.ff-hold-n')).text;
+  await hideShow(t.p, false); await sleep(350);
+  s = await st(t.p);
+  const again3 = (await box(t.p, '.ff-hold-n')).text;
+  await sleep(1300);
+  const s5 = await st(t.p);
+  ok(mid === '2' && blank === '' && s.held && s.counting && again3 === '3' && s5.held && s5.holds === 1, `hidden AGAIN during the 3 · 2 · 1: the count starts over when the page is back ("${mid}" → hidden → "${again3}"), never skipped; still ONE hold`);
+  await waitFor(t.p, '!window.__ffPlay.state().held', 4000);
+  // a second finger never steals the drag
+  await waitFor(t.p, 'window.__ffPlay.msToLanding() > 420');
+  const pt = (id, x) => ({ x, y: 600, id, radiusX: 4, radiusY: 4, force: 1 });
+  await auto(t.p, null);
+  const aA = (await st(t.p)).a;
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(1, 120)] });
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(1, 150)] });
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(1, 150), pt(2, 300)] });
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(1, 180), pt(2, 300)] });
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(1, 208)] });   // (the second finger is gone from the list: it lifted — the first moves on)
+  await t.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(120);
+  s = await st(t.p);
+  const got = ((s.a - aA + 6144) % 4096) - 2048, exp = 88 * 4096 / (2 * Math.PI * s.pxPerRad);
+  ok(Math.abs(got - exp) <= 5, `a second finger never steals the drag: the first finger's 88 px turn the tower ${got} units (1 : 1 = ${exp.toFixed(0)}) with a second finger down and up on the way`);
+  // the tail of a double tap on PLAY AGAIN is not a start
+  await auto(t.p, 'red'); await sleep(50);
+  await t.p.evaluate(() => { window.__ffPlay.auto = 'safe'; });
+  await waitFor(t.p, 'window.__ffPlay.state().shown', 45000);
+  await sleep(300);
+  const ab = await box(t.p, '.ff-again');
+  await drag(t, ab.x + ab.w / 2, ab.y + ab.h / 2, 0, { steps: 1 }); await drag(t, ab.x + ab.w / 2, ab.y + ab.h / 2, 0, { steps: 1 });
+  await sleep(150);
+  s = await st(t.p);
+  const tapped = !s.started && !s.starting && /\bis-open\b/.test(s.cls);
+  await sleep(350); await drag(t, 195, 600, 0, { steps: 1 }); await waitFor(t.p, 'window.__ffPlay.state().started', 3000);
+  ok(tapped && (await st(t.p)).started, 'a double tap on PLAY AGAIN lands on THE OPENING (its second tap starts nothing); the next press starts the run');
+  ok(!t.errs.length, `no page error (${t.errs.join(' | ') || 'none'})`);
+  await t.close();
+  // a phone held SIDEWAYS: the end card + the hold stay inside the column; a drag on the bars beside the column turns the tower
+  t = await open(844, 390, 2, '?seed=chk10', { best: 88 });
+  await drag(t, 60, 300, 0, { steps: 1 });            // (a press on the side bar starts the run)
+  const side = await waitFor(t.p, 'window.__ffPlay.state().started', 3000);
+  await waitFor(t.p, 'window.__ffPlay.msToLanding() > 400');
+  const a1 = (await st(t.p)).a;
+  await drag(t, 60, 300, 40, { steps: 4 }); await sleep(100);
+  const a2 = (await st(t.p)).a;
+  await hideShow(t.p, true); await sleep(60); await hideShow(t.p, false); await sleep(300);
+  const hT = await box(t.p, '.ff-hold-t'), hN = await box(t.p, '.ff-hold-n'), hL = await box(t.p, '.ff-hold-l');
+  await waitFor(t.p, '!window.__ffPlay.state().held', 4000);
+  await auto(t.p, 'safe'); await waitFor(t.p, 'window.__ffPlay.state().shown', 45000); await sleep(300);
+  const stg = await box(t.p, '.ff-stage'), agn = await box(t.p, '.ff-again'), agT = await box(t.p, '.ff-again-t'), cty = await box(t.p, '.ff-city'), ecn = await box(t.p, '.ff-ec-n'), ecl = await box(t.p, '.ff-ec-line');
+  ok(side && a2 !== a1, 'sideways (844 × 390): a press + a drag on the bar beside the column start the run and turn the tower');
+  ok(hT.b <= hN.y + 1 && hN.b <= hL.y + 1, 'sideways: PAUSED · the count · the pauses left stand clear of each other');
+  ok(agT.r <= stg.r && agn.r <= stg.r && cty.r <= stg.r && cty.b <= 390 && ecn.b <= ecl.y + 1 && ecl.r <= stg.r + 1 && ecl.b < agn.y, `sideways: the end card stays inside its ${stg.w.toFixed(0)} px column (PLAY AGAIN's words to ${agT.r.toFixed(0)}, CITY to ${cty.r.toFixed(0)} of ${stg.r.toFixed(0)})`);
+  await shot(t.p, 'chk-07-sideways-end.png');
   await t.close();
 
   // ---- the tiers: pinned by `?tier=`

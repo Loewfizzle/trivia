@@ -8,9 +8,9 @@ import * as THREE from 'three';
 // The white-yellow heart is the brightest thing on the screen (it reads with the colour removed); pink is only the outer edge.
 export const FIRE_RAMP = /* glsl */`
 vec3 fire(float h) {
-  vec3 c = mix(vec3(1.0, 0.07, 0.6), vec3(1.0, 0.36, 0.04), smoothstep(0.08, 0.3, h));   // neon pink → orange
-  c = mix(c, vec3(1.0, 0.84, 0.16), smoothstep(0.32, 0.58, h));                            // → yellow
-  return mix(c, vec3(1.0, 1.0, 0.92), smoothstep(0.64, 0.92, h));                           // → white
+  vec3 c = mix(vec3(1.0, 0.07, 0.6), vec3(1.0, 0.36, 0.04), smoothstep(0.08, 0.26, h));  // neon pink → orange
+  c = mix(c, vec3(1.0, 0.84, 0.16), smoothstep(0.42, 0.62, h));                            // → yellow
+  return mix(c, vec3(1.0, 1.0, 0.92), smoothstep(0.74, 0.95, h));                           // → white
 }`;
 
 // ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each
@@ -43,6 +43,7 @@ vec3 sky(vec3 d) {
   if (uHaveSky > 0.5 && v > 0.0 && v < 1.0) {
     vec3 s = texture2D(tSky, vec2(fract(u), mix(v, 1.0 - v, uFlipSky))).rgb;
     s = pow(s, vec3(2.2));
+    s.b = mix(s.b, max(s.b, s.r * 0.85), step(s.g, s.r * 0.5));   // (RED IS DANGER ONLY: a red window / beacon of the painting reads pink here)
     float k = smoothstep(0.0, 0.1, v) * smoothstep(1.0, 0.72, v);
     c = mix(c, s * 1.9 + c * 0.2, k);
   }
@@ -66,7 +67,8 @@ void main() {
     float t = (-b + sqrt(disc)) / a;
     vec3 hit = uCam + d * t;
     hitY = hit.y;
-    vec2 uv = vec2(atan(hit.x, hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
+    // (the angle's own seam lies on the NEAR side — never seen through; on the far face it was a 1 px line from the top of the screen to the tower)
+    vec2 uv = vec2(atan(hit.x, -hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
     vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv);
     vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv);
     // (the seam between two areas lies at a world height: below it the next area's wall — it is seen rising from the dark)
@@ -113,7 +115,7 @@ void main() {
   if (aE.z < 0.5) p.y += aI.z; else if (aE.z < 2.5) p.y += aI.z * (1.0 - aE.w);   // (a red slice stands proud: its top lifted, its walls stretched)
   // a floor just passed lets go: its slices drift out + up as they fade
   float out_ = aF.w;
-  p.xz *= 1.0 + out_ * 0.22; p.y += out_ * 0.3;
+  p.xz *= 1.0 + out_ * 0.26; p.y += out_ * 0.1;
   float a = aI.x + uSpin, c = cos(a), s = sin(a);
   vec3 w = vec3(p.x * c + p.z * s, p.y + aI.y, -p.x * s + p.z * c);
   vN = vec3(normal.x * c + normal.z * s, normal.y, -normal.x * s + normal.z * c);
@@ -134,9 +136,12 @@ void main() {
   float far = clamp(depth / 7.0, 0.0, 1.0);
   vec3 base = vC.rgb;
   // (the hue walks with depth: a gap two floors down never shows the same flat colour — pink → violet → blue → teal)
-  vec3 deepCol = mix(vec3(0.10, 0.07, 0.75), vec3(0.03, 0.34, 0.62), smoothstep(0.5, 1.0, far));
-  base = mix(base, deepCol, smoothstep(0.08, 0.85, far) * 0.78 * (1.0 - red));
-  float dim = mix(1.0, 0.3, far);
+  // THE OWNER's GRADIENT ON ONE SCREEN (the review: it walked by area only, and fogged to grey-lilac): whatever the area's colour, the
+  // floors in sight walk on — violet two floors down, a saturated blue by four, teal at the foot — and stay SATURATED as they dim
+  vec3 walk = mix(vec3(0.36, 0.05, 1.0), vec3(0.03, 0.08, 1.0), smoothstep(0.3, 0.68, far));
+  walk = mix(walk, vec3(0.0, 0.42, 0.95), smoothstep(0.72, 1.0, far));
+  base = mix(base, walk, smoothstep(0.1, 0.5, far) * 0.92 * (1.0 - red));
+  float dim = mix(1.0, 0.5, far);
   // distances to this face's edges, in world units
   float dOut = (1.0 - rad) * uRing;                      // to the rim
   float dSide = (1.0 - abs(ang)) * uWidth * (0.2 + 0.8 * rad);   // to a cut side (a wedge is narrow at the pillar)
@@ -155,8 +160,10 @@ void main() {
     if (red > 0.5) {
       // RED = DANGER, readable with the colour removed: it stands proud of the floor, dark hazard chevrons run across it, it pulses
       float pulse = 0.86 + 0.14 * sin(uTime * 3.1 + vW.y * 2.0);
-      float chev = step(0.52, fract(rad * 2.6 - abs(ang) * 0.9 + 0.15));
-      vec3 hz = mix(RED, RED_DARK, chev * 0.72);
+      // (the stripes' edges are smoothed by their own width on the screen: never a stair-step)
+      float cx = rad * 2.6 - abs(ang) * 0.9 + 0.15, cw = fwidth(cx) * 1.2 + 1e-4, cf = abs(fract(cx) - 0.75) - 0.24;
+      float chev = 1.0 - smoothstep(-cw, cw, cf);
+      vec3 hz = mix(RED * 0.82, RED_DARK, chev * 0.78);
       col = hz * (0.8 + 0.3 * rad) * pulse;
       col *= 1.0 - 0.5 * cut;
       emit = (1.0 - chev) * 0.4 * pulse; emitC = RED;
@@ -165,14 +172,15 @@ void main() {
       col = mix(col, vec3(1.0, 0.55, 0.55), edge * step(1.5, vKind) * 0.9);
       rim *= 1.0; base = RED;
     }
-    vec3 rimC = mix(base, vec3(1.0), 0.72) * 1.75;
-    col = mix(col, rimC, rim * (red > 0.5 ? 0.85 : 1.0));
+    // (a red slice's rim is HOT RED — never the safe slices' white line: danger has its own edge)
+    vec3 rimC = red > 0.5 ? vec3(1.0, 0.2, 0.24) * 1.7 : mix(base, vec3(1.0), 0.72) * 1.75;
+    col = mix(col, rimC, rim);
     col += base * halo * 0.3;
     emit += rim * 1.0 + halo * 0.22; emitC = mix(emitC, rimC, rim);
     if (emit > 0.0 && red < 0.5) emitC = mix(base, rimC, rim);
     // THE WARNING (the moving red steps onto this slice next): red hatching that blinks
     float warn = vF.y * (0.55 + 0.45 * sin(uTime * 12.0));
-    float hatch = step(0.62, fract(rad * 2.6 - abs(ang) * 0.9 + 0.15));
+    float hx = rad * 2.6 - abs(ang) * 0.9 + 0.15, hatch = 1.0 - smoothstep(-fwidth(hx) * 1.2 - 1e-4, fwidth(hx) * 1.2 + 1e-4, abs(fract(hx) - 0.81) - 0.19);
     col = mix(col, RED, warn * (0.25 + 0.6 * hatch));
     // CRACKED (the landing right after a shatter came down on red): dark cracks run out from its middle
     if (vF.z > 0.5) {
@@ -186,10 +194,11 @@ void main() {
     col += base * pool * 0.3;
   } else if (face < 1.5) {
     // THE OUTER WALL: darker than the top; the rim seen from the side = a bright line along its top edge
-    float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.1);
+    float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.2);   // (0.2 = the slab's thickness: night.js SHAPE.THICK)
     col = base * mix(0.5, 0.2, vE.w);
-    if (red > 0.5) { float chev = step(0.5, fract(ang * 1.5 + vE.w * 0.5)); col = mix(RED * 0.55, RED_DARK, chev * 0.6); emit = (1.0 - chev) * 0.15; emitC = RED; base = RED; }
+    if (red > 0.5) { float sx = ang * 1.5 + vE.w * 0.5, sw = fwidth(sx) * 1.2 + 1e-4, chev = 1.0 - smoothstep(-sw, sw, abs(fract(sx) - 0.75) - 0.25); col = mix(RED * 0.5, RED_DARK, chev * 0.6); emit = (1.0 - chev) * 0.15; emitC = RED; base = RED; }
     vec3 rimC = mix(base, vec3(1.0), 0.6) * 1.5;
+    if (red > 0.5) rimC = vec3(1.0, 0.2, 0.24) * 1.5;
     col = mix(col, rimC, topEdge);
     emit += topEdge * 0.9; emitC = mix(emitC, rimC, topEdge);
   } else {
@@ -220,7 +229,8 @@ void main() {
   vec3 V = normalize(cameraPosition - vW);
   float nv = max(dot(normalize(vN), V), 0.0);
   float far = clamp((uTopY - vW.y) / 7.0, 0.0, 1.0);
-  vec3 col = uCol * (0.25 + 0.75 * nv * nv) * mix(1.0, 0.2, far) + uCol * 1.6 * pow(1.0 - nv, 3.0) * 0.5 * (1.0 - far);
+  vec3 col = uCol * (0.3 + 1.1 * nv * nv) * mix(1.0, 0.25, far) + vec3(0.5, 0.2, 1.0) * pow(1.0 - nv, 2.0) * 0.55 * (1.0 - far);
+  col *= step(vN.y, 0.5) + 0.35 * step(0.5, vN.y);   // (its cap: the dark eye in the middle of the top ring)
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
@@ -314,7 +324,7 @@ void main() {
 
 // THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke),
 // flown HERE (a flame = its start, its drift, (its birth, its life, its size, its seed)): it swells as it ages, swirls off its line
-// (a curl of sines by its own seed), turns from flame to smoke, cools down the ramp. Added light. A FIXED pool: the tiers trim how
+// (a curl of sines by its own seed), turns from flame to smoke, cools down the ramp. Light that covers a little (the bands stay). A FIXED pool: the tiers trim how
 // many are lit at once, never the pool.
 export const FLAME_V = /* glsl */`
 attribute vec3 aO, aV;
@@ -327,7 +337,7 @@ void main() {
   float s6 = seed * 6.2832;
   vec3 curl = vec3(sin(age * 7.3 + s6 * 3.0) + 0.5 * sin(age * 13.1 + s6), 0.4 * sin(age * 5.1 + s6 * 2.0), cos(age * 6.1 + s6 * 5.0)) * (0.11 * k);
   vec4 c = projectionMatrix * viewMatrix * vec4(aO + aV * age + curl, 1.0);
-  float size = aT.z * (0.55 + 1.15 * k), a = s6 + age * 2.4 * (seed - 0.5), ca = cos(a), sa = sin(a);
+  float size = aT.z * (0.42 + 1.35 * k), a = s6 + age * 2.4 * (seed - 0.5), ca = cos(a), sa = sin(a);
   vec2 q = vec2(position.x * ca - position.y * sa, position.x * sa + position.y * ca) * size;
   c.xy += q * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
   gl_Position = c;
@@ -346,11 +356,15 @@ void main() {
   float fl = mix(puff, mix(cell(step(0.5, seed), vUv), cell(2.0, vUv), 0.35), uHave), sm = mix(puff, cell(3.0, vUv), uHave);
   float body = mix(fl, sm, smoothstep(0.4, 1.0, k)) * (1.0 - smoothstep(0.85, 1.0, r));
   // its heat: white-hot when it is born, down the ramp as it ages — the thick of the sprite is hotter than its wisps
-  float heat = clamp((1.0 - k) * (0.42 + 0.7 * body) + (1.0 - k) * (1.0 - k) * 0.2, 0.0, 1.0);
-  float a = body * smoothstep(0.0, 0.08, k) * pow(1.0 - k, 1.7);
-  vec3 col = fire(heat) * a * 1.35;
+  // (the review: the first fire was a blown-out white column — the flames summed to white. A flame is white only while it is small
+  //  and new; it cools FAST to yellow, sits ORANGE through its middle age, and is a saturated NEON PINK for its last third)
+  float cool = pow(1.0 - k, 1.7);
+  float heat = clamp(cool * (0.55 + 0.6 * body), 0.0, 1.0);
+  float a = body * smoothstep(0.0, 0.08, k) * pow(1.0 - k, 0.85);
+  vec3 col = fire(heat) * a * mix(1.15, 0.85, smoothstep(0.5, 1.0, heat));
   if (uBloom > 0.5) col *= 0.5;
-  gl_FragColor = vec4(col, 0.0);
+  // (light that also COVERS a little of what is behind it: a flame over another keeps its own colour — the yellow + the orange bands stay)
+  gl_FragColor = vec4(col, a * 0.7);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -376,7 +390,7 @@ ${FIRE_RAMP}
 void main() {
   float x = abs(vQ.x), t = vQ.y, core = 1.0 - x;
   float flick = 0.88 + 0.12 * sin(t * 31.0 - uTime * 40.0);
-  float heat = clamp(core * core * (1.0 - t * 0.85) * 1.15 * flick, 0.0, 1.0);
+  float heat = clamp(pow(core, 1.5) * (1.0 - t) * 1.12 * flick, 0.0, 1.0);   // (white only at the ball: yellow by a third of its length, orange past half, pink at its tip + its edges)
   float a = smoothstep(0.0, 0.35, core) * (1.0 - t) * smoothstep(0.0, 0.03, t) * uOn;
   vec3 col = fire(heat) * a * 1.25;
   if (uBloom > 0.5) col *= 0.5;

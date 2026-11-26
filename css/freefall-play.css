@@ -5,6 +5,7 @@
    phone's own column, centred (DESKTOP COMES FREE). Motion: transform + opacity only; the glows are static. NO PILLS. */
 .ff-play-html, .ff-play-on { margin: 0; height: 100%; background: #05030d; color: var(--text); overflow: hidden; overscroll-behavior: none; }
 .ff-play-on { font-family: var(--font-ui); -webkit-text-size-adjust: 100%; touch-action: pan-x pan-y; }
+.ff-app { touch-action: none; }   /* (the whole page is the drag's ground — the bars beside the column too) */
 .ff-app { position: fixed; inset: 0; height: 100dvh; display: grid; justify-items: center; background: radial-gradient(120% 80% at 50% 100%, #1a0a36 0%, #05030d 70%); }
 .ff-wait, .ff-nogl { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 24px; text-align: center; font: 500 16px/1.4 var(--font-ui); color: var(--text-dim); }
 .ff-nogl { background: rgba(5, 3, 13, 0.88); z-index: 5; }
@@ -19,6 +20,15 @@
    its floor (never dimmed); its strength is ONE opacity the stage writes when the gap changes */
 .ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.45s linear;
   background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(3, 0, 10, 0) 44%, rgba(3, 0, 10, 0.97) 100%), linear-gradient(to bottom, rgba(3, 0, 10, 0.97) 0%, rgba(3, 0, 10, 0.8) 13%, rgba(3, 0, 10, 0) 27%); }
+
+/* THE SHADE (the review: the HUD's words sat on the floor flying past, DRAG TO SPIN on bright rims): a dark fall behind the HUD's column
+   while a run is on (it ends above the ball's highest point), a dark rise behind the opening's foot — two static gradients, ONE opacity each */
+.ff-shade { position: absolute; inset: 0; pointer-events: none; }
+.ff-shade::before, .ff-shade::after { content: ''; position: absolute; left: 0; right: 0; opacity: 0; transition: opacity 0.45s; }
+.ff-shade::before { top: 0; height: 26%; background: linear-gradient(to bottom, rgba(5, 3, 13, 0.86) 0%, rgba(5, 3, 13, 0.7) 52%, rgba(5, 3, 13, 0) 100%); }
+.ff-shade::after { bottom: 0; height: 30%; background: linear-gradient(to top, rgba(5, 3, 13, 0.9) 0%, rgba(5, 3, 13, 0.72) 55%, rgba(5, 3, 13, 0) 100%); }
+.ff-stage.is-starting .ff-shade::before, .ff-stage.is-live .ff-shade::before { opacity: 1; }
+.ff-stage.is-open .ff-shade::after { opacity: 1; }
 
 /* YOUR BEST (the top line) */
 .ff-best { position: absolute; left: 60px; right: 60px; top: calc(env(safe-area-inset-top, 0px) + 6px); min-height: 44px; display: grid; place-items: center; text-align: center; pointer-events: none;
@@ -44,9 +54,9 @@
 .ff-call.is-blaze { color: #fff3d6; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 180, 74, 0.98), 0 0 30px rgba(255, 140, 30, 0.7), 0 2px 0 rgba(30, 12, 0, 0.6); }
 .ff-call.is-gold { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 200, 60, 0.95), 0 0 28px rgba(255, 170, 30, 0.6), 0 2px 0 rgba(30, 14, 0, 0.6); }
 .ff-call.is-uv { font-size: clamp(20px, calc(var(--ff-w) * 0.06), 24px); color: #f1e6ff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(195, 91, 255, 0.95), 0 0 28px rgba(155, 92, 255, 0.6), 0 2px 0 rgba(10, 4, 30, 0.6); }
-.ff-warn { margin-top: 2px; font: 700 14px/1 var(--font-ui); letter-spacing: 0.24em; text-indent: 0.24em; color: #fff; opacity: 0; text-shadow: 0 0 10px rgba(155, 92, 255, 0.9), 0 1px 0 #07040f; }
+.ff-warn { display: inline-block; margin-top: 2px; padding: 6px 10px 6px 8px; border-radius: 3px; background: rgba(5, 3, 13, 0.84); font: 700 14px/1 var(--font-ui); letter-spacing: 0.24em; text-indent: 0.24em; color: #fff; opacity: 0; box-shadow: 0 0 0 1px rgba(195, 91, 255, 0.55); }   /* (white on its own dark plate: read on any floor) */
 .ff-stage.is-near .ff-warn { opacity: 1; animation: ff-blink 0.7s steps(2, jump-none) infinite; }
-@keyframes ff-blink { 0% { opacity: 1; } 100% { opacity: 0.35; } }
+@keyframes ff-blink { 0% { opacity: 1; } 100% { opacity: 0.62; } }
 
 /* THE OPENING — the live scene, no menu page: the sign FREE / FALL in neon tubes (FALL slipped a step down-right, a blazing ball dropping
    past it), FALL AS DEEP AS YOU CAN; at the foot the thumb-sweep hint + DRAG TO SPIN + THE ROOFTOP · FLOOR 0. The first drag fades it. */
@@ -57,7 +67,7 @@
 .ff-free { text-shadow: 0 0 2px #fff, 0 0 12px rgba(214, 120, 255, 1), 0 0 30px rgba(195, 91, 255, 0.85), 0 0 62px rgba(155, 92, 255, 0.55); }
 .ff-fall { margin-left: 0.56em; margin-top: 0.06em; text-shadow: 0 0 2px #fff, 0 0 12px rgba(200, 255, 100, 1), 0 0 30px rgba(184, 255, 59, 0.8), 0 0 62px rgba(140, 220, 40, 0.5); color: #fbfff2; }
 /* the blazing ball dropping past FALL: a hot ball under its flame (ONE element: the flame is its own gradient tail) */
-.ff-drop { position: absolute; right: 0.14em; top: -0.12em; width: 0.19em; height: 1.25em; border-radius: 0.095em; opacity: 0; will-change: transform, opacity;
+.ff-drop { position: absolute; right: 0.14em; top: -0.12em; width: 0.19em; height: 1.25em; clip-path: polygon(50% 0%, 100% 80%, 100% 100%, 0% 100%, 0% 80%); opacity: 0; will-change: transform, opacity;   /* (a flame tapering to a point over a round ball — NO PILLS: never a capsule) */
   background: radial-gradient(circle at 50% calc(100% - 0.095em), #fff 0 0.05em, #ffd27a 0.07em, #ff9a2a 0.095em, rgba(255, 150, 40, 0) 0.1em), linear-gradient(to bottom, rgba(255, 170, 60, 0) 0%, rgba(255, 170, 60, 0.75) 80%, rgba(255, 190, 90, 0) 100%);
   filter: drop-shadow(0 0 0.07em rgba(255, 170, 60, 0.9)); animation: ff-drop 2.8s cubic-bezier(0.5, 0, 0.9, 0.6) infinite; }
 @keyframes ff-drop { 0% { transform: translateY(-0.7em); opacity: 0; } 12% { opacity: 1; } 62% { transform: translateY(0.95em); opacity: 1; } 78%, 100% { transform: translateY(1.5em); opacity: 0; } }
@@ -80,7 +90,7 @@
 
 /* THE END = JAYWALK'S STANDARD (endscreen.js): the header · the cause · the big number · YOUR BEST · one line · the table's slot · the foot */
 .ff-end { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr auto; text-align: center;
-  background: linear-gradient(to bottom, rgba(5, 3, 13, 0.9) 0%, rgba(5, 3, 13, 0.78) 44%, rgba(5, 3, 13, 0.5) 64%, rgba(5, 3, 13, 0.86) 100%); }
+  background: linear-gradient(to bottom, rgba(5, 3, 13, 0.94) 0%, rgba(5, 3, 13, 0.9) 46%, rgba(5, 3, 13, 0.66) 66%, rgba(5, 3, 13, 0.9) 100%); }
 .ff-ec { align-self: start; margin-top: calc(env(safe-area-inset-top, 0px) + 58px); padding: 0 12px; display: grid; justify-items: center; gap: 10px; }
 .ff-ec-hd { margin-bottom: 4px; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; }
 .ff-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--ff-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; text-wrap: balance; }
@@ -130,4 +140,16 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ff-drop, .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-drop { opacity: 1; transform: translateY(0.5em); } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
+}
+
+/* A PHONE HELD SIDEWAYS (the review: 844 × 390 — a 234 px column; the end card ran out of it, PAUSED sat on its number): sized by the column */
+@media (max-height: 480px) {
+  .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 26px); } .ff-num { font-size: 40px; } .ff-area { font-size: 9px; letter-spacing: 0.2em; text-indent: 0.2em; } .ff-call { margin-top: 2px; min-height: 20px; font-size: 16px; } .ff-warn { font-size: 9px; padding: 4px 6px; }
+  .ff-best { left: 4px; right: 4px; font-size: 10px; letter-spacing: 0.12em; text-indent: 0.12em; min-height: 24px; top: 0; } .ff-snd { display: none; }
+  .ff-tag { font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; } .ff-hint { transform: scale(0.6); } .ff-foot { bottom: 20px; } .ff-foot-t { margin-top: 0; font-size: 15px; } .ff-foot-l { margin-top: 5px; font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; } .ff-note { font-size: 7px; letter-spacing: 0.1em; text-indent: 0.1em; padding: 2px 0; }
+  .ff-hold { gap: 4px; } .ff-hold-t { font-size: 14px; } .ff-hold-n { min-height: 64px; font-size: 64px; } .ff-hold-l { font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; }
+  .ff-ec { margin-top: 8px; gap: 3px; padding: 0 4px; } .ff-ec-hd { font-size: 11px; margin-bottom: 0; } .ff-ec-cause { font-size: 15px; } .ff-ec-n { margin-top: 0; font-size: 46px; } .ff-ec-fl { font-size: 9px; margin-top: -2px; }
+  .ff-ec-best { min-height: 12px; margin-top: 0; font-size: 10px; letter-spacing: 0.1em; } .ff-ec-best.is-new { font-size: 12px; } .ff-ec-line { font-size: 7.5px; letter-spacing: 0.06em; padding-left: 0; }
+  .ff-endfoot { padding: 0 8px 10px; gap: 6px; } .ff-again { min-height: 44px; padding: 6px 8px; gap: 8px; font-size: 13px; letter-spacing: 0.1em; } .ff-again-t { padding-left: 0.1em; } .ff-again-i svg { width: 18px; height: 18px; }
+  .ff-foot-row { gap: 6px; } .ff-foot-b { min-height: 44px; font-size: 9px; letter-spacing: 0.1em; text-indent: 0.1em; }
 }

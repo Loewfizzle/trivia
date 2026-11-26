@@ -37,6 +37,8 @@ export const KEY_SPIN = 60;
 export const OWED_MAX = 8 * MAX_SPIN;
 /** a frame this long (after a run's first second) is a HITCH (`?fps=1` counts them) */
 export const HITCH_MS = 33;
+/** a press this soon after a restart starts nothing (the second tap of a double tap on PLAY AGAIN) */
+export const RESTART_GUARD_MS = 350;
 
 /** a button that acts on its own press + lift (never a click), and is never a drag on the tower */
 function press(node, fn) {
@@ -64,7 +66,7 @@ export function createStage(app, o = {}) {
 
   // ---- the page: the play area (the canvas — a drag ANYWHERE spins the tower), the HUD over it, THE OPENING, the hold, the end
   const play = h('div.ff-play', { role: 'application', 'aria-label': 'Freefall — drag left or right to spin the tower' });
-  const dark = h('div.ff-dark', { 'aria-hidden': 'true' });
+  const dark = h('div.ff-dark', { 'aria-hidden': 'true' }), shade = h('div.ff-shade', { 'aria-hidden': 'true' });
   const topL = h('div.ff-best');
   const num = h('div.ff-num', { 'aria-label': '0' }, h('span.ff-dg', { 'aria-hidden': 'true' }, '0'));
   const areaL = h('div.ff-area', 'THE ROOFTOP'), call = h('div.ff-call', { 'aria-live': 'polite' }), warn = h('div.ff-warn', 'THE LIGHTS ARE GOING OUT');
@@ -89,7 +91,7 @@ export function createStage(app, o = {}) {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  const stage = h('div.ff-stage.is-open', play, dark, topL, hud, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE ? note : null, fps);
+  const stage = h('div.ff-stage.is-open', play, dark, shade, topL, hud, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE ? note : null, fps);
   app.replaceChildren(stage);
   const hook = { ends: [], view: null, sfx: null, auto: null };
   // (the page installs the shared engine itself; in the console it is running long since)
@@ -159,12 +161,12 @@ export function createStage(app, o = {}) {
   // ---- the run: the pure engine on this page's clock
   let seed = '', run = null, t0 = null, shown = false, endedAt = 0, starting = false, startN = 0, warmed = false;
   let owed = 0, carry = 0, pre = 0, clamped = 0, drag = null, keyDir = 0, keyTick = 0, autoTick = 0;
-  let held = false, heldT = 0, countAt = 0, countShown = 0, away = false;
+  let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
   let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hitches = 0;
   let ev = [], fed = 0;
   const cues = [];
   function restart(s = FIXED || newSeed()) {
-    seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++;
+    seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
     held = false; countAt = 0; away = false; hitches = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
@@ -202,6 +204,7 @@ export function createStage(app, o = {}) {
     if (FROM) { dive(FROM); fromRun = true; t0 = ts - run.t * TICK_MS; }
     owed = Math.max(-OWED_MAX, Math.min(OWED_MAX, pre)); pre = 0;
     awakeAt = performance.now(); awake(true);
+    if (document.visibilityState === 'hidden') hide();   // (it went live behind a hidden page — the start waited for the sounds: held at once, never lost to the dark unseen)
   }
   // THE START: the first drag. Tick 0 waits a moment (≤ START_WAIT_MS) until EVERY sound is decoded — no sound of a run ever takes the
   // late path (THE SOUND SYNC; a first-ever touch is also the audio's unlock). The logo + the hint fade and the camera sweeps down
@@ -243,14 +246,16 @@ export function createStage(app, o = {}) {
   }
   const stamp = ts => { const now = performance.now(); return ts > 0 && ts <= now + 4 && now - ts < 1000 ? ts : now; };   // (a browser whose event clock is not the page's: the handler's own time)
   const onUi = e => !!(e.target && e.target.closest && e.target.closest('button, a, .sheet, .sheet-backdrop'));
-  stage.addEventListener('pointerdown', e => {
+  // (the whole page is the drag's ground — the dark bars beside the phone's column on a wide screen too)
+  app.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (onUi(e) || shown || sheetOpen) return;
-    if (t0 == null) begin(stamp(e.timeStamp));
+    if (drag) return;                                               // (a second finger never steals the drag: the first one keeps it)
+    if (t0 == null) { if (performance.now() - restartAt < RESTART_GUARD_MS) return; begin(stamp(e.timeStamp)); }   // (the tail of a double tap on PLAY AGAIN is not a start)
     drag = { id: e.pointerId, x: e.clientX };
-    try { stage.setPointerCapture(e.pointerId); } catch { /* fine */ }
-  });
-  stage.addEventListener('pointermove', e => {
+    try { app.setPointerCapture(e.pointerId); } catch { /* fine */ }
+  }, sig);
+  app.addEventListener('pointermove', e => {
     if (!drag || drag.id !== e.pointerId) return;
     // every sample the browser gathered since the last frame, each at its own time (a 120 Hz finger on a 60 Hz frame)
     const list = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null, n = list && list.length ? list.length : 1;
@@ -263,10 +268,10 @@ export function createStage(app, o = {}) {
       carry -= units;
       move(stamp(s.timeStamp), units);
     }
-  });
+  }, sig);
   const lift = e => { if (drag && drag.id === e.pointerId) drag = null; };
-  stage.addEventListener('pointerup', lift); stage.addEventListener('pointercancel', lift);
-  stage.addEventListener('touchmove', e => { if (!onUi(e)) e.preventDefault(); }, { passive: false });   // (no page scroll under a finger)
+  app.addEventListener('pointerup', lift, sig); app.addEventListener('pointercancel', lift, sig);
+  app.addEventListener('touchmove', e => { if (!onUi(e)) e.preventDefault(); }, { passive: false, signal: ac.signal });   // (no page scroll under a finger)
   document.addEventListener('keydown', e => {
     if (sheetOpen) return;
     if (shown && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); playAgain(); return; }
@@ -282,7 +287,8 @@ export function createStage(app, o = {}) {
   function hide() {
     awake(false);
     view.rest(true);
-    if (t0 == null || held || isOver(run)) return;
+    if (held) { countAt = 0; countShown = 0; holdN.textContent = ''; return; }   // (hidden again during the 3 · 2 · 1: the count starts over when the page is back — never skipped)
+    if (t0 == null || isOver(run)) return;
     const T = Math.max(0, Math.floor((performance.now() - t0) / TICK_MS));
     settle(T); stepTo(run, T, ev);
     if (!isOver(run) && hold(run, Math.max(T + 1, run.mt), ev)) {
@@ -406,10 +412,10 @@ export function createStage(app, o = {}) {
     if (a !== hudArea) { hudArea = a; areaL.textContent = a; }
     if (newBest) topL.textContent = bestLine(hudFloor);
   }
-  /** THE DARKNESS: the screen's edges close in from above as it comes nearer (5 floors off = nothing) — never over the ball or its floor */
+  /** THE DARKNESS: the screen's edges close in from above as it comes nearer (6 floors off — its lead — = nothing) — never over the ball or its floor */
   function hudDarkNow(gap, over) {
     hudGap = gap;
-    dark.style.opacity = t0 == null ? '0' : String(Math.max(0, Math.min(1, (5 - gap) / 5)));
+    dark.style.opacity = t0 == null ? '0' : String(Math.max(0, Math.min(1, (6 - gap) / 5)));
     stage.classList.toggle('is-near', gap <= 2 && t0 != null && !over);
   }
   function countLine(c) { countShown = c; holdN.textContent = String(c); }
@@ -438,7 +444,7 @@ export function createStage(app, o = {}) {
     stop() { cancelAnimationFrame(raf); },
   });
   if (o.hook) window[o.hook] = hook;
-  restart();
+  restart(); restartAt = -1e9;
   raf = requestAnimationFrame(frame);
   return {
     hook, restart,

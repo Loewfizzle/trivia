@@ -16,7 +16,7 @@ export const FF_ART_REV = 1;
 /** the world (the lab's graybox numbers — the DRAG's 1 : 1 scale is the owner's phone check): a floor every H down the shaft; the ring
  *  from the pillar (RI) out to RO; the ball rides at RB. The ball is drawn a little smaller than the graybox's (its CENTRE decides: less
  *  of it hangs over the neighbour) — still ≥ 34 pt at 390 wide; a red slice stands RISE proud of the floor */
-export const SHAPE = Object.freeze({ H: 1, RO: 1, RI: 0.2, RB: 0.66, R_BALL: 0.125, THICK: 0.11, HOP: 0.42, RISE: 0.07, RW: 2.7 });
+export const SHAPE = Object.freeze({ H: 1, RO: 1, RI: 0.2, RB: 0.66, R_BALL: 0.125, THICK: 0.2, HOP: 0.42, RISE: 0.1, RW: 2.7 });
 /** THE CAMERA (the graybox's): in front of the ball, `pitch`° down, a `fov`° lens; `ballY` = where the ball's floor sits on the screen */
 export const CAM = Object.freeze({ fov: 46, pitch: 33, fill: 0.8, ballY: 0.34, aspectMax: 0.47 });
 /** THE POSES: `play` (the graybox's camera) · `open` (THE OPENING: high over the tower top, further back — the skyline in sight) */
@@ -102,7 +102,12 @@ export function createNight(host, o = {}) {
   // ---- the uniforms every material shares (ONE object each: a twin material in the bloom pass reads the same values)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uSpin: { value: 0 }, uAspect: { value: 1 }, uGrey: { value: 0 } };
   const TWINS = [];
-  const twin = (mesh, mat) => { const t = mat.clone(); t.uniforms = mat.uniforms; TWINS.push([mesh, t, null]); return mesh; };
+  // (a twin is BUILT from the material's own pieces + the SAME uniforms object — never cloned: a clone copies every uniform, the wall's target too)
+  const twin = (mesh, mat) => {
+    const t = new THREE.ShaderMaterial({ vertexShader: mat.vertexShader, fragmentShader: mat.fragmentShader, uniforms: mat.uniforms, extensions: mat.extensions, transparent: mat.transparent, depthTest: mat.depthTest, depthWrite: mat.depthWrite, side: mat.side, blending: mat.blending, blendEquation: mat.blendEquation, blendSrc: mat.blendSrc, blendDst: mat.blendDst });
+    TWINS.push([mesh, t, null]);
+    return mesh;
+  };
   const derivs = { derivatives: true };
   const premul = { transparent: true, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor };
 
@@ -455,7 +460,7 @@ export function createNight(host, o = {}) {
     S[KICK] *= Math.exp(-sec * 9); S[SHAKE] *= Math.exp(-sec * 11);
     const shake = S[SHAKE] > 0.01 ? Math.sin(time * 71) * 0.035 * S[SHAKE] : 0;
     const lookY = place(cam, S[PITCH], S[BACK], S[BALLY], S[CAMY], -S[KICK] + shake);
-    pillar.position.y = -S[CAMY] * SHAPE.H - 0.004 - 22; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it sinks with the camera)
+    pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it goes down with the BALL's own glide: never a stub over the floor it lands on)
     G.uSpin.value = (run.a + extra) * UNIT;
     G.uTopY.value = -S[CAMY] * SHAPE.H;
 
@@ -467,7 +472,7 @@ export function createNight(host, o = {}) {
     for (let gi = 0; gi < 2; gi++) {
       const gf = S[GH0 + gi];
       if (gf < 0) continue;
-      const age = (time - S[GT0 + gi]) / 0.3;
+      const age = (time - S[GT0 + gi]) / 0.22;
       if (age >= 1 || gf >= run.floor) { if (age >= 1) S[GH0 + gi] = -1; if (gf >= run.floor) continue; }
       if (S[GH0 + gi] >= 0) { const e = Math.max(0, (age - 0.25) / 0.75); n = putFloor(gf, n, 1 - e * e, e, tick); }
     }
@@ -512,14 +517,14 @@ export function createNight(host, o = {}) {
 
     // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames shed where it has just been (it falls away from them: a billowing
     // column), embers drifting off it — a fixed budget, the tier trims the rate
-    ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.75 + 0.95 * falling;
+    ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.45 + 0.5 * falling;
     if (fxTex.have !== fxHave) { fxHave = fxTex.have; flameU.tFx.value = fxTex.tex; flameU.uHave.value = 1; flameU.uFlip.value = fxTex.flip; }
     if (bz > 0.4 && alive && !reduce) {
       flameOwed += sec * FLAME_RATE[tier]; emberOwed += sec * EMBER_RATE[tier];
       let made = 0;
       while (flameOwed >= 1 && made < 6) {
         flameOwed -= 1; made++;
-        flame((rnd() - 0.5) * 0.12, ball.position.y + rnd() * 0.12, SHAPE.RB + (rnd() - 0.5) * 0.1, (rnd() - 0.5) * 0.6, 0.2 + rnd() * 0.55, (rnd() - 0.5) * 0.32 + 0.12, 0.24 + rnd() * 0.2, 0.18 + rnd() * 0.13);
+        flame((rnd() - 0.5) * 0.12, ball.position.y + rnd() * 0.12, SHAPE.RB + (rnd() - 0.5) * 0.1, (rnd() - 0.5) * 0.75, 0.08 + rnd() * 0.4, (rnd() - 0.5) * 0.36 + 0.12, 0.22 + rnd() * 0.19, 0.17 + rnd() * 0.12);
       }
       if (flameOwed > 6) flameOwed = 0;
       if (made) fO.needsUpdate = fV.needsUpdate = fT.needsUpdate = true;

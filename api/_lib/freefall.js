@@ -17,7 +17,8 @@ import { ENTRY_CHARS_MAX } from '../../js/games/freefall/tuning.js';
  * 1 … 64 printable ASCII characters) · 'log' (not a list) · 'too many entries' (more than the mode has ticks) · 'entry' (not { t: a
  * whole tick ≥ 0, a: a whole angle 0 … 4095 }) · 'ticks not rising' · 'past the cap' · 'no change' (an entry that turns nothing) ·
  * 'spin' (more than MAX SPIN in one tick) · 'past the end' (a move after the run was over) · 'until' (a bad `until` — a run scored as it
- * stands at a tick, a match still going: the answer then carries `over`).
+ * stands at a tick, a match still going: the answer then carries `over`) · F2 — THE HOLD: 'too many holds' (more than the mode has: solo 3,
+ * a match / the daily none) · 'hold' (a hold the engine did not take as written). An accepted held run's answer carries `holds`.
  */
 export const judgeRun = input => judge(input !== null && typeof input === 'object' ? input : {});
 
