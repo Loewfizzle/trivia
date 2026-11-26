@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""FREEFALL F2 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
+"""FREEFALL F2 + F3 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
 (Downloads\\grok\\freefall\\ by default) are only READ — never moved, renamed or edited. HIGH RISE's pattern (build-highrise-assets.py).
 
-    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx]
+    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title]
     (-P -E: nothing is imported from the script's folder / the working folder / the environment; numpy lives in the user's site-packages,
      which -I would hide)
 
@@ -18,7 +18,16 @@
               FIRE): ONLY the four sprites used — flame_01 · flame_03 · fire_01 · smoke_01 (Kenney's Particle Pack, CC0) — read straight
               out of the archive (nothing is unpacked to disk), each 256 px, side by side in ONE grey atlas (1024 × 256: a sprite's light =
               its alpha × its brightness; the shader tints it white → yellow → orange → neon pink) + assets/freefall/CREDITS.md.
-  The day walls + the other breakthrough assets are F3's. Area arrival + new best = JAYWALK's files; the reflection map = HIGH RISE's (reused).
+  F3 — backdrops\\ff-<area>-day.png → assets/freefall/walls/<area>-day.webp — the four DAY walls (the APPROVED files: ff-harbor-day.png is v3,
+              ff-deep-day.png the second take — never a -v1 / -v2), the same size + the same wrap check. A wall whose top | bottom join shows
+              (the delivery's review 3: ff-harbor-day — "the build blends it") is BLENDED over a band at its foot, then measured again.
+              ff-caustics.png is NOT used (the caustics are the shader's). THE ROOFTOP by day = JAYWALK's day skyline (reused, no copy).
+  F3 — final\\title-05-lettering.png + title-05-tagline.png → assets/freefall/title/lettering-1170.webp · lettering-780.webp · tagline-1170.webp ·
+              tagline-780.webp — THE OPENING's title (Grok-made lettering: no credit needed), WebP WITH ALPHA at two widths (the page's
+              srcset). Resized PREMULTIPLIED (a plain resize of straight alpha drags the clear pixels' black into the edge: a dark
+              fringe); THE EDGES ARE MEASURED on hot pink and on a pale sky against the full-size picture laid on the same ground and
+              resized — a fringe fails the build.
+  The breakthrough assets are F3B's. Area arrival + new best = JAYWALK's files (reused).
 """
 import sys, os, re, io, shutil, hashlib, zipfile
 import numpy as np
@@ -32,13 +41,20 @@ ONLY = next((a[7:].split(',') for a in sys.argv[1:] if a.startswith('--only=')),
 OUT_W = os.path.join(ROOT, 'assets', 'freefall', 'walls')
 OUT_A = os.path.join(ROOT, 'audio', 'freefall')
 OUT_F = os.path.join(ROOT, 'assets', 'freefall', 'fx')
-for d in (OUT_W, OUT_A, OUT_F):
+OUT_T = os.path.join(ROOT, 'assets', 'freefall', 'title')
+for d in (OUT_W, OUT_A, OUT_F, OUT_T):
     os.makedirs(d, exist_ok=True)
 want = lambda step: ONLY is None or step in ONLY
 kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
 
 WALLS = ['offices', 'speakeasy', 'harbor', 'deep']
 WALL_PX = 1024
+LOOKS = ['night', 'day']
+# THE TITLE (F3): [the delivery's file, the name in the repo] at these widths (the page's srcset: a 390-wide phone at 3× shows 330 pt = 990 px)
+TITLE = [('title-05-lettering.png', 'lettering'), ('title-05-tagline.png', 'tagline')]
+TITLE_W = [1170, 780]
+# the grounds the title's edges are measured on: hot pink (the night's tower) + a pale sky (the day's)
+GROUNDS = {'pink': (255, 79, 168), 'pale sky': (191, 230, 255)}
 SOUNDS = ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom']
 # THE BLAZE's sprites, in the atlas's order (night-fx.js FLAME_F reads them by index: 0 · 1 flames, 2 the hot core's speckle, 3 the smoke)
 SPRITES = ['flame_01', 'flame_03', 'fire_01', 'smoke_01']
@@ -56,23 +72,78 @@ def seam(im):
     return lr, tb, ix, iy
 
 
+def blend_foot(im, band):
+    """a top | bottom join that shows: the last `band` rows fade into the top's own rows, mirrored — the foot then runs into the top"""
+    a = np.asarray(im, np.float32).copy()
+    h = a.shape[0]
+    for k in range(band):
+        t = (k + 1) / (band + 1)
+        t = t * t * (3 - 2 * t)
+        a[h - band + k] = a[h - band + k] * (1 - t) + a[band - 1 - k] * t
+    return Image.fromarray(np.uint8(np.clip(a + 0.5, 0, 255)), 'RGB')
+
+
 def walls():
+    for look in LOOKS:
+        total = 0
+        for name in WALLS:
+            src = os.path.join(SRC, 'backdrops', f'ff-{name}-{look}.png')
+            im = Image.open(src).convert('RGB')
+            assert im.size == (2048, 2048), (name, im.size)
+            # (a BOX average of each 2 × 2 block: the exact inverse of the delivery's 2× upscale — it can not open the seam a Lanczos window would)
+            small = im.resize((WALL_PX, WALL_PX), Image.BOX)
+            lr, tb, ix, iy = seam(small)
+            note = ''
+            if tb >= 2.5 * iy + 4:   # (the delivery's review 3: "a faint join line … the build blends it")
+                small = blend_foot(small, 64)
+                note = f'  (its top | bottom join was {tb:.1f}: blended over the last 64 rows)'
+            out = os.path.join(OUT_W, f'{name}-{look}.webp')
+            small.save(out, 'WEBP', quality=80, method=6)
+            back = Image.open(out).convert('RGB')
+            lr, tb, ix, iy = seam(back)
+            total += os.path.getsize(out)
+            print(f'  backdrops/ff-{name}-{look}.png → {os.path.relpath(out, ROOT)}  {kb(out)}  mean luminance {np.asarray(back.convert("L"), np.float32).mean():.0f}'
+                  f'  seam left|right {lr:.1f} (a column step inside: {ix:.1f}) · top|bottom {tb:.1f} (a row step: {iy:.1f}){note}')
+            assert lr < 2.5 * ix + 4 and tb < 2.5 * iy + 4, f'{name}-{look}: the wall no longer wraps'
+        print(f'  the four {look} walls: {total / 1024:.0f} KB')
+
+
+def over(rgba, ground):
+    """a straight-alpha picture laid on a flat ground → float RGB"""
+    a = np.asarray(rgba, np.float32)
+    al = a[..., 3:4] / 255
+    return a[..., :3] * al + np.float32(ground) * (1 - al)
+
+
+def title():
     total = 0
-    for name in WALLS:
-        src = os.path.join(SRC, 'backdrops', f'ff-{name}-night.png')
-        im = Image.open(src).convert('RGB')
-        assert im.size == (2048, 2048), (name, im.size)
-        # (a BOX average of each 2 × 2 block: the exact inverse of the delivery's 2× upscale — it can not open the seam a Lanczos window would)
-        small = im.resize((WALL_PX, WALL_PX), Image.BOX)
-        out = os.path.join(OUT_W, f'{name}-night.webp')
-        small.save(out, 'WEBP', quality=80, method=6)
-        back = Image.open(out).convert('RGB')
-        lr, tb, ix, iy = seam(back)
-        total += os.path.getsize(out)
-        print(f'  backdrops/ff-{name}-night.png → {os.path.relpath(out, ROOT)}  {kb(out)}  mean luminance {np.asarray(back.convert("L"), np.float32).mean():.0f}'
-              f'  seam left|right {lr:.1f} (a column step inside: {ix:.1f}) · top|bottom {tb:.1f} (a row step: {iy:.1f})')
-        assert lr < 2.5 * ix + 4 and tb < 2.5 * iy + 4, f'{name}: the wall no longer wraps'
-    print(f'  the four night walls: {total / 1024:.0f} KB')
+    for src_name, name in TITLE:
+        src = os.path.join(SRC, 'final', src_name)
+        im = Image.open(src)
+        assert im.mode == 'RGBA', (src_name, im.mode)
+        for w in TITLE_W:
+            h = round(im.height * w / im.width)
+            # PREMULTIPLIED through the resize (PIL's 'RGBa'): the clear pixels' colour never reaches an edge
+            small = im.convert('RGBa').resize((w, h), Image.LANCZOS).convert('RGBA')
+            out = os.path.join(OUT_T, f'{name}-{w}.webp')
+            small.save(out, 'WEBP', quality=90, alpha_quality=100, method=6, exact=False)
+            back = Image.open(out).convert('RGBA')
+            assert back.size == (w, h)
+            al = np.asarray(back, np.uint8)[..., 3]
+            edge = (al > 8) & (al < 247)
+            worst = []
+            for gname, g in GROUNDS.items():
+                # the reference: the full-size picture on this ground, THEN resized (what the eye should get) — against the shipped file on it
+                ref = np.asarray(Image.fromarray(np.uint8(np.clip(over(im, g) + 0.5, 0, 255)), 'RGB').resize((w, h), Image.LANCZOS), np.float32)
+                got = over(back, g)
+                d = got - ref
+                dark = float((-d[edge]).clip(0).mean()) if edge.any() else 0.0   # (how much DARKER than the reference the edge is: a fringe)
+                err = float(np.abs(d[edge]).mean()) if edge.any() else 0.0
+                worst.append(f'{gname}: edge error {err:.1f}, darker by {dark:.1f}')
+                assert dark < 4 and err < 7, f'{name}-{w} on {gname}: a fringe (mean error {err:.1f}, darker by {dark:.1f} of 255)'
+            total += os.path.getsize(out)
+            print(f'  final/{src_name} → {os.path.relpath(out, ROOT)}  {w} × {h}  {kb(out)}  ({int(edge.sum())} edge pixels — ' + ' · '.join(worst) + ')')
+    print(f'  the title (four files): {total / 1024:.0f} KB')
 
 
 def credits():
@@ -131,11 +202,13 @@ def fx():
     print(f'  → {os.path.relpath(out, ROOT)}  {kb(out)}  ({atlas.size[0]} × {atlas.size[1]})')
     with open(os.path.join(ROOT, 'assets', 'freefall', 'CREDITS.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('# FREEFALL — the pictures\n\n')
-        f.write("- `walls/*-night.webp` — the four night walls of the shaft: created with Grok Imagine for this game (the owner's delivery,\n")
-        f.write('  `Downloads/grok/freefall/backdrops/` — its `notes.txt`).\n')
+        f.write("- `walls/*-night.webp` · `walls/*-day.webp` — the walls of the shaft by night + by day: created with Grok Imagine for this game\n")
+        f.write('  (the owner\'s delivery, `Downloads/grok/freefall/backdrops/` — its `notes.txt`).\n')
+        f.write("- `title/lettering-*.webp` · `title/tagline-*.webp` — THE OPENING's title (title-05): lettering made with Grok for this game —\n")
+        f.write('  no third-party credit needed (`Downloads/grok/freefall/final/notes.txt`).\n')
         f.write("- `fx/blaze.webp` — THE BLAZE's flame sprites: `" + '`, `'.join(SPRITES) + '` from **Particle Pack** by Kenney Vleugels (kenney.nl),\n')
         f.write('  Creative Commons Zero (CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/); four of its sprites, greyscale, in one atlas.\n')
-        f.write("- THE ROOFTOP's skyline is JAYWALK's painting (`assets/jaywalk/skyline-night.webp`).\n\n")
+        f.write("- THE ROOFTOP's skyline is JAYWALK's painting (`assets/jaywalk/skyline-night.webp` · `skyline-day.webp`).\n\n")
         f.write('`python -P -E scripts/build-freefall-assets.py` builds them; the delivery is only read.\n')
 
 
@@ -145,3 +218,5 @@ if want('sfx'):
     print('THE SOUNDS'); sfx()
 if want('fx'):
     print('THE BLAZE (the sprites)'); fx()
+if want('title'):
+    print('THE TITLE'); title()
