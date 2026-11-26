@@ -443,7 +443,7 @@ function highriseExtra(game, uid, out) {
 // freefall-solo; a counted MATCH run — F4B — raises the SAME best). A run the server refused (`bad`) is named in `rejected` and earns
 // nothing. THE THREE CARDS' flags (`ft`: reachedHarbor · terminal · reachedBottom) come from that same replay — `harbor` (floor 120, one
 // run) · `terminal` (15 floors in a row without a bounce) · `bottom` (floor 200, solo or match). THE AVERAGE (the owner: as JAYWALK's):
-// a SOLO run's floors, 0 too (`av`). NOTHING of this is ever written while counting is OFF (api/report.js: the switch returns before any credit).
+// a SOLO run's floors (`av` — a floor-0 run is `empty`: the step skips it, as JAYWALK's lane-0 run). NOTHING of this is ever written while counting is OFF (api/report.js: the switch returns before any credit).
 export const FF_FEATS = Object.freeze({ reachedHarbor: 'harbor', terminal: 'terminal', reachedBottom: 'bottom' });
 function freefallExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};

@@ -139,7 +139,8 @@ export function stampsOf(node) {
  *   ahead   in WALL time: a chunk's last event can not lie more than 2 s after its own arrival — on its own segment's clock
  *   behind  in RUN ticks: its first event at most 8 s of PLAY behind the run's clock at its arrival (the time a run stood held is no
  *           lateness: the tail a phone could not send before it was locked lands when it is back)
- *   a hold's stamp can not lie before the hold itself; events after a hold WITHOUT its stamp = no clock for them: the run is CUT at that hold
+ *   a hold's stamp can not lie before the hold itself; events after a hold WITHOUT its stamp — or AHEAD of it (a stamp that landed late:
+ *   the phone had gone on without it) — have no clock: the run is CUT at that hold
  * → null (honest) | { why: 'go' | 'chunks' | 'clock' | 'ahead' | 'hold clock' } (refused) |
  *   { why: 'behind', tick, events (the events before the cut — the run counts up to them) } | { why: 'hold', tick, seg (the segments that have a clock) }
  */
@@ -169,7 +170,11 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     last = k.at;
     // (events past a hold whose way back was never stamped: no clock — the run counts up to that hold)
     if (k.s1 >= base.length) return { why: 'hold', tick: holdTicks[base.length - 1], seg: base.length };
-    if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) return { why: 'ahead' };
+    // (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's
+    //  HIGH): the way back's stamp is not the moment the run went on — the phone got no answer, went on by its own clock, and the write
+    //  landed when the line was back: the events past that hold have no clock they can be held to → the run is CUT at that hold, as with
+    //  no stamp at all. Nothing is gained by it: the part before the hold was checked on its own segment's clock.)
+    if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) return k.s1 > 0 ? { why: 'hold', tick: holdTicks[k.s1 - 1], seg: k.s1 } : { why: 'ahead' };
     const now = runTick(k.at);
     if (k.t0 >= now - CLOCK.behind) drop = null;   // (on the clock — a drop before it is settled)
     else if (drop) { const lag = now - k.t0; if (k.at > drop.until || lag > drop.lag + CLOCK.jitter) return { why: 'behind', tick: drop.tick, events: drop.events }; drop.lag = lag; }

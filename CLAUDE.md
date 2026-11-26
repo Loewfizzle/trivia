@@ -1,8 +1,8 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each). Fifteen games, **FIVE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK, HIGH RISE
-(`js/config.js` GAMES[].playable is the one switch — the other ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+Mobile-first multiplayer party games (2–8 players, one phone each). Sixteen games, **FIVE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK, HIGH RISE
+(`js/config.js` GAMES[].playable is the one switch — ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
+CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md; FREEFALL is BEING BUILT — HIDDEN, a `preview` row, never flip `playable`: docs/freefall.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -32,7 +32,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the five playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
 | `docs/highrise.md` | **HIGH RISE** (LIVE since THE GO-LIVE, Nov 20 — the rules, the two looks, the cartridge + THE MATCH, THE SWITCH ON, THE SIGN HOLD (lifted, CITY PART 1), THE POSTER share card; every pass indexed there) |
-| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F3B, Nov 26: the rules + the judge, BOTH LOOKS + SOLO + THE BREAKTHROUGHS on /freefall-play; NOT registered; F4 = the cartridge) |
+| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F4A, Nov 26: THE HIDDEN CARTRIDGE (owner-only, solo), THE PROOF (`ff`), the judge on the server, THE SWITCH OFF, the board + AVG, the cards; the test page /freefall-play; F4B = THE MATCH + the end screen + SHARE) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | three of the five dailies (+ docs/jaywalk.md · docs/highrise.md "THE DAILY") (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -123,7 +123,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   the 3rd COUNTED PLAY (`core/progress.js#countedPlays` — a room match, a counted daily finish, or a SOLO run THE SERVER VERIFIED: the row's `sv`, `core/proof.js#VERIFIED_SOLO` = JAYWALK + HIGH RISE; a host-graded / refused solo run never); a public row = `api/board.js#ROW_KEYS`.
 - THE REAL PLAYER COUNT: anything the server PAYS BY A COUNT takes it from what it can verify (`api/report.js`); A SEAT IS NOT A PLAY (`PROOF_TREES`).
 - Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
-- THE PROOF TREE (`jw` + `hr`, ONE shared copy — `core/proof.js`, `kit/proof-writer.js`, `kit/proof-io.js`): never trusts what the HOST writes; THE STAMP `t0`, a GO within 5 s, THE LIVE LOCK; THE CHUNK CEILING (THE FIX PASS) → docs/match-kit.md (moved Nov 22).
+- THE PROOF TREE (`jw` + `hr` + `ff`, ONE shared copy — `core/proof.js`, `kit/proof-writer.js`, `kit/proof-io.js`): never trusts what the HOST writes; THE STAMP `t0`, a GO within 5 s, THE LIVE LOCK; THE CHUNK CEILING (THE FIX PASS) → docs/match-kit.md (moved Nov 22).
 - THE FIX PASS (Nov 22): THE ROOM LIST IS CLOSED (`rooms/.read` false) · THE ERROR BOUNDARY (`ui/game-broke.js`) · the server's housekeeping claims its window (`api/_lib/due.js`) → docs/data-model.md (moved Nov 25).
 - HOST TRUST: a host-graded game's result is checked against the players' OWN data (PRISM `prismVerify`, OVERCLOCK `regrade.js`); THE REPORT LOCK; A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (`screen.holdsRun` · THE RUN HOLD) → docs/match-kit.md (moved Nov 25).
 - ITEM NAMES ONLY TO OWNERS · THE ADD-ME LINK (a server-made `flink/` code) + STATS · THE OWNER'S NAME TAG (`ui/owner-tag.js` — OWNER-ONLY lists, never a public screen) → docs/profiles.md (moved Nov 25).

@@ -18,6 +18,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { isHost } from '../../store.js';
 import { createProofWriter } from '../kit/proof-writer.js';
 import { proofIo, stampT0 } from '../kit/proof-io.js';
 import { liveKeyFor } from '../registry.js';
@@ -37,6 +38,8 @@ export const NOT_COUNTED = Object.freeze({ net: 'NOT COUNTED — NO CONNECTION',
 export const notCounted = why => (why === 'no answer' || why === 'late' ? NOT_COUNTED.net : NOT_COUNTED.line);
 /** the podium is waited this long after a proven run's end before the stage's own card says NO SIGNAL (never a frozen screen) */
 export const FINAL_WAIT_MS = 6000;
+/** PLAY AGAIN on the stage's own card: the orphan match's end is waited this long before the stage starts over in it */
+export const AGAIN_WAIT_MS = 3500;
 /** a hold's stamp is waited this long (the count is 2.4 s: an answer after it is no use to that count) */
 export const STAMP_WAIT_MS = 2300;
 
@@ -65,13 +68,14 @@ const drv = {
   onEnd: r => (cur ? cur.end(r) : { own: true }),
   onHide: () => { if (cur) cur.hide(); },
   onLeave: () => (cur ? cur.leave() : null),
+  onAgain: () => (cur ? cur.again() : false),
   leaveWords: 'BACK',
 };
 
 export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '', whyNot = '', stranded = false;
-  let final = null, finalWrap = null, goTimer = 0, finalTimer = 0;
+  let final = null, finalWrap = null, goTimer = 0, finalTimer = 0, capN = -1, againing = false;   // (capN: the log's events through a hold whose way back got no stamp — nothing past them is sent)
   const mine = g => !!(g && g.participants && g.participants[uid]);
   const treePath = () => `rooms/${code}/ff/${matchId}`, nodePath = () => `${treePath()}/${uid}`;
   let lkGame = null, lkKey = null;
@@ -95,7 +99,7 @@ export function createView() {
   // ones, each stamped by the SERVER when it arrives; ONE burst at a time, a refused chunk sent again, never dropped on the mirror alone;
   // then `e` behind the last chunk's acknowledgement
   const W = createProofWriter({
-    count: () => (S && proven ? finalCount(S.run()) : 0), pack: (a, b) => packRange(S.run(), a, b), entriesOf: eventsOf,
+    count: () => { if (!S || !proven) return 0; const n = finalCount(S.run()); return capN >= 0 && n > capN ? capN : n; }, pack: (a, b) => packRange(S.run(), a, b), entriesOf: eventsOf,
     chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => CLOCK.flushMs, left: matchLeft,
     onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
     onDead: why => report(`FREEFALL: the proof log could not be completed (${why}) — the run can not count`, 'rules'),
@@ -112,7 +116,7 @@ export function createView() {
       const fin = G => { done = true; clearTimeout(goTimer); started = true; res(G); };
       const proof = goAt => {
         if (stale()) return;
-        go = goAt; proven = true; whyNot = ''; wroteE = false; W.reset();
+        go = goAt; proven = true; whyNot = ''; wroteE = false; capN = -1; W.reset();
         fin({ seed: seedOf(code, matchId, go), t0: perfOf(go + START_LEAD_MS), note: '' });
       };
       /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never
@@ -149,6 +153,30 @@ export function createView() {
       const t = setTimeout(() => res(0), STAMP_WAIT_MS);
       dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); }, () => { clearTimeout(t); res(0); });
     });
+  }
+  /** a hold's way back went on WITHOUT its stamp (three counts, no answer): the run says so, and nothing past that hold is sent — the judge
+   *  counts the run up to it (a stamp that still lands later changes nothing: proof.js cuts there too) */
+  function unstamped() {
+    if (!proven || !S) return '';
+    if (capN < 0) capN = finalCount(S.run());   // (the run is still held here: every event through the hold is final, none past it exists)
+    return NOT_COUNTED.pause;
+  }
+  /** PLAY AGAIN on the stage's OWN card (an UNPROVEN run, NO SIGNAL): this match's one GO is spent and its match never ended (no `e`) — the
+   *  host (this phone, a room of one) marks the run ended (`game.x/{uid}`: director.js ends the match), then THE INSTANT AGAIN starts a NEW
+   *  match — its own GO: the next run can count. No line / not the host → false: the stage starts over in this match (not counted, said so) */
+  function again() {
+    const g = st && st.game, m = matchId;
+    if (againing || gone || !g || g.matchId !== m || !isHost() || !mine(g)) return Promise.resolve(false);
+    againing = true;
+    const instant = () => lazyImport(import('../kit/again.js'), '../kit/again.js').then(A => A.instantAgain());
+    /** the match is `final` (the host's step took the mark) — waited for a moment: no line = it never comes */
+    const finalSoon = () => new Promise(res => { const t0 = performance.now(), iv = setInterval(() => { const x = st && st.game, ok = !!x && x.matchId === m && x.phase === 'final'; if (ok || gone || performance.now() - t0 > AGAIN_WAIT_MS) { clearInterval(iv); res(ok); } }, 80); });
+    const fail = () => { againing = false; return false; };
+    if (g.phase !== 'final') {
+      expectRefusal(`rooms/${code}/game`, 'freefall: ending an unproven run\'s match — this phone is no longer the host', AGAIN_WAIT_MS + 4000, 'not-host');
+      dbSet(dbRef(`rooms/${code}/game/x/${uid}`), 1).catch(() => {});
+    }
+    return finalSoon().then(ok => (ok ? instant() : false)).then(ok => (ok === false ? fail() : true), fail);
   }
   /** THE PROOF: the new final events go up (`force` = now) — the writer above */
   function flush(force) { if (proven && S) W.flush(force); }
@@ -193,7 +221,7 @@ export function createView() {
     const g = st && st.game;
     if (!g || !S) return;
     if (matchLeft()) lateProof('seen');   // (from the moment this phone sees the match end, a chunk / e still in flight is an expected refusal)
-    if (g.phase === 'final' && g.matchId === matchId && !final && (!started || S.state().shown)) showFinal(g);   // (a run's own end is SEEN first — the stage's end hold)
+    if (g.phase === 'final' && g.matchId === matchId && !final && !againing && (!started || S.state().shown)) showFinal(g);   // (a run's own end is SEEN first — the stage's end hold)
     if (g.phase === 'play' && mine(g) && !started && !S.state().starting) { const runs = runsNow(), n = runs ? runs[uid] : null; if (n && n.go > 0 && !n.e) strand(n); }
     if (final) final.refresh();
   }
@@ -201,7 +229,7 @@ export function createView() {
   return {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
-      cur = { go: askGo, resume, unstamped: () => (proven ? NOT_COUNTED.pause : ''), frame: () => flush(false), over, end, hide: () => { if (S && started && !S.state().over) flush(true); }, leave };
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end, hide: () => { if (S && started && !S.state().over) flush(true); }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

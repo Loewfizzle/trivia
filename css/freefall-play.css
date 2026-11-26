@@ -270,5 +270,6 @@
 .ff-fin-would.is-off { color: #d9d4f2; }
 .ff-fin-would:empty { min-height: 0; }
 .ff-again.is-busy, .ff-city.is-busy { opacity: 0.5; pointer-events: none; }
+.ff-foot-row.is-one { grid-template-columns: 1fr; }
 .ff-stage.ff-game.is-live .ff-note { bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }   /* (an UNPROVEN run says so while it is on) */
 @media (prefers-reduced-motion: reduce) { .ff-final { animation: none; } }

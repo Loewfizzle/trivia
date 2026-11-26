@@ -38,7 +38,11 @@ export function finalPatch(game, runs, now, code) {
 export function nextStep(game, { now, live, code = '' } = {}) {
   if (!game || game.phase !== 'play') return null;
   const runs = (live && live.runs) || {}, ids = Object.keys(game.participants || {});
-  return ids.length > 0 && ids.every(u => runs[u] && runs[u].e) ? finalPatch(game, runs, now, code) : null;
+  // (THE FRESH-EYES REVIEW — AN UNPROVEN RUN's MATCH ENDS TOO: a SOLO run with no GO never writes `e` — its match stayed `play` for ever and
+  //  PLAY AGAIN on its card could only start over in the spent match, uncounted. The host — the same phone, a room of one — marks it
+  //  ended (`game.x/{uid}`, view.js#again): the match closes with the judge's row of a node that is not there — floor 0, never counted)
+  const gone = u => game.mode === 'solo' && !!game.x && !!game.x[u];
+  return ids.length > 0 && ids.every(u => (runs[u] && runs[u].e) || gone(u)) ? finalPatch(game, runs, now, code) : null;
 }
 /** the run as it stands → the podium (the host's END GAME) */
 export const endNow = (game, { now, live, code = '' } = {}) => (game && game.phase === 'play' ? finalPatch(game, (live && live.runs) || {}, now, code) : null);

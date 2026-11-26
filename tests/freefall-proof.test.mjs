@@ -139,6 +139,20 @@ test('THE HOLDS (solo): a held run is judged through its holds — the time away
   assert.equal(v2.ok, true); assert.deepEqual(v2.cut, { why: 'hold', tick: 201 });
   const upTo = logOf(P2.run); let n = upTo.findIndex(e => e.k) + 1;
   assert.deepEqual(v2.floor, judgeRun({ seed, mode: 'solo', log: upTo.slice(0, n) }).floor, 'judged through the hold, the tower standing still after it');
+  // THE FRESH-EYES REVIEW's HIGH — A STAMP THAT LANDS LATE: the phone got no answer in three counts, went on by its own clock (it says NOT
+  // COUNTED PAST THE PAUSE) — and the stamp's write landed when the line was back. The events past the hold are AHEAD of that stamp's
+  // clock: the run is CUT at the hold (counted through it — what the phone promised), never refused whole
+  for (const lateMs of [4000, 30_000, 600_000]) {
+    const late = structuredClone(P2.node), paused = GO + START_LEAD_MS + 201 * MS;
+    // (the run went on 4 s + the count after the hold — playLive's own clock for the chunks; the stamp says it began `lateMs` later than that)
+    late.h = { 0: Math.round(paused + 4000 + lateMs) };
+    const v = judgeNode({ seed, node: late });
+    assert.equal(v.ok, true, `a stamp ${lateMs} ms late: never refused (${v.why})`); assert.deepEqual(v.cut, { why: 'hold', tick: 201 });
+    assert.equal(v.floor, v2.floor, 'counted through the hold — the same as with no stamp at all');
+  }
+  // (… a stamp only a touch late — inside the 2 s the clock allows ahead — is the honest one: the run whole)
+  { const ok = structuredClone(P2.node); ok.h = { 0: Math.round(GO + START_LEAD_MS + 201 * MS + 4000 + 1500) }; const v = judgeNode({ seed, node: ok }); assert.equal(v.ok, true); assert.equal(v.cut, undefined); assert.equal(v.floor, resultOf(P2.run).floor); }
+  // … and AHEAD in the run's FIRST segment stays a refusal (a log made in advance — no hold to cut at): the speed check's own test, below
   // a stamp BEFORE its own hold (the clock would run backwards): refused
   const bad = structuredClone(P.node); bad.h[0] = GO + 100;
   assert.deepEqual(judgeNode({ seed, node: bad }), { ok: false, why: 'hold clock' });

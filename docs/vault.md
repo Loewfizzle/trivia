@@ -948,3 +948,13 @@ steps), at 1.5× (a lossless alpha at 2× was ~35 KB a width), laid over the car
 best fit, measured). Chromium + WebKit pick the right file (300 / 352 / 402 / 470 checked). ~1 MB on disk (43 files); a strip fetches ONE (~20 KB).
 `strip-match.mjs --still` before → after: **inferno 19.2 → 7.2 (402) · 14.4 → 1.6 (330) · noir 20.9 → 1.3 · 16.8 → 1.0 · marquee-gold 10.3 → 0.4 ·
 11.3 → 0.5** (430: 1.5 · 0.9 · 0.4). LAB_V: INFERNO 3, NOIR 2, MARQUEE GOLD 2 (+ their LAB_CHANGES lines — the art itself unchanged).
+
+## FREEFALL's THREE CARDS (F4A, Nov 26 — hidden until its go-live; docs/freefall.md "THE CARDS")
+SPLASHDOWN (rare) · TERMINAL VELOCITY (epic — Grok's v1, the ORANGE fire) · ROCK BOTTOM (legendary): THE LAB 231–233, their full cards 234–236.
+Grok's art = the material (the picture alone — no layer of their own yet): `assets/vault/ff/*.webp`, 1280 × 720, baked by
+`scripts/build-freefall-cards.mjs` from the masters OUTSIDE the repo (RAW ART OFF GIT — `<NS_ART_SRC>\freefall\cards\` or the owner's
+delivery folder). `js/fx/ff-specs.js` = the crops + the hero boxes in JAYWALK's / HIGH RISE's format (the CSS `.vl-s-ff-*` /
+`.vl-fcm-ff-*` carries the same numbers — `tests/freefall-cartridge.test.mjs` holds them equal): THE SLIM-CARD LONG-NAME STANDARD (the
+face to the RIGHT — the hero 0.78–0.79 across, clear of the tier gem; the left its dark ground), the full card's art set right at 80 %.
+Unlocked ONLY by FREEFALL's achievements on the feat flags of the SERVER's replay (`freefall-harbor` · `freefall-terminal` ·
+`freefall-bottom`) — nothing is awarded while THE SWITCH is OFF.

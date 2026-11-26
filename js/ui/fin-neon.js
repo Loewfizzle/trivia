@@ -19,9 +19,9 @@ export function endMode(id, key, solo = false) {
 export function finHeader(id, mode = 'SOLO') {
   const N = neonOf(id), m = String(mode || '').toUpperCase(), D = (N && N.day) || null;
   const words = N ? N.name : [[String((META[id] && META[id].BANNER_NAME) || id || '').toUpperCase(), '', '']];
-  const label = words.map(w => w[0]).join(' ');
+  const label = words.map((w, i) => (i && !w[3] ? ' ' : '') + w[0]).join('');   // (FREEFALL F4A: a word's 4th field = it joins the one before — ONE word in two colours)
   const kids = [];
-  words.forEach(([w, c, g], i) => { if (i) kids.push(' '); kids.push(put(h(`b.fn-w.fn-w${i + 1}`, { 'aria-hidden': 'true' }, w), { '--fn': c, '--fn-g': g || c, '--fn-day': D && D.name ? D.name[Math.min(i, D.name.length - 1)] : '' })); });
+  words.forEach(([w, c, g, glue], i) => { if (i && !glue) kids.push(' '); kids.push(put(h(`b.fn-w.fn-w${i + 1}`, { 'aria-hidden': 'true' }, w), { '--fn': c, '--fn-g': g || c, '--fn-day': D && D.name ? D.name[Math.min(i, D.name.length - 1)] : '' })); });
   if (m) kids.push(put(h('i.fn-m', { 'aria-hidden': 'true' }, ` · ${m}`), { '--fn': N && N.mode[0], '--fn-g': N && N.mode[1], '--fn-day': D && D.mode }));
   return h('span.fn-hd', { role: 'heading', 'aria-level': '1', 'aria-label': `${label.charAt(0)}${label.slice(1).toLowerCase()}${m ? `, ${m.toLowerCase()}` : ''}`, class: D ? 'has-day' : null }, ...kids);
 }

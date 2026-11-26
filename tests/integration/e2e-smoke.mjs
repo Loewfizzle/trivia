@@ -191,7 +191,8 @@ try {
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
     // (HE10: HOLD'EM is playable now — the ten frozen games stay hidden; THE GO-LIVE PASS: JAYWALK playable too)
-    ok(ids.length === 10 && !ids.includes('highrise') && !ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null,   // (HIGH RISE's GO-LIVE: playable — the ten frozen games stay hidden)
+    // (FREEFALL F4A: + FREEFALL — BEING BUILT, hidden: a plain page (no owner, no preview flag) can never start it — 11)
+    ok(ids.length === 11 && ids.includes('freefall') && !ids.includes('highrise') && !ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null,   // (HIGH RISE's GO-LIVE: playable — the ten frozen games stay hidden)
       `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));

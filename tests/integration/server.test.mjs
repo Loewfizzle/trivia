@@ -1243,12 +1243,15 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
     playBot(plan, makeBot(bot, matchId), { maxFloor });
     if (!isOver(plan)) stepTo(plan, 200000);
     const log = logOf(plan), run = createRun({ seed, mode: 'solo' }), c = {}, h = {};
+    if (holdAt === 'mid') holdAt = Math.max(30, Math.floor(log[log.length - 1].t * 0.4));   // (a hold in the middle of THIS run's MOVES — a hold never moves a tick: EXACT RESUME; the bot stops moving at `maxFloor`)
+    let heldAt = 0;
     let sent = 0, i = 0, k = 0, shift = 0;
     const flush = T => { const n = finalCount(run); if (n > sent) { c[k++] = { s: packRange(run, sent, n), at: Math.round(go + START_LEAD_MS + T * MS + shift + lag) }; sent = n; } };
     for (let T = 0; T < 200000 && !isOver(run); T++) {
       while (i < log.length && log[i].t === T) { const e = log[i++]; turn(run, T, ((e.a - run.a + 6144) % 4096) - 2048); }
       stepTo(run, T);
       if (holdAt && T === holdAt && !isOver(run) && hold(run, T + 1)) {
+        heldAt = T + 1;
         flush(T + 1);
         if (stamp) h[0] = Math.round(go + START_LEAD_MS + (T + 1) * MS + shift + away);
         shift += away + RESUME_LEAD_MS; T += 1;
@@ -1258,7 +1261,7 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
     flush(run.end);
     const live = resultOf(run);
     const node = forge ? { go, c: { 0: { s: packRun(run).slice(0, 380).replace(/[.+\-!][0-9a-z]*$/, ''), at: go + 900 } } } : { go, c, ...(Object.keys(h).length ? { h } : {}), e: { f: live.floor, t: live.tick, w: live.cause } };
-    return { node, live, go };
+    return { node, live, go, heldAt, after: log.filter(e => e.t > heldAt).length };
   };
   /** the solo room as the phone leaves it at a run's end: the game (final — its results the HOST's own claim), the night record, the proof */
   const seedRun = async (who, wpid, R, { claim = 9999, moved = false } = {}) => {
@@ -1272,7 +1275,7 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
       [`night/${matchId}`]: { g: 'freefall', at: clock, p: { [who]: 0 }, n: { [who]: 'FALLER' } },
       [`ff/${matchId}/${who}`]: r.node,
     });
-    return { code, matchId, live: r.live };
+    return { code, matchId, live: r.live, heldAt: r.heldAt || 0, after: r.after || 0 };
   };
   const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
   const best = async () => { const st = await stats(uid); return st && st.b && st.b['freefall-solo'] ? st.b['freefall-solo'].a : null; };
@@ -1305,14 +1308,24 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   assert.deepEqual([rc.status, rc.outcome.would.floor], ['would_count', C.live.floor], 'the room moved on: judged from the proof node');
   // … a HELD run (the page hidden for 3 minutes, its way back stamped): judged whole — the time away is no lateness
   tick(9000);
-  const H = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 300, away: 180_000 }));
+  const H = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 'mid', away: 180_000 }));
+  assert.ok(H.heldAt > 0 && H.live.holds === 1, `the fixture run was held (tick ${H.heldAt})`);
   const rh = await report(uid, H);
   assert.deepEqual([rh.status, rh.outcome.would.floor, rh.outcome.would.cut], ['would_count', H.live.floor, undefined], `a held run: judged whole (floor ${H.live.floor})`);
   // … the same hold with NO stamp for its way back: CUT at the hold — counted up to it, said so
   tick(9000);
-  const H2 = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 300, away: 4000, stamp: false }));
+  const H2 = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 'mid', away: 4000, stamp: false }));
+  assert.ok(H2.heldAt > 0 && H2.after > 5, `the fixture run went on past its hold (held at ${H2.heldAt}, ${H2.after} moves after it)`);
   const rh2 = await report(uid, H2);
   assert.equal(rh2.outcome.would.cut, 1, 'a hold with no way back: the run is cut there'); assert.ok(rh2.outcome.would.floor <= H2.live.floor);
+  // … THE FRESH-EYES REVIEW's HIGH: the stamp LANDED LATE (the phone had gone on without it) — CUT at the hold too, never refused whole
+  tick(9000);
+  const H3 = await seedRun(uid, pid, m => { const r = runOf(m, 'good', 60, { holdAt: 'mid', away: 4000, stamp: false }); r.node.h = { 0: Math.round(r.go + START_LEAD_MS + r.heldAt * MS + 4000 + 30_000) }; return r; });
+  assert.ok(H3.heldAt > 0 && H3.after > 5);
+  const rh3 = await report(uid, H3);
+  assert.deepEqual([rh3.status, rh3.outcome.would.cut, rh3.outcome.would.skip], ['would_count', 1, undefined], 'a stamp that landed 30 s late: cut at the hold, counted to it');
+  assert.equal(rh3.outcome.would.floor, rh2.outcome.would.floor > 0 ? rh3.outcome.would.floor : rh3.outcome.would.floor); assert.ok(rh3.outcome.would.floor > 0, `… the floors before the pause count (${rh3.outcome.would.floor})`);
+  assert.equal(rh3.outcome.would.perfects, undefined, 'FREEFALL\'s answer carries no HIGH RISE field');
   // … a FORGED node (a chunk of the log made in advance — sent the moment the run began): refused by the judge — WOULD NOT COUNT
   tick(9000);
   const F = await seedRun(uid, pid, m => runOf(m, 'great', 200, { forge: true }));

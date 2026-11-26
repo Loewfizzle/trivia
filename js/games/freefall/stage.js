@@ -126,7 +126,7 @@ export function createStage(app0, o = {}) {
   again.firstChild.innerHTML = ICON_AGAIN;
   // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
   const share = h('button.ff-foot-b.ff-share', { type: 'button', disabled: true, 'aria-disabled': 'true' }, 'SHARE · SOON'), city = o.onLeave ? h('button.ff-foot-b.ff-city', { type: 'button' }, o.leaveWords || 'BACK') : h('a.ff-foot-b.ff-city', { href: '/' }, 'CITY');
-  const end = h('div.ff-end', { hidden: true }, EC.el, h('div.ff-endfoot', again, h('div.ff-foot-row', share, city)));
+  const end = h('div.ff-end', { hidden: true }, EC.el, h('div.ff-endfoot', again, h(`div.ff-foot-row${o.onLeave ? '.is-one' : ''}`, o.onLeave ? null : share, city)));   // (the cartridge's own card: no SHARE · SOON — the way out alone)
   const note = h('div.ff-note', PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : '');
   let runNote = '';   // (the cartridge: an UNPROVEN run says so for as long as it is on — NOT COUNTED — …)
   const fpsA = document.createTextNode(''), fps = o.fps ? h('div.ff-fps', fpsA) : null;
@@ -546,7 +546,7 @@ export function createStage(app0, o = {}) {
             if (o.resume && !stamped && o.onUnstamped) unstampedNow();
             countN++; countTries = 0;
             held = false; t0 = (stamped ? countAt : now) - heldT * TICK_MS; countAt = 0; hudGap = -99; keyTick = heldT; holdEl.hidden = true; stage.classList.remove('is-held'); awakeAt = performance.now(); awake(true);
-          } else { const c = Math.ceil(left / COUNT_MS); if (c !== countShown) countLine(c); }
+          } else { const c = Math.ceil(left / COUNT_MS); if (c !== countShown && (c < countShown || !countShown)) countLine(c); }   // (F4A — the review: a slow stamp moves the count's end later — the number waits, it never jumps back up)
         }
       } else {
         tau = Math.max(0, (now - t0) / TICK_MS);

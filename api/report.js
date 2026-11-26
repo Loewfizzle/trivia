@@ -132,15 +132,15 @@ export const highriseCounts = async () => { if (emulated()) { const t = await va
 /** FREEFALL F4A — THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS — OFF until its go-live): the same rule, its own emulator flip `testFreefallCounts` */
 export const freefallCounts = async () => { if (emulated()) { const t = await val('testFreefallCounts'); if (t === true || t === false) return t; } return FREEFALL_COUNTS; };
 /** the games behind a SWITCH → is its counting ON? · its board · its cards by their FEAT (the achievement's id → the feat's word — never an item's name: ITEM NAMES ONLY TO OWNERS) */
-export const SWITCHED = Object.freeze({
+export const SWITCHED = Object.freeze(Object.assign(Object.create(null), {   // (no inherited key: 'constructor' is no game)
   highrise: Object.freeze({ counts: highriseCounts, board: 'highrise-solo', cards: Object.freeze([['above-the-clouds', 'clouds'], ['top-of-the-world', 'top']]) }),
   freefall: Object.freeze({ counts: freefallCounts, board: 'freefall-solo', cards: Object.freeze([['splashdown', 'harbor'], ['terminal-velocity', 'terminal'], ['rock-bottom', 'bottom']]) }),
-});
+}));
 /** PURE — the WOULD-AWARD the phone is told while counting is OFF: the server's own judged row + what the counted path would have done.
  *  `row` = the server's result row { f, p, t, w, s, ft?, cut?, bad? } · `w` = stats.js#wouldApply's answer · `rec` = the board value */
 export function wouldAward(row, w, rec, gid = 'highrise') {
   const SW = SWITCHED[gid] || SWITCHED.highrise;
-  const r = row || {}, out = { floor: Math.max(0, Math.floor(Number(r.f) || 0)), perfects: Math.max(0, Math.floor(Number(r.p) || 0)), cause: String(r.w || ''), ...(r.cut ? { cut: 1 } : {}) };
+  const r = row || {}, out = { floor: Math.max(0, Math.floor(Number(r.f) || 0)), ...(SW === SWITCHED.highrise ? { perfects: Math.max(0, Math.floor(Number(r.p) || 0)) } : {}), cause: String(r.w || ''), ...(r.cut ? { cut: 1 } : {}) };   // (`perfects` is HIGH RISE's)
   if (r.bad) return { ...out, skip: `refused (${r.bad})` };
   if (!w || w.skip) return { ...out, skip: (w && w.skip) || 'not counted' };
   const pb = (w.pbs || []).find(p => p.b === SW.board);

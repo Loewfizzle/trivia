@@ -95,6 +95,11 @@ test('THE DIRECTOR (PURE): `play` from the start; the player\'s `e` → `final` 
   assert.deepEqual(scoreNode(CODE, M, null), { f: 0, t: 0, w: '', e: -1 });
   assert.equal(scoreNode(CODE, M, { go: GO, c: { 0: { s: 'junk', at: GO + 700 } } }).bad, 'chunks');
   assert.equal(endNow(game, { now: GO + 5, live: { runs: {} }, code: CODE }).phase, 'final', 'the host\'s END GAME');
+  // AN UNPROVEN RUN's MATCH ENDS TOO (the review): the host's mark `x/{uid}` closes a SOLO match with no node — floor 0, never counted
+  const marked = nextStep({ ...game, x: { u1: 1 } }, { now: GO + 7000, live: { runs: {} }, code: CODE });
+  assert.deepEqual([marked.phase, marked.results.u1], ['final', { f: 0, t: 0, w: '', e: -1 }], 'the mark ends it; the row is the judge\'s of a node that is not there');
+  assert.equal(nextStep({ ...game, x: { other: 1 } }, { now: GO + 7000, live: { runs: {} }, code: CODE }), null, 'only the run\'s own mark');
+  assert.equal(nextStep({ ...game, mode: 'match', participants: { u1: true, u2: true }, x: { u1: 1, u2: 1 } }, { now: GO + 7000, live: { runs: {} }, code: CODE }), null, 'never in a match (F4B): a mark ends nobody\'s run there');
   const fin = { ...game, ...patch }, next = nextRun(fin, { matchId: 'snext1', now: GO + 20000 });
   assert.deepEqual([next.matchId, next.phase, next.mode, Object.keys(next.participants)], ['snext1', 'play', 'solo', ['u1']]);
   assert.equal(nextRun(game, { matchId: 'x', now: 1 }), null, 'only after a finished solo run');
@@ -135,6 +140,8 @@ test('THE SWITCH — OFF (the owner: nothing counts until go-live): /api/report 
   assert.equal(FREEFALL_COUNTS, false, 'OFF — the go-live pass flips this ONE line');
   const rep = code('api/report.js');
   assert.ok(rep.includes("export const freefallCounts = async () => { if (emulated()) { const t = await val('testFreefallCounts'); if (t === true || t === false) return t; } return FREEFALL_COUNTS; };"), 'the test flip is honoured on the emulators only');
+  assert.match(rep, /export const SWITCHED = Object\.freeze\(Object\.assign\(Object\.create\(null\), \{/, 'the switch table has no inherited key');
+  assert.match(rep, /\.\.\.\(SW === SWITCHED\.highrise \? \{ perfects: /, 'FREEFALL\'s would-award carries no `perfects` (HIGH RISE\'s)');
   assert.match(rep, /freefall: Object\.freeze\(\{ counts: freefallCounts, board: 'freefall-solo', cards: Object\.freeze\(\[\['splashdown', 'harbor'\], \['terminal-velocity', 'terminal'\], \['rock-bottom', 'bottom'\]\]\) \}\),/);
   const ask = rep.indexOf('const hrOff = !!SWITCHED[night.g] && !(await SWITCHED[night.g].counts());'), sw = rep.indexOf('if (hrOff && SWITCHED[ex.gid]) {'), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
   assert.ok(ask > 0 && sw > ask && cr > sw, 'asked once, early; judged; the switch; then (only when ON) credit()');
@@ -249,7 +256,11 @@ test('THE CARTRIDGE\'s SCREEN (static): GO behind THE STAMP → the seed + tick 
   assert.match(v, /return stampT0\(treePath\(\), 'freefall'\)\.then\(\(\) => \(stale\(\) \? Promise\.reject\(new Error\('the run stopped waiting'\)\) : dbSet\(dbRef\(path\), serverTimestamp\(\)\)\)\);/, 'THE STAMP, then the GO — the server\'s time');
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go \+ START_LEAD_MS\), note: '' \}\);/, 'the seed from the GO read back; tick 0 = GO + the lead');
   assert.match(v, /if \(r\.c \|\| serverNow\(\) - r\.go > START_LATE_MS\) \{ unproven\(r\.c \? 'again' : 'late'\); return; \}/, 'a GO answered too late starts no proven run');
-  assert.match(v, /count: \(\) => \(S && proven \? finalCount\(S\.run\(\)\) : 0\), pack: \(a, b\) => packRange\(S\.run\(\), a, b\), entriesOf: eventsOf,/, 'the writer sends FINAL events only');
+  assert.match(v, /count: \(\) => \{ if \(!S \|\| !proven\) return 0; const n = finalCount\(S\.run\(\)\); return capN >= 0 && n > capN \? capN : n; \}, pack: \(a, b\) => packRange\(S\.run\(\), a, b\), entriesOf: eventsOf,/, 'the writer sends FINAL events only — and nothing past a hold that got no stamp (the review)');
+  assert.match(v, /if \(capN < 0\) capN = finalCount\(S\.run\(\)\);/, 'the cap = the log through that hold');
+  assert.match(v, /dbSet\(dbRef\(`rooms\/\$\{code\}\/game\/x\/\$\{uid\}`\), 1\)/, 'PLAY AGAIN on the stage\'s own card: the host marks the unproven run ended …');
+  assert.match(v, /return finalSoon\(\)\.then\(ok => \(ok \? instant\(\) : false\)\)/, '… and THE INSTANT AGAIN starts a NEW match (its own GO) — never stuck uncounted (the review)');
+  assert.match(v, /!final && !againing && \(!started \|\| S\.state\(\)\.shown\)\) showFinal\(g\);/, '… the podium never flashes in between');
   assert.match(v, /flushMs: \(\) => CLOCK\.flushMs/); assert.equal(CLOCK.flushMs, 250, 'chunked every 250 ms (the owner: ~200–250 ms)');
   assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'a hold\'s way back: the SERVER\'s stamp, read back');
   assert.match(v, /if \(!proven\) return \{ own: true, note: notCounted\(whyNot\) \};/, 'an UNPROVEN run ends on the stage\'s own card');
@@ -260,6 +271,8 @@ test('THE CARTRIDGE\'s SCREEN (static): GO behind THE STAMP → the seed + tick 
   assert.match(st, /Promise\.all\(\[Promise\.resolve\(\)\.then\(\(\) => o\.go\(\)\), wait\]\)/, 'the cartridge\'s start: the GO + the sounds\' decode');
   assert.match(st, /if \(left <= 0 && o\.resume && !stamped && countTries < RESUME_TRIES\) startCount\(\);/, 'no stamp: the count runs again (3 tries)');
   assert.match(st, /if \(T < 0\) \{ owed \+= units;/, 'a move before tick 0 is kept');
+  assert.match(st, /if \(c !== countShown && \(c < countShown \|\| !countShown\)\) countLine\(c\);/, 'the 3 · 2 · 1 never jumps back up when the stamp\'s answer is slow (the review)');
+  assert.match(st, /o\.onLeave \? null : share, city/, 'the cartridge\'s own card: no SHARE · SOON');
   assert.match(st, /const E = o\.onEnd \? o\.onEnd\(res\) \|\| \{ own: true \} : \{ own: true \};/);
   assert.match(read('css/freefall-play.css'), /\.ff-stage\.ff-game \{ position: fixed; inset: 0; margin: 0 auto; height: 100dvh; \}/, 'the stage fills the window inside the console\'s frame');
 });

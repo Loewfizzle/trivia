@@ -503,7 +503,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.match(e, /const el = h\('div\.ff-ec', hd, cause, n, fl, bestL, line, table\);/, 'top to bottom: the header · the cause · the number · FLOORS · YOUR BEST · the line · the table\'s slot');
   assert.match(e, /w\('b\.fn-w\.fn-w1', 'FREE', NEON\.pink, NEON\.pink\), w\('b\.fn-w\.fn-w2', 'FALL', NEON\.teal, NEON\.teal\), w\('i\.fn-m', ` · \$\{m\}`, NEON\.mode, NEON\.teal\)/, 'FREE hot pink · FALL electric teal · the mode a pale ice (THE END NEON\'s classes)');
   assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
-  assert.match(s, /h\('div\.ff-endfoot', again, h\('div\.ff-foot-row', share, city\)\)/, 'the foot: PLAY AGAIN, then SHARE | CITY');
+  assert.match(s, /h\('div\.ff-endfoot', again, h\(`div\.ff-foot-row\$\{o\.onLeave \? '\.is-one' : ''\}`, o\.onLeave \? null : share, city\)\)/, 'the foot: PLAY AGAIN, then SHARE | CITY (the cartridge\'s own card: the way out alone)');
   assert.match(s, /'SHARE · SOON'\), city = o\.onLeave \? h\('button\.ff-foot-b\.ff-city', \{ type: 'button' \}, o\.leaveWords \|\| 'BACK'\) : h\('a\.ff-foot-b\.ff-city', \{ href: '\/' \}, 'CITY'\)/, 'SHARE is a placeholder until F4B; CITY goes home (the cartridge\'s own card: the console\'s way out)');
   assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');

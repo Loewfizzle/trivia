@@ -142,7 +142,7 @@ try {
   const v1 = verifyRun({ code: g.code, matchId: g.m, node });
   ok(v1.ok && v1.floor === res1.floor && v1.tick === res1.tick && v1.end === res1.end && v1.cause === res1.cause && !v1.cut, `THE JUDGE (the server's own replay of the node) == the phone's run: floor ${v1.floor}, tick ${v1.tick}, ${v1.cause}${v1.ok ? '' : ` — refused: ${v1.why}`}`);
   const fin = await P.ev("({ t: document.querySelector('.ff-fin .ff-ec-cause').textContent, n: document.querySelector('.ff-fin .ff-ec-n').getAttribute('aria-label'), kicker: document.querySelector('.ff-final .sheet-kicker').textContent, bar: (document.querySelector('.ff-final .final-bar') || {}).textContent })");
-  ok(fin.t === 'HIT THE RED' && fin.n === String(res1.floor) && /FREE\s*FALL/.test(fin.kicker) && /PLAY AGAIN/.test(fin.bar || ''), `the podium: ${fin.t} · ${fin.n} FLOORS · ${fin.kicker} · ${String(fin.bar).trim()}`);
+  ok(fin.t === 'HIT THE RED' && fin.n === String(res1.floor) && /^FREEFALL · SOLO$/.test(fin.kicker.trim()) && /PLAY AGAIN/.test(fin.bar || ''), `the podium: ${fin.t} · ${fin.n} FLOORS · ${fin.kicker} · ${String(fin.bar).trim()}`);
 
   // ---- 4. THE SWITCH IS OFF: judged, WOULD COUNT, nothing written
   ok(await P.waitFor("/^WOULD (NOT )?COUNT/.test(document.querySelector('.ff-fin-would').textContent)", 20000), 'the server\'s answer arrives: the would-be line');
@@ -233,8 +233,15 @@ try {
     ok(!nq || !nq.go, '… nothing of it is in the proof tree');
     const card = await Q.ev("(q => { const r = document.querySelector(q).getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; })('.ff-again')");
     ok(card[0] >= 12 && card[1] <= 378, `its PLAY AGAIN bar lies inside the screen (${card.join(' … ')} of 390)`);
+    ok(await Q.ev("!document.querySelector('.ff-share') && /BACK/.test(document.querySelector('.ff-city').textContent)"), '… its foot: PLAY AGAIN + the way out — no SHARE · SOON in the cartridge');
     await sleep(300);
     await Q.shot('f4a-cartridge-unproven.png');
+    // PLAY AGAIN on that card = a NEW match (the fresh-eyes review: the spent match would stay uncounted for ever) — its own GO, PROVEN
+    await Q.tap('.ff-again');
+    ok(await Q.waitFor(`${S}.game && ${S}.game.id === 'freefall' && ${S}.game.matchId !== '${gq.m}' && ${S}.game.phase === 'play' && !!${G} && ${G}.state().matchId !== '${gq.m}' && !${ST}.state().started && ${ST}.state().info.frames > 3`, 40000), 'PLAY AGAIN on the NOT COUNTED card → the console starts a NEW match (back on THE OPENING)');
+    await sleep(600);
+    await Q.drag();
+    ok(await Q.waitFor(`${G}.state().proven && ${G}.state().go > 0 && ${ST}.state().started && !${ST}.state().note`, 20000), '… and its first drag is PROVEN again: the next run can count');
     ok(Q.errs.length === 0, `no page errors${Q.errs.length ? ` (${Q.errs.slice(0, 3).join(' · ')})` : ''}`);
     await Q.close();
   }

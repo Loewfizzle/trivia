@@ -56,7 +56,9 @@ console's podium rise. **The results rows** (every `leaderboard()` — the podiu
 
 ## THE PROOF TREE + THE PROOF WRITER (THE PROOF PASS, Nov 20 — the code JAYWALK + HIGH RISE share)
 
-A **proof game** (JAYWALK `jw`, HIGH RISE `hr`) is counted ONLY from the server's replay of what each phone wrote into its own node. Three
+A **proof game** (JAYWALK `jw`, HIGH RISE `hr`; FREEFALL `ff` since F4A — hidden, solo: its log is a stream of MOVES, so its writer sends only
+FINAL events, and its solo run HOLDS — a resume stamp `h/{i}` a hold, the speed check on THE RUN's CLOCK: docs/freefall.md "THE PROOF") is
+counted ONLY from the server's replay of what each phone wrote into its own node. Three
 shared files hold what both games used to copy — a new proof game takes them, it never writes its own:
 
 | file | what |
