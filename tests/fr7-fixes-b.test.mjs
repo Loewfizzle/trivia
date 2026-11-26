@@ -178,7 +178,7 @@ test('the NICE lines (FR7-A): HOST raced against 20 s with a plain line (one att
 
 test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes; A RE-START KEEPS THE LAST MATCH\'s (every older match pruned, best effort)', async () => {
   const host = fs.readFileSync('js/host.js', 'utf8');
-  assert.match(fs.readFileSync('js/games/registry.js', 'utf8'), /export const PROOF_NODE_LIST = Object\.freeze\(\['prism', 'oc', 'ocm', 'jw', 'hr'\]\);/);
+  assert.match(fs.readFileSync('js/games/registry.js', 'utf8'), /export const PROOF_NODE_LIST = Object\.freeze\(\['prism', 'oc', 'ocm', 'jw', 'hr', 'ff'\]\);/);
   const back = host.slice(host.indexOf('export async function backToLobby'), host.indexOf('/** TESTS: backToLobby'));
   assert.match(back, /\.\.\.clearPlayerNodes\(true\)/, 'the walk back keeps them');
   const start = host.slice(host.indexOf('async function startGameNow'), host.indexOf('async function pruneProofs'));

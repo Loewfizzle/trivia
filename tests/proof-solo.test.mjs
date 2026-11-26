@@ -17,7 +17,7 @@ const T0 = Date.UTC(2026, 10, 20, 20, 0), PROF = { n: 'AVA' }, MIN = 3;
 const solo = (s, k, row = {}) => matchStep(s, { key: `s${k}`, gid: 'jaywalk', row: { rank: 1, win: false, c: { p: 1 }, rec: {}, solo: true, ...row }, n: 1, now: T0 + k * 600_000 });
 
 test('THE LIST: the games whose runs the SERVER replays itself — JAYWALK + HIGH RISE (= api/report.js#PROOF_GAMES); one list, core/proof.js', () => {
-  assert.deepEqual([...VERIFIED_SOLO], ['jaywalk', 'highrise']); assert.equal(VERIFIED_SOLO, CORE_LIST);
+  assert.deepEqual([...VERIFIED_SOLO], ['jaywalk', 'highrise', 'freefall']);   // (FREEFALL F4A: + FREEFALL — hidden, its counting OFF) assert.equal(VERIFIED_SOLO, CORE_LIST);
   const rep = (read('api/report.js') + read('api/_lib/trust-lists.js'));
   for (const g of VERIFIED_SOLO) assert.ok(new RegExp(`\\n  ${g}: Object\\.freeze\\(\\{ node: (?:'\\w+'|PROOF_NODES\\.\\w+), solo: \\w+, match: \\w+, live: \\w+ \\}\\),`).test(rep), `${g} is a PROOF GAME on the server`);
   assert.equal((rep.slice(rep.indexOf('export const PROOF_GAMES'), rep.indexOf('});', rep.indexOf('export const PROOF_GAMES'))).match(/Object\.freeze\(\{ node:/g) || []).length, VERIFIED_SOLO.length, 'no proof game missing from the list, none extra');

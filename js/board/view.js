@@ -31,7 +31,7 @@ import { rankMedal } from '../ui/medal.js';   // (CITY B: THE DECO MEDALS — on
 import { h } from '../ui/dom.js';
 import { avatar, tubeButton, row as shellRow } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
-import { GAMES, DAILIES } from '../config.js';
+import { GAMES, DAILIES, isOwnerTest } from '../config.js';
 import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
 import { avgLabel } from '../core/board-avg.js';
 import { POINT_DAILIES } from '../core/daily-points.js';
@@ -52,6 +52,7 @@ export const GAME_LIGHT = {
   holdem: ['#f2c14e', '#39d98a'],   // (HOLD'EM IN THE CITY: its casino gold + the felt)
   jaywalk: ['#ff4fc4', '#35e3ff'],   // (THE GO-LIVE PASS: its signs' pink + THE SIGNAL's cyan)
   highrise: ['#ff4fd8', '#35e3ff'],   // (HIGH RISE — THE GO-LIVE, Nov 20: the sign's HIGH pink + RISE cyan)
+  freefall: ['#27e0e6', '#ff4fa8'],   // (FREEFALL F4A: title-05's teal + pink — its tab is HIDDEN until go-live)
 };
 const gameName = id => (GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || { name: String(id).toUpperCase() }).name;
 /** THE TABS (the owner, Nov 9): the overall XP board, the dailies' points, the playable games (HOLD'EM IN THE CITY, Nov 11: + HOLD'EM —
@@ -61,7 +62,11 @@ export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holde
 const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES' });   // (THE CITY POLISH PASS: every game by its full name — PRISM DROP, HIGH RISE — on one line; the row scrolls)
 const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
-export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
+/** FREEFALL F4A — a game BEING BUILT has its tab WIRED + HIDDEN: on the owner's phone only (config.js#isOwnerTest — THE OWNER'S LIVE TEST), never on
+ *  /board; its go-live pass moves it into TABS */
+export const HIDDEN_TABS = Object.freeze(['freefall']);
+const tabsNow = () => [...TABS, ...HIDDEN_TABS.filter(id => isOwnerTest(id))];
+export const tabOf = g => (tabsNow().includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;
 
 /** the unit under a score: XP · PTS · AVG (a game's record keeps its own format: km, s, %) */
@@ -109,7 +114,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   // ------------------------------------------------------------------ skeleton
   els.scene = h('div.bd-scene', { 'aria-hidden': 'true' }, h('div.bd-bg', h('i.bd-bg-base')));
   // (CITY E — THE NEON TABS: the games + THIS WEEK · ALL TIME — js/ui/neon-tabs.js, the STATS sheet's builder; no pill, no gold)
-  const gameTabs = neonTabs(TABS.map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', scroll: true, label: 'Boards', onPick: id => pickTab(id) });
+  const gameTabs = neonTabs(tabsNow().map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', scroll: true, label: 'Boards', onPick: id => pickTab(id) });
   const periodSeg = neonTabs([{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], { cls: 'bd-period', btnCls: 'bd-period-b', even: true, label: 'This week or all time', onPick: v => { S.period = v; boardSfx('tab'); refresh(); } });
   els.tabs = gameTabs.el;
   els.period = periodSeg.el;

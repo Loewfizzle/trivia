@@ -289,6 +289,16 @@ LAB.push(
   { id: 'card-garden', kind: 'card', tier: 'epic', n: 229 },
   { id: 'full-card-garden', kind: 'full', of: 'card-garden', tier: 'epic', n: 230 },
 );
+// FREEFALL F4A — ITS THREE CARDS (Grok's art; hidden until go-live: awarded only from a server-judged run once counting is ON) — the strips,
+// then their full cards
+LAB.push(
+  { id: 'card-splashdown', kind: 'card', tier: 'rare', n: 231 },
+  { id: 'card-terminalvelocity', kind: 'card', tier: 'epic', n: 232 },
+  { id: 'card-rockbottom', kind: 'card', tier: 'legendary', n: 233 },
+  { id: 'full-card-splashdown', kind: 'full', of: 'card-splashdown', tier: 'rare', n: 234 },
+  { id: 'full-card-terminalvelocity', kind: 'full', of: 'card-terminalvelocity', tier: 'epic', n: 235 },
+  { id: 'full-card-rockbottom', kind: 'full', of: 'card-rockbottom', tier: 'legendary', n: 236 },
+);
 // HIGH RISE's TWO CARDS (ABOVE THE CLOUDS · TOP OF THE WORLD — n 225–228) LEFT THE LAB at its GO-LIVE (the owner, Nov 20: "the two cards' lab
 // marks removed"): they ship as they are, approved by that call — js/vault/approved.js#SHIPPED; their tiers + looks are their own
 // (core/items.js · vault/strip.js LOOKS · fx/hi-specs.js), never a lab row.

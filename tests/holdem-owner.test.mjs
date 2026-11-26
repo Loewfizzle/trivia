@@ -39,7 +39,9 @@ test('only the radio gate sets it (an OWNER role — never the crew); only the r
   assert.match(src('js/screens/harbor/radio-gate.js'), /setOwnerPhone\(role === 'owner'\)/);
   const readers = files.filter(f => /isOwnerTest\(/.test(readFileSync(f, 'utf8')) && !f.endsWith('js/config.js'));
   // (JAYWALK H3: + the title's own PLAY shelf + the game's sign → its CARD with PLAY NOW — on the owner's phone only; nobody else's list, sign or card changes)
-  assert.deepEqual(readers, ['js/screens/room-city.js', 'js/screens/title-taps.js'], 'no board, catalog or help reads it');
+  // (FREEFALL F4A: + THE BOARD's view — a game BEING BUILT has its tab wired + HIDDEN: on the owner's phone only, board/view.js#HIDDEN_TABS)
+  assert.deepEqual(readers, ['js/board/view.js', 'js/screens/room-city.js', 'js/screens/title-taps.js'], 'no catalog or help reads it; the board only for its hidden tab');
+  assert.match(src('js/board/view.js'), /const tabsNow = \(\) => \[\.\.\.TABS, \.\.\.HIDDEN_TABS\.filter\(id => isOwnerTest\(id\)\)\];/, 'the board: the hidden tabs on the owner\'s phone only');
   const taps = src('js/screens/title-taps.js');
   assert.equal((taps.match(/isOwnerTest\(/g) || []).length, 3, 'the shelf\'s list, its · TEST mark, the sign\'s tap — nothing else');
   const rc = src('js/screens/room-city.js');

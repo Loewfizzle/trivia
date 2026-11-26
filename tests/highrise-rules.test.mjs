@@ -128,7 +128,7 @@ test('EVERY RUN RECORDS ITS RULE SET; THE JUDGE CHECKS IT + REFUSES AN UNKNOWN O
 
 test('THE LIVE LOCK (the rules gap jw + hr shared): the host deletes ONE match\'s proof tree only once HIS OWN GO in it is 10 min old — the rules say so without reading `game`; the host\'s prune + PLAY AGAIN\'s sweep never ask for a held one', async () => {
   const rules = JSON.parse(read('database.rules.json')).rules.rooms.$code;
-  for (const [node, gid] of [['jw', 'jaywalk'], ['hr', 'highrise']]) {
+  for (const [node, gid] of [['jw', 'jaywalk'], ['hr', 'highrise'], ['ff', 'freefall']]) {
     assert.equal(rules[node]['.write'], undefined, `${node}: the WHOLE node is never the host's to delete (it was — refused only by game/phase, which the host writes)`);
     const w = rules[node].$match['.write'];
     // (THE PROOF PASS, Nov 20: a tree that carries THE STAMP unlocks by ITS STAMP's age — tests/proof-pass.test.mjs; without one: his own GO, as S4B)
@@ -143,7 +143,7 @@ test('THE LIVE LOCK (the rules gap jw + hr shared): the host deletes ONE match\'
   const { staleProofPaths, proofUnlocked, PROOF_LOCK_MS, PROOF_LOCK_SLACK_MS } = await import('../js/core/room-logic.js');
   const { LOCKED_PROOF_NODES, PROOF_NODE_LIST } = await import('../js/games/registry.js');
   assert.equal(PROOF_LOCK_MS, 600000, 'the rules\' own number'); assert.equal(PROOF_LOCK_SLACK_MS, 30000);
-  assert.deepEqual([...LOCKED_PROOF_NODES], ['jw', 'hr']); assert.ok(LOCKED_PROOF_NODES.every(n => PROOF_NODE_LIST.includes(n)));
+  assert.deepEqual([...LOCKED_PROOF_NODES], ['jw', 'hr', 'ff']);   // (FREEFALL F4A: + its `ff` tree) assert.ok(LOCKED_PROOF_NODES.every(n => PROOF_NODE_LIST.includes(n)));
   const NOW = 1_800_000_000_000, old = NOW - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS - 1, young = NOW - PROOF_LOCK_MS;   // (young = old enough for the rules, NOT for the phone's clock: the slack)
   assert.equal(proofUnlocked({ h: { go: old } }, 'h', NOW), true); assert.equal(proofUnlocked({ h: { go: young } }, 'h', NOW), false);
   for (const t of [null, {}, { p: { go: old } }, { h: {} }, { h: { go: 0 } }, { h: { go: 'x' } }]) assert.equal(proofUnlocked(t, 'h', NOW), false, `no GO of the host's: never (${JSON.stringify(t)})`);

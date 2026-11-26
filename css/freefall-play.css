@@ -249,3 +249,26 @@
   .ff-endfoot { padding: 0 8px 10px; gap: 6px; } .ff-again { min-height: 44px; padding: 6px 8px; gap: 8px; font-size: 13px; letter-spacing: 0.1em; } .ff-again-t { padding-left: 0.1em; } .ff-again-i svg { width: 18px; height: 18px; }
   .ff-foot-row { gap: 6px; } .ff-foot-b { min-height: 44px; font-size: 9px; letter-spacing: 0.1em; text-indent: 0.1em; }
 }
+
+/* F4A — THE CARTRIDGE (js/games/freefall/view.js: the SAME stage in the console's frame). THE END = the console's podium frame over the
+   stage (ui/final.js) with this game's body (final.js — the test page's card, ONE builder); the stage's own HUD is put away under it.
+   THE LOGO HEADER + SHARE + YOUR TABLE = F4B. */
+/* (the console's screen has its own padding: the stage fills the WINDOW, as HIGH RISE's — the phone's column centred on a wide one) */
+.ff-stage.ff-game { position: fixed; inset: 0; margin: 0 auto; height: 100dvh; }
+.ff-stage.is-final .ff-hud, .ff-stage.is-final .ff-best, .ff-stage.is-final .ff-banners, .ff-stage.is-final .ff-dark, .ff-stage.is-final .ff-open, .ff-stage.is-final .ff-foot { display: none; }
+.ff-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; animation: ff-fin-in 0.22s ease-out both; background: linear-gradient(rgba(7, 6, 11, 0.62) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
+.ff-stage[data-look='day'] > .ff-final { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.78) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
+@keyframes ff-fin-in { from { opacity: 0; } to { opacity: 1; } }
+.ff-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
+.ff-final .final.is-solo .burst, .ff-final .final.is-solo .winner { display: none; }
+.ff-final .final::before { display: none; }
+.ff-final .btn, .ff-final .btn::before, .ff-final .btn::after { border-radius: 8px; }
+.ff-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; text-shadow: none; }
+.ff-fin { display: grid; justify-items: center; gap: 6px; padding: 6px 12px 4px; text-align: center; }
+.ff-fin .ff-ec { margin-top: 0; padding: 0; }
+.ff-fin-would { min-height: 16px; margin: 0 0 8px; padding: 0 16px; box-sizing: border-box; max-width: 100%; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.35 var(--font-ui); letter-spacing: 0.08em; white-space: normal; text-wrap: balance; overflow-wrap: anywhere; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
+.ff-fin-would.is-off { color: #d9d4f2; }
+.ff-fin-would:empty { min-height: 0; }
+.ff-again.is-busy, .ff-city.is-busy { opacity: 0.5; pointer-events: none; }
+.ff-stage.ff-game.is-live .ff-note { bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }   /* (an UNPROVEN run says so while it is on) */
+@media (prefers-reduced-motion: reduce) { .ff-final { animation: none; } }

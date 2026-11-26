@@ -80,4 +80,9 @@ export const META = Object.freeze({
     cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
     scoreLine: s => { const f = Math.floor(Math.max(0, Number(s) || 0) / 1e8); return `${f} ${f === 1 ? 'FLOOR' : 'FLOORS'}`; },   // (DAILY A — held.js#hrScore)
   }),
+  // FREEFALL (F4A — hidden: docs/freefall.md)
+  freefall: Object.freeze({
+    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'FREEFALL', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#27e0e6', NEON: { name: [['FREE', '#ff4fa8', '#ff4fa8'], ['FALL', '#27e0e6', '#27e0e6']], mode: ['#cfeff5', '#27e0e6'], line: ['#27e0e6', '#27e0e6'] },
+    cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
+  }),
 });

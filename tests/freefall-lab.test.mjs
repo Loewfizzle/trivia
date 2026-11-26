@@ -47,16 +47,28 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   for (const f of readdirSync(new URL('../js/games/freefall/', import.meta.url))) assert.doesNotMatch(code(`js/games/freefall/${f}`), /freefall-lab/, `${f}: no link to the lab in code`);
 });
 
-test('FREEFALL IS INVISIBLE TO PLAYERS (F1): no GAMES entry, no DAILIES row, no config / boot / cartridge / registry / rules / endpoint knows it — and nothing a console could load as a game', () => {
-  for (const f of ['js/config.js', 'js/app.js', 'js/games/registry.js', 'js/games/cartridge.js', 'js/games/metas.js', 'js/games/contract.js', 'js/games/preload.js', 'js/games/preload-graph.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'js/core/proof.js', 'js/core/boards.js', 'js/core/match-report.js', 'database.rules.json', 'index.html']) {
+test('FREEFALL IS HIDDEN FROM PLAYERS (F1 → F4A: THE HIDDEN CARTRIDGE): a `preview` GAMES row — never playable, the owner\'s live test only; no DAILIES row, no sign, no title / dock / console code knows it; the only endpoint that reads it is the report (behind THE SWITCH, OFF)', async () => {
+  const { GAMES, DAILIES, FROZEN_IDS, isPlayable, isOwnerTest } = await import('../js/config.js');
+  const row = GAMES.find(g => g.id === 'freefall');
+  assert.ok(row && row.playable === false && row.preview === true && !row.live, 'the GAMES row: playable false + preview (THE OWNER\'S LIVE TEST)');
+  assert.equal(isPlayable('freefall'), false, 'nobody may start it (this is not the owner\'s phone, not a local preview page)');
+  assert.equal(isOwnerTest('freefall'), false);
+  assert.ok(!FROZEN_IDS.includes('freefall'), 'being built — not frozen');
+  assert.ok(!DAILIES.some(d => d.id === 'freefall'), 'no DAILIES row: the daily stays off');
+  for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/contract.js', 'js/games/preload.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'js/core/harbor-neon.js', 'index.html']) {
     assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
   }
   const dir = readdirSync(new URL('../js/games/freefall/', import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'F1\'s files + F2\'s test page: no meta.js / index.js / view.js / director.js');
-  for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
+  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'meta.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'view.js'], 'F1 – F3B\'s files + F4A\'s cartridge: director · final · index · lines · meta · proof · view');
+  // the endpoints: the REPORT alone reads FREEFALL (the solo run's proof node, behind THE SWITCH) — the 8 stay 8
+  const fns = readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'));
+  assert.equal(fns.length, 8);
+  for (const f of fns.filter(n => n !== 'report.js')) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
+  assert.match(read('api/_lib/freefall.js'), /export const FREEFALL_COUNTS = false;/, 'THE SWITCH is OFF: judged, never awarded');
   // THE DAILY MODE is daily-ready only: it lives in the engine + the judge, and NOTHING turns it on
   assert.match(read('js/games/freefall/tuning.js'), /daily: \{ finish: 200, capTicks: 3 \* 60 \* TICK_HZ, holds: 0 \}/);
-  for (const f of ['js/daily', 'api/_lib']) for (const n of readdirSync(new URL(`../${f}/`, import.meta.url)).filter(x => x.endsWith('.js') && x !== 'freefall.js')) assert.doesNotMatch(read(`${f}/${n}`), /freefall/i, `${f}/${n}: no daily path`);
+  for (const n of readdirSync(new URL('../js/daily/', import.meta.url)).filter(x => x.endsWith('.js'))) assert.doesNotMatch(read(`js/daily/${n}`), /freefall/i, `js/daily/${n}: no daily path`);
+  for (const n of readdirSync(new URL('../api/_lib/', import.meta.url)).filter(x => x.endsWith('.js') && !['freefall.js', 'trust-lists.js', 'catalog.js', 'lab-text.js'].includes(x))) assert.doesNotMatch(read(`api/_lib/${n}`), /freefall/i, `api/_lib/${n}: no daily path, no other wiring`);
 });
 
 test('THE LAB NEVER COUNTS — its WHOLE module graph: only its own engine files + the integer hash + three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {

@@ -26,6 +26,7 @@ const LOADERS = {
   holdem: () => import('./holdem/index.js'),
   jaywalk: () => import('./jaywalk/index.js'),
   highrise: () => import('./highrise/index.js'),
+  freefall: () => import('./freefall/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
 export const META = ROWS;
@@ -78,10 +79,10 @@ export function liveKeyFor(game) {
 // of their OWN, best effort: on the old rules a delete of a path they don't know is refused, and inside the atomic start / return it would
 // take the whole write down (OC1: OVERCLOCK's combo marks + READY taps). They're keyed by the match, so a leftover never leaks into the next.
 // Once the owner has re-published, a later pass may move them into ALL_PLAYER_NODES.
-export const NEW_PLAYER_NODES = ['ocm', 'ocnext', 'jw', 'hr'];
+export const NEW_PLAYER_NODES = ['ocm', 'ocnext', 'jw', 'hr', 'ff'];
 // (FR7 FIXES B: a play's proof — report.js#PROOF_TREES; kept at the walk back, wiped at the next start)
-export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm', 'jw', 'hr']);
+export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm', 'jw', 'hr', 'ff']);
 // (HIGH RISE S4B — THE LIVE LOCK: the proof trees the host may delete only once his own GO in them is 10 min old — core/room-logic.js#proofUnlocked)
-export const LOCKED_PROOF_NODES = Object.freeze(['jw', 'hr']);
+export const LOCKED_PROOF_NODES = Object.freeze(['jw', 'hr', 'ff']);
 // Every player-writable node any game uses; wiped when a match starts or ends.
 export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];

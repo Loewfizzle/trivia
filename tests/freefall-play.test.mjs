@@ -57,11 +57,16 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   assert.ok(!/freefall/.test(ignore) && !/^\*\.html$/m.test(ignore), '.vercelignore keeps it (it deploys)');
   assert.match(read('scripts/serve.mjs'), /path === '\/freefall-play'/, 'the local server maps /freefall-play like Vercel\'s cleanUrls');
   assert.match(read('tests/integration/kit/page-loads.mjs'), /\['\/freefall-play', "!!document\.querySelector\('#app \.ff-stage'\)"\]/, 'THE PAGES LOAD: a stranger gets the stage');
-  // UNLISTED: no page, no script, no manifest names it — and FREEFALL is still registered NOWHERE
+  // UNLISTED: no page, no script, no manifest names it
   for (const f of ['index.html', 'board.html', 'admin.html', 'lab.html', 'daychart.html', 'jaywalk-lab.html', 'highrise-play.html', 'freefall-lab.html', '404.html', 'manifest.webmanifest', 'sw.js', 'vercel.json']) assert.doesNotMatch(read(f), /freefall-play/i, `${f} never names it`);
-  for (const f of ['js/config.js', 'js/app.js', 'js/games/registry.js', 'js/games/cartridge.js', 'js/games/metas.js', 'js/games/contract.js', 'js/games/preload.js', 'js/games/preload-graph.js', 'js/core/game-order.js', 'js/core/proof.js', 'database.rules.json', 'index.html']) assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
-  for (const n of ['meta.js', 'index.js', 'view.js', 'director.js']) assert.ok(!existsSync(new URL(`../${FF}${n}`, import.meta.url)), `no ${n}: nothing a console could load as a game`);
-  for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
+  // (F4A — THE HIDDEN CARTRIDGE: FREEFALL is registered as a `preview` row — the owner's live test only, never playable; the console's own
+  //  code + the page's shell still do not know it)
+  for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/contract.js', 'js/games/preload.js', 'js/core/game-order.js', 'index.html']) assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
+  assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: false, preview: true \}/, 'HIDDEN: playable false + preview');
+  // (F4A — THE HIDDEN CARTRIDGE: meta.js · index.js · view.js · director.js are there now — and the PAGE loads none of them: its graph below)
+  for (const n of ['meta.js', 'index.js', 'view.js', 'director.js']) assert.ok(existsSync(new URL(`../${FF}${n}`, import.meta.url)), `${n}: the cartridge's own file`);
+  assert.doesNotMatch(read(`${FF}play.js`) + read(`${FF}stage.js`), /from '\.\/(view|index|director|final|proof|lines|meta)\.js'|from '[^']*(firebase|profile\/|errlog|store)[^']*'/, 'the page + the stage import nothing of the cartridge\'s writes');
+  for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js') && n !== 'report.js')) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring (F4A: the REPORT alone reads it — the cartridge's run, behind THE SWITCH)`);
 });
 
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store; THE DOOR is shut before the stage mounts', () => {
@@ -121,8 +126,9 @@ test('THE RUN ON THE PAGE: FAIR INPUT (each move at its own event time, coalesce
   // THE HOLD
   assert.match(s, /if \(!isOver\(run\) && hold\(run, Math\.max\(T \+ 1, run\.mt\), ev\)\) \{/, 'the page hidden: the run is stepped to now, then HELD at the next free tick (engine.js#hold)');
   assert.match(s, /document\.addEventListener\('visibilitychange', \(\) => \{ if \(document\.visibilityState === 'hidden'\) hide\(\); else show\(\); \}, sig\);/);
-  assert.match(s, /if \(held && !countAt\) countAt = performance\.now\(\) \+ 3 \* COUNT_MS;/, 'back: 3 · 2 · 1');
-  assert.match(s, /held = false; countAt = 0; t0 = now - heldT \* TICK_MS;/, '… then on from the hold\'s tick: the time away never was run time');
+  assert.match(s, /if \(held && !countAt\) startCount\(\);/, 'back: 3 · 2 · 1');
+  assert.match(s, /countAt = performance\.now\(\) \+ 3 \* COUNT_MS; countShown = 0; stamped = false; countTries\+\+;\n    if \(!o\.resume\) return;/, 'F4A: the page\'s count is the same 3 × COUNT_MS — only the cartridge stamps the way back');
+  assert.match(s, /held = false; t0 = \(stamped \? countAt : now\) - heldT \* TICK_MS; countAt = 0;/, '… then on from the hold\'s tick: the time away never was run time');
   assert.match(s, /\} else away = true;/, 'no hold left / a match: the run goes on unseen');
   assert.deepEqual([MODES.solo.holds, MODES.match.holds], [3, 0]);
   // REPLAY = LIVE: the console only
@@ -498,7 +504,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.match(e, /w\('b\.fn-w\.fn-w1', 'FREE', NEON\.pink, NEON\.pink\), w\('b\.fn-w\.fn-w2', 'FALL', NEON\.teal, NEON\.teal\), w\('i\.fn-m', ` · \$\{m\}`, NEON\.mode, NEON\.teal\)/, 'FREE hot pink · FALL electric teal · the mode a pale ice (THE END NEON\'s classes)');
   assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
   assert.match(s, /h\('div\.ff-endfoot', again, h\('div\.ff-foot-row', share, city\)\)/, 'the foot: PLAY AGAIN, then SHARE | CITY');
-  assert.match(s, /'SHARE · SOON'\), city = h\('a\.ff-foot-b\.ff-city', \{ href: '\/' \}, 'CITY'\)/, 'SHARE is a placeholder until F4; CITY goes home');
+  assert.match(s, /'SHARE · SOON'\), city = o\.onLeave \? h\('button\.ff-foot-b\.ff-city', \{ type: 'button' \}, o\.leaveWords \|\| 'BACK'\) : h\('a\.ff-foot-b\.ff-city', \{ href: '\/' \}, 'CITY'\)/, 'SHARE is a placeholder until F4B; CITY goes home (the cartridge\'s own card: the console\'s way out)');
   assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');
 });

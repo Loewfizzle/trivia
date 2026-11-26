@@ -1,7 +1,8 @@
 // FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST PAGE"; HIGH RISE's stage.js is the pattern): the run loop on the pure engine, the
 // scene (night.js — F3: BOTH LOOKS, the shared DAY / NIGHT read live), the HUD, THE OPENING, THE HOLD, YOUR BEST, the sounds' cues, the end card — ONE module: the test page mounts
-// it today (play.js), F4's cartridge will mount the same one. It COUNTS NOTHING itself: no /api, no profile, no report — the page hands
-// it a best to read + write (this phone's), nothing else.
+// it (play.js) and — F4A — the cartridge mounts the same one (view.js). It COUNTS NOTHING itself: no /api, no profile, no report, no
+// database — the page hands it a best to read + write (this phone's); the cartridge hands it its hooks (`o.go` the GO → the seed + tick 0 ·
+// `o.resume` a hold's way back, stamped · `o.onFrame` / `o.onOver` / `o.onEnd` / `o.onHide` — what a run WRITES is the view's: view.js).
 //   · THE RUN: tick 0 = the START (the first drag — after ≤ 0.6 s for the sounds' decode: THE SOUND SYNC); the RULES never read the
 //     clock — the stage turns it into ticks. FAIR INPUT: a move counts at the tick of its own EVENT TIME (pointermove's timeStamp, each
 //     coalesced sample at its own) — 60 Hz and 120 Hz phones are equal. THE DRAG is 1 : 1 (the ring under the ball moves as far as the
@@ -54,6 +55,11 @@ export const HITCH_MS = 33;
 export const guessLook = hour => (hour >= 7 && hour < 19 ? 'day' : 'night');
 /** AUTO asks the sun again this often */
 export const SUN_EVERY_MS = 60000;
+/** F4A — THE CARTRIDGE's START: the tower's layout is the GO's own seed's (picked by the SERVER's time — it lands a moment after the first
+ *  drag): the tower SPINS UP — one whole turn, eased, over this long — as the real floors take their place (a view's turn: it ends where it began) */
+export const WHIP_MS = 420;
+/** … a hold's way back whose stamp did not come: the 3 · 2 · 1 is run again this often before the run goes on with no stamp (the judge then counts it up to that hold) */
+export const RESUME_TRIES = 3;
 /** a press this soon after a restart starts nothing (the second tap of a double tap on PLAY AGAIN) */
 export const RESTART_GUARD_MS = 350;
 
@@ -69,7 +75,8 @@ function press(node, fn) {
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
 const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, destroy() {} };
 
-export function createStage(app, o = {}) {
+export function createStage(app0, o = {}) {
+  let app = app0, acIn = new AbortController();   // (the element the stage is mounted in — the cartridge moves a parked stage to its next view's: `moveTo`)
   const PAGE = !!o.page, FIXED = String(o.seed || '').slice(0, SEED_MAX);
   const MODE = MODE_IDS.includes(o.mode) ? o.mode : 'solo';
   const FROM = Math.max(0, Math.min(600, Math.floor(Number(o.from) || 0)));
@@ -117,9 +124,11 @@ export function createStage(app, o = {}) {
   const EC = endCard({ header: MODE === 'solo' ? 'solo' : MODE });
   const again = h('button.ff-again', { type: 'button' }, h('span.ff-again-i'), h('span.ff-again-t', 'PLAY AGAIN'));
   again.firstChild.innerHTML = ICON_AGAIN;
-  const share = h('button.ff-foot-b.ff-share', { type: 'button', disabled: true, 'aria-disabled': 'true' }, 'SHARE · SOON'), city = h('a.ff-foot-b.ff-city', { href: '/' }, 'CITY');
+  // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
+  const share = h('button.ff-foot-b.ff-share', { type: 'button', disabled: true, 'aria-disabled': 'true' }, 'SHARE · SOON'), city = o.onLeave ? h('button.ff-foot-b.ff-city', { type: 'button' }, o.leaveWords || 'BACK') : h('a.ff-foot-b.ff-city', { href: '/' }, 'CITY');
   const end = h('div.ff-end', { hidden: true }, EC.el, h('div.ff-endfoot', again, h('div.ff-foot-row', share, city)));
   const note = h('div.ff-note', PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : '');
+  let runNote = '';   // (the cartridge: an UNPROVEN run says so for as long as it is on — NOT COUNTED — …)
   const fpsA = document.createTextNode(''), fps = o.fps ? h('div.ff-fps', fpsA) : null;
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first touch, never before) + THE SOUNDS LIST (the page's sheet)
   let snd = null, sheetOpen = false;
@@ -128,7 +137,7 @@ export function createStage(app, o = {}) {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE ? note : null, fps);
+  const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
   app.replaceChildren(stage);
   const hook = { ends: [], view: null, sfx: null, auto: null };
   // (the page installs the shared engine itself; in the console it is running long since)
@@ -247,6 +256,7 @@ export function createStage(app, o = {}) {
   let seed = '', run = null, t0 = null, shown = false, endedAt = 0, starting = false, startN = 0, warmed = false;
   let owed = 0, carry = 0, pre = 0, clamped = 0, drag = null, keyDir = 0, keyTick = 0, autoTick = 0;
   let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
+  let whipAt = -1e9, countN = 0, countTries = 0, stamped = false, overTold = false;   // (F4A — the cartridge: the spin-up · a hold's way back + its stamp · the run's end told once)
   let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hudInk = '', hitches = 0;
   let ev = [], fed = 0;
   const spotRec = { i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 };   // (the checks' own floor record — hook.spot)
@@ -257,7 +267,8 @@ export function createStage(app, o = {}) {
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
-    held = false; countAt = 0; away = false; hitches = 0;
+    held = false; countAt = 0; away = false; hitches = 0; whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
+    if (!PAGE) note.textContent = '';
     worstMs = 0; hN = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.reset(run); view.setBest(tapeFloor); view.pose('open', true);
@@ -291,7 +302,7 @@ export function createStage(app, o = {}) {
   }
   function live(ts) {
     starting = false; stage.classList.remove('is-starting'); stage.classList.add('is-live');
-    soundsBtn.hidden = true; note.hidden = true;
+    soundsBtn.hidden = true; note.hidden = !runNote;
     t0 = ts;
     if (FROM) { dive(FROM); fromRun = true; t0 = ts - run.t * TICK_MS; prepBanner(run.floor); }
     owed = Math.max(-OWED_MAX, Math.min(OWED_MAX, pre)); pre = 0;
@@ -309,9 +320,26 @@ export function createStage(app, o = {}) {
     if (!warmed) warmed = view.warm(run);
     awakeAt = performance.now(); awake(true);   // (taken IN the touch — where iOS lets a context wake)
     const ready = !snd || !snd.ready || snd.ready();
-    if (ready) { live(ts); return; }
     const m = startN;
+    if (o.go) {
+      // F4A — THE CARTRIDGE: GO (the proof node's first write — view.js) → the seed + tick 0 on the SERVER's clock; the sounds' decode is
+      // waited for meanwhile. The answer: { seed, t0 (this page's clock at tick 0 — it may still lie ahead), note? (an UNPROVEN run's words) }
+      const wait = ready ? Promise.resolve() : snd.whenReady(START_WAIT_MS).then(() => {}, () => {});
+      Promise.all([Promise.resolve().then(() => o.go()), wait]).then(([G]) => { if (!gone && m === startN && starting) adoptGo(G || { seed: FIXED || newSeed(), t0: performance.now(), note: '' }); }, () => { if (!gone && m === startN && starting) adoptGo({ seed: FIXED || newSeed(), t0: performance.now(), note: '' }); });
+      return;
+    }
+    if (ready) { live(ts); return; }
     snd.whenReady(START_WAIT_MS).then(() => { if (!gone && m === startN && starting) live(performance.now()); }, () => { if (!gone && m === startN && starting) live(performance.now()); });
+  }
+  /** F4A — the GO's answer: the run is the GO's own seed's (the opening stood on a stand-in tower: the real floors take their place as the
+   *  tower SPINS UP — WHIP_MS), tick 0 = `G.t0` */
+  function adoptGo(G) {
+    seed = String(G.seed); run = createRun({ seed, mode: MODE }); ev = []; fed = 0;
+    view.reset(run); view.setBest(tapeFloor);
+    whipAt = reduceM ? -1e9 : performance.now();
+    runNote = String(G.note || ''); note.textContent = runNote;
+    prepBanner(0);
+    live(Number(G.t0) || performance.now());
   }
 
   /** the checks' own hand (`hook.auto` — never a player's): 'gap' = every floor's gap (a dive: THE BLAZE) · 'play' = a bounce a floor, then its gap ·
@@ -339,7 +367,7 @@ export function createStage(app, o = {}) {
     if (t0 == null) { if (starting) pre += units; return; }
     if (isOver(run)) return;
     const T = tickOf(ts, t0);
-    if (T < 0) return;
+    if (T < 0) { owed += units; if (owed > OWED_MAX) owed = OWED_MAX; else if (owed < -OWED_MAX) owed = -OWED_MAX; return; }   // (F4A — the cartridge: tick 0 still lies ahead — the move turns the tower from tick 0, as a move before the first drag's start does)
     settle(T - 1);          // (what was still owed belongs to the ticks before this move)
     owed += units;
     owed -= turn(run, T, owed, ev);
@@ -348,6 +376,8 @@ export function createStage(app, o = {}) {
   const stamp = ts => { const now = performance.now(); return ts > 0 && ts <= now + 4 && now - ts < 1000 ? ts : now; };   // (a browser whose event clock is not the page's: the handler's own time)
   const onUi = e => !!(e.target && e.target.closest && e.target.closest('button, a, .sheet, .sheet-backdrop'));
   // (the whole page is the drag's ground — the dark bars beside the phone's column on a wide screen too)
+  function wire() {
+  const sig = { signal: acIn.signal };
   app.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (onUi(e) || shown || sheetOpen) return;
@@ -372,7 +402,9 @@ export function createStage(app, o = {}) {
   }, sig);
   const lift = e => { if (drag && drag.id === e.pointerId) drag = null; };
   app.addEventListener('pointerup', lift, sig); app.addEventListener('pointercancel', lift, sig);
-  app.addEventListener('touchmove', e => { if (!onUi(e)) e.preventDefault(); }, { passive: false, signal: ac.signal });   // (no page scroll under a finger)
+  app.addEventListener('touchmove', e => { if (!onUi(e)) e.preventDefault(); }, { passive: false, signal: acIn.signal });   // (no page scroll under a finger)
+  }
+  wire();
   document.addEventListener('keydown', e => {
     if (sheetOpen) return;
     if (shown && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); playAgain(); return; }
@@ -400,11 +432,27 @@ export function createStage(app, o = {}) {
       const left = MODES[MODE].holds - run.holds;
       holdL.textContent = left === 1 ? '1 PAUSE LEFT' : left > 1 ? `${left} PAUSES LEFT` : 'NO PAUSE LEFT';
     } else away = true;   // (no hold left — or a match: the run goes on unseen; back from it only its END sounds)
+    if (o.onHide) { try { o.onHide(held); } catch { /* the view's own business */ } }   // (F4A: what is logged goes up now — the hold with it)
   }
   function show() {
     view.rest(false); last = 0; tiers.reset(); hudGap = -99;   // (… the darkness's line + its rumble are set again from the run — the hide silenced them)
-    if (held && !countAt) countAt = performance.now() + 3 * COUNT_MS;
+    if (held && !countAt) startCount();
     if (glDown) { clearTimeout(lostTimer); lostTimer = 0; rebuild(); }
+  }
+  /** F4A — a hold's way back went on WITHOUT its stamp (the line): the run says so (the view's words — the judge counts it up to that hold) */
+  function unstampedNow() { try { runNote = `${o.onUnstamped() || ''}`; note.textContent = runNote; note.hidden = !runNote; } catch { /* the view's own business */ } }
+  /** THE HOLD's way back: 3 · 2 · 1. F4A — the cartridge stamps it (`o.resume(i)` → this page's clock at the SERVER's stamp, 0 = none): the
+   *  run goes on exactly 3 × COUNT_MS after the stamp — the judge's own number (proof.js#RESUME_LEAD_MS) */
+  function startCount() {
+    countAt = performance.now() + 3 * COUNT_MS; countShown = 0; stamped = false; countTries++;
+    if (!o.resume) return;
+    const n = ++countN;
+    Promise.resolve().then(() => o.resume(run.holds - 1)).then(at => {
+      if (gone || n !== countN || !held || !countAt || !(at > 0)) return;
+      const end = at + 3 * COUNT_MS;
+      if (end - performance.now() < 200) return;   // (the stamp's answer came too late for this count: the next one writes it again)
+      countAt = end; stamped = true;
+    }, () => {});
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hide(); else show(); }, sig);
 
@@ -440,8 +488,9 @@ export function createStage(app, o = {}) {
     finished = { seed, mode: MODE, floor: res.floor, tick: res.tick, look: lookT, same: null, judged: null };
     if (o.onFinish) { try { o.onFinish(finished, log); } catch { /* the page's own business */ } }
   }
-  function playAgain() { if (shown) restart(); }
+  function playAgain() { if (!shown) return; if (o.onAgain) { again.classList.add('is-busy'); Promise.resolve(o.onAgain()).then(ok => { again.classList.remove('is-busy'); if (ok === false) restart(); }, () => again.classList.remove('is-busy')); } else restart(); }
   press(again, playAgain);
+  if (o.onLeave) press(city, () => { city.classList.add('is-busy'); Promise.resolve(o.onLeave()).then(null, () => city.classList.remove('is-busy')); });
   function showEnd(now) {
     shown = true; drag = null; keyDir = 0; owed = 0;
     const res = resultOf(run), log = logOf(run), was = best;
@@ -463,7 +512,11 @@ export function createStage(app, o = {}) {
     if (res.made) { handOn(); finished.same = same; finished.judged = verdict.ok === true; }
     EC.set({ words: endWords(res), made: res.made, floor: res.floor, bounces: res.bounces, blazes: res.blazes, bestRun: res.bestRun });
     EC.best(fromRun ? was : best, isNew, was);
-    end.hidden = false; soundsBtn.hidden = false; note.hidden = false;
+    // F4A — THE CARTRIDGE: a PROVEN run ends on the console's podium (view.js — `own: false`: this card stays away); an UNPROVEN one on
+    // this card, with its reason (`note`)
+    const E = o.onEnd ? o.onEnd(res) || { own: true } : { own: true };
+    if (E.note) { runNote = String(E.note); note.textContent = runNote; }
+    end.hidden = !E.own; soundsBtn.hidden = false; note.hidden = !(PAGE || (E.own && runNote));
     stage.classList.remove('is-live', 'is-near'); stage.classList.add('is-over');
     hook.ends.push({ seed, mode: MODE, same, at, live: res, replay: r, judge: verdict, entries: log.length, holds: run.holds, clamped, best, was, isNew });
     if (hook.ends.length > 50) hook.ends.shift();
@@ -487,9 +540,12 @@ export function createStage(app, o = {}) {
         tau = heldT;
         if (countAt) {
           const left = countAt - now;
-          if (left <= 0) {
+          if (left <= 0 && o.resume && !stamped && countTries < RESUME_TRIES) startCount();   // (F4A: the way back was not stamped — the line: the count runs again)
+          else if (left <= 0) {
             // … then on: the clock picks up at the hold's tick (the time away + the 3 · 2 · 1 never were run time)
-            held = false; countAt = 0; t0 = now - heldT * TICK_MS; hudGap = -99; keyTick = heldT; holdEl.hidden = true; stage.classList.remove('is-held'); awakeAt = performance.now(); awake(true);
+            if (o.resume && !stamped && o.onUnstamped) unstampedNow();
+            countN++; countTries = 0;
+            held = false; t0 = (stamped ? countAt : now) - heldT * TICK_MS; countAt = 0; hudGap = -99; keyTick = heldT; holdEl.hidden = true; stage.classList.remove('is-held'); awakeAt = performance.now(); awake(true);
           } else { const c = Math.ceil(left / COUNT_MS); if (c !== countShown) countLine(c); }
         }
       } else {
@@ -516,8 +572,13 @@ export function createStage(app, o = {}) {
     }
     const over = isOver(run);
     if (over && !endedAt) { endedAt = now; awake(false); handOn(); }
+    if (o.onFrame && t0 != null) o.onFrame(now);   // (F4A — the cartridge: the proof's new chunks — view.js)
+    if (over && !overTold && o.onOver) { overTold = true; try { o.onOver(resultOf(run)); } catch { /* the view's own business */ } }
     if (over && !shown && now - endedAt >= (run.st === 'made' ? END_HOLD_MADE_MS : END_HOLD_MS)) showEnd(now);
-    view.draw(run, over ? run.end : tau, dt, pre);
+    // (what the tower shows AHEAD of the run: the finger's moves before the start · before tick 0 · THE SPIN-UP — one whole turn, eased out)
+    let lead = t0 == null ? pre : now < t0 ? owed : 0;
+    if (now - whipAt < WHIP_MS) { const k = 1 - (now - whipAt) / WHIP_MS; lead += Math.round(TURN * k * k * k); }
+    view.draw(run, over ? run.end : tau, dt, lead);
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
     if (run.floor !== hudFloor) hudFloorNow();
     const gap = over ? 9 : darkGap(run);
@@ -572,7 +633,7 @@ export function createStage(app, o = {}) {
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
   Object.assign(hook, {
-    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** (F4A — THE HAZE CHECK) where the middle of a slice's top face on the floor `df` under the ball's is on the screen ([x, y], 0 … 1) —
@@ -604,7 +665,15 @@ export function createStage(app, o = {}) {
   restart(); restartAt = -1e9;
   raf = requestAnimationFrame(frame);
   return {
-    hook, restart,
-    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    hook, restart, el: stage,
+    /** the cartridge's PLAY AGAIN: a stage kept warm (its scene, its programs, its sounds) is taken by the next view — into its element, the drag's ground with it */
+    moveTo(next) { acIn.abort(); acIn = new AbortController(); app = next; drag = null; app.replaceChildren(stage); wire(); },
+    /** F4A — the cartridge's hands (view.js): the run as it stands (its log is the proof's), the start (PLAY AGAIN's remount: the tap WAS
+     *  the start), the stage's own card with a line (NO SIGNAL), the card put away (the podium takes the screen) */
+    run: () => run, result: () => resultOf(run), state: () => ({ started: t0 != null, starting, shown, held, over: isOver(run), seed, note: runNote }),
+    start() { begin(performance.now()); },
+    showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
+    hideCard() { end.hidden = true; note.hidden = true; },
+    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

@@ -298,3 +298,50 @@ changes one of these modules updates its section here (and keeps the file's own 
 // its turning part); only the wheels turn live.
 ```
 
+## js/config.js
+
+(FREEFALL F4A, Nov 26 2026 — THE BOOT's BYTE ROOM: the boot stood at 6,499 of 6,500 KB; FREEFALL's hidden rows needed 1.3 KB. The three
+comment blocks below moved here VERBATIM; the file keeps one line each.)
+
+Above `GAMES`:
+
+```js
+// THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE (+ HOLD'EM since HE10, Nov 11) — `playable: false` HIDES a game
+// everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
+// an invite or a stale link included); its code, data + rules stay, FROZEN (FROZEN_IDS below — docs/cartridge.md "THE FROZEN CONTRACT"). The city's
+// signs come from core/harbor-neon.js#signRoster (the playable games, minus THE SIGN HOLD) — FIXES R2: the old `sign` flag is gone (nothing read it).
+// A game comes back = playable: true (and off FROZEN_IDS — derived, nothing to edit).
+```
+
+Above `DAILIES`:
+
+```js
+// PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's
+// game signs, HOW TO PLAY, THE BOARD's catalog + the match reports, and a daily is none of that (never playable in a room, no sign). THE DAILY
+// MODULE opens these once a day, later; until then THE PASSWORD is reachable only through its preview + its E2E. `gameRow(id)` = either list.
+```
+
+Under `DAILIES` (a row's fields):
+
+```js
+// FIXES R3 — `measure` = the daily's MAIN MEASURE: the SHARE CARD's ONE big score (js/daily/share.js#measureOf — 'guesses' | 'time'; a new daily declares its own).
+// DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DFIX3's
+// ONE-TIME HINT under the board, the cartridge's HINT line), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). THE DROP B: `ownMusic` = the run plays its own songs (the console's decks stay silent). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
+```
+
+Above `FROZEN_IDS`:
+
+```js
+/** FIXES R2 — THE REVIEW B1, option (b) "KEEP COMPATIBLE" (the owner, Nov 15): the FROZEN games — not playable, not being built (`preview`). ONE
+ *  list: games/registry.js#loadGame refuses them (never loaded — an emulator-only `&frozen=1` for tests), the whole-tree tests read it for
+ *  their exemptions; their pure logic.js + director.js stay importable + their sims green; their views, CSS, E2Es + previews are NOT maintained. */
+```
+
+Above `ownerPhone` (HE8):
+
+```js
+/** HE8 — THE OWNER'S LIVE TEST: this phone got the server's OWNER yes (the radio's gate — `radioWho`, ADMIN_PIDS: screens/harbor/radio-gate.js).
+ *  A game being built (`preview: true`, `playable: false`) then shows in HIS room's game list with a TEST tag and starts from his host phone —
+ *  only a convenience: the dealer's start checks the host is the owner itself (api/_lib/holdem-store.js#startOpen) and refuses everyone else.
+ *  Nobody else's lists, signs, THE BOARD or the city change. `playable: true` later simply opens it to all. */
+```

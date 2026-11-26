@@ -78,6 +78,12 @@ export const ITEM_ROWS = [
   // api/_lib/highrise.js#HIGHRISE_COUNTS ON); a collection shows only what its player owns
   C('card-abovetheclouds', 'ABOVE THE CLOUDS', 'rare', '#05060d', '#bfe6ff', '#ff4fd8', 'Sixty floors. The city is weather now.'),
   C('card-topoftheworld', 'TOP OF THE WORLD', 'legendary', '#020203', '#ffe9c0', '#ffd27a', 'Two hundred floors. They sent a ship.'),
+  // FREEFALL F4A — ITS THREE CARDS (Grok's art assets/vault/ff/ — js/fx/ff-specs.js: the crops + the hero boxes; no layer of their own yet):
+  // unlocked by FREEFALL's achievements below — the feat flags from the SERVER's replay of a run. HIDDEN UNTIL GO-LIVE: nothing is ever
+  // awarded while counting is OFF (api/_lib/freefall.js#FREEFALL_COUNTS), and a collection shows only what its player owns
+  C('card-splashdown', 'SPLASHDOWN', 'rare', '#01000e', '#e2dcff', '#c24bff', 'A hundred and twenty floors down. The harbor took you in.'),
+  C('card-terminalvelocity', 'TERMINAL VELOCITY', 'epic', '#000000', '#ffe2c2', '#ff8a2a', 'Fifteen floors, not one bounce. Nothing slows you now.'),
+  C('card-rockbottom', 'ROCK BOTTOM', 'legendary', '#000001', '#ffe9c0', '#ffd27a', 'Two hundred floors. There is nowhere left to fall.'),
   // PW2 — THE PASSWORD's card (Grok's vault door — the art assets/vault/pw/, the motion js/fx/pw-cards.js): both doors in six guesses or fewer
   C('card-safecracker', 'SAFECRACKER', 'rare', '#070a1c', '#ffd27a', '#ff4fd8', 'Both doors in six. The vault was never locked to you.'),
   // CC2 — COAST CLEAR's card (Grok's speedboat — the art assets/vault/cc/, the motion js/fx/cc-cards.js): a clear with zero spots at or under GHOST_S
@@ -260,6 +266,13 @@ export const ACH_ROWS = [
   // any mode · `top` = floor 200. Awarded ONLY once counting is ON (THE SWITCH — until then /api/report credits nothing)
   A('above-the-clouds', 'ABOVE THE CLOUDS', 'highrise', 'card-abovetheclouds', 'Reach floor 60 in one HIGH RISE run.', (s, p) => !!(p.gf && p.gf['highrise-clouds']), { game: 'highrise' }),
   A('top-of-the-world', 'TOP OF THE WORLD', 'highrise', 'card-topoftheworld', 'Reach floor 200 in one HIGH RISE run.', (s, p) => !!(p.gf && p.gf['highrise-top']), { game: 'highrise' }),
+  // FREEFALL F4A — THE THREE CARDS: the feat flags come from the SERVER's own replay of a run's proof node (api/_lib/freefall.js → the row's
+  // `ft` → core/match-report.js#freefallExtra — never a number a phone sends, never an unproven run): `harbor` = floor 120 in ONE counted
+  // run · `terminal` = 15 floors in a row without a bounce (the blaze's shatters included) · `bottom` = floor 200, solo or match. Awarded
+  // ONLY once counting is ON (THE SWITCH — until then /api/report credits nothing)
+  A('splashdown', 'SPLASHDOWN', 'freefall', 'card-splashdown', 'Reach floor 120 in one FREEFALL run.', (s, p) => !!(p.gf && p.gf['freefall-harbor']), { game: 'freefall' }),
+  A('terminal-velocity', 'TERMINAL VELOCITY', 'freefall', 'card-terminalvelocity', 'Fall 15 floors in a row without a bounce in FREEFALL.', (s, p) => !!(p.gf && p.gf['freefall-terminal']), { game: 'freefall' }),
+  A('rock-bottom', 'ROCK BOTTOM', 'freefall', 'card-rockbottom', 'Reach floor 200 in one FREEFALL run.', (s, p) => !!(p.gf && p.gf['freefall-bottom']), { game: 'freefall' }),
   // OC5 — `horseshoe` = backed the winner of a DUMB LUCK race (2+ players — the server replays the race from the room's record)
   A('horseshoe', 'HORSESHOE', 'overclock', 'emb-horseshoe', 'Backed the winning horse.', (s, p) => !!(p.gf && p.gf['overclock-horseshoe']), { game: 'overclock' }),
   // PD-5B — PRISM DROP's cards: the flags come from the room's OWN record of the match (core/match-report.js#prismExtra — never a number a

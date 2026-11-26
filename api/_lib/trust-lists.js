@@ -3,7 +3,7 @@
 // core/proof.js#VERIFIED_SOLO, PROOF_NODES) · a HOST-GRADED game (DROP_GUARD — checked against the players' own boards) · a DEALER game
 // (core/match-report.js#DEALER_GAMES — the server dealt it). tests/proof-lists.test.mjs: every playable reported game is in ONE of the three.
 /** a proof game → its node under rooms/{CODE} (report.js#PROOF_GAMES builds on it; registry.js#PROOF_NODE_LIST lists the same nodes) */
-export const PROOF_NODES = Object.freeze({ jaywalk: 'jw', highrise: 'hr' });
+export const PROOF_NODES = Object.freeze({ jaywalk: 'jw', highrise: 'hr', freefall: 'ff' });
 /** THE CONSOLE FIX — Group 2: the host-graded games whose result must name every player their own boards prove (THE DROPPED LEADER) */
 export const DROP_GUARD = Object.freeze(['prism', 'overclock']);
 /**
@@ -29,8 +29,9 @@ export const PROOF_TREES = Object.freeze({
   overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
   jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO. THE PROOF PASS: a node counts only WITH its GO (provenUids), and in a MATCH only with a hop the server replayed — `played`)
   highrise: m => ({ room: [`hr/${m}`], seal: [] }),   // (HIGH RISE S4A: the same — its own node)
+  freefall: m => ({ room: [`ff/${m}`], seal: [] }),   // (FREEFALL F4A: the same — its own node)
 });
 /** the games whose proof tree is FLAT — { uid: node } (PRISM's boards, JAYWALK's runs); the others' = { ci | key: { uid: … } } (OVERCLOCK) */
-export const FLAT_PROOF = new Set(['prism', 'jaywalk', 'highrise']);
+export const FLAT_PROOF = new Set(['prism', 'jaywalk', 'highrise', 'freefall']);
 /** … of which the proof-node games: a node = { go, c, e } — it counts only with its GO (core/proof.js#goUids) */
-export const GO_TREES = new Set(['jaywalk', 'highrise']);
+export const GO_TREES = new Set(['jaywalk', 'highrise', 'freefall']);

@@ -66,3 +66,12 @@ export function standings(rows) {
     return { uid: r.uid, rank, floor: r.floor, tick: r.tick };
   });
 }
+
+/** F4A — a GAME's standings (the console's podium + the server's report: core/match-report.js): its results { uid: { f: floors, t: tick } }
+ *  → [{ uid, rank, score (= the floors), floor, tick }] for every participant (no row = no run) */
+export function gameStandings(game) {
+  const res = (game && game.results) || {};
+  return standings(Object.keys((game && game.participants) || {}).map(uid => { const r = res[uid] || {}; return { uid, floor: r.f, tick: r.t }; })).map(r => ({ ...r, score: r.floor }));
+}
+/** one player = SOLO (endless) · a room = THE MATCH (F4B) */
+export const modeOf = participants => (Object.keys(participants || {}).length === 1 ? 'solo' : 'match');

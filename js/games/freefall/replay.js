@@ -117,13 +117,14 @@ export function judgeRun(input) {
 //   A HOLD (F2):  '!' + the ticks since the event before (base 36; "0" = at the tick of the move before it)
 // ".c+2r+1k-3.a-z" = tick 11: +99 · tick 12: +56 · tick 13: −3 · tick 23: −35. "…-z!4+5" = … a hold at tick 27, then tick 28: +5.
 // CANONICAL: packLog(unpackLog(s)) === s, nothing else unpacks.
-const one = (pt, pa, t, a) => { const gap = t - pt, d = angDiff(a, pa); return (gap === 1 ? '' : `.${gap.toString(36)}`) + (d < 0 ? `-${(-d).toString(36)}` : `+${d.toString(36)}`); };
+/** ONE move as the packed log writes it — after the event at tick `pt` (the angle before: `pa`); F4A: the proof's chunks are cut from the same text (proof.js) */
+export const packMove = (pt, pa, t, a) => { const gap = t - pt, d = angDiff(a, pa); return (gap === 1 ? '' : `.${gap.toString(36)}`) + (d < 0 ? `-${(-d).toString(36)}` : `+${d.toString(36)}`); };
 export function packLog(log) {
   let s = '', pt = -1, pa = 0;
   for (let i = 0; i < log.length; i++) {
     const e = log[i];
     if (isHold(e)) { s += `!${(e.t - pt).toString(36)}`; pt = e.t; continue; }
-    s += one(pt, pa, e.t, e.a);
+    s += packMove(pt, pa, e.t, e.a);
     pt = e.t; pa = e.a;
   }
   return s;
@@ -135,7 +136,7 @@ export function packRun(run) {
     const t = i < run.lt.length ? run.lt[i] : Infinity;
     while (k < run.ht.length && run.ht[k] < t) { s += `!${(run.ht[k] - pt).toString(36)}`; pt = run.ht[k++]; }
     if (i === run.lt.length) break;
-    s += one(pt, pa, t, run.la[i]);
+    s += packMove(pt, pa, t, run.la[i]);
     pt = t; pa = run.la[i];
   }
   return s;

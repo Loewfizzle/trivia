@@ -13,6 +13,8 @@ import * as prismMeta from '../games/prism/meta.js';
 import * as jwMeta from '../games/jaywalk/meta.js';
 import { standings as jaywalkStandings } from '../games/jaywalk/logic.js';
 import * as hiMeta from '../games/highrise/meta.js';
+import * as ffMeta from '../games/freefall/meta.js';
+import { gameStandings as freefallStandings } from '../games/freefall/logic.js';
 import { gameStandings as highriseStandings, towerScore } from '../games/highrise/logic.js';
 import { boardDef } from './boards.js';
 import { VERIFIED_SOLO } from './proof.js';
@@ -36,6 +38,7 @@ const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
   stakes: stakesStandings, rum: rumStandings,
+  freefall: freefallStandings,   // (FREEFALL F4A — BEING BUILT + its counting OFF: api/report.js#reportableGame + THE SWITCH api/_lib/freefall.js#FREEFALL_COUNTS)
   highrise: highriseStandings,   // (HIGH RISE — playable + counting since THE GO-LIVE, Nov 20: THE SWITCH api/_lib/highrise.js#HIGHRISE_COUNTS)
   jaywalk: jaywalkStandings,   // (JAYWALK H1 — BEING BUILT: the server's report still refuses it until its row is playable — api/report.js#reportableGame)
 };
@@ -435,18 +438,35 @@ function highriseExtra(game, uid, out) {
   for (const k of String(r.ft || '').split(' ')) if (HI_FEATS[k]) (out.f ||= {})[HI_FEATS[k]] = 1;
 }
 
-const EXTRA = { highrise: highriseExtra, jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
+// FREEFALL (F4A — JAYWALK's + HIGH RISE's rule): the floors of a run the SERVER replayed itself (`game.sv` — api/_lib/freefall.js#freefallSolo
+// builds that match from the player's proof node: the room's own results are never read) → rec 'freefall' (the solo lane maps it to the board
+// freefall-solo; a counted MATCH run — F4B — raises the SAME best). A run the server refused (`bad`) is named in `rejected` and earns
+// nothing. THE THREE CARDS' flags (`ft`: reachedHarbor · terminal · reachedBottom) come from that same replay — `harbor` (floor 120, one
+// run) · `terminal` (15 floors in a row without a bounce) · `bottom` (floor 200, solo or match). THE AVERAGE (the owner: as JAYWALK's):
+// a SOLO run's floors, 0 too (`av`). NOTHING of this is ever written while counting is OFF (api/report.js: the switch returns before any credit).
+export const FF_FEATS = Object.freeze({ reachedHarbor: 'harbor', terminal: 'terminal', reachedBottom: 'bottom' });
+function freefallExtra(game, uid, out) {
+  const r = (game.results || {})[uid] || {};
+  if (r.bad) { out.rejected.push({ uid, board: 'freefall-solo', v: r.bad }); return; }
+  if (game.sv !== 1) return;
+  const solo = Object.keys(game.participants || {}).length === 1;
+  if (num(r.f) > 0) out.rec[solo ? 'freefall' : 'freefall-solo'] = Math.floor(num(r.f));
+  for (const k of String(r.ft || '').split(' ')) if (Object.prototype.hasOwnProperty.call(FF_FEATS, k)) (out.f ||= {})[FF_FEATS[k]] = 1;
+  if (solo) out.av = { 'freefall-solo': Math.max(0, Math.floor(num(r.f))) };
+}
+
+const EXTRA = { freefall: freefallExtra, highrise: highriseExtra, jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
 /** THE FIX PASS — M1: does a game have its report extract? (a missed EXTRA threw on every report — tests/proof-lists.test.mjs) */
 export const hasExtra = id => Object.prototype.hasOwnProperty.call(EXTRA, id);
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 // THE SOLO LANE (SHELL 2.0 B1 — D3): the cartridges a room of ONE may count (their meta's SOLO — the same flag the console starts them by)
-export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true, jaywalk: jwMeta.SOLO === true, highrise: hiMeta.SOLO === true });
+export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true, jaywalk: jwMeta.SOLO === true, highrise: hiMeta.SOLO === true, freefall: ffMeta.SOLO === true });
 /** JAYWALK H3 — THE QUICK SOLO RUNS: the games whose SOLO runs last seconds and restart at once (HOP AGAIN — every run its own match + report).
  *  THE 45 s GAP (api/_lib/stats.js — "one match per player per 45 s", the forged-room win farm's stop) does not hold their solo rows back: a
  *  solo run is never a win, pays XP only for the day's first SOLO_DAY_XP runs, and its record is the server's own replay. Their ROOM matches
  *  keep the gap like every game. */
-export const QUICK_SOLO = Object.freeze({ jaywalk: true, highrise: true });   // (HIGH RISE S4A: XP + the streak by JAYWALK's rules — the owner, Nov 19)
+export const QUICK_SOLO = Object.freeze({ jaywalk: true, highrise: true, freefall: true });   // (HIGH RISE S4A: XP + the streak by JAYWALK's rules — the owner, Nov 19)
 /** a solo match's records go to the game's SOLO board (`<board>-solo` — core/boards.js), never the multiplayer one; none → dropped */
 export const soloBoard = b => { const d = boardDef(b); if (d && d.both) return b; return boardDef(`${b}-solo`) ? `${b}-solo` : null; };   // (CITY PART 1: a `both` board takes the solo run itself — OVERCLOCK's BEST QUICK RUN)
 export function unreportable(game) {
@@ -465,7 +485,8 @@ const SOLO_PLAYED = {
   overclock: (game, uid) => vals(game.results).some(rr => { const x = rr && rr[uid]; return !!x && (num(x.ok) > 0 || num(x.pts) > 0); }),
   prism: (game, uid) => { const r = (game.results || {})[uid] || {}; return num(r.sc) > 0 || num(r.ln) > 0; },
   jaywalk: (game, uid) => num(((game.results || {})[uid] || {}).l) > 0,   // (a lane reached: a phone left on the table never counts)
-  highrise: (game, uid) => num(((game.results || {})[uid] || {}).f) > 0,   // (a floor landed: an EMPTY log — THE FUSE's own end — never counts)
+  highrise: (game, uid) => num(((game.results || {})[uid] || {}).f) > 0,
+  freefall: (game, uid) => num(((game.results || {})[uid] || {}).f) > 0,   // (a floor passed: an EMPTY log — the darkness's own end at floor 0 — never counts)   // (a floor landed: an EMPTY log — THE FUSE's own end — never counts)
 };
 // (PD-2 — PRISM DROP's solo SURVIVAL: the standings' score is the SECONDS SURVIVED, which a phone on the table earns too (the pieces fall + lock
 //  by themselves) — so PRISM's own check decides alone: points or lines (a solo SCORE RUSH's score IS its points — the same answer))

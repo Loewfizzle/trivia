@@ -1,9 +1,10 @@
-// FREEFALL — THE SERVER HALF (F1 — docs/freefall.md "THE JUDGE"). NOT a function (the 8 stay 8), NOT WIRED (nothing imports it but its
-// test — the run node + /api/report's path come in F4), and PURE: it never imports fb.js (THE UNIT JOB INSTALLS NOTHING —
-// tests/freefall-server.test.mjs runs it in Node). It imports the SAME engine modules the phone runs (js/games/freefall/…): the judge's
-// replay IS the phone's run.
+// FREEFALL — THE SERVER HALF (F1 — docs/freefall.md "THE JUDGE"). NOT a function (the 8 stay 8) and PURE: it never imports fb.js (THE
+// UNIT JOB INSTALLS NOTHING — tests/freefall-server.test.mjs runs it in Node). It imports the SAME engine modules the phone runs
+// (js/games/freefall/…): the judge's replay IS the phone's run. F4A: WIRED into /api/report (the solo run's proof node; the match's half a
+// stub until F4B; the daily stays off) — behind THE SWITCH (FREEFALL_COUNTS, below: OFF until go-live — judged, never awarded).
 import { judgeRun as judge, unpackLog, maxEntries, rulesOf } from '../../js/games/freefall/replay.js';
 import { featsOf } from '../../js/games/freefall/logic.js';
+import { judgeSolo } from '../../js/games/freefall/proof.js';
 import { ENTRY_CHARS_MAX } from '../../js/games/freefall/tuning.js';
 
 /**
@@ -35,3 +36,36 @@ export function judgePacked(input) {
 export const serverRow = v => (v && v.ok
   ? { f: v.floor, t: v.tick, w: v.cause, e: v.end, ...(featsOf(v) ? { ft: featsOf(v) } : {}) }
   : { f: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
+
+// ---- F4A — WIRED: /api/report judges a FREEFALL run ONLY from its PROOF NODE (rooms/{CODE}/ff/{matchId}/{uid} — js/games/freefall/proof.js:
+// GO's server time → the seed + tick 0; the server-stamped chunks → the input log + its clock; the holds' stamps) — JAYWALK's + HIGH RISE's
+// way (api/_lib/jaywalk.js · api/_lib/highrise.js). And THE SWITCH.
+
+/**
+ * THE SWITCH (the owner, Nov 26 — COUNTING STAYS OFF UNTIL GO-LIVE; HIGH RISE's S4A switch is the pattern): ONE server-side flag. OFF →
+ * /api/report still JUDGES every cartridge run (the proof node replayed, the speed check, the holds' clock, the judge) and answers what it
+ * WOULD award (floor, XP, the streak, a best, the cards' flags) — and WRITES NOTHING: no pstats, no profile, no board row, no card, no
+ * streak day, no results/ record. THE GO-LIVE PASS sets this to true (ONE line) — then a run is counted by JAYWALK's normal path. (On the
+ * LOCAL EMULATORS a test may flip it through the database switch `testFreefallCounts` — api/report.js#freefallCounts; never honoured in production.)
+ */
+export const FREEFALL_COUNTS = false;
+
+/** ONE player's PROOF NODE → the judge's answer for a SOLO run (the seed = seedOf(code, matchId, go): picked after GO; tick 0 = that GO + its lead). No GO = no run. The SERVER is strict: never the host's mirror reading. */
+export const verifyRun = ({ code, matchId, node } = {}) => judgeSolo({ code, matchId, node });
+
+/** the judged row a report reads: serverRow + what the end card + the would-line say (b / bl / br: bounces · blazes · the best no-bounce run; h: the holds; cut) */
+const judgedRow = v => ({ ...serverRow(v), ...(v && v.ok ? { b: v.bounces, bl: v.blazes, br: v.bestRun, ...(v.holds ? { h: v.holds } : {}), ...(v.cut ? { cut: 1 } : {}) } : {}) });
+
+/**
+ * THE SERVER'S OWN RESULT (PURE): a SOLO run as a match the report can read — built ONLY from the server's replay of the player's proof
+ * node; never from the room's game.results (the host — the player — wrote those), never from a phone's claim. `sv` marks it: only such a
+ * match earns a record / a card flag (core/match-report.js#freefallExtra). The room's game may be GONE (PLAY AGAIN starts the next run at
+ * once): the proof node + the night record are enough. → { game, v }
+ */
+export function freefallSolo({ code, matchId, uid, node }) {
+  const v = verifyRun({ code, matchId, node });
+  return { game: { id: 'freefall', matchId, phase: 'final', mode: 'solo', sv: 1, participants: { [uid]: true }, settings: {}, results: { [uid]: judgedRow(v) } }, v };
+}
+
+/** F4B's HALF — A STUB: the cartridge can not start a match yet (index.js#start refuses a room of two or more) — a report of one has no proof to read. → { game: null, why } */
+export const freefallMatch = () => ({ game: null, why: 'the match is not built yet' });

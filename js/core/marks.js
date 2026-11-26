@@ -77,6 +77,12 @@ export const MARKS = {
     { d: 'M26 68 L46 78 L66 68 M26 77 L46 87 L66 77', col: '#35e3ff' },
     { d: 'M36 26 L56 16 L76 26 L56 36 Z M36 26 V34 L56 44 L76 34 V26 M56 36 V44', col: '#ff4fd8' },
   ] },
+  // FREEFALL (F4A — a STAND-IN: hidden): the ball over two rings
+  freefall: { blade: 'FREEFALL', tubes: [
+    { d: 'M50 12 A9 9 0 1 1 49.9 12 Z', col: '#ff4fa8' },
+    { d: 'M22 48 A28 10 0 0 0 62 57 M74 53 A28 10 0 0 0 78 48', col: '#27e0e6' },
+    { d: 'M22 76 A28 10 0 0 0 38 84 M52 86 A28 10 0 0 0 78 76', col: '#27e0e6' },
+  ] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

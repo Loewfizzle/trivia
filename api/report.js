@@ -26,6 +26,7 @@ import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
+import { freefallSolo, freefallMatch, FREEFALL_COUNTS } from './_lib/freefall.js';   // (FREEFALL F4A — the solo run's proof node; its counting OFF)
 import { goUids, firstGo, onTime, liveRetryMs, VERIFIED_SOLO } from '../js/core/proof.js';
 import { liveOf as jaywalkLive } from '../js/games/jaywalk/director.js';   // (THE CONSOLE FIX: the live runs — PURE, the host's own rule)
 import { liveOf as highriseLive } from '../js/games/highrise/match.js';
@@ -116,6 +117,7 @@ import { DROP_GUARD, PROOF_NODES, proofPaths, PROOF_TREES, FLAT_PROOF, GO_TREES 
 export const PROOF_GAMES = Object.freeze({
   jaywalk: Object.freeze({ node: PROOF_NODES.jaywalk, solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
   highrise: Object.freeze({ node: PROOF_NODES.highrise, solo: highriseSolo, match: highriseMatch, live: highriseLive }),
+  freefall: Object.freeze({ node: PROOF_NODES.freefall, solo: freefallSolo, match: freefallMatch, live: null }),   // (FREEFALL F4A: the solo run — a match has no live runs to wait for yet: F4B)
 });
 // (THE FIX PASS — M1: a proof game missing here would be paid from the host's own game.results — for a solo run, the player's own claim. ONE
 //  guard at load (the /api tests import this file) + tests/proof-lists.test.mjs over the pure lists: every VERIFIED_SOLO id in every list)
@@ -127,15 +129,23 @@ for (const id of VERIFIED_SOLO) if (!PROOF_GAMES[id] || !PROOF_TREES[id] || !GO_
  * never honoured in production (`emulated()`).
  */
 export const highriseCounts = async () => { if (emulated()) { const t = await val('testHighriseCounts'); if (t === true || t === false) return t; } return HIGHRISE_COUNTS; };
+/** FREEFALL F4A — THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS — OFF until its go-live): the same rule, its own emulator flip `testFreefallCounts` */
+export const freefallCounts = async () => { if (emulated()) { const t = await val('testFreefallCounts'); if (t === true || t === false) return t; } return FREEFALL_COUNTS; };
+/** the games behind a SWITCH → is its counting ON? · its board · its cards by their FEAT (the achievement's id → the feat's word — never an item's name: ITEM NAMES ONLY TO OWNERS) */
+export const SWITCHED = Object.freeze({
+  highrise: Object.freeze({ counts: highriseCounts, board: 'highrise-solo', cards: Object.freeze([['above-the-clouds', 'clouds'], ['top-of-the-world', 'top']]) }),
+  freefall: Object.freeze({ counts: freefallCounts, board: 'freefall-solo', cards: Object.freeze([['splashdown', 'harbor'], ['terminal-velocity', 'terminal'], ['rock-bottom', 'bottom']]) }),
+});
 /** PURE — the WOULD-AWARD the phone is told while counting is OFF: the server's own judged row + what the counted path would have done.
  *  `row` = the server's result row { f, p, t, w, s, ft?, cut?, bad? } · `w` = stats.js#wouldApply's answer · `rec` = the board value */
-export function wouldAward(row, w, rec) {
+export function wouldAward(row, w, rec, gid = 'highrise') {
+  const SW = SWITCHED[gid] || SWITCHED.highrise;
   const r = row || {}, out = { floor: Math.max(0, Math.floor(Number(r.f) || 0)), perfects: Math.max(0, Math.floor(Number(r.p) || 0)), cause: String(r.w || ''), ...(r.cut ? { cut: 1 } : {}) };
   if (r.bad) return { ...out, skip: `refused (${r.bad})` };
   if (!w || w.skip) return { ...out, skip: (w && w.skip) || 'not counted' };
-  const pb = (w.pbs || []).find(p => p.b === 'highrise-solo');
+  const pb = (w.pbs || []).find(p => p.b === SW.board);
   // (the cards by their FEAT — never an item's name: ITEM NAMES ONLY TO OWNERS)
-  const cards = [['above-the-clouds', 'clouds'], ['top-of-the-world', 'top']].filter(([a]) => (w.ach || []).some(x => (x && x.id ? x.id : x) === a)).map(([, f]) => f);
+  const cards = SW.cards.filter(([a]) => (w.ach || []).some(x => (x && x.id ? x.id : x) === a)).map(([, f]) => f);
   // (S4B — "+0 XP" SAYS WHY: the day's XP is done — a solo run past THE SOLO LANE's SOLO_DAY_XP paid runs of the streak day (every solo
   //  game counts toward them: four JAYWALK runs use them up), or a room match past THE DAILY CEILING. `cap` → the line's "DAILY CAP")
   const cap = !(w.xp > 0) && (!!w.capped || !!(w.solo && w.solo.n > w.solo.max));
@@ -205,7 +215,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // told quietly ('before_reset' — no outcome, no message)
   const at = Math.min(night.at, now);
   // HIGH RISE S4A — THE SWITCH, asked ONCE (the fresh-eyes review: before the one earlier write a HIGH RISE match could reach)
-  const hrOff = night.g === 'highrise' && !(await highriseCounts());
+  const hrOff = !!SWITCHED[night.g] && !(await SWITCHED[night.g].counts());   // (FREEFALL F4A: + FREEFALL — its own switch, the same path)
   if (Number(resetAt) > 0 && at < Number(resetAt)) {
     if (hrOff) return { ok: true, status: 'before_reset', outcome: null };   // (counting OFF: not even the sealed record)
     await ref(`results/${key}`).transaction(cur => (cur && cur.st === 'done' ? undefined : { st: 'done', at: now, pre: 1, by: uid, o: {} }));
@@ -372,10 +382,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // HIGH RISE S4A — THE SWITCH, OFF (until go-live): the run was JUDGED — the proof node replayed, every check above passed — and NOTHING
   // is awarded: no claim on results/, no pstats, no profile, no board row, no card, no streak day (credit() is never reached). The answer
   // says what the counted path WOULD have done — the SAME pure step on a copy (stats.js#wouldApply, reads only).
-  if (hrOff && ex.gid === 'highrise') {
+  if (hrOff && SWITCHED[ex.gid]) {
     const w = await wouldApply(key, ex, pids, uid, now, { code, meta, win }, at).catch(e => ({ skip: `error (${(e && e.message) || e})` }));
-    const rec = ex.rows[uid] && ex.rows[uid].rec ? ex.rows[uid].rec['highrise-solo'] : null;
-    return { ok: true, status: 'would_count', outcome: { none: true, would: wouldAward(judged, w, rec) } };
+    const rec = ex.rows[uid] && ex.rows[uid].rec ? ex.rows[uid].rec[SWITCHED[ex.gid].board] : null;
+    return { ok: true, status: 'would_count', outcome: { none: true, would: wouldAward(judged, w, rec, ex.gid) } };
   }
   return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
 }

@@ -1214,6 +1214,141 @@ test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run
   tick();
 });
 
+// FREEFALL F4A — THE HIDDEN CARTRIDGE's SOLO RUN + THE SWITCH: judged ONLY from the server's replay of the player's proof node
+// (rooms/{CODE}/ff/{m}/{uid} — the packed input log's server-stamped chunks, the holds' stamps); a game BEING BUILT — only THE OWNER's
+// report is even judged; COUNTING OFF (the switch — the code's value): the answer is WOULD COUNT and NOTHING is written; COUNTING ON
+// (the emulators' test flip): the floor, XP, the streak, the best on freefall-solo, THE AVERAGE, the cards from the replay's feats.
+test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the code\'s value) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node, a held run, an empty run; THE SWITCH ON (the test flip) = floor, XP, streak, best, THE AVERAGE, SPLASHDOWN from the replay', async (t) => {
+  t.after(async () => { await ref('testFreefallCounts').set(null); });
+  const { seedOf } = await import('../../js/games/freefall/logic.js');
+  const { createRun, stepTo, turn, hold, isOver, resultOf, logOf } = await import('../../js/games/freefall/engine.js');
+  const { finalCount, packRange, START_LEAD_MS, RESUME_LEAD_MS } = await import('../../js/games/freefall/proof.js');
+  const { packRun } = await import('../../js/games/freefall/replay.js');
+  const { makeBot, playBot } = await import('../../js/games/freefall/bot.js');
+  const { SOLO_XP } = await import('../../js/core/ranks.js');
+  const { FREEFALL_COUNTS } = await import('../../api/_lib/freefall.js');
+  assert.equal(FREEFALL_COUNTS, false, 'THE SWITCH ships OFF');
+  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(null);
+  const uid = 'u-ff', other = 'u-ffx';
+  await ensure(uid, 'FALLER'); await ensure(other, 'OTHER');
+  const pid = await val(`uids/${uid}`), opid = await val(`uids/${other}`);
+  await ref(`testAdmins/${pid}`).set(true);   // (THE OWNER'S LIVE TEST: on the emulators the owner = testAdmins/{pid})
+  const code = nextCode(), MS = 1000 / 60;
+  let mN = 0;
+  /** an honest run by a bot on the seed its GO picked, to `maxFloor` → its proof node: the FINAL events sent every 15 ticks, each stamped
+   *  `lag` ms after its tick; `holdAt` = a tick the run is held at for `away` ms (its way back stamped by the server's clock) */
+  const runOf = (matchId, bot, maxFloor = 400, { lag = 150, forge = false, holdAt = 0, away = 0, stamp = true } = {}) => {
+    const go = clock - 600_000, seed = seedOf(code, matchId, go);
+    const plan = createRun({ seed, mode: 'solo' });
+    playBot(plan, makeBot(bot, matchId), { maxFloor });
+    if (!isOver(plan)) stepTo(plan, 200000);
+    const log = logOf(plan), run = createRun({ seed, mode: 'solo' }), c = {}, h = {};
+    let sent = 0, i = 0, k = 0, shift = 0;
+    const flush = T => { const n = finalCount(run); if (n > sent) { c[k++] = { s: packRange(run, sent, n), at: Math.round(go + START_LEAD_MS + T * MS + shift + lag) }; sent = n; } };
+    for (let T = 0; T < 200000 && !isOver(run); T++) {
+      while (i < log.length && log[i].t === T) { const e = log[i++]; turn(run, T, ((e.a - run.a + 6144) % 4096) - 2048); }
+      stepTo(run, T);
+      if (holdAt && T === holdAt && !isOver(run) && hold(run, T + 1)) {
+        flush(T + 1);
+        if (stamp) h[0] = Math.round(go + START_LEAD_MS + (T + 1) * MS + shift + away);
+        shift += away + RESUME_LEAD_MS; T += 1;
+      }
+      if (T % 15 === 0) flush(T);
+    }
+    flush(run.end);
+    const live = resultOf(run);
+    const node = forge ? { go, c: { 0: { s: packRun(run).slice(0, 380).replace(/[.+\-!][0-9a-z]*$/, ''), at: go + 900 } } } : { go, c, ...(Object.keys(h).length ? { h } : {}), e: { f: live.floor, t: live.tick, w: live.cause } };
+    return { node, live, go };
+  };
+  /** the solo room as the phone leaves it at a run's end: the game (final — its results the HOST's own claim), the night record, the proof */
+  const seedRun = async (who, wpid, R, { claim = 9999, moved = false } = {}) => {
+    const matchId = `s${(mN++).toString(36)}ff${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+    const r = R(matchId);
+    const game = { id: 'freefall', matchId, phase: 'final', mode: 'solo', seed: 'host', settings: {}, participants: { [who]: true }, playAt: r.go - 50, phaseStartAt: clock, results: { [who]: { f: claim, t: 5, w: 'made', ft: 'reachedHarbor terminal reachedBottom' } } };
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: who, status: 'playing', createdAt: clock - 900_000, activeAt: clock, locked: true, settings: { solo: { on: true, g: 'freefall' } } },
+      players: { [who]: { name: 'FALLER', color: 'cyan', avatar: 'bolt', joinedAt: 1, pid: wpid } },
+      game: moved ? { ...game, matchId: 'snextrun1', phase: 'play', results: null } : game,
+      [`night/${matchId}`]: { g: 'freefall', at: clock, p: { [who]: 0 }, n: { [who]: 'FALLER' } },
+      [`ff/${matchId}/${who}`]: r.node,
+    });
+    return { code, matchId, live: r.live };
+  };
+  const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
+  const best = async () => { const st = await stats(uid); return st && st.b && st.b['freefall-solo'] ? st.b['freefall-solo'].a : null; };
+
+  // ---- HIDDEN: a STRANGER's report of a game being built is not even judged
+  const A = await seedRun(other, opid, m => runOf(m, 'good', 40));
+  await rejects(report(other, A), 409, 'not_reportable');
+
+  // ---- COUNTING OFF (the code's value): the OWNER's run is judged → WOULD COUNT — and NOTHING is written
+  tick(9000);
+  const before = await snap();
+  const B = await seedRun(uid, pid, m => runOf(m, 'great', 135));
+  assert.ok(B.live.floor >= 60, `the fixture run: floor ${B.live.floor}`);
+  const rb = await report(uid, B);
+  assert.equal(rb.status, 'would_count', 'the switch is OFF: the run is JUDGED, never counted');
+  const w = rb.outcome.would;
+  assert.equal(rb.outcome.none, true);
+  assert.deepEqual([w.floor, w.cause], [B.live.floor, B.live.cause], `WOULD COUNT = the SERVER's replay (floor ${w.floor}) — never the room's claim of 9,999`);
+  assert.equal(w.xp, SOLO_XP, '… the XP the solo lane would pay'); assert.equal(w.streak, 1, '… the streak day it would keep');
+  assert.equal(w.best, true, '… a best'); assert.equal(w.table, B.live.floor, '… the board\'s entry: the floors');
+  assert.deepEqual(w.cards, [B.live.feats.reachedHarbor ? 'harbor' : null, B.live.feats.terminal ? 'terminal' : null, B.live.feats.reachedBottom ? 'bottom' : null].filter(Boolean), `… the cards by their FEAT, from the replay alone (${w.cards.join(' ') || 'none'}) — never the room's claimed three`);
+  assert.ok(!JSON.stringify(rb).includes('SPLASHDOWN') && !JSON.stringify(rb).includes('card-splashdown') && rb.show == null, 'no item name in the answer');
+  assert.equal(await snap(), before, 'NOTHING written: pstats, the profile, the board freefall-solo, the private profile, the owners\' counts — all untouched');
+  assert.equal(await val(`results/${code}_${B.matchId}`), null, '… no results/ record either (nothing claimed, nothing sealed)');
+  assert.equal((await report(uid, B)).status, 'would_count', 'asked again: judged again, the same — still nothing written');
+  // … the room moved on (PLAY AGAIN): the proof node + the night record are enough — the same answer
+  tick(9000);
+  const C = await seedRun(uid, pid, m => runOf(m, 'sloppy', 30), { moved: true });
+  const rc = await report(uid, C);
+  assert.deepEqual([rc.status, rc.outcome.would.floor], ['would_count', C.live.floor], 'the room moved on: judged from the proof node');
+  // … a HELD run (the page hidden for 3 minutes, its way back stamped): judged whole — the time away is no lateness
+  tick(9000);
+  const H = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 300, away: 180_000 }));
+  const rh = await report(uid, H);
+  assert.deepEqual([rh.status, rh.outcome.would.floor, rh.outcome.would.cut], ['would_count', H.live.floor, undefined], `a held run: judged whole (floor ${H.live.floor})`);
+  // … the same hold with NO stamp for its way back: CUT at the hold — counted up to it, said so
+  tick(9000);
+  const H2 = await seedRun(uid, pid, m => runOf(m, 'good', 60, { holdAt: 300, away: 4000, stamp: false }));
+  const rh2 = await report(uid, H2);
+  assert.equal(rh2.outcome.would.cut, 1, 'a hold with no way back: the run is cut there'); assert.ok(rh2.outcome.would.floor <= H2.live.floor);
+  // … a FORGED node (a chunk of the log made in advance — sent the moment the run began): refused by the judge — WOULD NOT COUNT
+  tick(9000);
+  const F = await seedRun(uid, pid, m => runOf(m, 'great', 200, { forge: true }));
+  const rf = await report(uid, F);
+  assert.equal(rf.status, 'would_count'); assert.equal(rf.outcome.would.floor, 0); assert.match(rf.outcome.would.skip, /refused \(ahead of the clock\)/, 'a log made in advance: refused, floor 0');
+  // … an EMPTY run (GO, never a move — the darkness took it at floor 0): not a play
+  tick(9000);
+  const E = await seedRun(uid, pid, m => { const r = runOf(m, 'good', 0); return { ...r, node: { go: r.go, e: { f: 0, t: 0, w: 'dark' } } }; });
+  assert.equal((await report(uid, E)).outcome.would.skip, 'empty');
+  // … no proof node at all: never a play
+  tick(9000);
+  const N = await seedRun(uid, pid, m => ({ ...runOf(m, 'good', 30), node: null }));
+  await rejects(report(uid, N), 403, 'not_in_match');
+  assert.equal(await snap(), before, 'after every OFF report: still nothing written');
+  assert.equal(await best(), null);
+
+  // ---- THE SWITCH ON (the emulators' test flip — the go-live's one line): JAYWALK's normal counted path
+  await ref('testFreefallCounts').set(true);
+  tick(9000);
+  const D = await seedRun(uid, pid, m => runOf(m, 'great', 135));
+  const rd = await report(uid, D);
+  assert.equal(rd.status, 'counted', 'ON: counted');
+  assert.equal(rd.outcome.win, false); assert.equal(rd.outcome.xp.gain, SOLO_XP, 'THE SOLO LANE\'s XP'); assert.equal(rd.outcome.streak, 1, 'the streak day');
+  assert.deepEqual(rd.outcome.pbs.map(p => [p.b, p.v, p.first]), [['freefall-solo', D.live.floor, true]], `the best = the SERVER's replay (floor ${D.live.floor})`);
+  assert.equal(await best(), D.live.floor);
+  const st = await stats(uid);
+  assert.ok(st.av && st.av['freefall-solo'], 'THE AVERAGE\'s day row (pstats.av/freefall-solo)');
+  assert.equal(rd.outcome.av['freefall-solo'], null, '… one run: no average yet (a dash under 5)');
+  if (D.live.floor >= 120) {
+    assert.equal(st.pa.gf['freefall-harbor'], 1, 'the feat flag `harbor` from the server\'s replay');
+    assert.ok(st.it['card-splashdown'] && (rd.outcome.ach || []).some(a => (a && a.id ? a.id : a) === 'splashdown'), 'SPLASHDOWN awarded (the card + its achievement)');
+  }
+  assert.ok(!st.pa || !st.pa.gf || !st.pa.gf['freefall-bottom'] || D.live.floor >= 200, 'ROCK BOTTOM never from the room\'s claim');
+  assert.equal((await val(`results/${code}_${D.matchId}`)).st, 'done');
+});
+
 // JAYWALK H4 — THE MATCH: counted ONLY from the server's replay of EVERY player's proof node (the course + tick 0 from THE FIRST GO) —
 // never the room's game.seed / playAt / results; a guest in THE OWNER's room is counted (and may be the one who reports); a
 // silent-but-present player is credited; a report landing after a REMATCH still credits everyone (the proof nodes + the night record);

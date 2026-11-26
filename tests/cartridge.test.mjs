@@ -33,7 +33,7 @@ export const EXEMPT = FROZEN_IDS;   // (FIXES R2 — B1: config.js#FROZEN_IDS, t
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear', 'drop']);   // (THE DROP A: + THE DROP)
 /** HE3 — BEING BUILT: a GAMES row with playable: false + `preview: true` (no sign, never offered; a local emulator page may start it), NOT
  *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable (HOLD'EM: HE10). */
-export const BUILDING = Object.freeze([]);   // (HIGH RISE's GO-LIVE, Nov 20: it went playable — the third game through the whole road)   // (THE GO-LIVE PASS, Nov 17: JAYWALK went playable — the second game through the whole road)
+export const BUILDING = Object.freeze(['freefall']);   // (FREEFALL F4A — the hidden cartridge, until its go-live pass flips `playable`)   // (HIGH RISE's GO-LIVE, Nov 20: it went playable — the third game through the whole road)   // (THE GO-LIVE PASS, Nov 17: JAYWALK went playable — the second game through the whole road)
 const CHECKED = [...PLAYABLE, ...DAILY_ONLY, ...BUILDING];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
@@ -114,15 +114,18 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
   // (CITY PART 1 — THE ONE META MODULE: the registry imports js/games/metas.js alone — a ROW for each playable game, a new game = a row)
   assert.deepEqual(statics.filter(s => /meta/.test(s)), ['./metas.js'], 'the boot’s game data = ONE module');
   const { META: ROWS } = await import('../js/games/metas.js');
-  assert.deepEqual(Object.keys(ROWS).sort(), [...PLAYABLE].sort(), 'a row for every playable game, no other');
-  assert.equal(registered.length, 18);   // (HIGH RISE S4A: + HIGH RISE, being built)   // (HE3: + HOLD'EM, being built; THE DROP A: + THE DROP — daily-only; JAYWALK H1: + JAYWALK, being built)
+  assert.deepEqual(Object.keys(ROWS).sort(), [...PLAYABLE, ...BUILDING].sort(), 'a row for every playable game + the one being built (FREEFALL F4A: a hidden row — THE ONE META MODULE), no other');
+  assert.equal(registered.length, 19);   // (FREEFALL F4A: + FREEFALL, being built)   // (HIGH RISE S4A: + HIGH RISE, being built)   // (HE3: + HOLD'EM, being built; THE DROP A: + THE DROP — daily-only; JAYWALK H1: + JAYWALK, being built)
   for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);
-    if (PLAYABLE.includes(id)) assert.ok(meta.includes("import { META } from '../metas.js';\n") && meta.trimEnd().endsWith(`} = META.${id};`) && /^export const \{[^}]+\} = META\.\w+;$/m.test(meta), `${id}/meta.js = its ROW of metas.js (CITY PART 1)`);
+    if (PLAYABLE.includes(id) || BUILDING.includes(id)) assert.ok(meta.includes("import { META } from '../metas.js';\n") && meta.trimEnd().endsWith(`} = META.${id};`) && /^export const \{[^}]+\} = META\.\w+;$/m.test(meta), `${id}/meta.js = its ROW of metas.js (CITY PART 1)`);
     else assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
     assert.ok(meta.length < 4000, `${id}/meta.js stays thin (${meta.length} bytes)`);
     const M = await import(`../js/games/${id}/meta.js`), L = await import(`../js/games/${id}/logic.js`);
-    for (const k of ['DEFAULT_SETTINGS', 'chatLocked']) assert.equal(L[k], M[k], `${id}: logic.js ${k} IS the meta one (one source)`);
+    // (FREEFALL F4A: its logic.js is the pure RULES' file the lab + the test page load — it never imports the console's meta; its ONE source
+    //  is the cartridge's own `export * from './meta.js'`)
+    if (id === 'freefall') assert.match(read(`js/games/${id}/index.js`), /^export \* from '\.\/meta\.js';$/m, `${id}: index.js re-exports the meta (one source)`);
+    else for (const k of ['DEFAULT_SETTINGS', 'chatLocked']) assert.equal(L[k], M[k], `${id}: logic.js ${k} IS the meta one (one source)`);
     for (const k of ['OPTIONS', 'estimateMinutes', 'BANNER_NAME', 'chatLocked']) assert.ok(k in M, `${id}: meta carries ${k}`);
     assert.ok('MUSIC' in M, `${id}: meta carries MUSIC`);
   }

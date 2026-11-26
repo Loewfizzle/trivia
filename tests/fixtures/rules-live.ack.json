@@ -1,4 +1,4 @@
 {
- "hash": "4b28512302ea47f2",
- "line": "RULES CHANGED: profiles/{pid}/.read (THE CITY POLISH PASS — S8: its owner + a player seated in the same room only) · pfr/{pid}/.read (the server only) — and still the Nov 22 fix pass's rooms/.read + rooms/{CODE}/.write — RE-PUBLISH database.rules.json in the Firebase console (Downloads\\NEON\\database.rules.nov24-polish.json)"
+ "hash": "d8f9998f306c913e",
+ "line": "RULES CHANGED: rooms/{CODE}/ff/{matchId} (FREEFALL F4A's proof node — t0 the stamp, {uid}/go, c/{i} chunks, h/{0..2} a hold's way back, e, k) + rooms/{CODE}/pt (the tree counter takes g: 'ff') — and still pending from before: profiles/{pid}/.read (THE CITY POLISH PASS — S8: its owner + a player seated in the same room only) · pfr/{pid}/.read (the server only) — and still the Nov 22 fix pass's rooms/.read + rooms/{CODE}/.write — RE-PUBLISH database.rules.json in the Firebase console (Downloads\\NEON\\database.rules.nov26-ff-f4a.json)"
 }

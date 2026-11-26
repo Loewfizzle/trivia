@@ -13,6 +13,9 @@ import { GAMES } from '../js/config.js';
 const src = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const listIn = (file, name) => { const m = new RegExp(String.raw`${name} = Object\.freeze\(\[([^\]]*)\]\)`).exec(src(file)); return m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')).filter(Boolean) : null; };
 
+/** FREEFALL F4A — THE HIDDEN CARTRIDGE (being built): the run card (SHARE) is F4B's — the ONE named wait; it must be EMPTY at its go-live */
+export const RUN_CARD_WAITS = Object.freeze({ freefall: 'F4B — SHARE + the run card' });
+
 test('M1: every VERIFIED_SOLO id has its row in every proof list (the server, the registry, the report extract, the run card)', () => {
   const runGames = listIn('api/_lib/share-card.js', 'RUN_GAMES');
   assert.ok(runGames, 'share-card.js#RUN_GAMES found');
@@ -24,7 +27,8 @@ test('M1: every VERIFIED_SOLO id has its row in every proof list (the server, th
     for (const [name, list] of [['PROOF_NODE_LIST', PROOF_NODE_LIST], ['LOCKED_PROOF_NODES', LOCKED_PROOF_NODES], ['NEW_PLAYER_NODES', NEW_PLAYER_NODES]]) assert.ok(list.includes(node), `${id}: its node '${node}' in registry.js#${name}`);
     assert.ok(hasExtra(id), `${id}: match-report.js#EXTRA (a missed one threw on every report)`);
     assert.ok(QUICK_SOLO[id], `${id}: match-report.js#QUICK_SOLO`);
-    assert.ok(runGames.includes(id), `${id}: share-card.js#RUN_GAMES`);
+    if (RUN_CARD_WAITS[id]) assert.ok(!runGames.includes(id), `${id}: its run card is there now — take it off RUN_CARD_WAITS (${RUN_CARD_WAITS[id]})`);
+    else assert.ok(runGames.includes(id), `${id}: share-card.js#RUN_GAMES`);
     assert.ok(!DROP_GUARD.includes(id) && !DEALER_GAMES.includes(id), `${id}: a proof game is never host-graded or dealt`);
   }
   assert.match(src('api/report.js'), /for \(const id of VERIFIED_SOLO\) if \(!PROOF_GAMES\[id\] \|\| !PROOF_TREES\[id\] \|\| !GO_TREES\.has\(id\)\) throw new Error/, 'report.js refuses to load with a proof game missing');

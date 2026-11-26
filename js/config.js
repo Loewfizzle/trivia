@@ -60,11 +60,7 @@ export const AVATARS = {
 export const AVATAR_IDS = Object.keys(AVATARS);
 
 // Game registry metadata (UI + availability). Logic lives in js/games/<id>/.
-// THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE (+ HOLD'EM since HE10, Nov 11) — `playable: false` HIDES a game
-// everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
-// an invite or a stale link included); its code, data + rules stay, FROZEN (FROZEN_IDS below — docs/cartridge.md "THE FROZEN CONTRACT"). The city's
-// signs come from core/harbor-neon.js#signRoster (the playable games, minus THE SIGN HOLD) — FIXES R2: the old `sign` flag is gone (nothing read it).
-// A game comes back = playable: true (and off FROZEN_IDS — derived, nothing to edit).
+// THE GAMES (lobby order): `playable` is the ONE switch — its notes: docs/harbor/boot-headers.md "js/config.js"
 export const GAMES = [ // lobby order
   { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: false },
   { id: 'stakes', name: 'HIGH STAKES', theme: 'stakes', tag: 'WAGER TRIVIA', blurb: 'See the category. Bet your chips. Then the question. Know what you know.', playable: false },
@@ -83,15 +79,12 @@ export const GAMES = [ // lobby order
   { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true, live: '2026-11-08' },   // (CITY H2: `live` = the go-live day — NEW on the games list its first 14 days: core/game-order.js)
   { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: true, live: '2026-11-17' },   // (PLAYABLE since THE GO-LIVE PASS, Nov 17 — docs/jaywalk.md)
   { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', tag: 'STACK THE TOWER', blurb: 'One tap drops each slab. Tallest tower wins.', playable: true, live: '2026-11-20' },   // (PLAYABLE since THE GO-LIVE, Nov 20; off the signs: harbor-neon.js#SIGN_HOLD)
+  { id: 'freefall', name: 'FREEFALL', theme: 'freefall', tag: 'FALL AS DEEP AS YOU CAN', blurb: 'Drag to spin the tower. Drop through the gaps. Deepest fall wins.', playable: false, preview: true },   // (F4A — BEING BUILT, HIDDEN: docs/freefall.md)
 ];
-/** FIXES R2 — THE REVIEW B1, option (b) "KEEP COMPATIBLE" (the owner, Nov 15): the FROZEN games — not playable, not being built (`preview`). ONE
- *  list: games/registry.js#loadGame refuses them (never loaded — an emulator-only `&frozen=1` for tests), the whole-tree tests read it for
- *  their exemptions; their pure logic.js + director.js stay importable + their sims green; their views, CSS, E2Es + previews are NOT maintained. */
+/** THE FROZEN games (not playable, not being built) — ONE list; its notes: docs/harbor/boot-headers.md "js/config.js" */
 export const FROZEN_IDS = Object.freeze(GAMES.filter(g => !g.playable && !g.preview && !g.daily).map(g => g.id));
 
-// PW1 — THE DAILIES: the DAILY-ONLY cartridges (docs/password.md). NOT in GAMES on purpose: GAMES is the lobby's list — it drives the city's
-// game signs, HOW TO PLAY, THE BOARD's catalog + the match reports, and a daily is none of that (never playable in a room, no sign). THE DAILY
-// MODULE opens these once a day, later; until then THE PASSWORD is reachable only through its preview + its E2E. `gameRow(id)` = either list.
+// THE DAILIES (the DAILY-ONLY cartridges — never in GAMES): docs/harbor/boot-headers.md "js/config.js"
 export const DAILIES = [
   { id: 'password', name: 'THE PASSWORD', theme: 'password', tag: 'DAILY · TWO DOORS', blurb: 'Two five-letter words stand between you and the back room. Six guesses each. Once a day.', hook: 'Two doors. Six guesses each.', playable: false, daily: true, order: 1, ticket: 'password', lesson: false, on: true, measure: 'guesses' },
   { id: 'coastclear', name: 'COAST CLEAR', theme: 'coastclear', tag: 'DAILY · THE NIGHT HARBOR', blurb: 'Slip your boat across the harbor past the hidden searchlights. Buoy the ones you find. Once a day.', hook: 'Slip past the searchlights.', playable: false, daily: true, order: 2, measure: 'time', ticket: 'coastclear', lesson: true, on: true },
@@ -101,17 +94,12 @@ export const DAILIES = [
   { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', hook: 'Three tries.', daily: true, order: 4, measure: 'lanes', ticket: 'jaywalk', lesson: false, on: false, tries: 3, allDay: true },   // (DAILY A — docs/jaywalk.md; J3: allDay = THREE TRIES ALL DAY — never ADMITTED before the last try)
   { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', hook: 'One shot.', daily: true, order: 5, measure: 'floors', ticket: 'highrise', lesson: false, on: false, liveFrom: 'd20261122' },   // (HIGH RISE DAILY A — docs/highrise.md "THE DAILY": ONE SHOT, THE HELD RUN · DAILY B: GOES LIVE BY ITSELF at the first 4 am Eastern after its deploy — liveFrom = that turn's day, core/daily.js#schedOf)
 ];
-// FIXES R3 — `measure` = the daily's MAIN MEASURE: the SHARE CARD's ONE big score (js/daily/share.js#measureOf — 'guesses' | 'time'; a new daily declares its own).
-// DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DFIX3's
-// ONE-TIME HINT under the board, the cartridge's HINT line), `on` (in the set). DM2: `hook` = the TODAY row's one line (else `tag`). THE DROP B: `ownMusic` = the run plays its own songs (the console's decks stay silent). The server opens a row only while THE GO-LIVE SWITCH is on (api/_lib/dailies.js) — `on` alone opens nothing.
+// (a DAILIES row's fields — measure · order · ticket · lesson · on · hook · ownMusic: docs/harbor/boot-headers.md "js/config.js")
 export const gameRow = id => GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || null;
 
 /** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
 export const isPlayable = id => !!GAMES.find(g => g.id === id && (g.playable || (g.preview && (localPreview() || ownerPhone))));
-/** HE8 — THE OWNER'S LIVE TEST: this phone got the server's OWNER yes (the radio's gate — `radioWho`, ADMIN_PIDS: screens/harbor/radio-gate.js).
- *  A game being built (`preview: true`, `playable: false`) then shows in HIS room's game list with a TEST tag and starts from his host phone —
- *  only a convenience: the dealer's start checks the host is the owner itself (api/_lib/holdem-store.js#startOpen) and refuses everyone else.
- *  Nobody else's lists, signs, THE BOARD or the city change. `playable: true` later simply opens it to all. */
+/** HE8 — THE OWNER'S LIVE TEST (a `preview` game on the owner's phone only) — its notes: docs/harbor/boot-headers.md "js/config.js" */
 let ownerPhone = false;
 export const setOwnerPhone = on => { ownerPhone = !!on; };
 /** HE8: is this game offered to THIS phone only as the owner's TEST (built, not yet playable)? */

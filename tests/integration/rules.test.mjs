@@ -1717,6 +1717,102 @@ test('HIGH RISE S4A — the hr proof node: own uid + own match only, GO once, ap
   await assertFails(set(ref(db('p2'), `${R}/hr/mm3/p2/go`), serverTimestamp()), 'hr only while HIGH RISE is the game on');
 });
 
+// FREEFALL F4A — THE PROOF NODE: rooms/{CODE}/ff/{matchId}/{uid} — HIGH RISE's hr node, mirrored (docs/freefall.md "THE PROOF"): THE STAMP
+// first (always: a new node has no switch-over window), GO once (the server's time), the input log's packed chunks (append only, each
+// stamped by the SERVER, bounded — the packed log's own alphabet), a HOLD's way back (h/0 … 2: the SERVER's time, written again at every
+// count), the end once; the player's own uid + their own match only; a chunk + a stamp only AFTER GO and NOTHING after the end. Call the
+// Winner (k) is F4B's — its rule ships now (ONE rules change). The host may delete ONE finished match's node, never the live one's.
+test('FREEFALL F4A — the ff proof node: THE STAMP then GO once, append-only chunks with the SERVER timestamp (the packed log\'s alphabet), a hold\'s stamp = the server\'s time (0 … 2, re-written), nothing before GO, nothing after the end; own uid + own match only; the host only prunes a finished match', async () => {
+  const room = playingRoom('play');
+  room.rooms[CODE].game = { id: 'freefall', matchId: 'fm1', phase: 'play', participants: { host: true, p2: true }, playAt: now() - 5000, seed: 's', mode: 'match' };
+  room.rooms[CODE].players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
+  room.rooms[CODE].ff = { fm0: { host: { go: 1 }, p2: { go: 1 } } };
+  await seed(room);
+  const N = `${R}/ff/fm1/p2`, T = `${R}/ff/fm1`;
+  const C = x => ({ s: x, at: serverTimestamp() });   // (a chunk = a piece of the packed log + the SERVER's time it was written)
+  await assertFails(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'no GO before THE STAMP (a new node: never a tree without one)');
+  await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), 'the stamp only WITH the room\'s tree counter (THE TREE CAP)');
+  await assertFails(stampAt(db('p3'), `${T}/t0`), 'seated but not in the match: no stamp');
+  await assertSucceeds(stampAt(db('p2'), `${T}/t0`), 'THE STAMP (t0 + the room\'s tree counter, g = ff)');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), C('.c+2r')), 'no chunk before GO');
+  await assertFails(set(ref(db('p2'), `${N}/h/0`), serverTimestamp()), 'no hold stamp before GO');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3, t: 400, w: 'red' }), 'no end before GO');
+  await assertFails(set(ref(db('p2'), `${N}/go`), now() - 60000), 'GO is the SERVER\'s time — never one the phone chose');
+  await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO');
+  await assertFails(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO is written once');
+  await assertFails(set(ref(db('p2'), `${N}/go`), null), '… and never taken back');
+  await assertFails(set(ref(db('p2'), `${R}/ff/fm1/host/go`), serverTimestamp()), 'never another player\'s node');
+  await assertFails(set(ref(db('host'), `${N}/c/0`), C('+1')), 'the host never writes a player\'s log');
+  await assertFails(set(ref(db('p3'), `${R}/ff/fm1/p3/go`), serverTimestamp()), 'seated but not in the match');
+  await assertFails(set(ref(db('p2'), `${R}/ff/fm2/p2/go`), serverTimestamp()), 'only the match that is on');
+  await assertFails(set(ref(db('p2'), `${N}/go2`), 1), 'no other field');
+  await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'no rule-set leaf (FREEFALL plays "classic")');
+  await assertFails(set(ref(db('p2'), N), { go: 1 }), 'never the whole node at once (its leaves only)');
+  await assertFails(update(ref(db('host'), `${R}/ff/fm1/host`), { go: serverTimestamp(), 'c/0': { s: '+1', at: serverTimestamp() }, e: { f: 1, t: 30, w: 'red' } }), 'never GO + a chunk + the end at once');
+  // the chunks
+  await assertFails(set(ref(db('p2'), `${N}/c/01`), C('+1')), 'no chunk index with a leading zero');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), '.c+2r'), 'never a bare string — a chunk carries its server timestamp');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: '.c+2r' }), '… a chunk without its time');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: '.c+2r', at: now() - 60000 }), '… or with a time of its own choosing (the rules: === now)');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: '.c+2r', at: now() + 60000 }), '… or one from the future');
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/0`), C('.c+2r+1k-3.a-z')), 'a chunk of the packed log (moves: . + - and base 36), stamped by the server');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), C('.c+2r+1k-3.a-z+5')), 'a chunk is written ONCE — a past chunk is never rewritten');
+  await assertFails(set(ref(db('p2'), `${N}/c/0/s`), '+9'), '… not its string');
+  await assertFails(set(ref(db('p2'), `${N}/c/0/at`), serverTimestamp()), '… its time is never re-stamped');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), null), 'a chunk is never deleted by its player');
+  await assertFails(set(ref(db('p2'), `${N}/c`), null), '… nor all of them');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('+1C')), 'the packed alphabet only (lower case)');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('+1 +2')), '… no space');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('+1,+2')), '… nothing outside . + - ! 0-9 a-z');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('')), 'never an empty chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('+1'.repeat(201))), '≤ 400 characters a chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), { s: '+1', at: serverTimestamp(), z: 1 }), 'no other field in a chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/10000`), C('+1')), '≤ 10000 chunks');
+  await assertFails(set(ref(db('p2'), `${N}/c/x`), C('+1')), 'a numbered chunk');
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/1`), C('+5!8')), 'a chunk with a HOLD (the ! mark)');
+  // THE HOLD's way back: h/0 … 2 = the SERVER's time, re-written at every count (the judge reads the last)
+  await assertFails(set(ref(db('p2'), `${N}/h/0`), now() - 60000), 'a hold\'s stamp is the SERVER\'s time — never one the phone chose');
+  await assertFails(set(ref(db('p2'), `${N}/h/0`), { at: serverTimestamp() }), '… a number only');
+  await assertFails(set(ref(db('p2'), `${N}/h/3`), serverTimestamp()), 'three holds a run: h/0 … 2');
+  await assertFails(set(ref(db('p2'), `${N}/h/x`), serverTimestamp()), '… a numbered stamp');
+  await assertFails(set(ref(db('host'), `${N}/h/0`), serverTimestamp()), 'the host never stamps a player\'s way back');
+  await assertSucceeds(set(ref(db('p2'), `${N}/h/0`), serverTimestamp()), 'the way back, stamped');
+  await assertSucceeds(set(ref(db('p2'), `${N}/h/0`), serverTimestamp()), '… written again (the page was hidden again in the 3 · 2 · 1): always the server\'s NOW');
+  await assertFails(set(ref(db('p2'), `${N}/h/0`), null), '… never taken back');
+  await assertFails(update(ref(db('p2'), `${N}/k`), { w: 'host', at: serverTimestamp() }), 'no call before your own end (F4B\'s Call the Winner)');
+  // a KICKED player's log still lands (a leaf reads nothing the host writes — a kick flick voids no run)
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p2`), true));
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/2`), C('.3+1')), 'kicked mid-run: the chunk still lands');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p2`), null));
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 1000001, t: 400 }), 'a floor past the bound');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3, t: 400, w: 'a cause far too long' }), 'a cause past 12 characters');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3, t: 400, w: 'red', claimed: 999 }), 'the end has no other field');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3 }), '… and needs its tick');
+  await assertSucceeds(update(ref(db('p2'), N), { e: { f: 3, t: 400, w: 'red' } }), 'the end');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 200, t: 400 }), 'the end is written once');
+  await assertFails(set(ref(db('p2'), `${N}/c/3`), C('+1')), 'NOTHING after the end: no chunk');
+  await assertFails(set(ref(db('p2'), `${N}/h/1`), serverTimestamp()), '… no hold stamp');
+  await assertFails(remove(ref(db('p2'), N)), 'a player never deletes their proof');
+  await assertFails(remove(ref(db('host'), `${R}/ff/fm1`)), 'the host never deletes the LIVE match\'s tree');
+  await assertFails(remove(ref(db('host'), N)), '… nor one player\'s node');
+  // a late GO: past the window after the stamp — refused (the rules read t0)
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${T}/t0`), now() - 6000));
+  await assertFails(set(ref(db('host'), `${R}/ff/fm1/host/go`), serverTimestamp()), 'a GO more than 5 s after THE STAMP is no run');
+  // the SAME match once it is FINAL: the players write nothing more
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));
+  await assertFails(set(ref(db('host'), `${R}/ff/fm1/host/go`), serverTimestamp()), 'final: no GO');
+  // PLAY AGAIN started the next run (match fm2): fm1's node — GO + the log + its stamps + the end — is still there, closed
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { matchId: 'fm2', phase: 'play', playAt: now() }));
+  const kept = (await get(ref(db('host'), N))).val();
+  assert.ok(kept && kept.go > 0 && kept.c[0].s === '.c+2r+1k-3.a-z' && kept.c[1].s === '+5!8' && kept.h[0] >= kept.go && kept.e.f === 3, 'the just-finished run\'s node survives the next start');
+  await assertFails(update(ref(db('p2'), R), { 'ff/fm0': null }), 'a guest never prunes');
+  await assertSucceeds(update(ref(db('host'), R), { 'ff/fm0': null }), 'the host prunes the match before the last (host.js#pruneProofs)');
+  await assertFails(set(ref(db('host'), `${R}/ff/fm1`), { x: 1 }), 'the host only ever deletes');
+  // … and a HIGH RISE match never opens the ff node (each game its own)
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { id: 'highrise', matchId: 'fm3', phase: 'play' }));
+  await assertFails(stampAt(db('p2'), `${R}/ff/fm3/t0`), 'ff only while FREEFALL is the game on');
+});
+
 // FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the host may delete ONE match's proof node (prism / oc / ocm / {m}) — a new start keeps
 // the previous match's for a late report; nobody else may; a write that isn't a delete is refused
 // JAYWALK — THE GO-LIVE REVIEW (the audit): the host could delete `jw` / `jw/{match}` at ANY time — a host on a modified client deletes

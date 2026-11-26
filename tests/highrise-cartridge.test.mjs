@@ -202,18 +202,19 @@ test('THE SWITCH — ON since THE GO-LIVE (Nov 20); OFF stays the one-line KILL 
   const rep = code('api/report.js'), stats = code('api/_lib/stats.js');
   assert.ok(rep.includes("export const highriseCounts = async () => { if (emulated()) { const t = await val('testHighriseCounts'); if (t === true || t === false) return t; } return HIGHRISE_COUNTS; };"), 'the test flip (either way) is honoured on the emulators only — the code\'s value everywhere else');
   // the switch sits AFTER every verification and BEFORE credit(): nothing is claimed, nothing written
-  const sw = rep.indexOf("if (hrOff && ex.gid === 'highrise') {"), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
+  const sw = rep.indexOf("if (hrOff && SWITCHED[ex.gid]) {"), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
   assert.ok(sw > 0 && cr > sw && rep.indexOf('dedupePids(ex.rows, pids);') < sw, 'judged first, then the switch, then (only when ON) credit()');
   const body = rep.slice(sw, cr);
-  assert.match(body, /return \{ ok: true, status: 'would_count', outcome: \{ none: true, would: wouldAward\(judged, w, rec\) \} \};/);
+  assert.match(body, /return \{ ok: true, status: 'would_count', outcome: \{ none: true, would: wouldAward\(judged, w, rec, ex\.gid\) \} \};/);
   assert.doesNotMatch(body, /\.set\(|\.update\(|\.transaction\(|credit\(|applyMatch\(|bumpPlayed\(/, 'the OFF branch writes nothing');
   const wa = stats.slice(stats.indexOf('export async function wouldApply'), stats.indexOf('export { toSort };'));
   assert.doesNotMatch(wa, /\.set\(|\.update\(|\.transaction\(|bumpOwners|syncBoards|noteRecent/, 'wouldApply: reads only — the SAME pure step, never a transaction');
   assert.match(wa, /const res = step\(cur, key, ex\.gid, row, ex\.n, now, at, outage,/);
   // the ONLY other writers of a result for it: credit() — reached only past the switch
-  assert.equal((rep.match(/highriseCounts\(\)/g) || []).length, 1, 'ONE place asks the switch');
+  assert.equal((rep.match(/SWITCHED\[night\.g\]\.counts\(\)/g) || []).length, 1, 'ONE place asks the switch (FREEFALL F4A: the game\'s own — report.js#SWITCHED)');
+  assert.match(rep, /highrise: Object\.freeze\(\{ counts: highriseCounts, board: 'highrise-solo',/, 'HIGH RISE\'s switch = highriseCounts');
   // (the fresh-eyes review: asked BEFORE the one earlier write a HIGH RISE match could reach — a match from before the progress reset)
-  const ask = rep.indexOf("const hrOff = night.g === 'highrise' && !(await highriseCounts());"), pre = rep.indexOf("if (hrOff) return { ok: true, status: 'before_reset', outcome: null };"), seal = rep.indexOf("{ st: 'done', at: now, pre: 1, by: uid, o: {} }");
+  const ask = rep.indexOf("const hrOff = !!SWITCHED[night.g] && !(await SWITCHED[night.g].counts());"), pre = rep.indexOf("if (hrOff) return { ok: true, status: 'before_reset', outcome: null };"), seal = rep.indexOf("{ st: 'done', at: now, pre: 1, by: uid, o: {} }");
   assert.ok(ask > 0 && ask < pre && pre < seal && seal < sw, 'OFF: not even the before-reset record is sealed');
   // every write processReport itself can make sits past the switch's ask or is not HIGH RISE's (noteSeen = the account's hashed address, every report)
   assert.equal((rep.slice(0, ask).match(/\.set\(|\.update\(|\.transaction\(/g) || []).length, 0, 'nothing is written before the switch is asked');

@@ -106,6 +106,10 @@
   --accent: #ff4fc4; --accent-2: #ffd6f0; --accent-ink: #1a0414;
   --accent-soft: rgba(255, 79, 196, 0.12); --accent-glow: rgba(255, 79, 196, 0.42);
 }
+[data-theme='freefall'] { /* FREEFALL (F4A): title-05's electric teal (FALL) + hot pink (FREE) */
+  --accent: #27e0e6; --accent-2: #ff4fa8; --accent-ink: #04161a;
+  --accent-soft: rgba(39, 224, 230, 0.12); --accent-glow: rgba(39, 224, 230, 0.42);
+}
 [data-theme='highrise'] { /* HIGH RISE (S4A): its sign's hot pink (HIGH) over cyan (RISE) on the night glass */
   --accent: #ff4fd8; --accent-2: #35e3ff; --accent-ink: #14061a;
   --accent-soft: rgba(255, 79, 216, 0.12); --accent-glow: rgba(255, 79, 216, 0.42);

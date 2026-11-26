@@ -107,7 +107,11 @@ test('THE WIRING (pinned): the router holds a game screen that holds a run — n
   assert.match(app, /\(ownNode && ownNode\.go > 0\)/, 'a phone with its own GO in the tree reports the match, named or not');
   assert.match(rep, /for \(const u of proven\) if \(!names\.has\(u\)\) \{ await wreck\(key, uid, now, 'a dropped player'\)\.catch\(\(\) => \{\}\); throw new ApiError\(409, 'mismatch'/, 'DROP_GUARD: seated or not (THE BEFORE-LAUNCH PASS: + the sealed wreck)');
   // (THE FIX PASS — M6: EVERY proof game — core/proof.js#VERIFIED_SOLO — through the contract's PROOF block, never a literal list of two)
-  for (const v of VERIFIED_SOLO.map(id => `js/games/${id}/${PROOF.VIEW_FILE}`)) {
+  // (FREEFALL F4A — THE HIDDEN CARTRIDGE: its view is THE SOLO RUN only — THE MATCH (the run hold, the live wait, the match GO) is F4B's: the ONE
+  //  named wait; the day its view writes a match GO this check comes back for it)
+  const MATCH_WAITS = { freefall: 'F4B — THE MATCH' };
+  for (const id of Object.keys(MATCH_WAITS)) assert.doesNotMatch(read(`js/games/${id}/${PROOF.VIEW_FILE}`), /writeMatchGo\(/, `${id}: its match is built — take it off MATCH_WAITS (${MATCH_WAITS[id]})`);
+  for (const v of VERIFIED_SOLO.filter(id => !MATCH_WAITS[id]).map(id => `js/games/${id}/${PROOF.VIEW_FILE}`)) {
     const s = read(v);
     assert.match(s, /\n    holdsRun,\n    update\(state\)/, `${v}: the screen answers holdsRun`);
     assert.match(s, /createLiveWait\(liveOf\)/, `${v}: the podium waits for the live rivals`);

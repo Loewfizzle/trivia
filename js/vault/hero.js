@@ -10,6 +10,7 @@ import { GIFT_SPECS } from '../fx/gift-specs.js';
 import { OC_SPECS, OC_AH } from '../fx/oc-specs.js';
 import { JW_SPECS, jwMap } from '../fx/jw-specs.js';
 import { HI_SPECS } from '../fx/hi-specs.js';
+import { FF_SPECS } from '../fx/ff-specs.js';
 import { GP_SPECS, gpMap } from '../fx/gp-specs.js';
 import { PW_SPECS, PW_AH } from '../fx/pw-specs.js';
 import { CC_SPECS, CC_AH } from '../fx/cc-specs.js';
@@ -62,6 +63,11 @@ for (const [id, S] of Object.entries(JW_SPECS)) {
 }
 // (HIGH RISE S4A — its two cards: the lit top of the tower · the ship's light on the top slabs — JAYWALK's own format, through the strip's crop)
 for (const [id, S] of Object.entries(HI_SPECS)) {
+  const M = jwMap(SW, SH, S.strip), [x, y, w, h] = S.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
+  HERO[id] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]);
+}
+// (FREEFALL F4A — its three cards: the ball + its splash · the ball + its fire · the ball on the seabed — JAYWALK's own format, through the strip's crop)
+for (const [id, S] of Object.entries(FF_SPECS)) {
   const M = jwMap(SW, SH, S.strip), [x, y, w, h] = S.hero, y0 = Math.max(0, (M.oy + y * M.k) / SH), y1 = Math.min(1, (M.oy + (y + h) * M.k) / SH);
   HERO[id] = Object.freeze([[(M.ox + x * M.k) / SW, y0, (w * M.k) / SW, Math.max(0.05, y1 - y0)]]);
 }
