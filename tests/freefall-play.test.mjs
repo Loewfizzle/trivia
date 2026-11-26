@@ -329,7 +329,7 @@ test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench la
   assert.match(b, /const bands = new Map\(\);/); assert.match(b, /if \(bands\.has\(keyOf\(name, sub\)\) \|\| performance\.now\(\) < until\) return;/, 'a kept band is never built twice — and never while a band is up');
   // AN ARRIVAL TOUCHES NO DOM: a band that was made ready is shown by ONE one-shot on its own node — no text, no class, no child changed
   const showFn = body(bare(read(`${FF}banner.js`)), '    show(name, sub, onDone, cls) {');
-  assert.match(showFn, /anim = b\.node\.animate \? b\.node\.animate\(reduce \? BANNER_KEYS_STILL : BANNER_KEYS/);
+  assert.match(showFn, /anim = b\.node\.animate \? b\.node\.animate\(gold \? \(reduce \? BANNER_GOLD_KEYS_STILL : BANNER_GOLD_KEYS\) : reduce \? BANNER_KEYS_STILL : BANNER_KEYS/);   // (F4A: THE BOTTOM's gold band snaps in + stays — its own keys)
   assert.doesNotMatch(showFn.replace(/if \(!b\) \{[^}]*\}/, '').replace(/sayTimer = setTimeout\([^;]*;[^;]*;/, ''), /textContent|classList|replaceChildren|append|innerHTML|\.style\./, 'show() itself writes nothing to the page (a reader is told a moment later)');
   assert.match(read('css/freefall-play.css'), /\.ff-banner \{[^}]*opacity: 0\.001; will-change: transform, opacity;/);
   // F3B: THE BOTTOM's band is the GOLD one — "YOU HIT THE BOTTOM" — and comes with the impact (a whole fall after the arrival's event)
@@ -343,7 +343,7 @@ test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench la
   // F3B: the announcer never talks over a band (the band lies in its lane now): a call waits for it to leave
   assert.match(st, /if \(BNR\.showing\(\)\) \{ if \(pri >= pendPri\) \{ pendText = text; pendCls = cls; pendPri = pri; pendMs = ms; pendAt = now; \} return; \}/);
   assert.match(st, /bnrQueued = -1; clearTimeout\(bnrTimer\); BNR\.clear\(\); prepBanner\(0\);/);
-  assert.match(st, /bnrTimer = setTimeout\(\(\) => \{ if \(!gone && !BNR\.showing\(\)\) prepBanner\(run\.floor\); \}, BANNER_MS \+ 250\);/, 'the next band is baked after this one has left — never over it');
+  assert.match(st, /bnrTimer = setTimeout\(\(\) => \{ if \(!gone && !BNR\.showing\(\)\) prepBanner\(run\.floor\); \}, \(bandCls\(floor\) \? BANNER_GOLD_MS : BANNER_MS\) \+ 250\);/, 'the next band is baked after this one has left — never over it');
   assert.match(st, /else if \(e\.e === 'area'\) arrive\(e\.floor\);\s+else if \(e\.e === 'fall' && e\.floor > LAP0 && isArrival\(e\.floor\)\) arrive\(e\.floor\);/);
   assert.match(st, /if \(BNR\.showing\(\)\) \{ bnrQueued = floor; return; \}/, 'an arrival while a band is up crosses after it');
   assert.doesNotMatch(body(bare(read(`${FF}stage.js`)), '  function frame(now) {'), /BNR\.|prepBanner|arrive\(/, 'the frame itself never touches the band (a landing\'s moment shows it)');
@@ -382,8 +382,8 @@ test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material 
   assert.match(dfx, /float caust\(vec2 p, float t\)/); assert.doesNotMatch(n + code(`${FF}day-fx.js`), /ff-caustics|caustics\.(png|webp)/, 'no caustics picture');
   // THE DARKNESS by day: the same line + timing, another look (the wall + the screen's edges; never the ball or its floor)
   assert.match(main, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/, 'the same line as the night\'s');
-  assert.match(css, /\.ff-stage\[data-look='day'\]\[data-area='rooftop'\] \.ff-dark \{ --ff-dk: 50, 56, 74; --ff-dk-edge: 222, 230, 244; \}/, 'THE STORM CLOUD over the rooftop');
-  assert.match(css, /\.ff-stage\[data-look='day'\]:is\(\[data-area='harbor'\], \[data-area='deep'\], \[data-area='bottom'\], \[data-area='trench'\]\) \.ff-dark \{ --ff-dk: 5, 36, 40; --ff-dk-edge: 70, 200, 180; \}/, 'THE MURK under the water');
+  assert.match(css, /\.ff-stage\[data-look='day'\]\[data-area='rooftop'\] \.ff-dark \{ --ff-dk: 50, 56, 74; --ff-dk-edge: 26, 30, 44; \}/, 'THE STORM CLOUD over the rooftop (F4A: its edge a DARKER rim — no pale stripe through the big number)');
+  assert.match(css, /\.ff-stage\[data-look='day'\]:is\(\[data-area='harbor'\], \[data-area='deep'\], \[data-area='bottom'\], \[data-area='trench'\]\) \.ff-dark \{ --ff-dk: 5, 36, 40; --ff-dk-edge: 1, 16, 19; \}/, 'THE MURK under the water');
   assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-dark \{ --ff-dk: 12, 14, 26;/, 'the same dark edge + clear window, in the day\'s colours — round the ball');
   // THE MOTES: a fixed pool, the tiers trim how many are drawn; an area's kind
   assert.match(n, /export const MOTES = 48, MOTE_N = Object\.freeze\(\[18, 32, 48\]\), MOTE_SPAN = 12;/); assert.match(n, /mGeo\.instanceCount = MOTE_N\[t\];/);
@@ -479,7 +479,7 @@ test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s co
   }
   for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) assert.ok(far(dayHues[i], dayHues[j]) >= 18, `five clearly different towers by day (${i} · ${j}: ${dayHues[i].toFixed(0)}° · ${dayHues[j].toFixed(0)}°)`);
   assert.match(read(`${FF}day-fx.js`), /vec3 tint = vC\.rgb, ice = tint, rimC = vR;/, 'the day face IS the area\'s pastel — white only in the frost, the highlights + the seams');
-  assert.match(read(`${FF}day-fx.js`), /caust\(vW\.xz \* 3\.2 \+ vW\.y, uTime\) \* 0\.12 \* uCaust/, 'F3B: the caustic ripples stay ON THE WATER — only a faint shimmer on the slices (it was 0.5)');
+  assert.match(read(`${FF}day-fx.js`), /caust\(vW\.xz \* 3\.2 \+ vW\.y, uTime\) \* 0\.12 \* caK/, 'F3B: the caustic ripples stay ON THE WATER — only a faint shimmer on the slices (it was 0.5)');
   // the scene: a floor's own colour (never its place on the screen), the border's lean
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`);
   assert.match(n, /const t = len > 1 \? \(i - from\) \/ \(len - 1\) : 0, d = from \+ len - i, q = d <= 3 \? palOf\(i \+ d\) : p, tt = q !== p \? \(4 - d\) \/ 4 : 0;/, 'a → b down the area; its last three floors lean ¼ · ½ · ¾ to the next area\'s');
@@ -566,7 +566,7 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(bk, /export const BURSTS = 176, BURST_K = Object\.freeze\(\[0\.45, 0\.7, 1\]\);/); assert.match(bk, /bGeo\.instanceCount = BURSTS;/, 'the pool never changes size');
   assert.match(bk, /const share = n => \{ const k = Math\.round\(n \* tierK\); return k < 1 \? 1 : k; \};/, 'a tier sheds a share — never none: the look\'s shape stays');
   assert.match(bk, /export const BREAK_FLOORS = Object\.freeze\(\{ skylight: 40, splash: 120, bottom: 200 \}\);/);
-  assert.match(bk, /fractureGeo\(H, 0, SHAPE\.RB, 12, \[0\.2, 0\.55, 1\], 0x51f15e\)/, 'the glass: 60 pieces laid out round the ball\'s own point of impact');
+  assert.match(bk, /fractureGeo\(H, 0, SHAPE\.RB, 12, \[0\.2, 0\.55, 1\], 0x51f15e, 1\.7\)/, 'the glass: 60 pieces laid out round the ball\'s own point of impact');
   assert.match(bfx, /float e = min\(vB\.x, min\(vB\.y, vB\.z\)\), ew = fwidth\(e\) \* 1\.4 \+ 0\.0015, line = 1\.0 - smoothstep\(0\.0, ew \* 1\.5, e\);/, 'the cracks are drawn IN CODE along the lines the pane breaks on');
   assert.doesNotMatch(bk + bfx + n, /glass-cracks|chandelier/i, 'no crack picture, no chandelier');
   assert.match(bfx, /if \(ndc\.y < wl\) discard;/, 'THE WATERLINE: under it the plane is gone'); assert.match(bfx, /vec3 nm = mix\(vec3\(0\.0, 0\.0, 1\.0\), normalize\(n1 \+ n2\), uHaveN\);/, 'a real normal-mapped water plane');

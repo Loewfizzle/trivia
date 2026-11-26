@@ -205,7 +205,8 @@ void main() {
   float lit = 1.0 - smoothstep(0.0, 0.5, uTime - uBreakT - 0.3);
   c += mix(vec3(0.2, 0.75, 0.95), vec3(0.95, 0.25, 0.8), smoothstep(-0.4, 0.4, q.x * sign(q.y + 0.001))) * exp(-(inside - uHalf) / 0.28) * 0.55 * lit * (1.0 - uDay);
   float alpha = 1.0 - smoothstep(uHalf + 2.2, uHalf + 3.1, length(q));
-  alpha *= 1.0 - smoothstep(0.25, 0.8, uTime - uBreakT);   // (the fresh-eyes review: the roof is gone with its glass — the deck round it never stays on as a flat band over the offices)
+  alpha *= 1.0 - smoothstep(0.0, 0.25, uTime - uBreakT);   // (F4A — THE HAZE: the deck lies IN FRONT of the floors under the roof from the play camera — gone 0.25 s after the break; it faded over 0.8 s and held them 20–60 % darker)
+  //   // (the fresh-eyes review: the roof is gone with its glass — the deck round it never stays on as a flat band over the offices)
   if (alpha < 0.004) discard;
   if (uBloom > 0.5) c = vec3(0.0);
   gl_FragColor = vec4(c * alpha, alpha);

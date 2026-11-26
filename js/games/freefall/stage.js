@@ -15,17 +15,17 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
 import { createRun, stepTo, turn, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
-import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
+import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff, floorInto } from './tower-gen.js';
 import { replay, judgeRun } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
 import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
 import { resolveLook, sunUpNow } from '../kit/look.js';
-import { createNight, FF_ART_REV } from './night.js';
+import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
-import { createBanner, BANNER_MS } from './banner.js';
+import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
 
 /** the wall behind the top of the screen is the area's of this many floors up (night.js#walls keeps a seam in sight that long) */
 const INK_LAG = 5;
@@ -233,7 +233,7 @@ export function createStage(app, o = {}) {
     domAt = at;
     BNR.show(bandName(floor, w), w.sub, bannerDone, bandCls(floor));   // (a `?floor=N` start can land past the ones made ready: baked now, once)
     clearTimeout(bnrTimer);
-    bnrTimer = setTimeout(() => { if (!gone && !BNR.showing()) prepBanner(run.floor); }, BANNER_MS + 250);
+    bnrTimer = setTimeout(() => { if (!gone && !BNR.showing()) prepBanner(run.floor); }, (bandCls(floor) ? BANNER_GOLD_MS : BANNER_MS) + 250);
   }
   function bannerDone() {
     if (gone) return;
@@ -249,6 +249,7 @@ export function createStage(app, o = {}) {
   let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
   let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hudInk = '', hitches = 0;
   let ev = [], fed = 0;
+  const spotRec = { i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 };   // (the checks' own floor record — hook.spot)
   const cues = [], FIREWORK_CUES = [CUE_FIREWORKS];
   /** F3B — THE FINISH's hook: what a finished run hands on (F4's cartridge wires the match here) · the last one, for the checks */
   let finished = null, handed = false;
@@ -574,6 +575,21 @@ export function createStage(app, o = {}) {
     state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
+    /** (F4A — THE HAZE CHECK) where the middle of a slice's top face on the floor `df` under the ball's is on the screen ([x, y], 0 … 1) —
+     *  a SAFE one (`red`: a RED one — the same red on every floor) on the near side, off the ball; null = none there. The checks read
+     *  the picture's colour at that point. */
+    spot(df = 0, red = false) {
+      const f = run.floor + df, rec = floorInto(run.h, f, run.R, spotRec), want = red ? RED : SAFE;
+      let bestP = null, bestD = 9;
+      for (let k = 0; k < SLICES; k++) {
+        if (kindAtTick(rec, k, run.t, run.R) !== want) continue;
+        let phi = wrap(sliceStart(k) + 170 + rec.twist + run.a) * 2 * Math.PI / TURN; if (phi > Math.PI) phi -= 2 * Math.PI;
+        const d = Math.abs(Math.abs(phi) - 0.8);
+        if (!red && kindAtTick(rec, (k + (phi > 0 ? SLICES - 1 : 1)) % SLICES, run.t, run.R) === RED) continue;   // (a red slice stands proud: the one in front of this one would hide it)
+        if (Math.abs(phi) > (df ? 0.1 : 0.42) && Math.abs(phi) < 1.25 && d < bestD) { bestD = d; bestP = view.project(0.8 * Math.sin(phi), -f * SHAPE.H + (red ? SHAPE.RISE : 0) + 0.002, 0.8 * Math.cos(phi)); }
+      }
+      return bestP;
+    },
     /** the top of the ball at the top of its bounce, in px from the top of the screen (the HUD ends above it) */
     apexY: () => view.apexY(run) * stage.clientHeight,
     /** ms until the next landing (null = not started / held / over) */

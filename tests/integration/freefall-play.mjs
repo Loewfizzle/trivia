@@ -777,6 +777,139 @@ async function checks4() {
   await t.close();
 }
 
+// =============================================================================================================== F4A — GROUP 0: THE F3B FIXES
+/** the picture's colour at points of the canvas ([[x, y] | null …], 0 … 1), right after the stage's own frame: the mean of an 8 × 8 css px patch at each, two frames */
+const coloursAt = (p, pts) => p.evaluate(pts => new Promise(res => {
+  const c = document.querySelector('canvas.ff-canvas'), k = c.width / c.clientWidth, n = Math.max(4, Math.round(8 * k)), o = document.createElement('canvas');
+  o.width = n; o.height = n;
+  const g = o.getContext('2d', { willReadFrequently: true }), sums = pts.map(() => [0, 0, 0]);
+  let left = 2;
+  const one = () => requestAnimationFrame(() => {
+    pts.forEach((pt, q) => {
+      if (!pt) return;
+      g.drawImage(c, Math.round(pt[0] * c.width - n / 2), Math.round(pt[1] * c.height - n / 2), n, n, 0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data;
+      for (let i = 0; i < d.length; i += 4) { sums[q][0] += d[i]; sums[q][1] += d[i + 1]; sums[q][2] += d[i + 2]; }
+    });
+    if (--left) one(); else res(sums.map((s, q) => (pts[q] ? s.map(v => v / (2 * n * n)) : null)));
+  });
+  one();
+}), pts);
+/** a colour → its lightness (0 … 255) + how colourful it is (max − min, 0 … 255) */
+const lumOf = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], chromaOf = c => Math.max(...c) - Math.min(...c);
+const HAZE = [['THE SKYLIGHT', 40, 'skylight'], ['THE SPLASHDOWN', 120, 'splash'], ['THE BOTTOM', 200, 'bottom']];
+/** THE HAZE AFTER A BREAKTHROUGH (the owner's phone: by day the floors 1–3 floors past the splashdown were ~20 % less colourful + brighter):
+ *  the ball goes through and stays on the first floor under it; the colour of the three floors BELOW it (a safe slice's top on each — the
+ *  same points of the picture each time: the tower stands still under a ball that only bounces) is read 0.3 s · 0.5 s · 1 s after the
+ *  hit and held against 3.5 s after it — a normal floor of that area, every effect long gone. Both looks. `measureOnly` = print only. */
+async function haze(measureOnly = false) {
+  const pc = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)} %`;
+  for (const lk of ['day', 'night']) for (const [name, F, key] of HAZE) {
+    const t = await open(390, 844, 2, `?seed=f4a-haze&look=${lk}&floor=${F - 2}&tier=2${F === 200 ? '' : ''}`);
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, `window.__ffPlay.state().info.breaks.${key} >= 1`, 30000);
+    const hit = Date.now();
+    await auto(t.p, 'safe');
+    const s0 = await st(t.p);
+    // (the points are found again at every reading: the camera still glides down to the ball's floor for a moment after the hit)
+    const read = async () => coloursAt(t.p, await t.p.evaluate(() => [1, 2, 3].map(d => window.__ffPlay.spot(d))));
+    const reads = [];
+    for (const ms of [300, 500, 1000, 3500]) {
+      await sleep(Math.max(0, ms - (Date.now() - hit)));
+      const at = Date.now() - hit;
+      reads.push({ at, c: await read() });
+      if (OUT) await shot(t.p, `f4a-haze-${lk}-${F}-${String(ms).padStart(4, '0')}.png`);
+    }
+    const s1 = await st(t.p), still = s1.floor === s0.floor && !s1.over && s1.a === s0.a, ref = reads[3].c;
+    const med = v => { const a = v.slice().sort((x, y) => x - y); return a.length ? a[Math.floor((a.length - 1) / 2)] : 9; };
+    const parts = [];
+    let worst = 0, n = 0;
+    for (let k = 0; k < 3; k++) {
+      const row = [], dls = [], dcs = [];
+      for (let i = 0; i < 3; i++) {
+        if (!ref[i] || !reads[k].c[i]) continue;
+        const dl = (lumOf(reads[k].c[i]) - lumOf(ref[i])) / Math.max(8, lumOf(ref[i])), dc = (chromaOf(reads[k].c[i]) - chromaOf(ref[i])) / 255;
+        dls.push(Math.abs(dl)); dcs.push(Math.abs(dc));
+        row.push(`+${i + 1}: ${pc(dl)} / ${pc(dc)}`);
+      }
+      // (a WASH lies on every floor — a shard, a bar, a bubble crossing ONE point is the moment's own debris: the middle one of the three floors' readings decides)
+      if (dls.length >= 2) { worst = Math.max(worst, med(dls), med(dcs)); n++; }
+      parts.push(`${(reads[k].at / 1000).toFixed(2)} s — ${row.join(' · ')}`);
+    }
+    const line = `${lk} — ${name}: the three floors under floor ${s0.floor}, lightness / colour against 3.5 s after the hit: ${parts.join(' | ')} — the middle reading's worst ${pc(worst)}`;
+    if (measureOnly) console.log('    ', line, still ? '' : '(THE TOWER MOVED)');
+    else ok(n === 3 && !t.errs.length && worst <= 0.05, `THE HAZE — ${line}`);
+    await t.close();
+  }
+}
+async function checks5() {
+  await haze();
+  // ---- THE HAZE FOLLOWS THE FLOOR (the cause of the owner's "floors 1–3 past the splashdown ~20 % less colourful + brighter": by day the
+  // speakeasy's warm haze was eased over a second onto the harbor's pearl floors, under a surface that took 0.6 s to leave them): the
+  // floors under the border wear THEIR OWN area's haze before the ball gets there and from the very frame it goes through — nothing eases
+  {
+    const t = await open(390, 844, 2, '?seed=f4a-fog&look=day&floor=117&tier=2');
+    await start(t); await auto(t.p, 'safe'); await sleep(500);
+    const near = v => Math.abs(v) < 1e-6, HARBOR = [0.0018, 0.042, 0.107], SPEAK = [0.5, 0.33, 0.22];
+    let s = await st(t.p), f = s.info.fog;
+    ok(s.floor >= 116 && s.floor < 120 && SPEAK.every((v, i) => near(f[i] - v)) && HARBOR.every((v, i) => near(f[3 + i] - v)) && near(f[6] + 119.5), `day, floor ${s.floor} (three above the water): the floors down to 119 fade into THE SPEAKEASY's haze, the floors from 120 down into THE HARBOR's own — the border at floor ${-(f[6] - 0.5)}`);
+    await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash >= 1', 30000);
+    const t0 = Date.now();
+    s = await st(t.p); f = s.info.fog;
+    ok(HARBOR.every((v, i) => near(f[3 + i] - v)) && near(f[6] + 119.5), `… the frame the ball goes through: the floors under the surface wear THE HARBOR's haze, whole (${f.slice(3, 6).map(v => v.toFixed(3)).join(' ')}) — nothing eases over them`);
+    const off = await waitFor(t.p, 'window.__ffPlay.state().info.breaks.line >= 1.2', 3000), took = Date.now() - t0;
+    ok(off && took <= 520, `… and the surface is off the tower ${took} ms after the plunge (it was 600 ms)`);
+    await t.close();
+  }
+  // ---- THE SOLO "YOU HIT THE BOTTOM" BAND (the owner: faint grey by night, near-invisible by day — it was seen in its fade, THE TRENCH's band
+  // a floor behind it): the GOLD band snaps in and STAYS — whole 0.2 s after it comes and still whole 1.8 s after, in solo, both looks
+  for (const lk of ['night', 'day']) {
+    const t = await open(390, 844, 2, `?seed=f4a-band&look=${lk}&floor=197&tier=2`);
+    await start(t); await auto(t.p, 'gap');
+    const up = await waitFor(t.p, "(b => b.showing && /^YOU HIT THE BOTTOM/.test(b.key))(window.__ffPlay.state().banner)", 20000), t0 = Date.now();
+    await sleep(200);
+    const a = (await st(t.p)).banner, aAt = Date.now() - t0;
+    if (OUT) await shot(t.p, `f4a-band-${lk}-solo.png`);
+    await sleep(Math.max(0, 1800 - (Date.now() - t0)));
+    const c = (await st(t.p)).banner, cAt = Date.now() - t0;
+    const ink = await t.p.evaluate(() => { const n = document.querySelector('.ff-banner.is-gold'); n.classList.remove('is-baked'); const v = [getComputedStyle(n.querySelector('.ff-banner-n')).color, getComputedStyle(n).backgroundImage]; n.classList.add('is-baked'); return v; });
+    ok(up && a.gold && a.opacity > 0.99 && c.gold && /^YOU HIT/.test(c.key) && c.opacity > 0.99 && ink[0] === 'rgb(255, 246, 216)' && /rgba\(20, 12, 2, 0\.9\)/.test(ink[1]) && !t.errs.length, `${lk} — SOLO: "YOU HIT THE BOTTOM" is the GOLD band (pale gold words on its own dark ground), whole ${aAt} ms after it comes (opacity ${a.opacity.toFixed(2)}) and still whole at ${cAt} ms (${c.opacity.toFixed(2)})`);
+    const next = await waitFor(t.p, "(b => b.showing && /^THE TRENCH/.test(b.key))(window.__ffPlay.state().banner)", 4000);
+    ok(next, `${lk} — … THE TRENCH's band crosses AFTER it (${Date.now() - t0} ms)`);
+    await t.close();
+  }
+  // ---- THE DARKNESS's LOOK (timing, steps + rumble untouched): the warning plate ends ABOVE the ball's highest point on every phone; by day no
+  // pale stripe (the step's edge is a darker rim); the day BLAZE! = pale letters on a dark backing
+  for (const [w, h] of [[390, 844], [375, 667], [430, 932]]) {
+    const t = await open(w, h, 2, '?seed=f4a-warn&look=day&floor=20');
+    await start(t); await auto(t.p, 'safe');
+    const near = await waitFor(t.p, "window.__ffPlay.state().cls.includes('is-near')", 12000);
+    const m = await t.p.evaluate(() => { const P = window.__ffPlay, r = document.querySelector('.ff-warn').getBoundingClientRect(), n = document.querySelector('.ff-num').getBoundingClientRect(), cs = getComputedStyle(document.querySelector('.ff-warn')); return { bottom: r.bottom, top: r.top, left: r.left, right: r.right, apex: P.apexY(), numFoot: n.bottom, shown: cs.opacity !== '0', vw: innerWidth }; });
+    if (OUT && w === 390) await shot(t.p, 'f4a-dark-day-warn.png');
+    ok(near && m.shown && m.bottom <= m.apex && m.top >= m.numFoot - 8 && m.left >= 0 && m.right <= m.vw, `${w} × ${h}: THE LIGHTS ARE GOING OUT ends ${Math.round(m.apex - m.bottom)} px ABOVE the ball's highest point (the plate ${Math.round(m.top)} … ${Math.round(m.bottom)}, the apex ${Math.round(m.apex)}), under the number`);
+    await t.close();
+  }
+  {
+    const t = await open(390, 844, 2, '?seed=f4a-edge&look=day&floor=20');
+    await start(t); await auto(t.p, 'safe');
+    await waitFor(t.p, "window.__ffPlay.state().darkAttr === '2'", 12000);
+    await sleep(700);
+    if (OUT) await shot(t.p, 'f4a-dark-day-step2.png');
+    const edges = await t.p.evaluate(() => { const st = document.querySelector('.ff-stage'), d = document.querySelector('.ff-dark'), out = {}, was = st.dataset.area; for (const a of ['rooftop', 'offices', 'speakeasy', 'harbor', 'deep']) { st.dataset.area = a; out[a] = getComputedStyle(d).getPropertyValue('--ff-dk-edge').split(',').map(Number); } st.dataset.area = was; return out; });
+    ok(Object.values(edges).every(e => e.length === 3 && Math.max(...e) < 60), `by day THE DARKNESS's edge is a DARKER rim in every area — no pale stripe through the big number (${Object.entries(edges).map(([k, v]) => `${k} ${v.join(' ')}`).join(' · ')})`);
+    await t.close();
+    const u = await open(390, 844, 2, '?seed=f4a-blaze&look=day&floor=84');
+    await start(u); await auto(u.p, 'gap');
+    await waitFor(u.p, "window.__ffPlay.state().call === 'BLAZE!'", 12000);
+    const cs = await u.p.evaluate(() => { const c = getComputedStyle(document.querySelector('.ff-call')); return [c.color, c.textShadow]; });
+    await sleep(160);
+    if (OUT) await shot(u.p, 'f4a-blaze-day.png');
+    ok(cs[0] === 'rgb(255, 244, 214)' && (cs[1].match(/rgba?\(46, 10, 0/g) || []).length >= 4, `the day BLAZE!: pale letters (${cs[0]}) on a dark, warm backing — read on the flame`);
+    await u.close();
+  }
+}
+
 // =============================================================================================================== THE SPEED (FREEFALL's speed test)
 const ONE = (argv.find(a => a.startsWith('--one=')) || '').slice(6);
 async function perf() {
@@ -851,7 +984,9 @@ if (LOOK) await look();
 else if (argv.includes('--stutters')) await stutters();
 else if (PERF) await perf();
 else if (argv.includes('--f3b')) await checks4();
-else { await checks1(); await checks2(); await checks3(); await checks4(); }
+else if (argv.includes('--haze')) await haze(true);
+else if (argv.includes('--f4a')) await checks5();
+else { await checks1(); await checks2(); await checks3(); await checks4(); await checks5(); }
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

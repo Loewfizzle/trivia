@@ -79,6 +79,7 @@ export const DAY_SLICE = /* glsl */`
     // CLEARLY COLOURED (the owner, Nov 26 — never near-white ice everywhere): the face IS the area's pastel (vC), white only in the frost
     // (a milky bloom toward the rim), the highlights + the seams; the rim = a brighter version of the area's colour (vR)
     vec3 tint = vC.rgb, ice = tint, rimC = vR;
+    float zb = 1.0 - smoothstep(-0.3, 0.3, vW.y - uFogSeam);   // (F4A — this slice lies under the border in sight: its own area's haze + caustics)
     if (face < 0.5) {
       float rim = 1.0 - smoothstep(0.022 - aa, 0.022 + aa, dOut), cut = 1.0 - smoothstep(0.0, 0.014 + aas, dSide);
       col = tint * (0.9 + 0.1 * rad);
@@ -110,7 +111,8 @@ export const DAY_SLICE = /* glsl */`
       // the ball's soft shadow on its own floor (by day the ball gives no pool of light)
       vec2 bd = vW.xz - vec2(0.0, 0.66);
       col *= 1.0 - 0.24 * exp(-dot(bd, bd) / 0.045) * smoothstep(1.2, 0.0, depth) * (1.0 - red);
-      if (uCaust > 0.001) col += vec3(0.75, 1.0, 0.95) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.12 * uCaust * (1.0 - red * 0.6);   // (F3B — the owner: the ripples stay ON THE WATER; the slices keep only a faint shimmer — it was 0.5)
+      float caK = mix(uCaust, uCaustB, zb);
+      if (caK > 0.001) col += vec3(0.75, 1.0, 0.95) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.12 * caK * (1.0 - red * 0.6);   // (F3B — the owner: the ripples stay ON THE WATER; the slices keep only a faint shimmer — it was 0.5)
     } else if (face < 1.5) {
       float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.2);
       col = tint * mix(0.78, 0.5, vE.w);   // (its wall: the same colour, in shade)
@@ -121,8 +123,10 @@ export const DAY_SLICE = /* glsl */`
       if (red > 0.5) col = RED * 0.45;
     }
     // (uFogK — F3B: the haze's strength by area; THE ROOFTOP has almost none — NO fog wash over the roof below)
-    col = mix(col, uFog, far * 0.62 * uFogK);
-    alpha *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, far)), uFogK);
+    // (F4A — THE HAZE FOLLOWS THE FLOOR: zb = this slice lies under the border in sight — its own area's haze, never the one above's eased over a second)
+    float fogK = mix(uFogK, uFogKB, zb);
+    col = mix(col, mix(uFog, uFogB, zb), far * 0.62 * fogK);
+    alpha *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, far)), fogK);
     col = mix(col, vec3(1.0, 0.36, 0.7), clamp(vF.x, 0.0, 1.0) * (face < 0.5 ? 0.5 : 0.2));   // (a landing's flash: the ball's own pink on the ice)
     if (uBloom > 0.5) col = vec3(0.0);`;
 

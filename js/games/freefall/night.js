@@ -146,6 +146,8 @@ export function createNight(host, o = {}) {
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uSpin: { value: 0 }, uAspect: { value: 1 }, uGrey: { value: 0 },
     // (F3 — THE LOOK) 1 = day · by day a light COVERS what is behind it (added light is lost on a bright ground) · the haze the tower fades into · the caustics on the slices
     uDay: { value: 0 }, uCover: { value: 0 }, uFog: { value: new THREE.Vector3(0.62, 0.84, 0.98) }, uCaust: { value: 0 },
+    // (F4A — THE HAZE FOLLOWS THE FLOOR: the area BELOW the border in sight has its own haze, strength + caustics — uFogSeam = that border's height)
+    uFogB: { value: new THREE.Vector3(0.62, 0.84, 0.98) }, uFogKB: { value: FOG_K[0] }, uCaustB: { value: 0 }, uFogSeam: { value: -1e5 },
     // (F3B) how strongly the tower fades into that haze (the area's — THE ROOFTOP: almost none)
     uFogK: { value: FOG_K[0] },
     // (F3B) the pillar is not drawn under this height: THE ROOF is shut until the skylight breaks
@@ -248,11 +250,11 @@ export function createNight(host, o = {}) {
   const fxTex = picture('blaze', new URL(`../../../assets/freefall/fx/blaze.webp?v=${FF_ART_REV}`, import.meta.url).href, false);
 
   // ---- THE TOWER: the pillar + the slices (ONE instanced mesh)
-  const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uDay: G.uDay, uFog: G.uFog, uFogK: G.uFogK, uCutY: G.uCutY, uCol: { value: new THREE.Color(0x2a1466) } } });
+  const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uDay: G.uDay, uFog: G.uFog, uFogK: G.uFogK, uFogB: G.uFogB, uFogKB: G.uFogKB, uFogSeam: G.uFogSeam, uCutY: G.uCutY, uCol: { value: new THREE.Color(0x2a1466) } } });
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(SHAPE.RI - 0.004, SHAPE.RI - 0.004, 44, 28, 1, false), pillarMat);   // (capped: the tower's top is its end — nothing stands over the ball's floor)
   pillar.frustumCulled = false; scene.add(pillar); twin(pillar, pillarMat);
   const sGeo = wedgeGeo(), aI = inst(sGeo, 'aI', MAXI, 4), aC = inst(sGeo, 'aC', MAXI, 4), aF = inst(sGeo, 'aF', MAXI, 4), aR = inst(sGeo, 'aR', MAXI, 3);
-  const sliceMat = new THREE.ShaderMaterial({ vertexShader: SLICE_V, fragmentShader: SLICE_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uTime: G.uTime, uSpin: G.uSpin, uGrey: G.uGrey, uDay: G.uDay, uCaust: G.uCaust, uFog: G.uFog, uFogK: G.uFogK, uRing: { value: SHAPE.RO - SHAPE.RI }, uWidth: { value: SHAPE.RO * (WEDGE - 2 * MARGIN) / 2 } }, extensions: derivs, ...premul });
+  const sliceMat = new THREE.ShaderMaterial({ vertexShader: SLICE_V, fragmentShader: SLICE_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uTime: G.uTime, uSpin: G.uSpin, uGrey: G.uGrey, uDay: G.uDay, uCaust: G.uCaust, uFog: G.uFog, uFogK: G.uFogK, uFogB: G.uFogB, uFogKB: G.uFogKB, uCaustB: G.uCaustB, uFogSeam: G.uFogSeam, uRing: { value: SHAPE.RO - SHAPE.RI }, uWidth: { value: SHAPE.RO * (WEDGE - 2 * MARGIN) / 2 } }, extensions: derivs, ...premul });
   const slices = new THREE.Mesh(sGeo, sliceMat);
   slices.frustumCulled = false; sGeo.instanceCount = 0; scene.add(slices); twin(slices, sliceMat);
 
@@ -715,10 +717,17 @@ export function createNight(host, o = {}) {
 
     // THE LOOK's own (F3 — by day): the haze the tower fades into (the ball's area's — it eases across a border), THE CAUSTICS on the slices
     // UNDER THE HARBOR (tier 0: on the wall only), THE MOTES (bubbles · drifting particles · dust — the area's kind fades out, the next in)
-    const AD = AREA_DAY[areaIndex(run.floor)], fg = G.uFog.value, fe = fogSnap ? 1 : Math.min(1, sec * 2.2);
-    fg.x += (AD[3] - fg.x) * fe; fg.y += (AD[4] - fg.y) * fe; fg.z += (AD[5] - fg.z) * fe; fogSnap = false;
-    G.uFogK.value += (FOG_K[areaIndex(run.floor)] - G.uFogK.value) * fe;
-    G.uCaust.value += ((day && tier > 0 ? AD[9] : 0) - G.uCaust.value) * Math.min(1, sec * 2.2);
+    // F4A — THE HAZE FOLLOWS THE FLOOR, never the clock (the owner's phone: by day the floors 1–3 floors past the splashdown were ~20 %
+    // less colourful + brighter — the old area's haze, eased over a second, still lay on the new area's floors): the border in sight
+    // splits the tower — the floors above it fade into THEIR area's haze, the floors below it into theirs (as the palettes: a floor wears
+    // its own area's). Full colour + contrast from the frame the ball goes through.
+    const fa = areaIndex(run.floor), fn = fa + 1 < AREAS.length && AREAS[fa + 1].from <= run.floor + BELOW + 1 ? fa + 1 : fa, fk = fn > fa ? fa : fa > 0 ? fa - 1 : fa;
+    const AD = AREA_DAY[fa], FA = AREA_DAY[fk], FB = AREA_DAY[fn > fa ? fn : fa];
+    G.uFog.value.set(FA[3], FA[4], FA[5]); G.uFogB.value.set(FB[3], FB[4], FB[5]);
+    G.uFogK.value = FOG_K[fk]; G.uFogKB.value = FOG_K[fn > fa ? fn : fa];
+    G.uCaust.value = day && tier > 0 ? FA[9] : 0; G.uCaustB.value = day && tier > 0 ? FB[9] : 0;
+    G.uFogSeam.value = -AREAS[fn > fa ? fn : fa].from * SHAPE.H + 0.5;   // (half a floor above the border's first floor)
+    fogSnap = false;
     const mk = day ? AD[10] : 0;
     if (mk !== moteKind) {
       moteA -= sec * 3;
@@ -811,7 +820,7 @@ export function createNight(host, o = {}) {
     },
     /** the screen y (0 … 1) of the TOP of the ball at the top of a bounce on its floor, in the PLAY pose — the HUD must end above it */
     apexY(run) { place(pcam, POSE.play.pitch, 1, POSE.play.ballY, run.floor, 0); return proj(0, -run.floor * SHAPE.H + 2 * SHAPE.R_BALL + SHAPE.HOP, SHAPE.RB, pcam)[1]; },
-    info: () => ({ breaks: breaks.info(), landed, roof: [S[ROOFA], skyU.uGW.value, skyU.uHaveR.value, skyU.uHaveC.value], look: day ? 'day' : 'night', motes: motes.visible ? mGeo.instanceCount : 0, moteKind, caust: G.uCaust.value, flames: FLAMES, fx: fxTex.have, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
+    info: () => ({ breaks: breaks.info(), landed, roof: [S[ROOFA], skyU.uGW.value, skyU.uHaveR.value, skyU.uHaveC.value], look: day ? 'day' : 'night', motes: motes.visible ? mGeo.instanceCount : 0, moteKind, caust: S[CAMY] * SHAPE.H > -G.uFogSeam.value ? G.uCaustB.value : G.uCaust.value, fog: [G.uFog.value.x, G.uFog.value.y, G.uFog.value.z, G.uFogB.value.x, G.uFogB.value.y, G.uFogB.value.z, G.uFogSeam.value, G.uFogK.value, G.uFogKB.value], flames: FLAMES, fx: fxTex.have, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
     /** YOUR BEST's tape as it is drawn (the checks): its colour, its dark edge */
     tapeInfo: () => ({ col: [tapeU.uCol.value.r, tapeU.uCol.value.g, tapeU.uCol.value.b], dark: tapeU.uDark.value, on: tape.visible }),
     /** the last time a picture landed (a frame after it may be a long one: the stage's hitch counter names it) */

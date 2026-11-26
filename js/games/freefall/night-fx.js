@@ -223,8 +223,8 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 export const SLICE_F = /* glsl */`
-uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust, uFogK;
-uniform vec3 uFog;
+uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust, uFogK, uCaustB, uFogKB, uFogSeam;
+uniform vec3 uFog, uFogB;
 varying vec4 vE, vC, vF;
 varying vec3 vW, vN, vR;
 varying float vKind;
@@ -327,8 +327,8 @@ export const PILLAR_V = /* glsl */`
 varying vec3 vW, vN;
 void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
 export const PILLAR_F = /* glsl */`
-uniform float uBloom, uTopY, uDay, uFogK, uCutY;
-uniform vec3 uCol, uFog;
+uniform float uBloom, uTopY, uDay, uFogK, uFogKB, uFogSeam, uCutY;
+uniform vec3 uCol, uFog, uFogB;
 varying vec3 vW, vN;
 void main() {
   if (vW.y < uCutY) discard;   // (F3B: THE ROOF is shut until the skylight breaks — the pillar is not seen under it)
@@ -344,7 +344,8 @@ void main() {
     float band = pow(max(dot(N, normalize(vec3(-0.35, 0.25, 1.0))), 0.0), 6.0);
     col = mix(vec3(0.26, 0.36, 0.48), vec3(0.78, 0.87, 0.96), nv) * brush + vec3(1.0) * band * 0.45;
     col = mix(col, vec3(0.1, 0.3, 0.42), step(0.5, vN.y));
-    col = mix(col, uFog, far * 0.62 * uFogK);
+    float zb = 1.0 - smoothstep(-0.3, 0.3, vW.y - uFogSeam);   // (F4A: under the border in sight — that area's own haze)
+    col = mix(col, mix(uFog, uFogB, zb), far * 0.62 * mix(uFogK, uFogKB, zb));
   }
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col, 1.0);

@@ -19,6 +19,11 @@ export const BANNER_MS = 1600;
 export const BANNER_REST = 0.001;
 export const BANNER_KEYS = Object.freeze([{ opacity: BANNER_REST, transform: 'translate3d(-5%, 0, 0)' }, { opacity: 1, transform: 'translate3d(0, 0, 0)', offset: 0.16 }, { opacity: 1, transform: 'translate3d(0, 0, 0)', offset: 0.84 }, { opacity: BANNER_REST, transform: 'translate3d(5%, 0, 0)' }]);
 export const BANNER_KEYS_STILL = Object.freeze([{ opacity: BANNER_REST }, { opacity: 1, offset: 0.16 }, { opacity: 1, offset: 0.84 }, { opacity: BANNER_REST }]);
+/** F4A — THE BOTTOM's GOLD BAND (the owner: in SOLO it read "faint grey by night, near-invisible by day" — it was seen in its 0.26 s fade in +
+ *  out, with THE TRENCH's band a floor behind it): the gold band SNAPS in (0.09 s), stays longer and leaves fast — solo + a finish alike */
+export const BANNER_GOLD_MS = 2200;
+export const BANNER_GOLD_KEYS = Object.freeze([{ opacity: BANNER_REST, transform: 'translate3d(-2%, 0, 0)' }, { opacity: 1, transform: 'translate3d(0, 0, 0)', offset: 0.04 }, { opacity: 1, transform: 'translate3d(0, 0, 0)', offset: 0.93 }, { opacity: BANNER_REST, transform: 'translate3d(2%, 0, 0)' }]);
+export const BANNER_GOLD_KEYS_STILL = Object.freeze([{ opacity: BANNER_REST }, { opacity: 1, offset: 0.04 }, { opacity: 1, offset: 0.93 }, { opacity: BANNER_REST }]);
 /** the bands kept at once (the areas' six + a few laps) — the oldest goes first */
 export const BANNER_KEEP = 10;
 /** a reader is told of the arrival this long after the band is up (never in the arrival's own frame) */
@@ -99,10 +104,11 @@ export function createBanner() {
       let b = bands.get(keyOf(name, sub));
       if (!b) { b = build(name, sub, cls); bake(b); }   // (a `?floor=N` start can land past the ones made ready: built now, once)
       shown = keyOf(name, sub);
-      until = performance.now() + BANNER_MS; shows++;
+      const gold = b.cls === 'is-gold', ms = gold ? BANNER_GOLD_MS : BANNER_MS;
+      until = performance.now() + ms; shows++;
       if (anim) anim.cancel();
-      anim = b.node.animate ? b.node.animate(reduce ? BANNER_KEYS_STILL : BANNER_KEYS, { duration: BANNER_MS, easing: 'ease-out', fill: 'none' }) : null;
-      if (anim && onDone) anim.onfinish = onDone; else if (onDone) setTimeout(onDone, BANNER_MS);
+      anim = b.node.animate ? b.node.animate(gold ? (reduce ? BANNER_GOLD_KEYS_STILL : BANNER_GOLD_KEYS) : reduce ? BANNER_KEYS_STILL : BANNER_KEYS, { duration: ms, easing: gold ? 'linear' : 'ease-out', fill: 'none' }) : null;
+      if (anim && onDone) anim.onfinish = onDone; else if (onDone) setTimeout(onDone, ms);
       clearTimeout(sayTimer);
       sayTimer = setTimeout(() => { if (!gone) live.textContent = `${name} — ${sub}`; }, BANNER_SAY_MS);
       return true;
@@ -112,7 +118,7 @@ export function createBanner() {
     lastBake: () => lastBake,
     /** the run starts over: nothing is up (the bands are KEPT) */
     clear() { until = 0; if (anim) { anim.cancel(); anim = null; } clearTimeout(sayTimer); },
-    info: () => { const b = bands.get(shown); return { key: shown, baked: bands.size, keys: [...bands.keys()], at: b ? [...el.children].indexOf(b.node) - 1 : -1, bakes, shows, showing: performance.now() < until, gold: !!b && b.cls === 'is-gold', w: b ? b.cv.width : 0, h: b ? b.cv.height : 0 }; },
+    info: () => { const b = bands.get(shown); return { key: shown, opacity: b && performance.now() < until ? Number(getComputedStyle(b.node).opacity) : 0, baked: bands.size, keys: [...bands.keys()], at: b ? [...el.children].indexOf(b.node) - 1 : -1, bakes, shows, showing: performance.now() < until, gold: !!b && b.cls === 'is-gold', w: b ? b.cv.width : 0, h: b ? b.cv.height : 0 }; },
     destroy() { gone = true; if (anim) anim.cancel(); clearTimeout(sayTimer); bands.clear(); el.remove(); },
   };
 }

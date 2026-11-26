@@ -19,7 +19,7 @@ export const BURSTS = 176, BURST_K = Object.freeze([0.45, 0.7, 1]);
 /** the skylight: its glass's half size (the ring is 1 wide: it passes inside the frame) · how far above floor 40 the pane lies · its frame's bar */
 export const SKYLIGHT = Object.freeze({ half: 1.25, up: 0.4, bar: 0.07 });
 /** the water: how far above floor 120 the surface lies · THE WATERLINE's sweep up the screen (s after the plunge, for how long) */
-export const WATER = Object.freeze({ up: 0.45, lineAt: 0.1, lineFor: 0.5 });
+export const WATER = Object.freeze({ up: 0.45, lineAt: 0.05, lineFor: 0.3 });   // (F4A — THE HAZE: the surface is off the floors 0.35 s after the plunge — it was 0.6 s)
 /** the seabed: how far under floor 200's top it lies in SOLO (under that floor's own slab — a finish has no floor 200: the bed IS the floor) · the square that cracks open */
 export const SEABED = Object.freeze({ down: 0.26, half: 3.3, mouth: 1.14 });   // (mouth — SOLO: the half-width of THE TRENCH's MOUTH, the cleft the tower goes on down: the rings' 1.0 + a margin)
 /** a break is only PLAYED when its moment is fresh: an event this many ticks old (a batch that came back from a hidden page) just happens */
@@ -150,10 +150,10 @@ export function createBreaks(X) {
   const roofM = { value: X.roofM };
   const frameMat = new THREE.ShaderMaterial({ vertexShader: FRAME_V, fragmentShader: FRAME_F, uniforms: { uTime: G.uTime, uBreakT: breakT, uM: roofM, uDay: G.uDay, uBloom: G.uBloom }, ...blend });
   const frame = add(new THREE.Mesh(fGeo, frameMat), 1.6, frameMat);
-  const glassU = { tPano: { value: null }, uHaveP: { value: 0 }, uFlipP: { value: 0 }, uTime: G.uTime, uBreakT: breakT, uGrav: { value: -5.2 }, uLife: { value: 1.5 }, uM: roofM, uDay: G.uDay, uBloom: G.uBloom, uCrack: { value: CRACK * 1.25 }, uHalf: { value: H }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) } };
+  const glassU = { tPano: { value: null }, uHaveP: { value: 0 }, uFlipP: { value: 0 }, uTime: G.uTime, uBreakT: breakT, uGrav: { value: -5.2 }, uLife: { value: 1.0 }, uM: roofM, uDay: G.uDay, uBloom: G.uBloom, uCrack: { value: CRACK * 1.25 }, uHalf: { value: H }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) } };
   const glassMat = new THREE.ShaderMaterial({ vertexShader: FRACT_V, fragmentShader: GLASS_F, uniforms: glassU, extensions: derivs, side: THREE.DoubleSide, ...blend });
   deckMat.extensions = derivs;
-  const glass = add(new THREE.Mesh(fractureGeo(H, 0, SHAPE.RB, 12, [0.2, 0.55, 1], 0x51f15e), glassMat), 1.7, glassMat);
+  const glass = add(new THREE.Mesh(fractureGeo(H, 0, SHAPE.RB, 12, [0.2, 0.55, 1], 0x51f15e, 1.7), glassMat), 1.7, glassMat);
 
   // ---- THE WATER
   const waterY = -BREAK_FLOORS.splash * SHAPE.H + WATER.up;
@@ -241,7 +241,7 @@ export function createBreaks(X) {
     puff(0, y + 0.05, SHAPE.RB, 0, 0.2, 0, 0.2, 0.3, 1.3, 6, 0, 0, 0, 0, 0.85, 0.85, 0.85, 0);
     for (let k = 0; k < share(6); k++) puff((rnd() - 0.5) * 0.7, y + 0.1 + rnd() * 0.3, SHAPE.RB + (rnd() - 0.5) * 0.6, (rnd() - 0.5) * 1.2, 0.6 + rnd(), (rnd() - 0.5) * 1.2, 0.3 + rnd() * 0.3, 0.05, 0.26, 5, -2, 0, 0, 3, 1, 1, 1, 0);
     // a puff of glass dust
-    for (let k = 0; k < share(5); k++) puff((rnd() - 0.5) * 1.2, y, SHAPE.RB * 0.5 + (rnd() - 0.5) * 1.2, (rnd() - 0.5) * 0.6, -0.4 - rnd() * 0.6, (rnd() - 0.5) * 0.6, 0.7 + rnd() * 0.4, 0.2, 0.75, 1, -0.3, 1.2, 0.05, 0.6, day ? 0.42 : 0.3, day ? 0.45 : 0.27, day ? 0.5 : 0.42, day ? 0.5 : 0.4);
+    for (let k = 0; k < share(5); k++) puff((rnd() - 0.5) * 1.2, y, SHAPE.RB * 0.5 + (rnd() - 0.5) * 1.2, (rnd() - 0.5) * 0.6, -0.4 - rnd() * 0.6, (rnd() - 0.5) * 0.6, 0.28 + rnd() * 0.14, 0.2, 0.6, 1, -0.3, 1.2, 0.05, 0.6, day ? 0.42 : 0.3, day ? 0.45 : 0.27, day ? 0.5 : 0.42, day ? 0.3 : 0.25);   // (F4A — THE HAZE: gone in 0.4 s — it lay over the floors below for a second)
     // THE SHORT (night): the neon tubes throw a shower of sparks — white-blue + orange — from all round the frame; by day a few white glints of glass
     for (let k = 0; k < n; k++) {
       const side = k & 3, u = (rnd() - 0.5) * 2 * H, e = H + 0.12, x = side === 0 ? u : side === 1 ? e : side === 2 ? u : -e, z = side === 0 ? e : side === 1 ? u : side === 2 ? -e : u;
@@ -260,8 +260,8 @@ export function createBreaks(X) {
     // the crown: drops thrown up + out in a cone (lit from above by night), spray, a ring of foam
     for (let k = 0; k < (X.reduce ? 6 : share(34)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.01 + rnd() * 0.012, day ? 0.82 : 1, day ? 0.96 : 0.88, day ? 1 : 0.66); }
     X.sparksDirty();
-    for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.05, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.5 + rnd() * 0.3, 0.1, 0.3, 4, -5.5, 0, 0, 2, 0.9, 0.98, 1, 0.3); }
-    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.4 + rnd() * 0.25, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
+    for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.05, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.34 + rnd() * 0.14, 0.1, 0.3, 4, -5.5, 0, 0, 2, 0.9, 0.98, 1, 0.3); }
+    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
     X.kick(0.32, 0.5);
   }
   /** SOLO: a place on the bed's own sand — the shelves beside the mouth (two of three) or behind the tower — and the way out from it → sx, sz, svx, svz.
