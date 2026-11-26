@@ -48,6 +48,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
   `js/firebase.js` exports thin wrappers (`ref`, `get`, `set`…) that are only valid after `firebaseReady` resolves.
   Never add a static import of the SDK (it would block the first paint on ~450 KB).
+- **RAW ART OFF GIT:** sources in Downloads\NEON\art-src; only baked outputs committed (tests/repo-growth.test.mjs) → docs/harbor.md.
 - **Stability first.** Phones lock, switch apps and drop signal. Every screen must render purely
   from the mirrored DB state (`store.state`) so refresh/rejoin/host-change "just work".
 - **The host is the authority, but holds no private state.** Game flow lives in a pure

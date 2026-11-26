@@ -1799,3 +1799,20 @@ The pass log: [passes/city-part2.md](harbor/passes/city-part2.md).
 - NEVER A GAME TWICE AS A SIGN (CITY PART 2): the speakeasy blade skips tonight's lit named signs (`harbor-neon.js#bladeGame`); THE LED BILLBOARD EXCEPTION: the tri-vision's posters never get a day variant → docs/harbor.md.
 - THE BOOT HEADERS (CITY PART 2): a boot module keeps a SHORT header — its long history lives in `docs/harbor/boot-headers.md` (THE BOOT's BYTE ROOM).
 - THE WAKE HOLD + THE ONE HOST-WRITE GATE (CITY PART 1): every host write through `host.js#hostWriteOk`; after a stall a fresh read of `meta/hostId` first; a refusal then = the quiet `not-host`; the stall clock is the ROOM's (THE PLAY BOUNCE — PLAY NOW never bounces silently) → docs/harbor.md.
+
+## RAW ART OFF GIT (the inbox, Nov 26 2026 — the owner; built in FREEFALL F3B)
+The repo's `art/` holds raw SOURCE art players never receive (`.vercelignore` skips it) but git keeps for ever. **From now on RAW SOURCES
+live OUTSIDE the repo** — `C:\Users\benja\Downloads\NEON\art-src\<area>\` (3D models `.glb` / `.gltf` / `.fbx` / `.blend` / `.obj`,
+texture masters, `.psd` / `.kra`, audio masters `.wav` / `.flac`); **only the BAKED outputs the site loads go into git.**
+- **ONE path setting: `NS_ART_SRC`** (default the folder above) — `scripts/art-src.mjs#rawSource(name)` (node) · `scripts/art_src.py#source_dir(area, delivered)`
+  + `need(path)` (Python; a builder run with `-P -E` loads it by its path). A source is looked for under `NS_ART_SRC` first, then at its
+  old place (the sources ALREADY in git stay where they are — removing them does not shrink history; the owner's delivery folders
+  `Downloads\grok\<game>\` are still read when `art-src\<game>\` is not there). **Missing in both: the build STOPS with a clear
+  message** naming where it looked — never a silent skip.
+- **Wired:** THE BAKE TOOL (`scripts/bake-model.mjs` — every recipe's `MODEL` / `MODELS` in `scripts/bake/`, their names unchanged) and the
+  three games' asset builders (`build-jaywalk-assets.py` · `build-highrise-assets.py` · `build-freefall-assets.py`). The card-art builders
+  read pictures that are already in git under `art/<…>-cards/` — not raw-source formats; a NEW raw source for any of them goes to
+  `art-src` through the same two helpers.
+- **THE GUARD** (`tests/repo-growth.test.mjs`): a file in git with a raw-source extension — anywhere — or any non-audio file over 2 MB
+  must be on the frozen list of what was there on Nov 26 (`tests/fixtures/repo-raw-before.txt`: 81 files — it only shrinks) or a named
+  row of `RAW_ALLOWED` with its reason (a BAKED output the site loads, e.g. a game's own shipped `.glb` under `assets/`).

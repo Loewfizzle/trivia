@@ -22,7 +22,12 @@ from PIL import Image, ImageFilter
 sys.stdout.reconfigure(encoding='utf-8')   # (a Windows console: its own code page has no arrows)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
-SRC = ARGS[0] if ARGS else r'C:\Users\benja\Downloads\grok\highrise'
+# RAW ART OFF GIT (the inbox, Nov 26): the sources come from NS_ART_SRC\<area> when that folder is there — else from the owner's delivery
+# folder, as always (scripts/art_src.py: the one path setting; loaded by its path — `-P` keeps the script's folder off sys.path)
+import importlib.util as _ilu
+_s = _ilu.spec_from_file_location('art_src', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'art_src.py'))
+art_src = _ilu.module_from_spec(_s); _s.loader.exec_module(art_src)
+SRC = art_src.need(ARGS[0]) if ARGS else art_src.source_dir('highrise', r'C:\Users\benja\Downloads\grok\highrise')
 ONLY = next((a[7:].split(',') for a in sys.argv[1:] if a.startswith('--only=')), None)
 LOOK = next((a[7:] for a in sys.argv[1:] if a.startswith('--look=')), 'night')
 OUT_P = os.path.join(ROOT, 'assets', 'highrise', 'plates')

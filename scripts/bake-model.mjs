@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import { rawSource } from './art-src.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(path.join(ROOT, 'tests/integration/package.json'));
@@ -35,7 +36,9 @@ if (!BROWSER || !fs.existsSync(BROWSER) || !NAME || !fs.existsSync(RECIPE)) {
 }
 const recipe = await import(pathToFileURL(RECIPE).href);
 const THREE = 'https://cdn.jsdelivr.net/npm/three@0.170.0';
-const MODEL = path.resolve(ROOT, opt('model') || recipe.MODEL);
+// RAW ART OFF GIT (the inbox, Nov 26): a recipe's model is looked for under NS_ART_SRC first (scripts/art-src.mjs — the one path setting),
+// then at its old place in the repo (the sources already in git stay there); missing in both: the bake stops, saying where it looked
+const MODEL = rawSource(opt('model') || recipe.MODEL);
 const LOOK = opt('look');
 const out = LOOK || opt('out') || path.join(ROOT, recipe.OUT);
 
@@ -43,7 +46,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/model.glb') { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(MODEL).pipe(res); return; }
   // (MODELS: a recipe with SEVERAL models — the Mothman's tucked perch + his spread-wing glide — exports MODELS { key: path }; served at /m/<key>.glb)
   const mm = /^\/m\/([a-z0-9-]+)\.glb$/.exec(req.url || '');
-  if (mm && recipe.MODELS && recipe.MODELS[mm[1]]) { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(path.resolve(ROOT, recipe.MODELS[mm[1]])).pipe(res); return; }
+  if (mm && recipe.MODELS && recipe.MODELS[mm[1]]) { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(rawSource(recipe.MODELS[mm[1]])).pipe(res); return; }
   if (req.url === '/' || req.url === '/bake.html') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(recipe.page({ THREE })); return; }
   res.writeHead(404); res.end();
 });

@@ -81,3 +81,35 @@ test('a backup file / folder / token stays out of git (the ignore rule) and none
   const tracked = execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(f => /\.json\.gz$|(^|\/)NeonBackups\/|(^|\/)neon-backup[^/]*\/|backup-token/i.test(f));   // (a backup FOLDER — scripts/backup/neon-backups-*.md|yml are the private repo's sources, no data)
   assert.deepEqual(tracked, [], 'no backup file is tracked');
 });
+
+// RAW ART OFF GIT (the inbox, Nov 26 2026 — the owner; built in FREEFALL F3B — docs/harbor.md "RAW ART OFF GIT"): raw SOURCE art (3D
+// models, texture masters, .psd / .kra, audio masters) lives OUTSIDE the repo — NS_ART_SRC, default Downloads\NEON\art-src — and only the
+// BAKED outputs the site loads go into git. A file with a raw-source extension ANYWHERE in git, or any non-audio file over 2 MB, must be
+//   · on the frozen list of what was already there on Nov 26 (tests/fixtures/repo-raw-before.txt — it only ever SHRINKS), or
+//   · a named row below WITH its reason (a baked output the site really loads — e.g. a game's own shipped model under assets/).
+const RAW_EXT = /\.(glb|gltf|fbx|blend|obj|psd|kra|wav|flac)$/i, AUDIO_EXT = /\.(mp3|ogg|m4a|aac|opus|wav|flac)$/i, BIG_BYTES = 2 * 1024 * 1024;
+const RAW_BEFORE = new Set(fs.readFileSync(new URL('./fixtures/repo-raw-before.txt', import.meta.url), 'utf8').split('\n').map(l => l.trim()).filter(Boolean));
+/** a NEW raw-format / over-2-MB file that truly belongs in git: its path → why (short: a baked output the site loads) */
+const RAW_ALLOWED = {};
+
+test('RAW ART OFF GIT: no NEW raw-source file (a model, a .psd, an audio master …) and no new non-audio file over 2 MB in git — the frozen list or a named row; the bake + asset builders read their sources through the ONE path setting and stop loudly when one is missing', async () => {
+  const files = execSync('git ls-files', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\n').filter(Boolean);
+  const hits = files.filter(f => { if (RAW_EXT.test(f)) return true; if (AUDIO_EXT.test(f)) return false; try { return fs.statSync(f).size > BIG_BYTES; } catch { return false; } });
+  const extra = hits.filter(f => !RAW_BEFORE.has(f) && !(f in RAW_ALLOWED));
+  assert.deepEqual(extra, [], `a new raw source / big file in git: ${extra.slice(0, 8).join(', ')} — raw sources live in NS_ART_SRC (Downloads/NEON/art-src/<area>/); a baked output the site loads = a row in RAW_ALLOWED with its reason`);
+  assert.equal(RAW_BEFORE.size, 81, 'the frozen list is the Nov 26 one (a line may be deleted WITH its file, never added)');
+  assert.ok(hits.filter(f => RAW_BEFORE.has(f)).length <= RAW_BEFORE.size);
+  for (const [f, why] of Object.entries(RAW_ALLOWED)) { assert.ok(fs.existsSync(f), `${f}: it is there`); assert.ok(String(why).length > 12, `${f}: says why it is in git`); }
+  assert.ok(Object.keys(RAW_ALLOWED).length <= 20, 'the allow-list stays SHORT');
+  // THE ONE PATH SETTING — node + Python; the bake tool + the three games' builders go through it
+  const read = f => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+  assert.match(read('scripts/art-src.mjs'), /export const ART_SRC = process\.env\.NS_ART_SRC \|\| 'C:\\\\Users\\\\benja\\\\Downloads\\\\NEON\\\\art-src';/);
+  assert.match(read('scripts/art_src.py'), /ART_SRC = os\.environ\.get\('NS_ART_SRC'\) or r'C:\\Users\\benja\\Downloads\\NEON\\art-src'/);
+  assert.match(read('scripts/bake-model.mjs'), /const MODEL = rawSource\(opt\('model'\) \|\| recipe\.MODEL\);/); assert.match(read('scripts/bake-model.mjs'), /rawSource\(recipe\.MODELS\[mm\[1\]\]\)/);
+  for (const [f, area] of [['build-jaywalk-assets.py', 'jaywalk'], ['build-highrise-assets.py', 'highrise'], ['build-freefall-assets.py', 'freefall']]) assert.ok(read(`scripts/${f}`).includes(`art_src.source_dir('${area}', r'C:\\Users\\benja\\Downloads\\grok\\${area}')`), `${f} reads its sources through the one setting`);
+  // … and a missing source is NEVER silent: the resolver itself (pure node — no package) says where it looked
+  const { rawSource } = await import('../scripts/art-src.mjs');
+  assert.throws(() => rawSource('art/models/no-such/thing.glb'), /RAW ART OFF GIT — the source "art\/models\/no-such\/thing\.glb" is missing: looked in .*NS_ART_SRC/);
+  assert.match(rawSource('art/models/ufo/credits.txt').replace(/\\/g, '/'), /art\/models\/ufo\/credits\.txt$/, 'a source already in git is still found at its old place');
+  assert.match(read('scripts/art_src.py'), /sys\.exit\(f'RAW ART OFF GIT — the sources of/);
+});
