@@ -37,6 +37,17 @@ export function areaOf(floor) {
   return { id: A.id, name: A.name, from: A.from, index: k, lap: A.id === 'trench' ? Math.floor((floor - A.from) / GEN.lap.every) + 1 : 0 };
 }
 
+/** THE ARRIVALS (F3 — the banners): the floor the NEXT area begins at after `floor` — the areas' own starts (40 · 80 · 120 · 160 · 200 · 201), then THE TRENCH's laps (241 · 281 · …) */
+export function nextArrival(floor) {
+  for (let i = 0; i < AREAS.length; i++) if (AREAS[i].from > floor) return AREAS[i].from;
+  const T = AREAS[AREAS.length - 1].from, L = GEN.lap.every;
+  return T + (Math.floor((floor - T) / L) + 1) * L;
+}
+/** is `floor` an arrival — an area's first floor, a trench lap's first floor? */
+export const isArrival = floor => Number.isSafeInteger(floor) && floor > 0 && nextArrival(floor - 1) === floor;
+/** an arrival's words: { name: 'THE SPEAKEASY', sub: 'FLOOR 80' } — THE TRENCH's later laps: 'LAP 2 · FLOOR 241' */
+export function arrivalWords(floor) { const a = areaOf(floor); return { name: a.name, sub: a.lap > 1 ? `LAP ${a.lap} · FLOOR ${floor}` : `FLOOR ${floor}` }; }
+
 /** THE FEATS' names (F3's cards) */
 export const FEAT_NAMES = Object.freeze({ reachedHarbor: 'SPLASHDOWN', terminal: 'TERMINAL VELOCITY', reachedBottom: 'ROCK BOTTOM' });
 /** a result's feats as a row carries them: 'reachedHarbor terminal' ('' = none) */

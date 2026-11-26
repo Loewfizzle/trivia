@@ -49,7 +49,6 @@
 .ff-num.is-baked { position: relative; }
 .ff-num.is-baked .ff-dg { color: transparent; text-shadow: none; }
 .ff-numc { position: absolute; left: 50%; top: 0; transform: translateX(-50%); pointer-events: none; }
-.ff-area { margin-top: 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.4em; text-indent: 0.4em; color: #d9d4f2; opacity: 0.8; text-shadow: 0 1px 0 #07040f, 0 0 10px #07040f; }
 .ff-call { margin-top: 10px; min-height: 36px; font: 900 clamp(26px, calc(var(--ff-w) * 0.082), 34px)/1.1 var(--font-display); letter-spacing: 0.03em; color: #fff; opacity: 0; white-space: nowrap; }
 .ff-call.is-blaze { color: #fff3d6; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 180, 74, 0.98), 0 0 30px rgba(255, 140, 30, 0.7), 0 2px 0 rgba(30, 12, 0, 0.6); }
 .ff-call.is-gold { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 200, 60, 0.95), 0 0 28px rgba(255, 170, 30, 0.6), 0 2px 0 rgba(30, 14, 0, 0.6); }
@@ -57,6 +56,24 @@
 .ff-warn { display: inline-block; margin-top: 2px; padding: 6px 10px 6px 8px; border-radius: 3px; background: rgba(5, 3, 13, 0.84); font: 700 14px/1 var(--font-ui); letter-spacing: 0.24em; text-indent: 0.24em; color: #fff; opacity: 0; box-shadow: 0 0 0 1px rgba(39, 224, 230, 0.6); }   /* (white on its own dark plate: read on any floor) */
 .ff-stage.is-near .ff-warn { opacity: 1; animation: ff-blink 0.7s steps(2, jump-none) infinite; }
 @keyframes ff-blink { 0% { opacity: 1; } 100% { opacity: 0.62; } }
+
+/* THE ARRIVAL BANNERS (F3 — banner.js): on reaching an area a band crosses the FOOT of the screen — never over the ball or the big number —
+   "THE SPEAKEASY" big, "FLOOR 80" under it, 1.6 s in + out (one Web Animations one-shot: opacity + transform). NIGHT = a dark band
+   between two thin pink rules, white words in a pink glow; DAY = a frosted pale band, navy words. The words are BAKED into the band's
+   canvas ahead of the arrival (the stylesheet stays the one source of their look: banner.js reads these inks + glows) — the DOM words
+   stay for a reader, transparent under it. Static glows only. */
+.ff-banner { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 9.5%); height: clamp(66px, calc(var(--ff-w) * 0.215), 88px); display: grid; place-items: center; text-align: center; pointer-events: none; opacity: 0; will-change: transform, opacity;
+  background: linear-gradient(to right, rgba(8, 4, 20, 0.6) 0%, rgba(8, 4, 20, 0.88) 12%, rgba(8, 4, 20, 0.88) 88%, rgba(8, 4, 20, 0.6) 100%); border-block: 1.5px solid var(--ff-pink); box-shadow: 0 -6px 16px -8px rgba(255, 79, 168, 0.6), 0 6px 16px -8px rgba(255, 79, 168, 0.6); }
+.ff-banner-t { display: grid; justify-items: center; gap: 8px; }
+.ff-banner-n { font: 900 clamp(22px, calc(var(--ff-w) * 0.074), 30px)/1 var(--font-display); letter-spacing: 0.04em; color: #fff; white-space: nowrap; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 79, 168, 0.95), 0 0 28px rgba(255, 79, 168, 0.55); }
+.ff-banner-s { font: 700 clamp(13px, calc(var(--ff-w) * 0.038), 15px)/1 var(--font-ui); font-style: normal; letter-spacing: 0.32em; color: var(--ff-teal); white-space: nowrap; text-shadow: 0 0 10px rgba(39, 224, 230, 0.6); }
+.ff-banner.is-baked :is(.ff-banner-n, .ff-banner-s) { color: transparent; text-shadow: none; }
+.ff-banner-c { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.ff-stage[data-look='day'] .ff-banner { background: linear-gradient(to right, rgba(236, 247, 255, 0.62) 0%, rgba(236, 247, 255, 0.9) 12%, rgba(236, 247, 255, 0.9) 88%, rgba(236, 247, 255, 0.62) 100%); border-block-color: rgba(255, 255, 255, 0.95); box-shadow: 0 -6px 16px -10px rgba(8, 28, 58, 0.5), 0 6px 16px -10px rgba(8, 28, 58, 0.5); }
+.ff-stage[data-look='day'] .ff-banner-n { color: #0b2a4a; text-shadow: none; }
+.ff-stage[data-look='day'] .ff-banner-s { color: #12607c; text-shadow: none; }
+.ff-stage[data-look='day'] .ff-banner.is-baked :is(.ff-banner-n, .ff-banner-s) { color: transparent; }
+.ff-stage.is-over .ff-banner, .ff-stage.is-open .ff-banner { visibility: hidden; }
 
 /* THE OPENING — the live scene, no menu page (F3: title-05, the owner's pick): Grok's lettering centred in the top third, 85 % of the
    width (≈ 330 pt at 390), its tagline just under it — two pictures over the LIVE tower; at the foot the thumb-sweep hint + DRAG TO
@@ -170,7 +187,7 @@
 .ff-au-play { min-width: 96px; }
 
 @media (max-height: 700px) {
-  .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 40px); } .ff-num { font-size: 60px; } .ff-call { margin-top: 4px; min-height: 28px; font-size: 24px; } .ff-area { margin-top: 3px; }
+  .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 40px); } .ff-num { font-size: 60px; } .ff-call { margin-top: 4px; min-height: 28px; font-size: 24px; }
   .ff-open { top: calc(env(safe-area-inset-top, 0px) + 8.4%); } .ff-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 34px); } .ff-foot-t { margin-top: 8px; }
   .ff-ec { gap: 7px; margin-top: calc(env(safe-area-inset-top, 0px) + 52px); } .ff-ec-cause { font-size: min(29px, calc(var(--ff-w) * 0.078)); } .ff-ec-n { margin-top: 2px; font-size: 78px; } .ff-ec-fl { font-size: 14px; }
   .ff-ec-best { margin-top: 2px; font-size: 15px; } .ff-ec-best.is-new { font-size: 20px; } .ff-again { min-height: 58px; } .ff-endfoot { gap: 9px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px); }
@@ -186,7 +203,8 @@
 
 /* A PHONE HELD SIDEWAYS (the review: 844 × 390 — a 234 px column; the end card ran out of it, PAUSED sat on its number): sized by the column */
 @media (max-height: 480px) {
-  .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 26px); } .ff-num { font-size: 40px; } .ff-area { font-size: 9px; letter-spacing: 0.2em; text-indent: 0.2em; } .ff-call { margin-top: 2px; min-height: 20px; font-size: 16px; } .ff-warn { font-size: 9px; padding: 4px 6px; }
+  .ff-hud { top: calc(env(safe-area-inset-top, 0px) + 26px); } .ff-num { font-size: 40px; } .ff-call { margin-top: 2px; min-height: 20px; font-size: 16px; } .ff-warn { font-size: 9px; padding: 4px 6px; }
+  .ff-banner { height: 44px; } .ff-banner-t { gap: 4px; } .ff-banner-n { font-size: 15px; } .ff-banner-s { font-size: 9px; letter-spacing: 0.2em; }
   .ff-best { left: 4px; right: 4px; font-size: 10px; letter-spacing: 0.12em; text-indent: 0.12em; min-height: 24px; top: 0; } .ff-snd { display: none; }
   .ff-open { top: 26px; } .ff-hint { transform: scale(0.6); } .ff-foot { bottom: 20px; } .ff-foot-t { margin-top: 0; font-size: 15px; } .ff-note { font-size: 7px; letter-spacing: 0.1em; text-indent: 0.1em; padding: 2px 0; }
   .ff-hold { gap: 4px; } .ff-hold-t { font-size: 14px; } .ff-hold-n { min-height: 64px; font-size: 64px; } .ff-hold-l { font-size: 9px; letter-spacing: 0.14em; text-indent: 0.14em; }

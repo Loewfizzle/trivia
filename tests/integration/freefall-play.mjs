@@ -226,10 +226,10 @@ async function checks1() {
   ok(F.ball.d >= 34 && Math.abs(F.floorY - 0.34) < 0.03, `THE BALL ${F.ball.d.toFixed(0)} pt across (≥ 34), its floor ${(F.floorY * 100).toFixed(0)} % from the top`);
   const below = F.rows.filter(y => y < 1).length - 1;
   ok(below >= 4 && below <= 7, `${below} floors in sight below the ball's`);
-  const apex = await t.p.evaluate(() => window.__ffPlay.apexY()), area = await box(t.p, '.ff-area');
-  ok(area.b <= apex + 1, `the HUD (the number + the area's name) ends above the ball's highest point (${area.b.toFixed(0)} of ${apex.toFixed(0)} pt)`);
+  const apex = await t.p.evaluate(() => window.__ffPlay.apexY()), area = await box(t.p, '.ff-num'), gone = await t.p.evaluate(() => !document.querySelector('.ff-area'));
+  ok(area.b <= apex + 1 && gone, `the big number ends above the ball's highest point (${area.b.toFixed(0)} of ${apex.toFixed(0)} pt); F2's small area name under it is gone (the arrival banners name an area)`);
   const numB = await box(t.p, '.ff-num');
-  ok(numB.fs >= 64 && s.num === '0' && area.text === 'THE ROOFTOP', `the big number ${numB.fs.toFixed(0)} px ("${s.num}") · ${area.text}`);
+  ok(numB.fs >= 64 && s.num === '0' && s.area === 'THE ROOFTOP' && s.areaAttr === 'rooftop', `the big number ${numB.fs.toFixed(0)} px ("${s.num}") · the area ${s.area} (the stage's data-area: ${s.areaAttr})`);
 
   // ---- THE DRAG IS 1 : 1 (F1's scale): the ring under the ball moves as far as the finger
   await waitFor(t.p, 'window.__ffPlay.msToLanding() > 380');
@@ -469,7 +469,7 @@ async function checks2() {
     ok(ttl.x >= stg.x + 6 && ttl.r <= stg.r - 6 && Math.abs(ttl.w / stg.w - 0.85) < 0.01 && ttl.b <= stg.h * 0.37 && tagl.b < ft.y && ft.b < h, `${w} × ${h}: the opening fits its column (the lettering ${ttl.x.toFixed(0)} … ${ttl.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}, 85 % of it, in its top ${(100 * ttl.b / stg.h).toFixed(0)} %)`);
     await start(t); await sleep(1200);
     s = await st(t.p);
-    const apex = await t.p.evaluate(() => window.__ffPlay.apexY()), area = await box(t.p, '.ff-area'), below = s.frame.rows.filter(y => y < 1).length - 1;
+    const apex = await t.p.evaluate(() => window.__ffPlay.apexY()), area = await box(t.p, '.ff-num'), below = s.frame.rows.filter(y => y < 1).length - 1;
     ok(s.frame.ball.d >= 34 && area.b <= apex + 1 && below >= 4, `${w} × ${h}: the ball ${s.frame.ball.d.toFixed(0)} pt, the HUD ends above it (${area.b.toFixed(0)} of ${apex.toFixed(0)}), ${below} floors below`);
     await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().floor >= 11'); await auto(t.p, 'red');
     await waitFor(t.p, 'window.__ffPlay.state().shown', 40000); await sleep(300);
@@ -530,6 +530,58 @@ async function checks3() {
     const got = await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().info.moteKind === ${kind} && window.__ffPlay.state().areaAttr === '${area}'`, 30000);
     s = await st(t.p);
     ok(got && !t.errs.length, `${area} by day (floor ${s.floor}): the motes' kind ${s.info.moteKind} (${['none', 'bubbles', 'drifting particles', 'dust'][s.info.moteKind]}), data-area ${s.areaAttr}`);
+    await t.close();
+  }
+  // ---- THE ARRIVAL BANNERS: the band crosses the foot of the screen on reaching an area — baked AHEAD of the arrival, never over the ball or the number
+  for (const lk of ['night', 'day']) {
+    t = await open(390, 844, 3, `?seed=bnr1&look=${lk}&floor=77`);
+    await start(t);
+    await waitFor(t.p, 'window.__ffPlay.state().banner.baked', 4000);
+    s = await st(t.p);
+    const ahead = s.banner;
+    ok(s.floor < 80 && ahead.baked && ahead.key === 'THE SPEAKEASY|FLOOR 80' && ahead.shows === 0, `${lk}: on floor ${s.floor} the NEXT arrival's band is ready — "${ahead.key.replace('|', '" / "')}" baked ahead (${ahead.bakes} bake)`);
+    await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
+    await sleep(520);
+    s = await st(t.p);
+    const band = await box(t.p, '.ff-banner'), numB = await box(t.p, '.ff-num'), ink = await t.p.evaluate(() => { const b = document.querySelector('.ff-banner'), cs = getComputedStyle(b), c = b.querySelector('canvas'), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height).data; let on = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) on++; return { bg: cs.backgroundImage, rule: cs.borderTopColor, on, w: c.width, words: b.querySelector('.ff-banner-n').textContent + ' / ' + b.querySelector('.ff-banner-s').textContent, hidden: getComputedStyle(b.querySelector('.ff-banner-n')).color }; });
+    const ballB = s.frame.ball.y + s.frame.ball.d / 2;
+    ok(s.floor >= 80 && s.banner.showing && band.op > 0.9 && s.banner.bakes === ahead.bakes, `${lk}: the ball reaches floor 80 — the band crosses (opacity ${band.op.toFixed(2)}); nothing was baked in the arrival's frame (${s.banner.bakes} bake in all)`);
+    ok(band.x <= 0.5 && band.r >= 389.5 && band.h >= 66 && band.b <= 844 - 60 && band.y > ballB + 120 && band.y > numB.b + 300, `${lk}: a band across the foot of the screen (${band.y.toFixed(0)} … ${band.b.toFixed(0)} of 844) — never over the ball (its foot at ${ballB.toFixed(0)}) or the big number (${numB.b.toFixed(0)})`);
+    ok(ink.words === 'THE SPEAKEASY / FLOOR 80' && ink.on > 400 && ink.w === 1170 && ink.hidden === 'rgba(0, 0, 0, 0)' && (lk === 'day' ? /236, 247, 255/.test(ink.bg) && ink.rule !== 'rgb(255, 79, 168)' : /8, 4, 20/.test(ink.bg) && ink.rule === 'rgb(255, 79, 168)'), `${lk}: "${ink.words}" BAKED into the band's canvas (${ink.on} inked samples at 3×), the DOM words transparent under it; ${lk === 'day' ? 'a frosted pale band' : 'a dark band between two thin pink rules'}`);
+    await sleep(1500);
+    const after = await box(t.p, '.ff-banner');
+    await waitFor(t.p, "window.__ffPlay.state().banner.key === 'UNDER THE HARBOR|FLOOR 120'", 4000);
+    s = await st(t.p);
+    ok(after.op < 0.05 && s.banner.key === 'UNDER THE HARBOR|FLOOR 120' && s.banner.baked && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${after.op.toFixed(2)}); the next one is made ready between two arrivals — "${s.banner.key.replace('|', '" / "')}"`);
+    await t.close();
+  }
+  // THE BOTTOM (200) + THE TRENCH (201) arrive one floor apart: the second band crosses after the first; a later LAP names itself
+  t = await open(390, 844, 2, '?seed=bnr2&floor=198');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
+  const first = (await st(t.p)).banner.key;
+  await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 2', 12000);
+  s = await st(t.p);
+  ok(first === 'THE BOTTOM|FLOOR 200' && s.banner.key === 'THE TRENCH|FLOOR 201' && s.floor >= 201, `floor 200 "${first.replace('|', '" / "')}", then — after it — "${s.banner.key.replace('|', '" / "')}" (the ball on floor ${s.floor})`);
+  await t.close();
+  t = await open(390, 844, 2, '?seed=bnr3&floor=239');
+  await start(t);
+  await waitFor(t.p, 'window.__ffPlay.state().banner.baked', 4000);
+  const lapKey = (await st(t.p)).banner.key;
+  await auto(t.p, 'play');
+  const lapShown = await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1 && window.__ffPlay.state().floor >= 241', 30000);
+  ok(lapKey === 'THE TRENCH|LAP 2 · FLOOR 241' && lapShown && !t.errs.length, `THE TRENCH's second lap names itself: "${lapKey.replace('|', '" / "')}"`);
+  await t.close();
+  // a narrow phone + a phone held sideways: the longest name fits its band
+  for (const [w, h] of [[375, 667], [844, 390]]) {
+    t = await open(w, h, 2, '?seed=bnr4&floor=118');
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
+    await sleep(500);
+    const band = await box(t.p, '.ff-banner'), nm = await box(t.p, '.ff-banner-n'), stg = await box(t.p, '.ff-stage');
+    s = await st(t.p);
+    ok(nm.text === 'UNDER THE HARBOR' && nm.x >= stg.x + 2 && nm.r <= stg.r - 2 && band.b <= h - 10 && band.y > s.frame.ball.y + s.frame.ball.d / 2 + 30, `${w} × ${h}: "${nm.text}" fits its band (${nm.x.toFixed(0)} … ${nm.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}), under the ball`);
     await t.close();
   }
   // ---- AUTO (no `?look=`): the phone's clock at once, then the site's own sun rule — one look, the page's attribute = the picture's; nothing asked of a server

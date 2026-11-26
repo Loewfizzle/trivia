@@ -13,6 +13,7 @@ import { createRun, stepTo, turn, isOver } from '../js/games/freefall/engine.js'
 import { makeBot, planFlight } from '../js/games/freefall/bot.js';
 import { MODES, AREAS } from '../js/games/freefall/tuning.js';
 import { PALETTES, TRENCH_PALETTES } from '../js/games/freefall/palettes.js';
+import { nextArrival, isArrival, arrivalWords } from '../js/games/freefall/logic.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
@@ -66,7 +67,7 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store; THE DOOR is shut before the stage mounts', () => {
   const g = graph(`${FF}play.js`);
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'best.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
   assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
   // (HIGH RISE's page carries the same five: they are PURE — the sun's place is worked out on the phone, nothing is asked of a server)
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
@@ -261,6 +262,30 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(code(`${FF}bakedtext.js`), /for \(let i = 0; i < count; i\+\+\) \{ const d = s\.charCodeAt\(i\) - 48; c\.drawImage\(glyphs\[d\], Math\.round\(x \* dpr\), 0\); x \+= gw\[d\] \+ gap; \}/);
   assert.match(code(`${FF}stage.js`), /stage\.classList\.add\('is-gold'\); BN\.warm\(\); stage\.classList\.remove\('is-gold'\); BN\.dirty\(\);/);
   assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
+});
+
+test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench lap\'s first floor (pure — logic.js); the band\'s words BAKED ahead of the arrival, one one-shot of opacity + transform, 1.6 s; night a dark band between pink rules, day a frosted pale band with navy words; F2\'s small area name is gone', () => {
+  assert.deepEqual([0, 1, 39, 40, 79, 80, 119, 159, 160, 199, 200, 201, 240, 241, 280, 281, 600].map(nextArrival), [40, 40, 40, 80, 80, 120, 120, 160, 200, 200, 201, 241, 241, 281, 281, 321, 601]);
+  const arrivals = []; for (let i = 0; i <= 330; i++) if (isArrival(i)) arrivals.push(i);
+  assert.deepEqual(arrivals, [40, 80, 120, 160, 200, 201, 241, 281, 321], '40 · 80 · 120 · 160 · 200 (+ THE TRENCH at 201), then a lap every 40 floors');
+  for (const bad of [0, -1, 1.5, NaN, '40', null]) assert.equal(isArrival(bad), false);
+  assert.deepEqual([40, 80, 120, 160, 200, 201, 241, 281].map(f => { const w = arrivalWords(f); return `${w.name} / ${w.sub}`; }), ['THE OFFICES / FLOOR 40', 'THE SPEAKEASY / FLOOR 80', 'UNDER THE HARBOR / FLOOR 120', 'THE DEEP / FLOOR 160', 'THE BOTTOM / FLOOR 200', 'THE TRENCH / FLOOR 201', 'THE TRENCH / LAP 2 · FLOOR 241', 'THE TRENCH / LAP 3 · FLOOR 281']);
+  const b = code(`${FF}banner.js`), st = code(`${FF}stage.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(b, /export const BANNER_MS = 1600;/, '~1.6 s in + out');
+  assert.match(b, /export const BANNER_KEYS = Object\.freeze\(\[\{ opacity: 0, transform: 'translate3d\(-5%, 0, 0\)' \}/); assert.doesNotMatch(b.slice(b.indexOf('export const BANNER_KEYS'), b.indexOf('const fontOf')).replace(/opacity|transform|offset/g, ''), /[a-zA-Z]+: /, 'opacity + transform only');
+  assert.match(b, /import \{ parseShadows \} from '\.\/bakedtext\.js';/, 'BAKED text — the big number\'s way');
+  // made ready AHEAD of the arrival: at a (re)start, after a ?floor= dive, and between two arrivals on a timer — the arrival itself only shows
+  assert.match(st, /bnrQueued = -1; clearTimeout\(bnrTimer\); BNR\.clear\(\); prepBanner\(0\);/);
+  assert.match(st, /bnrTimer = setTimeout\(\(\) => \{ if \(!gone && !BNR\.showing\(\)\) prepBanner\(run\.floor\); \}, BANNER_MS \+ 250\);/, 'the next band is baked after this one has left — never over it');
+  assert.match(st, /else if \(e\.e === 'area'\) arrive\(e\.floor\);\s+else if \(e\.e === 'fall' && e\.floor > LAP0 && isArrival\(e\.floor\)\) arrive\(e\.floor\);/);
+  assert.match(st, /if \(BNR\.showing\(\)\) \{ bnrQueued = floor; return; \}/, 'an arrival while a band is up crosses after it');
+  assert.doesNotMatch(body(bare(read(`${FF}stage.js`)), '  function frame(now) {'), /BNR\.|prepBanner|arrive\(/, 'the frame itself never touches the band (a landing\'s moment shows it)');
+  // the looks
+  assert.match(css, /\.ff-banner \{[^}]*bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 9\.5%\);[^}]*border-block: 1\.5px solid var\(--ff-pink\);/, 'night: a dark band between two thin pink rules, at the foot of the screen');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-banner \{ background: linear-gradient\(to right, rgba\(236, 247, 255, 0\.62\)/, 'day: a frosted pale band');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-banner-n \{ color: #0b2a4a; text-shadow: none; \}/, '… with navy words');
+  assert.doesNotMatch(css, /backdrop-filter/, 'no backdrop blur (a frame cost): the frost is the band\'s own colour');
+  assert.doesNotMatch(st + css, /ff-area\b/, 'F2\'s small area name under the number is gone');
 });
 
 test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material carries uDay; the day pieces in day-fx.js), the four day walls + JAYWALK\'s day skyline, the areas\' day numbers, THE MOTES a fixed pool the tiers trim, by day light COVERS, the caustics are the shader\'s; the stage: the kit\'s shared look — the console\'s read live, the page ?look= or AUTO', () => {
