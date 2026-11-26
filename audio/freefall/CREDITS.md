@@ -13,5 +13,12 @@ MPEG-1 Layer III, 192 kbps CBR, 44.1 kHz. Every source was verified CC0 1.0 on i
 | `crash.mp3` | "zap1" by Kenney (www.kenney.nl), CC0 1.0. https://kenney.nl/assets/digital-audio · "impactPunch_heavy_000" by Kenney (www.kenney.nl), CC0 1.0. https://kenney.nl/assets/impact-sounds |
 | `lights-out.mp3` | "MnG - Power Down.wav" by SergeyIonov, CC0 1.0. https://freesound.org/s/467405/ |
 | `bottom.mp3` | "Underwater Deep Impact" by Sheyvan, CC0 1.0. https://freesound.org/s/470084/ · "Sparkling Star 01.wav" by LilMati, CC0 1.0. https://freesound.org/s/462095/ |
+| `skylight.mp3` | "neon tube smash explode shatter glass debris.flac" by kyles (Freesound 453499), trimmed — CC0 1.0. https://freesound.org/s/453499/ |
+| `splashdown.mp3` | "Foley_Natural_Water_Jump_Mono.wav" by Nox_Sound (Freesound 585744), trimmed — CC0 1.0. https://freesound.org/s/585744/ |
+| `fireworks.mp3` | "Firework during New Years Eve @ Groningen.wav" by JelleGeus (Freesound 179987), trimmed + softened — CC0 1.0. https://freesound.org/s/179987/ |
+
+THE BREAKTHROUGHS' three (`skylight` · `splashdown` · `fireworks` — `Downloads\grok\freefall\breakthroughs\`, its `notes.txt` +
+`notes-fireworks.txt`) are byte copies too; `skylight` + `splashdown` come in about 7 dB quieter than the rest (−23.4 / −23.7 LUFS
+against ≈ −16): they are loudness-matched by their GAIN in `js/games/freefall/sounds.js` (the build machine has no MP3 encoder).
 
 Area arrival + NEW BEST are JAYWALK's files (`audio/jaywalk/area-arrive.mp3` · `new-best.mp3` — `audio/jaywalk/CREDITS.md`).

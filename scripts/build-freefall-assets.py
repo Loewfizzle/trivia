@@ -2,7 +2,7 @@
 """FREEFALL F2 + F3 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
 (Downloads\\grok\\freefall\\ by default) are only READ — never moved, renamed or edited. HIGH RISE's pattern (build-highrise-assets.py).
 
-    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title,sky]
+    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title,sky,roof,break]
     (-P -E: nothing is imported from the script's folder / the working folder / the environment; numpy lives in the user's site-packages,
      which -I would hide)
 
@@ -36,7 +36,22 @@
   F3 (the add-on, Nov 26) — THE NIGHT WALLS v2: ff-offices-night-v2.png · ff-harbor-night-v2.png · ff-deep-night-v2.png (relit from the approved DAY
               walls) take the place of the three old night walls — the same pipeline, size, format + NAMES (walls/<area>-night.webp), the
               same wrap check both ways. THE SPEAKEASY's night wall + every day wall are as they were.
-  The breakthrough assets are F3B's. Area arrival + new best = JAYWALK's files (reused).
+  F3B — rooftop\\ff-roof-below-night.png + ff-roof-below-day.png → assets/freefall/roof/below-night.webp · below-day.webp — THE ROOF BELOW (Grok-made,
+              no credit needed; 2048² — made at 1024 and enlarged: kept at 1536², WebP q 82: the game never shows it closer than about two
+              screen pixels a source texel) + assets/freefall/roof/city-night.webp · city-day.webp — THE CITY BETWEEN the roof and the horizon:
+              the painting's OWN four borders (the city blocks round the roof — the side borders turned to lie flat), stacked into one 768²
+              tile, their joins cross-faded; the game repeats it MIRRORED (no seam to measure). The skylight's place is MEASURED in both
+              paintings (the glass: warm by night, blue by day) and must agree with ROOF_SKY (night.js reads the same numbers).
+  F3B — breakthroughs\\water-normal\\water-normal-backup.jpg (3DTextures.me "Water 001", CC0 — the 1 K JPG, never the 4.6 MB PNG) →
+              assets/freefall/fx/water-normal.webp (512², q 86; it tiles: the wrap is measured).
+         breakthroughs\\seabed-sand\\seabed-sand_color.jpg + _normal.jpg (ambientCG "Ground 055 S", CC0) → assets/freefall/fx/sand.webp ·
+              sand-normal.webp (1024², q 80 / 84; the wrap measured). The roughness map is not used (sand under water has no shine to speak of).
+         breakthroughs\\kenney-particles\\kenney_particlePack.zip → assets/freefall/fx/burst.webp — THE BREAKTHROUGHS' sprites: ONLY the seven
+              used (BURST below), each 256 px, in ONE grey atlas 1024 × 512 (4 × 2 cells; the last cell is empty).
+         breakthroughs\\sfx\\skylight.mp3 + splashdown.mp3 · breakthroughs\\fireworks.mp3 → audio/freefall/ — BYTE COPIES (no MP3 encoder on
+              the build machine: the two that come in ≈ 7 dB quiet are LOUDNESS-MATCHED BY THEIR GAIN in sounds.js — the delivery's own
+              measured LUFS). The -backup takes + glass-cracks.png (a fallback the coded cracks never needed) stay in the delivery.
+  Area arrival + new best = JAYWALK's files (reused).
 """
 import sys, os, re, io, shutil, hashlib, zipfile
 import numpy as np
@@ -52,7 +67,8 @@ OUT_A = os.path.join(ROOT, 'audio', 'freefall')
 OUT_F = os.path.join(ROOT, 'assets', 'freefall', 'fx')
 OUT_T = os.path.join(ROOT, 'assets', 'freefall', 'title')
 OUT_S = os.path.join(ROOT, 'assets', 'freefall', 'sky')
-for d in (OUT_W, OUT_A, OUT_F, OUT_T, OUT_S):
+OUT_R = os.path.join(ROOT, 'assets', 'freefall', 'roof')
+for d in (OUT_W, OUT_A, OUT_F, OUT_T, OUT_S, OUT_R):
     os.makedirs(d, exist_ok=True)
 want = lambda step: ONLY is None or step in ONLY
 kb = lambda p: f'{os.path.getsize(p) / 1024:.0f} KB'
@@ -74,6 +90,21 @@ SOUNDS = ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom
 # THE BLAZE's sprites, in the atlas's order (night-fx.js FLAME_F reads them by index: 0 · 1 flames, 2 the hot core's speckle, 3 the smoke)
 SPRITES = ['flame_01', 'flame_03', 'fire_01', 'smoke_01']
 SPRITE_PX = 256
+# F3B — THE BREAKTHROUGHS' sprites, in the atlas's order (break-fx.js reads them by index — 4 across, 2 down): 0 · 1 soft clouds (dust, foam,
+# mist) · 2 a soft dot (plankton, sediment, a firework's stars) · 3 a ring (a bubble) · 4 specks (sand, spray) · 5 a four-point glint ·
+# 6 a burst (the impact's flash)
+BURST = ['smoke_07', 'smoke_04', 'circle_05', 'circle_02', 'dirt_02', 'star_06', 'scorch_01']
+# THE ROOF BELOW: the painting's size in the repo · the skylight's place in it (its centre + its frame's half size, as fractions of the
+# picture — night.js#ROOF reads the SAME numbers; measured below in both paintings) · the city tile's size
+ROOF_PX = 1536
+ROOF_SKY = (0.505, 0.472, 0.130)
+CITY_PX = 768
+# the three new sounds: [the delivery's file, the name in the repo, its credit line (the delivery's notes)]
+BREAK_SOUNDS = [
+    ('breakthroughs/sfx/skylight.mp3', 'skylight', '"neon tube smash explode shatter glass debris.flac" by kyles (Freesound 453499), trimmed — CC0 1.0. https://freesound.org/s/453499/'),
+    ('breakthroughs/sfx/splashdown.mp3', 'splashdown', '"Foley_Natural_Water_Jump_Mono.wav" by Nox_Sound (Freesound 585744), trimmed — CC0 1.0. https://freesound.org/s/585744/'),
+    ('breakthroughs/fireworks.mp3', 'fireworks', '"Firework during New Years Eve @ Groningen.wav" by JelleGeus (Freesound 179987), trimmed + softened — CC0 1.0. https://freesound.org/s/179987/'),
+]
 
 
 def seam(im):
@@ -238,6 +269,15 @@ def sfx():
         total += os.path.getsize(out)
         rows.append((name, cr.get(name) or []))
         print(f'  sfx/{name}.mp3 → {os.path.relpath(out, ROOT)}  {kb(out)}  {len(cr.get(name) or [])} credit line(s)')
+    # F3B — THE BREAKTHROUGHS' three sounds (byte copies too; their credit lines are the delivery's notes')
+    for rel, name, line in BREAK_SOUNDS:
+        src = os.path.join(SRC, *rel.split('/'))
+        out = os.path.join(OUT_A, f'{name}.mp3')
+        shutil.copyfile(src, out)
+        assert hashlib.sha256(open(src, 'rb').read()).hexdigest() == hashlib.sha256(open(out, 'rb').read()).hexdigest()
+        total += os.path.getsize(out)
+        rows.append((name, [line]))
+        print(f'  {rel} → {os.path.relpath(out, ROOT)}  {kb(out)}')
     with open(os.path.join(OUT_A, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('# FREEFALL — the sounds (all CC0 1.0)\n\n')
         f.write('The owner\'s picks (take A of each), copied byte for byte from the delivery (`Downloads\\grok\\freefall\\sfx\\` — its `notes.txt` has\n')
@@ -246,8 +286,11 @@ def sfx():
         f.write('| file | source |\n| --- | --- |\n')
         for name, lines in rows:
             f.write(f'| `{name}.mp3` | {" · ".join(lines) if lines else "see the delivery notes"} |\n')
+        f.write('\nTHE BREAKTHROUGHS\' three (`skylight` · `splashdown` · `fireworks` — `Downloads\\grok\\freefall\\breakthroughs\\`, its `notes.txt` +\n')
+        f.write('`notes-fireworks.txt`) are byte copies too; `skylight` + `splashdown` come in about 7 dB quieter than the rest (−23.4 / −23.7 LUFS\n')
+        f.write('against ≈ −16): they are loudness-matched by their GAIN in `js/games/freefall/sounds.js` (the build machine has no MP3 encoder).\n')
         f.write('\nArea arrival + NEW BEST are JAYWALK\'s files (`audio/jaywalk/area-arrive.mp3` · `new-best.mp3` — `audio/jaywalk/CREDITS.md`).\n')
-    print(f'  the seven sounds: {total / 1024:.0f} KB · audio/freefall/CREDITS.md')
+    print(f'  the ten sounds: {total / 1024:.0f} KB · audio/freefall/CREDITS.md')
 
 
 def fx():
@@ -274,8 +317,104 @@ def fx():
         f.write("- `fx/blaze.webp` — THE BLAZE's flame sprites: `" + '`, `'.join(SPRITES) + '` from **Particle Pack** by Kenney Vleugels (kenney.nl),\n')
         f.write('  Creative Commons Zero (CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/); four of its sprites, greyscale, in one atlas.\n')
         f.write("- `sky/rooftop-night.webp` · `sky/rooftop-day.webp` — THE ROOFTOP's 360° panoramas: made with Grok for this game (approved —\n")
-        f.write('  no third-party credit needed; `Downloads/grok/freefall/rooftop/`).\n\n')
+        f.write('  no third-party credit needed; `Downloads/grok/freefall/rooftop/`).\n')
+        f.write("- `roof/below-night.webp` · `roof/below-day.webp` · `roof/city-night.webp` · `roof/city-day.webp` — THE ROOF BELOW (the building's own\n")
+        f.write('  roof seen from above) + the city round it (the same paintings\' borders): made with Grok for this game — no third-party credit\n')
+        f.write('  needed (`Downloads/grok/freefall/rooftop/notes-roof-below.txt`).\n')
+        f.write("- `fx/burst.webp` — THE BREAKTHROUGHS' sprites: `" + '`, `'.join(BURST) + '` from the same **Particle Pack** by Kenney Vleugels\n')
+        f.write('  (kenney.nl), CC0 1.0; seven of its sprites, greyscale, in one atlas.\n')
+        f.write('- `fx/water-normal.webp` — THE SPLASHDOWN\'s water: **Water 001** (its normal map) by 3DTextures.me (Katsukagi / Joao Paulo), CC0 1.0 —\n')
+        f.write('  https://3dtextures.me/2017/12/28/water-001/ ; 512 px.\n')
+        f.write("- `fx/sand.webp` · `fx/sand-normal.webp` — THE BOTTOM's seabed: **Ground 055 S** (colour + normal) by ambientCG (Lennart Demes), CC0 1.0 —\n")
+        f.write('  https://ambientcg.com/view?id=Ground055S ; 1024 px.\n\n')
         f.write('`python -P -E scripts/build-freefall-assets.py` builds them; the delivery is only read.\n')
+
+
+def roof():
+    """THE ROOF BELOW: the two paintings, smaller + the city tile cut from each painting's own borders; the skylight's place measured"""
+    total = 0
+    for look in LOOKS:
+        src = os.path.join(SRC, 'rooftop', f'ff-roof-below-{look}.png')
+        im = Image.open(src).convert('RGB')
+        assert im.size == (2048, 2048), (look, im.size)
+        a = np.asarray(im, np.float32)
+        r, g, b = a[..., 0], a[..., 1], a[..., 2]
+        # no red anywhere (the delivery's own check, again): red is danger on the tower and nothing else
+        red = int(((r > 150) & (g < r * 0.45) & (b < r * 0.55)).sum())
+        assert red < 400, f'roof-below-{look}: {red} red pixels'
+        # THE SKYLIGHT's place: the glass (warm by night, blue by day) — the rows + columns of the middle half that are mostly glass
+        glass = ((r > 120) & (g > 100) & (r > b + 20)) if look == 'night' else ((b > 150) & (b > r + 35) & (g > 110))
+        mid = glass[512:1536, 512:1536]
+        ys = np.where(mid.sum(1) > 1024 * 0.2)[0] + 512
+        xs = np.where(mid.sum(0) > 1024 * 0.2)[0] + 512
+        cx, cy = (xs.min() + xs.max()) / 2 / 2048, (ys.min() + ys.max()) / 2 / 2048
+        hx, hy = (xs.max() - xs.min()) / 2 / 2048, (ys.max() - ys.min()) / 2 / 2048
+        assert abs(cx - ROOF_SKY[0]) < 0.012 and abs(cy - ROOF_SKY[1]) < 0.012, f'roof-below-{look}: the skylight is at {cx:.3f}, {cy:.3f}'
+        assert hx < ROOF_SKY[2] + 0.004 and hy < ROOF_SKY[2] + 0.004 and hx > ROOF_SKY[2] - 0.05, f'roof-below-{look}: the glass is {hx:.3f} × {hy:.3f} — inside the frame ROOF_SKY names'
+        small = im.resize((ROOF_PX, ROOF_PX), Image.LANCZOS)
+        out = os.path.join(OUT_R, f'below-{look}.webp')
+        small.save(out, 'WEBP', quality=82, method=6)
+        total += os.path.getsize(out)
+        print(f'  rooftop/ff-roof-below-{look}.png → {os.path.relpath(out, ROOT)}  {ROOF_PX}²  {kb(out)}  the skylight\'s glass: centre {cx:.3f}, {cy:.3f} · half {hx:.3f} × {hy:.3f} (ROOF_SKY {ROOF_SKY}) · {red} red pixels')
+        # THE CITY TILE: the painting's four borders (the city blocks round the roof), each a 1024 × 256 strip — the side borders turned to
+        # lie flat — stacked; the three joins inside it cross-faded over 28 rows (the game repeats the tile MIRRORED: its outer edges meet themselves)
+        strips = [a[0:256, 512:1536], np.rot90(a[512:1536, 0:256], 1), a[1760:2016, 512:1536], np.rot90(a[512:1536, 1792:2048], 3)]
+        for s in strips:
+            assert s.shape == (256, 1024, 3), s.shape
+        tile = np.concatenate(strips, 0).copy()
+        band = 28
+        for j in (256, 512, 768):
+            up, dn = tile[j - band:j].copy(), tile[j:j + band].copy()
+            for k in range(band):
+                t = (k + 0.5) / band
+                tile[j - band + k] = up[k] * (1 - 0.5 * t) + dn[0] * (0.5 * t)
+                tile[j + k] = up[-1] * (0.5 * (1 - t)) + dn[k] * (1 - 0.5 * (1 - t))
+        city = Image.fromarray(np.uint8(np.clip(tile + 0.5, 0, 255)), 'RGB').resize((CITY_PX, CITY_PX), Image.LANCZOS)
+        out = os.path.join(OUT_R, f'city-{look}.webp')
+        city.save(out, 'WEBP', quality=80, method=6)
+        total += os.path.getsize(out)
+        print(f'    its borders → {os.path.relpath(out, ROOT)}  {CITY_PX}²  {kb(out)}  mean luminance {np.asarray(city.convert("L"), np.float32).mean():.0f} (the painting\'s own border: {a[0:256].mean():.0f})')
+    print(f'  the roof below (four files): {total / 1024:.0f} KB')
+
+
+def breaks():
+    """THE BREAKTHROUGHS' textures: the water's normal map, the seabed's sand (colour + normal), the sprites"""
+    total = 0
+    jobs = [(('breakthroughs', 'water-normal', 'water-normal-backup.jpg'), 'water-normal', 512, 86),
+            (('breakthroughs', 'seabed-sand', 'seabed-sand_color.jpg'), 'sand', 1024, 80),
+            (('breakthroughs', 'seabed-sand', 'seabed-sand_normal.jpg'), 'sand-normal', 1024, 84)]
+    for rel, name, px, q in jobs:
+        im = Image.open(os.path.join(SRC, *rel)).convert('RGB')
+        assert im.size[0] == im.size[1] and im.size[0] >= px, (name, im.size)
+        small = im.resize((px, px), Image.BOX if im.size[0] % px == 0 else Image.LANCZOS)
+        out = os.path.join(OUT_F, f'{name}.webp')
+        small.save(out, 'WEBP', quality=q, method=6)
+        back = Image.open(out).convert('RGB')
+        lr, tb, ix, iy = seam(back)
+        total += os.path.getsize(out)
+        print(f'  {"/".join(rel)} ({im.size[0]}²) → {os.path.relpath(out, ROOT)}  {px}²  {kb(out)}  seam left|right {lr:.1f} (inside: {ix:.1f}) · top|bottom {tb:.1f} (inside: {iy:.1f})')
+        assert lr < 2.5 * ix + 6 and tb < 2.5 * iy + 6, f'{name}: it no longer tiles'
+    z = zipfile.ZipFile(os.path.join(SRC, 'breakthroughs', 'kenney-particles', 'kenney_particlePack.zip'))
+    assert 'Creative Commons Zero' in z.read('License.txt').decode('utf-8', 'replace'), 'the pack is CC0'
+    assert len(BURST) <= 8
+    atlas = Image.new('L', (SPRITE_PX * 4, SPRITE_PX * 2), 0)
+    for i, name in enumerate(BURST):
+        im = Image.open(io.BytesIO(z.read(f'PNG/{name}.png'))).convert('RGBA')
+        a = np.asarray(im, np.float32) / 255
+        light = a[..., 3] * (0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2])
+        g = Image.fromarray(np.uint8(np.clip(light / max(1e-6, light.max()), 0, 1) * 255), 'L').resize((SPRITE_PX, SPRITE_PX), Image.LANCZOS)
+        # (a cell's own edge is black: a sprite never bleeds into its neighbour when the atlas is minified)
+        ga = np.asarray(g, np.float32)
+        yy, xx = np.mgrid[0:SPRITE_PX, 0:SPRITE_PX]
+        edge = np.minimum(np.minimum(xx, SPRITE_PX - 1 - xx), np.minimum(yy, SPRITE_PX - 1 - yy)).astype(np.float32)
+        g = Image.fromarray(np.uint8(ga * np.clip(edge / 6, 0, 1)), 'L')
+        atlas.paste(g, ((i % 4) * SPRITE_PX, (i // 4) * SPRITE_PX))
+        print(f'  kenney_particlePack.zip : PNG/{name}.png ({im.size[0]} px) → burst cell {i}')
+    out = os.path.join(OUT_F, 'burst.webp')
+    atlas.convert('RGB').save(out, 'WEBP', quality=84, method=6)
+    total += os.path.getsize(out)
+    print(f'  → {os.path.relpath(out, ROOT)}  {kb(out)}  ({atlas.size[0]} × {atlas.size[1]})')
+    print(f'  the breakthroughs\' textures: {total / 1024:.0f} KB')
 
 
 if want('walls'):
@@ -288,3 +427,7 @@ if want('title'):
     print('THE TITLE'); title()
 if want('sky'):
     print('THE ROOFTOP PANORAMAS'); sky()
+if want('roof'):
+    print('THE ROOF BELOW'); roof()
+if want('break'):
+    print('THE BREAKTHROUGHS (the textures)'); breaks()
