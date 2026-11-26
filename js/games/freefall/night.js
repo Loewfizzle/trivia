@@ -214,6 +214,9 @@ export function createNight(host, o = {}) {
       if (repeat === 2) { try { tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); } catch { /* none */ } }
       tex.flipY = false; tex.needsUpdate = true;
       try { renderer.initTexture(tex); } catch { /* it uploads at its first draw */ }
+      // (F3B: every picture of the look is in memory at once now — once it is ON THE GPU its decoded bitmap is let go: half the memory.
+      //  A lost context builds the whole scene again from the network's cache — night.js never uploads a texture twice)
+      try { if (flip === 1 && image.close && renderer.properties.get(tex).__webglTexture) image.close(); } catch { /* kept, then */ }
       t.tex = tex; t.flip = flip; t.have = 1; workAt = performance.now(); wK = -1; landed++;
     }).catch(() => { texs.delete(name); });
     return t;

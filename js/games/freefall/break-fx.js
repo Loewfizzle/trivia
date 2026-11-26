@@ -286,17 +286,18 @@ float sc1(vec2 p, float t) {
   float a = sin(q.x * 3.1 + t) + sin(q.y * 2.7 - t * 1.2) + sin((q.x + q.y) * 2.2 + t * 0.7) + sin((q.x - q.y) * 2.9 - t * 0.5);
   return pow(clamp(1.0 - abs(a) * 0.5, 0.0, 1.0), 5.0);
 }
-/** the sand at a point of the bed (its own xz), under = 1: seen from below (a piece that tumbles shows bare rock) → colour · w = the light it GIVES (the bloom pass) */
-vec4 sand(vec2 xz, float under) {
+/** the sand at a point of the bed (its own xz), under = 1: seen from below (a piece that tumbles shows bare rock), lit = how much of the tower's + the ball's light lies on it → colour · w = the light it GIVES (the bloom pass) */
+vec4 sand(vec2 xz, float under, float lit) {
   vec2 uv = xz * 0.36;
   vec3 c = mix(vec3(0.62, 0.52, 0.36), pow(texture2D(tSand, vec2(uv.x, mix(1.0 - uv.y, uv.y, uFlipS))).rgb, vec3(2.2)), uHaveS);
   vec3 nm = mix(vec3(0.0, 0.0, 1.0), texture2D(tSandN, vec2(uv.x, mix(1.0 - uv.y, uv.y, uFlipSN))).xyz * 2.0 - 1.0, uHaveSN);
   vec3 N = normalize(vec3(nm.x * 1.6, nm.z, -nm.y * 1.6));
   float dif = max(dot(N, normalize(vec3(-0.35, 0.8, 0.5))), 0.0), r = length(xz);
   vec2 tb = xz - uBall.xz;
-  float pool = exp(-r * r / 3.4), ball = exp(-dot(tb, tb) / 0.9);
+  // (lit — a piece that has let go carries the bed's own light away with it no longer: the pool + the ball's light stay on the bed)
+  float pool = exp(-r * r / 3.4) * lit, ball = exp(-dot(tb, tb) / 0.9) * lit;
   // by night: deep violet-blue sand, the tower's rim glow in a pool round its foot, the ball's own light · by day: the deep's blue water light + caustics
-  vec3 night = c * vec3(0.07, 0.065, 0.19) * (0.4 + 0.9 * dif) + c * uRimC * pool * 0.9 * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.6, 0.8) * ball * 0.7;
+  vec3 night = c * vec3(0.04, 0.038, 0.12) * (0.4 + 0.9 * dif) + c * uRimC * pool * 1.0 * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.6, 0.8) * ball * 0.7;
   vec3 day = c * vec3(0.22, 0.5, 0.7) * (0.4 + 0.95 * dif) + c * vec3(0.45, 0.9, 0.95) * (sc1(xz * 1.4, uTime) + 0.6 * sc1(xz * 2.4 + 3.1, uTime * 1.31 + 2.0)) * 0.3 + c * vec3(0.5, 0.75, 0.9) * pool * 0.5;
   vec3 col = mix(night, day, uDay);
   // THE SHOCKWAVE of the impact: a ring of lifted sand + light
@@ -320,7 +321,7 @@ void main() {
   vec2 q = vW.xz;
   if (max(abs(q.x), abs(q.y)) < uHalf - 0.002) discard;      // (the square that cracks open is the pieces')
   if (q.y < 0.0 && length(q) > uRW) discard;                  // (its far side ends at the shaft's wall)
-  vec4 s = sand(q, 0.0);
+  vec4 s = sand(q, 0.0, 1.0);
   vec3 col = uBloom > 0.5 ? mix(uRimC, vec3(1.0), 0.3) * s.w * 0.6 : s.rgb;
   gl_FragColor = vec4(col * uOuter, uOuter);
   #include <tonemapping_fragment>
@@ -334,7 +335,7 @@ varying float vK, vSeed;
 void main() {
   vec3 V = normalize(cameraPosition - vW);
   float under = step(dot(normalize(vN), V), 0.0), fly = step(0.0001, vK);
-  vec4 s = sand(vRest.xz, under);
+  vec4 s = sand(vRest.xz, under, 1.0 - 0.85 * fly);
   // THE CRACKS: dark clefts along the lines it breaks on — the trench's own light glows up through them
   float e = min(vB.x, min(vB.y, vB.z)), ew = fwidth(e) * 1.4 + 0.002, line = 1.0 - smoothstep(0.0, ew * 2.2, e);
   float dI = length(vRest.xz - uImpact), front = (uTime - uBreakT) * uCrack, crack = line * smoothstep(0.0, 0.4, front - dI) * step(uBreakT, uTime);

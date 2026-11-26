@@ -45,8 +45,12 @@ THE PICKER (`v: 'screen'`) keeps the radio. ONE song at a time; THE CUT IN ONE O
 players' own). **Tests:** `tests/daily-music.test.mjs` (the gates + `inDailyRun`'s truth table — the city, a room's lobby, the picker, a room
 match) · `tests/integration/daily-music.mjs` (the REAL app on the emulators, 402 × 874, a real tap: the radio synced → the picker keeps it →
 a run rests it in 195 ms and exactly ONE song plays, the run's deck on this phone's own player → the radio back, alone; against the old
-app.js the same test fails at the run: the radio still on after 1.5 s). The room-lobby case + THE DROP's own music are the static test's —
-not run in a browser (the same gate; a JAYWALK / HIGH RISE daily takes the same path: a run is a run).
+app.js the same test fails at the run: the radio still on after 1.5 s). **THE ROOM-LOBBY CASE — run in a browser in FREEFALL F3B (Nov 26):**
+the same test's second phone HOSTS a real room on the emulators (the app's own HOST flow): ONE song sounds in its lobby (the phone's own
+player riding the room's song — the city's radio off, the room has its queue) → a daily run from the lobby: the room's song rests on this
+phone at once and exactly ONE song plays (the run's deck), the host's queue goes on → back in the lobby: ONE song again (the room's
+synced player) — 12 / 12. THE DROP's own music is still the static test's (the same gate; a JAYWALK / HIGH RISE daily takes the same
+path: a run is a run).
 
 ## THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (Nov 21 2026 — the owner's call, the inbox's 10:08 am entry; retires CITY I's PODCAST MODE; docs/harbor/passes/garden-party.md)
 **Why:** in PODCAST MODE the city's background sounds (the water, the hum, the boats, the city's one-offs) only ever played UNDER the music, where

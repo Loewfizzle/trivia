@@ -4,7 +4,10 @@
 //   · a daily RUN (state.daily = { v: 'run', id }) rests the synced radio within a second, and ONE song plays: the run's own deck on this
 //     phone's own player (js/app.js#inDailyRun — musicTick's gates + the stop in render()).
 // The state is set on the app's own state object (window.__arcade.state — what musicTick reads every 250 ms): the music's gates are what is
-// tested here, not the dailies' screens (e2e-daily.mjs plays those). The room-lobby gate is the static test's (tests/daily-music.test.mjs).
+// tested here, not the dailies' screens (e2e-daily.mjs plays those).
+// THE ROOM-LOBBY CASE (FREEFALL F3B — the owner's F3 OPEN FOR BEN 9, "also from a room's lobby"): a second phone HOSTS a real room on the
+// emulators (the app's own HOST flow), ONE song sounds in its lobby; a daily run from there → still exactly ONE song (the run's own deck:
+// the room's synced song rests on this phone, the city's radio stays off — the host keeps the room's queue going); back in the lobby: ONE.
 //   node tests/integration/daily-music.mjs "<chromium>"      (the emulators + `node scripts/serve.mjs <port> --emu`; E2E_BASE=http://localhost:<port>)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
@@ -58,6 +61,50 @@ m = await music(p);
 ok(back && alone && m.synced && !m.own.length, `the run is over: the city's radio is back, synced — and it plays ALONE again (this phone's own player: ${m.own.join(', ') || 'silent'})`);
 ok(!errs.length, `no page error (${errs.join(' | ') || 'none'})`);
 await ctx.close();
+
+// ---- THE ROOM-LOBBY CASE: a hosted room's lobby → a daily run → back
+{
+  const ctx2 = await b.createBrowserContext(), q = await ctx2.newPage(), cdp2 = await q.createCDPSession(), errs2 = [];
+  q.on('pageerror', e => errs2.push(String(e.message || e)));
+  await q.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  await q.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } });
+  await q.goto(guardUrl(`${BASE}/?emu&slot=dmu2&when=2026-11-06T21:32:40&wx=clear&tz=America/Detroit&at=42.96,-85.67&city=2`, 'daily-music'), { waitUntil: 'load' });
+  const up2 = await waitFor(q, "(() => { const b = document.getElementById('boot'); return !!(window.__arcade && window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')); })()", 60000);
+  await sleep(2500);
+  await cdp2.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] }); await cdp2.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await waitFor(q, 'window.__arcade.partyMusicDebug() && window.__arcade.partyMusicDebug().synced', 40000);
+  // HOST a room (the app's own flow — kit/harness.mjs#createRoom's steps)
+  await q.waitForSelector('.nd-host', { timeout: 20000 });
+  for (let k = 0; k < 5 && !(await q.$('.setup-screen input.input')); k++) { await q.click('.nd-host').catch(() => {}); await q.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {}); }
+  await q.type('.setup-screen input.input', 'ALFA');
+  await q.click('.form-cta .btn-primary');
+  await q.waitForSelector('.lobby-screen .room-code, .title-screen.is-room .rdk-dock', { timeout: 20000 });
+  const inRoom = await waitFor(q, '!!window.__arcade.state.code && window.__arcade.state.ready && window.__arcade.state.meta && window.__arcade.state.meta.status === "lobby"', 20000);
+  /** what SOUNDS on this phone: the city's synced radio · the room's synced song (its voices) · this phone's own player (its voices) */
+  const sounding = () => q.evaluate(() => { const A = window.__arcade, pm = A.partyMusicDebug(), lm = A.lobbyMusicDebug(), md = A.musicDebug(); const own = md.voices.filter(v => !v.paused && v.gain > 0.02).map(v => v.id), room = lm ? lm.slots.filter(s => s.gain > 0.02).map(s => s.id) : []; return { party: !!(pm && pm.synced), room, own, n: (pm && pm.synced ? 1 : 0) + room.length + own.length, desired: md.desired, queue: !!(A.state.meta && A.state.meta.lm && A.state.meta.lm.songs && A.state.meta.lm.songs.length), daily: A.state.daily ? A.state.daily.v : null }; });
+  const one = js => waitFor(q, `(() => { const A = window.__arcade, pm = A.partyMusicDebug(), lm = A.lobbyMusicDebug(), md = A.musicDebug(); const own = md.voices.filter(v => !v.paused && v.gain > 0.02).length, room = lm ? lm.slots.filter(s => s.gain > 0.02).length : 0, party = pm && pm.synced ? 1 : 0; return party + room + own === 1 && (${js}); })()`, 40000);
+  const lobbyOne = await one('!party');
+  await sleep(1500);
+  let v = await sounding();
+  ok(up2 && inRoom && lobbyOne && v.n === 1 && !v.party && v.queue, `THE ROOM's LOBBY (a hosted room on the emulators): exactly ONE song sounds — ${v.room.length ? `the room's synced song (${v.room.join(', ')})` : `this phone's own player on the room's song (${v.own.join(', ')})`}; the city's radio is off; the room has its queue`);
+  // a daily RUN from the lobby
+  const t1 = Date.now();
+  await q.evaluate(() => { window.__arcade.state.daily = { v: 'run', id: 'password' }; });
+  const rested2 = await waitFor(q, "(() => { const A = window.__arcade, pm = A.partyMusicDebug(), lm = A.lobbyMusicDebug(); return !(pm && pm.synced) && !(lm && lm.slots.some(s => s.gain > 0.02)); })()", 3000), ms2 = Date.now() - t1;
+  const ownRun = await one("own === 1 && /^mood:/.test(md.desired || '')");
+  await sleep(1500);
+  v = await sounding();
+  ok(rested2 && ownRun && v.n === 1 && v.own.length === 1 && !v.room.length && !v.party && v.daily === 'run' && /^mood:(day|evening)$/.test(v.desired || ''), `a daily RUN from the lobby: the room's song rests on this phone (${ms2} ms) and exactly ONE song plays — the run's own deck (${v.desired}: ${v.own.join(', ') || 'none'}); room song ${v.room.length ? 'STILL ON' : 'off'}, city radio ${v.party ? 'ON' : 'off'}`);
+  ok(v.queue, 'the host keeps the room\'s queue going while it plays its daily (the others still hear the room\'s song)');
+  // back in the lobby: ONE song again
+  await q.evaluate(() => { window.__arcade.state.daily = null; });
+  const backOne = await one('!party');
+  await sleep(2500);
+  v = await sounding();
+  ok(backOne && v.n === 1 && !v.party, `back in the lobby: exactly ONE song again (${v.room.length ? `the room's: ${v.room.join(', ')}` : `this phone's player: ${v.own.join(', ')}`})`);
+  ok(!errs2.length, `the room-lobby case: no page error (${errs2.join(' | ') || 'none'})`);
+  await ctx2.close();
+}
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

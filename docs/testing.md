@@ -1347,8 +1347,23 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   machine's 2-minute headless stall: one 250 ms frame in a full run — `--one=day-84-1-4` measures it alone). The rules tests carry the
   darkness's new row (3 s · 120 · 3); `tests/integration/freefall-lab.mjs` reads DARK 3.
 - THE ADD-ON (TWO SONGS AT ONCE — js/app.js): `tests/daily-music.test.mjs` (2, static) + `node tests/integration/daily-music.mjs "<chromium>"`
-  (7 — the REAL app on the emulators + `serve.mjs <port> --emu`, `E2E_BASE`: the radio synced, the picker keeps it, a daily run rests it,
-  ONE song, the radio back).
+  (12 — the REAL app on the emulators + `serve.mjs <port> --emu`, `E2E_BASE`: the radio synced, the picker keeps it, a daily run rests it,
+  ONE song, the radio back · F3B: + THE ROOM-LOBBY CASE — a hosted room's lobby → a daily run → back: ONE song each time).
+
+## FREEFALL F3B (Nov 26 2026 — docs/games/passes/freefall-f3b.md)
+- Unit: `freefall-engine.test.mjs` (25 — + THE DARKNESS EASES WITH DEPTH: `darkPaceAt`, a stopped ball out lead × the pace at its floor,
+  live == the judge, floors 60 … 262) · `freefall-sim.test.mjs` (9 — + no bot out in the dark from floor 100 down, no stay uses its stall
+  budget, a ball that stops deep is caught in 6 … 8 s) · `freefall-play.test.mjs` (16, static — THE COLOUR RULE by day (≥ 60° from red;
+  the speakeasy's gold the one named exception), the sounds' twelve + the breakthroughs' cues, the bands as kept nodes (an arrival
+  touches no DOM), PAUSED's cover, + F3B's block: a view only, the pictures, ONE roof plane, the fixed sprite pool, ZERO GARBAGE in
+  `roofPlane` + `breaks.js`'s frame code, the pictures all asked for behind the opening, the finish's hook).
+- The browser: `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--f3b] [--look …] [--perf …] [--stutters]` — **131 checks**
+  (`--f3b` = F3B's 26 alone: the roof on the title screen + rising, the skylight / the splashdown / THE BOTTOM in both looks, the finish +
+  its hook + the firework by night only, PAUSED, the darkness at depth on the page, the tape on gold) · `--look --scenes=roof,breaks,colours,paused`
+  = F3B's shots (`f3b-<look>-30…60-…`: the title + floors 0 / 15 / 30 / 39 at three phone sizes, each breakthrough mid-play at four sizes,
+  each area's floor beside a red slice + its greyscale) · `--perf` = + 28 rows: each breakthrough playing, both looks, tiers 2 + 0, 1× + 4×
+  CPU · `--stutters [--looks=night]` = a whole run (the roof to floor 212) at 4× CPU: the frames over 25 ms by area, every frame over 33 ms
+  NAMED (pic · snd · band · tier · dom · frame); the 2-minute headless stall lands in it (about floor 129 from a roof start).
 
 ## FREEFALL F2 (Nov 26 2026 — docs/games/passes/freefall-f2.md)
 - Unit (`node --test tests/freefall-*.test.mjs`, ≈ 20 s, no install): the rules fixes in `freefall-engine.test.mjs` (23 — + the landing

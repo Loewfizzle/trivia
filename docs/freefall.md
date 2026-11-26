@@ -5,8 +5,10 @@ half), the bot sims + the tuned numbers, and a graybox on the live site: the unl
 (NEVER counts; deleted at the go-live, as HIGH RISE's was). **F2 (Nov 26 2026): THE NIGHT LOOK + SOLO + THE SOUNDS on the unlisted test
 page https://neonspeakeasy.com/freefall-play** (NOTHING COUNTS until go-live) + three rules fixes (the landing after a shatter, MOVING
 RED in THE TRENCH, THE HOLD). **F3 (Nov 26 2026): THE DAY LOOK (all five areas + THE TRENCH), THE AREA PALETTES, THE NEW OPENING
-(title-05) + THE GLINT, THE ARRIVAL BANNERS, THE HOLD = EXACT RESUME** — still the test page, still nothing counts; THE BREAKTHROUGHS
-(skylight 40, splashdown 120, THE BOTTOM 200) are F3B. A glowing ball falls down a neon tower; the player drags left / right
+(title-05) + THE GLINT, THE ARRIVAL BANNERS, THE HOLD = EXACT RESUME**. **F3B (Nov 26 2026): THE ROOF BELOW (the title screen + floors
+0–39), THE COLOUR FIXES + THE COLOUR RULE, THE DARKNESS EASES WITH DEPTH, THE BANNER under the number, PAUSED's blurred cover, THE
+STUTTERS, and THE BREAKTHROUGHS (the skylight 40 · the splashdown 120 · THE BOTTOM 200 + the finish's hook)** — still the test page,
+still nothing counts. A glowing ball falls down a neon tower; the player drags left / right
 anywhere to spin the tower so the ball drops through the gaps. Score = floors passed. JAYWALK is the quality benchmark; **HIGH RISE is the
 code template** (`docs/highrise.md`): a pure engine, a result = THE REPLAY of the player's own input log, the rule-set table, a preview on
 the live site. The owner's decisions: `docs/games/plan.md` "FREEFALL — F1 (approved Nov 25)". Read this page before a FREEFALL pass.
@@ -21,6 +23,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F1 — THE ENGINE | Nov 25 2026 | `docs/games/passes/freefall-f1.md` | the engine, the tower (fair by construction), the replay + the judge (server half), the bot sims + the tuned numbers, THE LAB (/freefall-lab) |
 | F2 — THE NIGHT LOOK + SOLO + THE SOUNDS | Nov 26 2026 | `docs/games/passes/freefall-f2.md` | the rules fixes (the landing after a shatter = a bounce · MOVING RED in THE TRENCH · THE HOLD), the assets, THE TEST PAGE (/freefall-play) + solo, THE OPENING, THE NIGHT LOOK, THE BLAZE = NEON FIRE, YOUR BEST, the sounds, the end screen |
 | F3 — THE DAY LOOK + THE AREA COLOURS + THE NEW OPENING | Nov 26 2026 | `docs/games/passes/freefall-f3.md` | F2's open calls (THE HOLD = EXACT RESUME · the ball's rim + dot · the fire twice as long · the accent = title-05's pink + teal), THE AREA PALETTES (depth-relative), the day walls + the title, THE OPENING (title-05) + THE GLINT, THE DAY LOOK, THE ARRIVAL BANNERS |
+| F3B — THE ROOF BELOW + THE COLOUR FIXES + THE BREAKTHROUGHS | Nov 26 2026 | `docs/games/passes/freefall-f3b.md` | THE DARKNESS EASES WITH DEPTH (the rules) · THE ROOF BELOW · the colour fixes + THE COLOUR RULE · the banner under the number · PAUSED's cover · THE STUTTERS · the assets · THE SKYLIGHT (40) · THE SPLASHDOWN (120) · THE BOTTOM (200: solo cracks open · match + daily: the finish's moment + its hook) |
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same INPUT LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers
@@ -54,7 +57,10 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
   (**3 s**), then comes one floor every **2 s**. It is never more than LEAD floors above the deepest floor the ball has reached (when the ball reaches floor f
   it moves down to at least f − LEAD, and its pace starts again from there). It only ever moves down. When it reaches the ball's floor
   → OUT (`dark`). A ball that stops moving has LEAD × the pace = **6 s**; a run nobody touches ends at **9.0 s**. It is always in
-  sight ("THE DARKNESS — SEEN + HEARD", below).
+  sight ("THE DARKNESS — SEEN + HEARD", below). **IT EASES WITH DEPTH (F3B — the owner, Nov 26: he tested F3's darkness and loves it;
+  the stall budget follows the layout's difficulty):** floors 0–100 EXACTLY as above (a floor every 2 s: 6 s stopped), a straight
+  line over floors 100–160, **a floor every 160 ticks from floor 160 on — 8 s stopped** (THE DEEP + THE TRENCH); the pace is the one
+  AT THE BALL's FLOOR when a step is set (`tuning.js#darkPaceAt` — pure, integers; the judge replays it; no new rule-set row).
 - **THE AREAS** (by floor, for the views): 0 THE ROOFTOP · 40 THE OFFICES · 80 THE SPEAKEASY · 120 UNDER THE HARBOR · 160 THE DEEP ·
   200 THE BOTTOM · past it (solo) THE TRENCH — the deep's palettes cycled, harder each lap of 40 floors.
 - **THE MODES:** SOLO = endless (a 30:00 safety cap) · MATCH + DAILY = THE FINISH at THE BOTTOM (the 200th floor passed = `made`) or the
@@ -74,7 +80,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | THE BLAZE | `blaze` 3 clean floors · `shatterSafe` true (F2: the landing right after a shatter is a bounce, never an out) |
 | MOVING RED (F2 — THE TRENCH) | `gen.move` { from 201 · pace 45 ticks a slice (0.75 s) · max 4 slices a track · chance 154 / 256 of a first-lap floor + 51 a lap · two 3 (from the third lap two reds move) } |
 | THE HOLD (F2) | `modes.solo.holds` 3 · match + daily 0 |
-| THE DARKNESS (F3 — JAYWALK-style pressure) | `dark` { grace **180** (3 s) · pace **120** (a floor every 2 s) · lead **3** } — it was 240 · 150 · 6 |
+| THE DARKNESS (F3 — JAYWALK-style pressure · F3B — it eases with depth) | `dark` { grace **180** (3 s) · pace **120** (a floor every 2 s) · lead **3** · paceDeep **160** · easeFrom **100** · easeTo **160** } — `darkPaceAt(R, floor)`: 120 to floor 100 · 130 at 115 · 140 at 130 · 150 at 145 · 160 from 160 (a stopped ball: 6 s · 6.5 · 7 · 7.5 · 8 s) |
 | THE HUMAN PACE (the fairness proofs) | `human` { react 12 (200 ms) · spin 68 (1 turn a second) } → **reach 408** units in a fall ((18 − 12) × 68) · **hop 3** slices in a bounce |
 | the layout's curves (256ths, by floor) | `gaps` 2 a floor at the top → 1 by floor 200 · `wide` (a gap is 2 slices) 100 % to floor 40 → 0 by 200 · `red` 1.5 at floor 10 → 6.5 at 200 · `hug` (a slice beside a gap is red) 22 % at 40 → 94 % at 200 |
 | the layout's bounds | `redFrom` 10 · `hugFrom` 40 · `belowUntil` 120 · `windowRamp` 40 · `redMax` 8 · `safeMin` 3 · `gapSlicesMax` 6 · THE TRENCH `lap` { from 200, every 40, red + 0.5, hug + 3 % } |
@@ -267,6 +273,15 @@ the landing RIGHT AFTER A SHATTER (THE BLAZE's own drop — outside every fairne
 `docs/games/passes/freefall-f1.md` "THE TUNING". `tests/freefall-sim.test.mjs` = the FAST version (200 seeds) asserting the bands — a
 future tuning slip goes red there.
 
+### THE SIMS — F3B (THE DARKNESS EASES WITH DEPTH; `docs/games/passes/freefall-f3b.md`)
+`node scripts/freefall-sim.mjs 2000` prints **F2's table to the digit** again (the pinned run digests of `tests/freefall-sim.test.mjs`
+unmoved: every bot run tick-identical — the darkness never touched one) + a table BY DEPTH: **no bot run is out in the dark from
+floor 100 down** (GOOD, GREAT, the human, SLOPPY: 0 of 2,000 each), and no stay on a floor ever uses its whole stall budget — GREAT +
+the human ≤ 35 %, GOOD ≤ 45 %, **SLOPPY ≤ 85 %** (its 5.1 s of the 6 on a shallow floor; past floor 100 — 143 of its 2,000 runs get
+there, none past 160 — its longest stay is 3.9 s of 6–7). The longest stays from floor 160 down: GOOD + GREAT + the human 2.1 s of
+the 8. **A ball that stops is always caught:** lead × the pace at its floor after it got there — 6 s down to floor 100, 8 s from
+160 (the unit tests: floors 60 … 262, live == the judge). THE STALLER from the start: 2,000 of 2,000 at 9.0 s, unchanged.
+
 ### THE SIMS — F3 (THE HOLD = EXACT RESUME + THE DARKNESS's new numbers; `docs/games/passes/freefall-f3.md`)
 `node scripts/freefall-sim.mjs 2000` prints **F2's table to the digit** (below) — twice: after the hold's change (the bots never hold)
 and after the darkness's (3 s · 2 s a floor · lead 3): **no bot run is caught by the dark** — GREAT 0.0 %, GOOD 0.0 %, the human
@@ -308,8 +323,9 @@ will mount; `play.js` = the page itself (THE DOOR, its `?…` flags, its best, `
 `?seed=` (the same tower every run) · `?look=day|night` (F3: that look for this visit — without it AUTO: the phone's clock, then the
 site's sun rule) · `?mode=match|daily` (their finish + cap, NO hold; the page itself is SOLO) · `?floor=N` (THE LOOK
 CHECK: the first drag plays N floors at once through the real engine, the run goes on LIVE from floor N — THE OFFICES 40, THE SPEAKEASY
-80, UNDER THE HARBOR 120, THE DEEP 160, THE TRENCH's moving red from 201; REPLAY = LIVE holds; never YOUR BEST) · `?fps=1` (the frame
-rate + HITCH n: the frames over 33 ms in the run) · `?tier=0|1|2` (pins a quality tier) · `?dpr=` (a cap on the sharpness).
+80, UNDER THE HARBOR 120, THE DEEP 160, THE TRENCH's moving red from 201; **F3B: `?floor=38` · `118` · `198` start just above a
+BREAKTHROUGH** — add `&mode=match` to 198 for THE FINISH; REPLAY = LIVE holds; never YOUR BEST) · `?fps=1` (the frame
+rate + HITCH n: the frames over 33 ms in the run — **F3B: + what landed before the last one**: `(last: pic · snd · band · tier · dom · frame  n ms @floor)`) · `?tier=0|1|2` (pins a quality tier) · `?dpr=` (a cap on the sharpness).
 - **NOTHING COUNTS UNTIL GO-LIVE (the owner, Nov 25):** no XP, no streak, no server best, no boards, no cards, no share card. The run
   is the pure engine in the tab: **ZERO server calls, ZERO database writes**; the page's whole module graph (static + lazy) holds
   nothing from `/api`, the profile, progression, the report, share, the cards, Firebase or the store (`tests/freefall-play.test.mjs`).
@@ -344,7 +360,9 @@ rate + HITCH n: the frames over 33 ms in the run) · `?tier=0|1|2` (pins a quali
   column while a run is on — its words never sit on a floor flying past — and a dark rise behind the opening's foot. A phone held
   SIDEWAYS (a 234 px column) gets a compact layout (`@media (max-height: 480px)`).
 - **THE HOLD on the page (SOLO):** `visibilitychange` hidden → the run is stepped to now and HELD at the next free tick
-  (`engine.js#hold`): PAUSED · n PAUSES LEFT. Back on screen: **3 · 2 · 1** (0.8 s each), then on from the hold's own tick — **EXACTLY
+  (`engine.js#hold`): PAUSED · n PAUSES LEFT — **F3B (the owner): under a DARK, BLURRED COVER** (`.ff-hold`: the page's ONE backdrop
+  blur, 18 px on 80 % dark, up only while the run is held — the tower can not be read while the clock stands; a browser without the
+  blur gets a 95 % dark cover). Back on screen: **3 · 2 · 1** (0.8 s each), then on from the hold's own tick — **EXACTLY
   where it was (F3)**: the ball at the same point of its flight, the tower at the same angle; a drag while PAUSED or in the count turns
   nothing (the first move after GO counts). Three a run; with none left (or `?mode=match`) the run goes on behind the hidden page —
   back from it only its END sounds. A hide before the first drag / on the end screen holds nothing. Hidden AGAIN during the 3 · 2 · 1:
@@ -353,6 +371,12 @@ rate + HITCH n: the frames over 33 ms in the run) · `?tier=0|1|2` (pins a quali
 - **YOUR BEST** (`best.js`, PURE — this phone's, `ff:play:best`): a GOLD TAPE round the rim of your best floor (`night.js#setBest` —
   in sight when you are within nine floors of it) + the line at the top. The fall that passes it = THE CROSSING, once a run: NEW
   BEST in the announcer, JAYWALK's new-best sound, the number turns gold. A first-ever run has no best: no tape, no line.
+- **THE FINISH's HOOK (F3B — match + daily: THE BOTTOM is their finish; the page only prepares it — `?mode=match`):** the run ends
+  (`made`) at the tick the 200th floor is passed; the VIEW plays the ball's last drop onto the seabed + the moment ("THE BREAKTHROUGHS",
+  below); the end card waits `END_HOLD_MADE_MS` (2.6 s — every other end 0.7 s), then the run is handed on ONCE:
+  `createStage(app, { onFinish(finished, log) })` — `finished` = `{ seed, mode, floor, tick, look, same (REPLAY = LIVE), judged (the
+  judge's verdict on its log) }`. **F4's cartridge wires the match / the daily there**; the test page keeps it for the checks
+  (`__ffPlay.state().finished`).
 - **THE END SCREEN = JAYWALK's STANDARD** (`endscreen.js` — ONE builder for the page's card today and the cartridge's body in F4): the
   header **FREEFALL · SOLO** (F3 — THE ACCENT = title-05's colours: FREE hot pink #ff4fa8 · FALL electric teal #27e0e6 · the mode a pale
   ice — THE END NEON's shared classes; the card writes the colours itself until FREEFALL has its `metas.js` row) → the CAUSE in teal
@@ -366,12 +390,14 @@ rate + HITCH n: the frames over 33 ms in the run) · `?tier=0|1|2` (pins a quali
   slices adopted from the events — no effect played again) the moment the context is restored, or after 1.5 s; no context to be had:
   the line says so, the run goes on, the rebuild tries again (every 1.5 s × 8, and when the page is back in front).
 - **Locally:** `http://localhost:5173/freefall-play` · `node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--look] [--perf]`
-  (104 checks at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900 · 844 × 390 — they pin `look=night`: AUTO would follow the machine's
-  clock; `--look [--looks=night,day] [--scenes=opening,blaze,areas,banner,best,dark,hold,sizes]` = the review's shots, both looks;
-  `--perf [--one=day-84-1-4]` = the speed test, both looks). The page's
+  (**131 checks** at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900 · 844 × 390 — they pin `look=night`: AUTO would follow the machine's
+  clock; `--f3b` = F3B's 26 alone; `--look [--looks=night,day] [--scenes=opening,blaze,areas,banner,best,dark,hold,sizes,roof,breaks,colours,paused]`
+  = the review's shots, both looks (`f3b-<look>-<nn>-<name>.png`); `--perf [--one=day-84-1-4]` = the speed test, both looks, + each
+  breakthrough playing; `--stutters` = a whole run at 4× CPU, the long frames named, by area). The page's
   hook for the checks: `window.__ffPlay` (`state()` · `auto` = the checks' own hand: 'gap' | 'play' | 'smash' | 'safe' | 'red' ·
   `hide()` / `show()` · `dive(n)` · `ends` · `events()` · `log()` · `lose()` = a context lost on purpose · `setLook(l)` · `state().look` /
-  `.banner` / `.info.motes`).
+  `.banner` / `.info.motes` · F3B: `state().info.breaks` (each breakthrough's stage) / `.info.roof` / `.info.landed` · `.hitchLog` ·
+  `.finished` · `.muffles`).
 
 ## THE NIGHT LOOK (F2 — `night.js` + `night-fx.js`; three.js 0.160 core only, its READABLE build — the bloom + the particles are ours)
 A VIEW: it reads the run + its events; it never writes them; the rules never import it. The owner's mockup
@@ -429,7 +455,7 @@ A VIEW: it reads the run + its events; it never writes them; the rules never imp
   screen: the opening + floors 0–39; an opaque-pass mesh — three.js draws transparent meshes after the pillar + the ball), shown
   across 69° of the compass (`PANO.az`): a texel is 1.18 screen pixels on a 390-wide phone at 3× (1.30 at 430) — **the windows read as
   windows**; the city's horizon in the upper quarter of the opening, the buildings below it — ONE horizon height for both looks; it
-  rises a little as the ball goes down; under its foot the dark roof (night) / the open air + soft clouds (day); a red light of the
+  rises a little as the ball goes down; **under its foot: THE ROOF BELOW (F3B — its own section, below)**; a red light of the
   painting leans to pink (the guard). `?pano=0.5` turns it half a picture round (its join in the middle: the check shot).
 - **THE SHAFT — THE AREAS' WALLS** (by night; by day: "THE DAY LOOK", below): a screen-filling quad whose every pixel's ray meets
   a cylinder round the tower's axis (seen through its near side) and reads the area's painted wall there — seamless, world-anchored
@@ -438,9 +464,10 @@ A VIEW: it reads the run + its events; it never writes them; the rules never imp
   HALF-RES target, then copied up (a wall is soft by nature); the top of the screen is the HUD's (the wall steps back there).
 - **TIERS** (the match kit's `createTiers`, automatic): **2** = the device's sharpness (DPR ≤ 3) + THE HALF-RES BLOOM (HIGH RISE's:
   every material's `uBloom` pass on twin materials — a twin is BUILT from its material's pieces + the same uniforms, never cloned) · **1** = DPR ≤ 2, no bloom · **0** = DPR ≤ 1.5, fewer shards + sparks + flames.
-  **THE WARM FRAME**: one of everything + one hidden frame behind the opening (23 programs built before the first drag). The
-  pictures are decoded off the frame (`createImageBitmap`) and uploaded at once, a whole area ahead. The targets are let go while the
-  page is hidden.
+  **THE WARM FRAME**: one of everything + one hidden frame behind the opening (F3B: 42 programs — the breakthroughs' pieces too, the
+  picture's + the bloom pass's — built before the first drag). The pictures are decoded off the frame (`createImageBitmap`) and
+  uploaded at once — **F3B: ALL of the look's, behind the opening ("THE STUTTERS", below)**. The targets are let go while the page is
+  hidden.
 - **ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES — `tests/freefall-play.test.mjs`, a static scan of every frame function):** the
   frame's fractions live in ONE typed scratch array, the floors in sight in a ring of records written INTO (`tower-gen.js#floorInto`),
   the effects in pools, the wall's key is four numbers, the HUD's words are built only in the functions a CHANGE calls.
@@ -456,15 +483,23 @@ by day, `dayRim` its rim by day.
 | area | by night | rim | **by day (the add-on, Nov 26: CLEARLY COLOURED — 35–55 % saturation on the faces)** | day rim |
 | --- | --- | --- | --- | --- |
 | THE ROOFTOP | hot pink → magenta | pink-white | soft pink-lavender (cool — never peach) | bright orchid |
-| THE OFFICES | electric violet → blue | pale violet | periwinkle blue | bright blue |
-| THE SPEAKEASY | deep rose → plum | warm brass | blush rose | warm brass |
-| UNDER THE HARBOR | teal → aqua | pale mint | aqua / mint | bright aqua |
+| THE OFFICES | electric violet → blue | pale violet | **F3B: a lighter, whiter periwinkle** (`#b4c2f8` — it sat close to the blue glass wall) | brighter blue |
+| THE SPEAKEASY | **F3B: BRASS GOLD — warm neon gold** (`#eb9a1c` → `#c97f16`; F3's rose + plum sat close to red) | brighter gold | **F3B: champagne gold `#f0d590`** (the owner's hex) | **brass `#e0a83a`** (the owner's hex) |
+| UNDER THE HARBOR | teal → aqua | pale mint | **F3B: PEARL — ice-white glass, a faint aqua tint** (`#d0f5ef`, 15 % saturation: contrast by LIGHTNESS against the teal water; its seams the rim's cyan) | **bright cyan** |
 | THE DEEP (+ THE BOTTOM) | dark indigo | glowing ultraviolet | soft indigo / lilac | bright violet |
 | THE TRENCH | THE DEEP's, cycled a lap (40 floors): the dark body stays, the rim turns — ultraviolet · electric blue · magenta · mint | | lilac · soft blue · orchid · mint | |
 **THE BORDERS:** the last three floors of an area lean to the next one's colour (¼ · ½ · ¾) — and the floors below the border ARE the
-next area's: its colour shows under the ball as it comes to it (`night.js#colourOf`). **RED IS THE ONLY RED:** no palette colour lies
-within 25° of hue 352 (a unit test — `tests/freefall-play.test.mjs`); a red slice still stands proud, wears its chevrons + its own hot
-red rim, and reads with the colour removed on every palette (the greyscale shots).
+next area's: its colour shows under the ball as it comes to it (`night.js#colourOf`).
+**THE COLOUR RULE (F3B — tightened; a unit test, `tests/freefall-play.test.mjs`): RED IS THE ONLY RED.** By NIGHT no palette colour lies
+within 25° of hue 352 (unchanged). **BY DAY every colour — faces + rims, the trench's laps too — is ≥ 60° of hue from red, and red is
+the darkest + the most saturated thing on a day floor** (every day face is lighter than red and far less saturated; no day rim is
+darker). **THE ONE NAMED EXCEPTION: THE SPEAKEASY's gold** — the owner's own hexes are 51° (`#f0d590`) + 48° (`#e0a83a`) from red: brass
+can not be 60° away and stay brass; it is held ≥ 45° (OPEN FOR BEN names it). The rooftop's day lavender + two rims moved a few degrees
+to pass (`#dc8cea` · `#dc6ef4` · the trench's `#d65cee`). A red slice still stands proud, wears its chevrons + its own hot red rim, and
+reads with the colour removed on every palette (the review's shots: each area's floor beside a red slice, both looks + greyscale —
+`f3b-<look>-50-colour-<area>.png` · `-51-…-greyscale.png`). **ON GOLD FLOORS YOUR BEST's gold tape turns WHITE WITH A DARK EDGE** (both
+looks — `palettes.js#GOLD_AREAS`, `night.js#tapeLook`, `TAPE_F uDark`). By day the harbor's caustic ripples stay ON THE WATER: the
+slices keep a faint shimmer (0.12 — it was 0.5).
 
 ## THE DAY LOOK (F3 — `day-fx.js` + `night.js` / `night-fx.js`: ONE scene, a LOOK)
 The owner's targets: `Downloads\NEON\freefall\ff-day.png` (UNDER THE HARBOR by day) + `freefall-mocks-day.jpg`. **ONE scene, both
@@ -501,6 +536,98 @@ never a second scene, never a rebuild; the look's own pictures are named once an
   sky and the pale water round the white-yellow heart; the bloom is held at 0.4 (only the ball + the fire give light).
 - THE TIERS, THE WARM FRAME, ZERO GARBAGE, THE LOST CONTEXT (rebuilt in the look on screen) are the night look's own — one scene.
 
+## THE ROOF BELOW (F3B — `night.js#roofPlane` · the sky layer `night-fx.js SKY_F` · `breaks.js`; the owner: "the title screen and the first 40 floors are what most people see — they can't be the weak spot")
+The building's own roof seen from high above, straight below the tower — Grok's top-down paintings (`assets/freefall/roof/below-night.webp`
+· `below-day.webp`: the skylight + the pillar in the middle, the helipad, the AC units, the neon parapet; no red). Under the panorama's
+foot — where F3 had a flat colour + the glow from below / the pale open air — there is now the roof, and the city round it.
+- **ONE PLANE ALL THE WAY DOWN** (`roofPlane()`, once a frame — its matrix `roofM` + the sky layer's plane uniforms):
+  **FAR** (the title screen … floor `ROOF.to` 34): the plane's centre lies on the camera's ray through the tower's top ring — the skylight
+  sits straight under the tower ON THE SCREEN — and it leans toward the viewer (`ROOF.tilt` 40°: a flat roof seen from high above).
+  **IT RISES TOWARD YOU FLOOR BY FLOOR:** its scale = how much of the painting the screen's width shows — `s0` **0.92** on the title screen
+  + floor 0 → `s1` **0.4** by floor 34, by the same share each floor (you SEE yourself falling: first the city blocks in the margins, then
+  the neon parapet sweeps out through them, then the deck's own things). Then **it has risen as far as the painting stays sharp** (made at
+  1024, shipped at 1536: ≈ 2½ screen pixels a source texel on a 390-wide phone at 3×).
+  **LANDING** (floors 34 → `ROOF.land` 38.6): the plane settles into THE TRUE ROOF — level, at the skylight's own height (0.4 over floor
+  40), the painting at the skylight's real size (`ROOF_WIDE` 10.15 world units) — and from there on it IS the world's roof, coming up in
+  true perspective for the last floor.
+- **THE CITY BETWEEN:** past the painting's own edge the city goes on — `roof/city-<look>.webp`, a tile cut from the SAME painting's four
+  borders (repeated mirrored: no seam) — running off faster past the roof's far edge (`ROOF.curl`) up to the panorama's foot, where the
+  two meet. **NO FOG WASH anywhere on the title screen or floors 0–39:** only a light distance haze far out (from 0.7 painting widths
+  past the roof's middle); the night's glow from below + the day's open-air wash + its clouds are covered; the tower's own fade into haze
+  is 0.2 of the other areas' on the rooftop (`FOG_K`).
+- **THE 3D SKYLIGHT RIDES ON IT — SHARP AT EVERY DISTANCE:** the skylight's deck, frame + glass (real geometry — "THE BREAKTHROUGHS") are
+  drawn through the same plane's matrix from the title screen on: a small glowing skylight far below at first, the very pane the ball
+  breaks at the end. The deck (the painting again, at the same place + scale) brings ITS OWN DETAIL in as it comes close (the roofing's
+  fine grain, a mottle, the seams between its sheets — procedural, sharp at any distance) and, by night, the neon tubes' light.
+- **THE ROOF IS SHUT until the skylight breaks:** no floor from 40 down is drawn and the pillar ends where it goes into the roof; the
+  offices' wall is not seen under the seam (`uOpen`). When it breaks the roof below fades (0.2 s) and the room shows.
+- The numbers: `night.js#ROOF` (+ `ROOF_WIDE` · `ROOF_Y` · `FOG_K`). The skylight's place in the painting (`cx` 0.505 · `cy` 0.472 ·
+  its frame's half size 0.130) is MEASURED by the build script in both paintings (`ROOF_SKY` — a unit test holds the two alike).
+
+## THE BREAKTHROUGHS (F3B — `breaks.js` + `break-fx.js`; the owner's three: the skylight · the splashdown · THE BOTTOM — the chandelier at floor 80 is SKIPPED)
+**A VIEW ONLY: the rules never change, the clock never stops, there is no slow motion.** Each phone plays its own as it reaches the floor.
+The engine's `area` event carries the tick the ball LEAVES the floor above; a breakthrough's moment is due a fixed number of ticks later
+on the run's own clock (the glass + the water 8 ticks on — `HIT_TICKS` —, the seabed a whole fall on) and is played ONCE when the clock
+gets there. An event older than 1.5 s (a batch back from a hidden page), a `?floor=` start past it, a scene built again: it just
+happened — nothing is played. The pieces are REAL 3D in the ONE scene, each drawn only while its floor is near; both looks.
+- **A PANE THAT BREAKS = ONE instanced mesh of TRIANGLES** (`breaks.js#fractureGeo`): the 60 pieces it breaks into are laid out ONCE round
+  the ball's own point of impact (the ball never turns: the point is always the same) — 12 rays, 3 rings, the pane's four corners among
+  the rays (it is covered exactly). At rest they ARE the pane (one draw call). **THE CRACKS ARE DRAWN IN CODE along the very lines it
+  breaks on** (a piece's own edges — its barycentric coordinates), racing out from the impact at 11 world units a second; then each piece
+  lets go as the front reaches it and flies in the shader (its throw, its tumble, gravity — nothing is stepped on the CPU).
+- **THE SKYLIGHT (floor 40 — the rooftop → the offices):** the roof's OWN skylight, on the roof's plane ("THE ROOF BELOW"): by night the
+  lit room glowing warm through 6 × 6 frosted panes, by day blue glass mirroring the sky; a frame + glazing bars (instanced boxes).
+  **The ball hits it:** a white burst at the impact, the cracks race out, the pane FRACTURES into real glass shards — the panorama
+  mirrored in them (read soft), bright fresnel edges, a glint as they turn to the light — tumbling down with you; the glazing bars come
+  down in pieces; a white flash on the floors' rims, a camera kick; **the office lights come on below, floor by floor**, each with a
+  flicker (the wall shader: `uLitT`). **NIGHT: the frame is outlined in eight NEON TUBES** (cyan · magenta · violet) whose light lies on
+  the deck; **the hit SHORTS them** — a shower of sparks (white-blue + orange) from all round the frame, the tubes flickering out one
+  after the other round it; the shards catch the pink / violet neon. Sound: `skylight.mp3` at the hit.
+- **THE SPLASHDOWN (floor 120 — the speakeasy → under the harbor):** the last speakeasy floors stand over **a real, NORMAL-MAPPED WATER
+  PLANE** across the shaft (Water 001, two layers scrolling against each other) that MIRRORS what is over it: the area's own wall (the
+  mirrored ray meets the shaft's cylinder — the speakeasy's lamps), the tower's lit rings + the ball (rippling streaks: by night the
+  neon). **The ball plunges in:** a crown of drops (lit from above by night), spray + a ring of mist (sprites), **a ring wave** running
+  out from the impact (in the water's own shader), a burst of bubbles; **THE WATERLINE** — a wavy line in screen space with a bright
+  meniscus — sweeps up the screen in 0.5 s (the camera dips under): below it the plane is gone and the world under the surface shows;
+  **the mix goes muffled** for 1.5 s (`sfx.js#muffle`: a low-pass after the limiter); **then the light shafts fade in** (by day the sun
+  rays; by night soft teal + pink shafts of the speakeasy's neon falling through the surface). **NIGHT:** under the surface glowing
+  **CYAN PLANKTON** swirl in the ball's wake for 3 s (no sparks); by day a trail of small bubbles. Sound: `splashdown.mp3` at the plunge.
+- **THE BOTTOM (floor 200):** **a real seabed** (Ground 055 S: the sand's colour + normal map, lit from above; the tower's rim glow in
+  a pool round its foot, the ball's own light; by day the water's caustics; nine boulders) rises into view from floor 195. **The
+  impact:** a SHOCKWAVE RING of lifted sand + light runs out from under the ball, a dust cloud rolls out (sand-coloured, it covers),
+  a camera kick, **the GOLD band "YOU HIT THE BOTTOM"** (the arrival's band, gold, with the impact). **NIGHT:** glowing sediment drifts
+  up out of the ring of light. **SOLO:** the ball lands on floor 200 as on any floor (the rules'); when it leaves it **the seabed
+  CRACKS OPEN** (the same pane-that-breaks: 60 pieces of sand-topped rock, the trench's light glowing up through the cracks) and the
+  run falls on into THE TRENCH — endless, as before. **MATCH + DAILY: THE BOTTOM is their finish (MADE IT):** no floor 200 is drawn —
+  the bed IS the floor —, the ball's last drop onto it is the view's own (the run is over: `night.js` carries its clock on), the same
+  impact; **by night a FIREWORK-STYLE burst** of gold + cyan glowing stars (three, 0.3 s apart) + `fireworks.mp3` softly, 0.9 s after
+  `bottom.mp3`; the end card waits 2.6 s, then THE FINISH's HOOK (above). Sound: `bottom.mp3` at the hit — in solo too now.
+- **THE SPRITES = a FIXED pool of 176 GPU particles** (`BURSTS`; Kenney's Particle Pack: soft clouds · a soft dot · a ring · specks · a
+  glint · a burst — `fx/burst.webp`), flown in their shader; **the tiers shed a SHARE of each burst** (0.45 · 0.7 · 1 — never none:
+  the look's shape stays; reduced motion: a few). The sparks ride the scene's own streak pool (192). A cloud COVERS (dust is darker
+  than the water behind it); light is added — and by day covers (`uCover`), as the fire does.
+- **ZERO GARBAGE** (the static scan covers `roofPlane`, `breaks.js#update` + every moment's emitter): typed arrays written into.
+  **THE WARM FRAME** draws every piece once in the picture AND the bloom pass (no program is built at floor 30). A ghost passing a
+  breakthrough (F4: the match's rivals) = a small echo only — not built here (there are no ghosts yet).
+
+## THE STUTTERS (F3B — the owner's iPhone, day speakeasy, `?fps=1`: 59 fps · worst 34 ms · HITCH 9 at tier 2)
+Every long frame of a run is now NAMED (`stage.js` THE HITCH LOG: what one-off work landed just before it — `pic` a picture's upload ·
+`snd` a sound's decode · `band` a band's bake · `tier` a tier step · `dom` the HUD's own writes · `frame` none of those; the last 24
+in `__ffPlay.state().hitchLog`, the last one on the `?fps=1` line). What a whole run found on the mini PC at 4× CPU, and the fix for each:
+- **a picture's first upload mid-run** (F3 asked for a wall "an area ahead" — its decode landed + was uploaded while the ball fell) →
+  **EVERY picture of the look on screen is asked for BEHIND THE OPENING** (`night.js#preload`: the four walls, the panorama, the roof
+  below + its city; the breakthroughs' four textures at creation — 12 in all): nothing is decoded or uploaded while a run is on
+  (checked: `info.landed` stands still from the first drag to floor 48, in both looks; a look that turns mid-run asks for its own set).
+- **a band's first paint at its arrival** (a 33 ms frame at EVERY arrival at 4× CPU — 150 ms at floor 40) → **every band is its OWN kept
+  node**, built + baked behind the opening (the areas' six + the trench's first lap; kept across runs) and kept PAINTED (at rest all but
+  clear — `BANNER_REST` 0.001 — never hidden: its layer stays on the GPU); **an arrival touches no DOM**: one opacity + transform
+  one-shot on the band's own node (no text, no class, no canvas swapped). A reader is told 0.35 s later.
+- **the breakthroughs' programs** → built in THE WARM FRAME (the picture's + the bloom pass's). **The darkness's side layer** keeps its
+  own compositor layer (`will-change: opacity` — its first fade made one mid-run).
+- **MEASURED** (`--stutters`: the roof to floor 212, tier 2, 390 × 844 @3, 4× CPU, both looks — the pass log's table): **a 17.0 ms worst
+  frame in every area**, the three breakthroughs + the arrivals in it; HITCH = the one 250 ms frame ≈ 2 minutes into the test browser's
+  life (this machine's known headless stall — it moves with the clock, not the floor). The owner's iPhone is the proof: `?fps=1`.
+
 ## THE OPENING (title-05) + THE GLINT (F3 — `stage.js`, `css/freefall-play.css`; the owner's pick)
 Grok's lettering (`assets/freefall/title/lettering-*.webp`) + its tagline (`tagline-*.webp`) as two pictures over the LIVE tower (an
 `<img srcset>`: a 390-wide phone at 3× takes the 1170, the rest the 780): the lettering centred, **85 % of the width** (332 pt at 390),
@@ -513,14 +640,18 @@ band leaves. It plays as the title comes in, then every 7 s while the opening wa
 reduced motion = ONE sweep. NIGHT = a pink-white neon glare, DAY = a clean white sun glint. Transform + opacity only — no canvas work.
 
 ## THE ARRIVAL BANNERS (F3 — `banner.js`; the arrivals are pure: `logic.js#nextArrival` · `isArrival` · `arrivalWords`)
-On reaching an area (40 · 80 · 120 · 160 · 200 — THE TRENCH at 201 — then its laps at 241 · 281 …) a band crosses the FOOT of the
-screen: the area's name big, **FLOOR n** under it (a later lap: LAP 2 · FLOOR 241), **1.6 s** in + out — one Web Animations one-shot,
-opacity + transform (reduced motion: it only fades) — never over the ball or the big number (680 … 764 of 844). NIGHT = a dark band
+On reaching an area (40 · 80 · 120 · 160 · 200 — THE TRENCH at 201 — then its laps at 241 · 281 …) a band crosses the screen: the
+area's name big, **FLOOR n** under it (a later lap: LAP 2 · FLOOR 241), **1.6 s** in + out — one Web Animations one-shot,
+opacity + transform (reduced motion: it only fades). **F3B (the owner): it lies UNDER THE BIG NUMBER** — in the announcer's lane, between
+the number's foot and the ball's highest point (129 … 172 of 844; the apex 176 — on every size: a sideways phone gets ONE line): **it
+never covers a floor below the ball**. A call (BLAZE! · SMASH! · NEW BEST) that comes while a band is up waits for it to leave (the
+biggest one wins). **THE BOTTOM's band is GOLD — "YOU HIT THE BOTTOM" · FLOOR 200** — and comes with the impact (a whole fall after the
+arrival's event); THE TRENCH's follows it. F3's place was the foot of the screen (680 … 764). NIGHT = a dark band
 between two thin pink rules, white words in a pink glow, FLOOR in teal; DAY = a frosted pale band, navy words (no backdrop blur).
-**BAKED TEXT:** the two lines are drawn with their glow ONCE into the band's canvas from their own computed styles (the stylesheet
-stays the one source of the look) **AHEAD of the arrival** — at a restart, after a `?floor=` dive, and on a timer once the band before
-has left; the frame the ball arrives in bakes nothing; a look change bakes the ready band again; a long name is fitted to a narrow
-band. THE BOTTOM (200) + THE TRENCH (201) arrive one floor apart: the second band crosses after the first. JAYWALK's area-arrive
+**BAKED TEXT:** a band's two lines are drawn with their glow ONCE into a canvas of its own from their own computed styles (the stylesheet
+stays the one source of the look) — **F3B: EVERY band of the run BEHIND THE OPENING, each its own kept node ("THE STUTTERS")**; an arrival
+bakes + builds nothing; a look change bakes the kept bands again; a long name is fitted to a narrow band. Only a later trench lap's
+band (281 · …) is built in a run, between two arrivals. THE BOTTOM (200) + THE TRENCH (201) arrive one floor apart: the second band crosses after the first. JAYWALK's area-arrive
 sound as before (a lap's band is silent — the engine names an area once). F2's small area name under the number is gone.
 
 ## THE HOLD = EXACT RESUME (F3 — the owner's answer to F2's OPEN FOR BEN 4)
@@ -538,8 +669,13 @@ context's state; the MP3's lead-in skipped. Muted / locked / a missing file = no
   **whoosh + THE NOTE UP ITS SCALE** — every clean fall through a gap: the bounce's one recorded note (C4) pitch-shifted in code, a
   step higher each clean floor in a row (do re mi so la do′ re′ mi′ — holding at the top), back to the first after a bounce ·
   **blaze** — THE BLAZE lights · **shatter** · the crash short + high + quiet = the CRACK of a saved landing · **crash** — out on red
-  · **lights-out** — out in the dark · **bottom** — THE FINISH (ready for F3; in the list, not in a solo run) · **area-arrive**
-  (JAYWALK's file) on entering an area · **new-best** (JAYWALK's) at the crossing. A batch that came back from a hidden page (a match:
+  · **lights-out** — out in the dark · **area-arrive** (JAYWALK's file) on entering an area · **new-best** (JAYWALK's) at the crossing.
+  **F3B — THE BREAKTHROUGHS' own sounds take the arrival's place on their three floors, each timed to the hit:** **skylight** (floor
+  40, 0.133 s after the arrival's event) · **splashdown** (floor 120, 0.133 s) · **bottom** (floor 200, 0.3 s — the ball hits the
+  seabed: SOLO too now; a finish cues it once) · **fireworks** — a finish BY NIGHT, softly, 0.9 s after bottom (the stage's: it knows
+  the look). **THE MUFFLE** (`sfx.js#muffle`): a low-pass after the limiter, wide open — the splashdown shuts it to 420 Hz in 0.07 s
+  and opens it again over 1.5 s. skylight + splashdown come in ≈ 7 dB quiet (−23.4 / −23.7 LUFS against ≈ −16): LOUDNESS-MATCHED BY
+  THEIR GAIN in the table (× 2.35 / × 2.41 a shatter's — the build machine has no MP3 encoder; the limiter holds their peaks). A batch that came back from a hidden page (a match:
   no hold) sounds only its END.
 - **THE SOUND SYNC from the start** (HIGH RISE's): a live run holds the audio context awake (a lease renewed once a second —
   `globalThis.__nsHoldAwake`), let go on the end card, on a hold, on a hide; the START waits ≤ 0.6 s for every decode (0 late sounds in
@@ -551,7 +687,7 @@ context's state; the MP3's lead-in skipped. Muted / locked / a missing file = no
 - The levels are a FIRST MIX (the delivery is loudness-matched to ≈ −16 LUFS; the gains set each sound's place: the bounce soft, the
   two ends the loudest). A sound replaced: bump `sfx.js#FF_SFX_REV`; a picture: `night.js#FF_ART_REV`; then `node scripts/build-file-hashes.mjs`.
 
-## THE ASSETS (F2 + F3 — `python -P -E scripts/build-freefall-assets.py [--only=walls,sfx,fx,title,sky]` COPIES the owner's delivery; Downloads\grok\freefall is only read)
+## THE ASSETS (F2 + F3 + F3B — `python -P -E scripts/build-freefall-assets.py [--only=walls,sfx,fx,title,sky,roof,break]` COPIES the owner's delivery; Downloads\grok\freefall is only read)
 - `assets/freefall/walls/<area>-night.webp` — the four NIGHT walls (Grok Imagine; offices · speakeasy · harbor · deep): 1024 × 1024 (a
   box average of the delivery's 2× upscale), WebP q 80, **157 KB** together; the wrap is measured after the resize — a wall that no
   longer wraps fails the build. **F3: `walls/<area>-day.webp`** — the four APPROVED day walls (ff-harbor-day = v3; never a -v1 / -v2), the
@@ -568,6 +704,14 @@ context's state; the MP3's lead-in skipped. Muted / locked / a missing file = no
 - `assets/freefall/fx/blaze.webp` — THE BLAZE's four sprites (Kenney's Particle Pack, CC0), one grey atlas 1024 × 256: **9 KB**.
 - `audio/freefall/` — the owner's seven picks (take A): bounce · whoosh · blaze · shatter · crash · lights-out · bottom — byte copies
   (MP3 already), **168 KB** + `CREDITS.md` (every source CC0 1.0, each layer named).
+- **F3B: `assets/freefall/roof/below-night.webp` · `below-day.webp`** — THE ROOF BELOW (Grok-made: no credit needed; 2048² made at 1024,
+  kept 1536², q 82: 211 + 289 KB) + **`roof/city-night.webp` · `city-day.webp`** — the city round it: each painting's own four borders
+  stacked into one 768² tile, the joins cross-faded (49 + 57 KB). The skylight's place is measured in both (`ROOF_SKY`); no red pixel.
+  **`fx/water-normal.webp`** (3DTextures.me Water 001, CC0 — the 1 K JPG; 512², 24 KB) · **`fx/sand.webp` + `sand-normal.webp`**
+  (ambientCG Ground 055 S, CC0; 1024², 13 + 157 KB — the roughness map is not used) · **`fx/burst.webp`** (Kenney's Particle Pack, CC0:
+  ONLY the seven sprites used, one grey atlas 1024 × 512, 19 KB) · **`audio/freefall/skylight.mp3` · `splashdown.mp3` · `fireworks.mp3`**
+  (Freesound 453499 by kyles · 585744 by Nox_Sound · 179987 by JelleGeus — all CC0; byte copies, 131 KB). NOT shipped: the -backup
+  takes, `glass-cracks.png` (the cracks are drawn in code), the chandelier. `--only=roof,break,sfx` builds them. **≈ 950 KB in all.**
 - REUSED, no copy: JAYWALK's `audio/jaywalk/area-arrive.mp3` · `new-best.mp3`. (JAYWALK's skyline is no longer used: the rooftop has its own panoramas.)
   (HIGH RISE's reflection map is not used: FREEFALL's slices are lit neon, not glass.)
 
@@ -612,9 +756,10 @@ freefall-play.html  css/freefall-play.css           THE TEST PAGE (F2 — prefix
 js/games/freefall/play.js stage.js                  the page (THE DOOR, its flags, its best) · THE STAGE (the run loop, the HUD, the opening, the hold, the end)
 js/games/freefall/night.js night-fx.js day-fx.js    THE SCENE (both looks): the scene · its shaders + the bloom · the day pieces (F3)      bakedtext.js   the baked big number
 js/games/freefall/palettes.js banner.js             THE AREA PALETTES (pure — F3) · THE ARRIVAL BANNERS (F3)
+js/games/freefall/breaks.js break-fx.js             THE BREAKTHROUGHS (F3B): the skylight, the water, the seabed, the sprites + their timelines · their shaders
 js/games/freefall/best.js endscreen.js              YOUR BEST (pure) · the end card (JAYWALK's standard)
 js/games/freefall/sounds.js sfx.js audition.js      the sounds' table + triggers (pure) · the player · the SOUNDS list
-assets/freefall/walls/ sky/ title/ fx/  audio/freefall/  the eight walls (night + day) · the rooftop's two panoramas · the title (F3) · the flame atlas · the seven sounds      scripts/build-freefall-assets.py
+assets/freefall/walls/ sky/ roof/ title/ fx/  audio/freefall/  the eight walls (night + day) · the rooftop's two panoramas · the roof below + its city (F3B) · the title (F3) · the flame atlas + the breakthroughs' textures (F3B) · the ten sounds      scripts/build-freefall-assets.py
 freefall-lab.html  css/freefall-lab.css             THE LAB + its HUD (prefix ff-; self-contained: no tokens, no web font)
 js/games/freefall/tuning.js                         THE RULE-SET TABLE + the classic row by name (pure, imports nothing)
 js/games/freefall/tower-gen.js                      THE TOWER: buildFloor + the angle maths + the fairness checks it builds by (pure)
@@ -622,13 +767,14 @@ js/games/freefall/engine.js logic.js replay.js      THE RULES (pure — the phon
 js/games/freefall/bot.js                            the sim bots          scripts/freefall-sim.mjs   the 2,000-seed table
 js/games/freefall/lab.js graybox.js                 THE LAB's page · its three.js graybox
 api/_lib/freefall.js                                THE JUDGE's server half (pure, NOT wired)
-tests/freefall-engine.test.mjs (24) · freefall-tower.test.mjs (11) · freefall-server.test.mjs (8) · freefall-sim.test.mjs (8) · freefall-lab.test.mjs (5 — the static half) · freefall-play.test.mjs (15 — F2 + F3, static)
-tests/integration/freefall-play.mjs (104 — the browser: the test page, both looks; --look · --perf)
+tests/freefall-engine.test.mjs (25) · freefall-tower.test.mjs (11) · freefall-server.test.mjs (8) · freefall-sim.test.mjs (9) · freefall-lab.test.mjs (5 — the static half) · freefall-play.test.mjs (16 — F2 + F3 + F3B, static)
+tests/integration/freefall-play.mjs (131 — the browser: the test page, both looks; --f3b · --look · --perf · --stutters)
 tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900; scripts/serve.mjs is enough) · kit/page-loads.mjs (/freefall-lab)
 ```
 
 ## COMING
-F3B: THE BREAKTHROUGHS (skylight 40, splashdown 120, THE BOTTOM 200) + their assets + sounds + THE BOTTOM's finish · then the cards, the
-cartridge + the proof node (F4 — the judge wired, the run node chunked, THE HOLD's legs on the server's clock, SHARE; the stage takes
-the console's GAME LOOK there), the match, the daily · F5: THE MARK (docs/games/plan.md "FREEFALL — F3"). Open questions for the
-owner: `docs/games/passes/freefall-f3.md` "OPEN FOR BEN".
+F4: the cards, the cartridge + the proof node (the judge wired, the run node chunked, THE HOLD's legs on the server's clock, SHARE; the
+stage takes the console's GAME LOOK there; **THE FINISH's hook — `onFinish` — is where the match + the daily are wired**; a rival's
+ghost passing a breakthrough = a small echo), the match, the daily; the site's Credits sheet gets its FREEFALL group at go-live (every
+source is CC0 — `assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`) · F5: THE MARK (docs/games/plan.md "FREEFALL — F3"). Open
+questions for the owner: `docs/games/passes/freefall-f3b.md` "OPEN FOR BEN".

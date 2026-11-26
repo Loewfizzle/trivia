@@ -169,6 +169,10 @@ void main() {
     float outside = smoothstep(0.455, 0.5, max(re.x, re.y));
     vec3 rf = pow(texture2D(tRoof, vec2(ru.x, mix(1.0 - ru.y, ru.y, uFlipR))).rgb, vec3(2.2));
     vec3 ct = pow(texture2D(tCity, vec2(ru.x * 2.0, mix(1.0 - ru.y * 2.0, ru.y * 2.0, uFlipC))).rgb, vec3(2.2));
+    // (the tile is repeated MIRRORED: a second reading of it — turned, at another scale — takes over in soft patches, so no block of the
+    //  city stands beside its own mirror image)
+    vec3 ct2 = pow(texture2D(tCity, vec2(ru.y * 2.34 + 0.37, ru.x * 2.34 + 0.11)).rgb, vec3(2.2));
+    ct = mix(ct, ct2, smoothstep(0.44, 0.56, vnoise(ru * 2.7 + 5.0)));
     vec3 flat_ = mix(vec3(0.016, 0.012, 0.04), vec3(0.3, 0.33, 0.38), uDay);
     vec3 g = mix(mix(flat_, rf, uHaveR), mix(flat_, ct, uHaveC), outside);
     g *= mix(1.5, 1.0, uDay);                                 // (by night the painting is shown a little over its own light: the neon reads from 40 floors up)

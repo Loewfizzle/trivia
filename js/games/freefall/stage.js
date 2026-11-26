@@ -15,7 +15,7 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
 import { createRun, stepTo, turn, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
-import { sliceStart, kindAtTick, wrap, angDiff } from './tower-gen.js';
+import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { replay, judgeRun } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
@@ -303,7 +303,16 @@ export function createStage(app, o = {}) {
   /** the checks' own hand (`hook.auto` — never a player's): 'gap' = every floor's gap (a dive: THE BLAZE) · 'play' = a bounce a floor, then its gap ·
    *  'smash' = gaps until THE BLAZE is lit, then solid ground (a shatter) · 'safe' = stay on safe ground · 'red' = onto the red */
   function autoTurn(T) {
-    const a = hook.auto, want = gapTurn(a === 'red' ? RED : a === 'safe' || (a === 'play' && run.fl !== 'bounce') || (a === 'smash' && run.blaze) ? SAFE : GAP), n = Math.max(1, Math.min(4, T - autoTick)), lim = 90 * n;
+    const a = hook.auto, n = Math.max(1, Math.min(4, T - autoTick)), lim = 90 * n;
+    let want = gapTurn(a === 'red' ? RED : a === 'safe' || (a === 'play' && run.fl !== 'bounce') || (a === 'smash' && run.blaze) ? SAFE : GAP);
+    // (F3B — 'play' never turns ACROSS red: if the gap is further than the tower can turn before the next landing, it stops on the last
+    //  ground short of it that is not red, and goes on from there the bounce after — the checks' runs reach the floor they are sent to)
+    if (a === 'play' && !run.blaze) {
+      const fl = floorNow(run), reach = 90 * Math.max(0, run.nl - T), dir = want < 0 ? -1 : 1;
+      let part = Math.abs(want) > reach ? reach : Math.abs(want);
+      while (part > 0 && kindAtTick(fl, sliceUnder(wrap(run.a + dir * part), fl.twist), run.nl, run.R) === RED) part -= 170;
+      want = part > 0 ? dir * part : 0;
+    }
     owed = want > lim ? lim : want < -lim ? -lim : want;
   }
   /** offer the turn still owed, tick by tick up to tick T (MAX SPIN: at most 171 units count at one tick — the tower catches up) */
