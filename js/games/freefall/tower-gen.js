@@ -185,19 +185,113 @@ function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   return red;
 }
 
-/** floor `i` of the tower with seed hash `h`, written INTO `out` { i, twist, gap, red } (the engine keeps ONE record a run) → out */
+// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ gen.move.from — solo; a match / a daily ends ON floor 200 and never lands there).
+// A trench floor has up to TWO red slices that MOVE (one from the first lap, by the lap's chance; two from lap `gen.move.two`): each walks
+// back and forth along its own TRACK (2 … gen.move.max solid slices side by side), one slice every `pace` ticks — its slice is a PURE
+// FUNCTION of (seed, floor, tick). FAIR BY CONSTRUCTION, at EVERY tick (every stand of every mover is checked while the floor is built):
+//   · a track never holds a slice STRAIGHT BELOW A GAP of the floor above (twists counted) — a ball that comes through a gap never
+//     meets the moving red on its landing, at whatever tick it falls (every fall window)
+//   · wherever the movers stand, the floor still has ≥ safeMin safe slices, NO ISLAND holds and THE FALL WINDOW holds
+//   · a mover only ever steps to the slice NEXT to it (it is seen coming for `pace` ticks); two tracks never share a slice
+// At most ONE static red slice lies inside a track — it is UN-LAID (it is the one that moves now: the red count stays what it was);
+// a track of safe slices only ADDS one red to the floor. A mover = ONE integer: its track's first slice | its length << 4 | its phase << 8.
+
+/** the slices of a floor (`twist`) that lie straight below a gap of the floor above (`gapUp` / `twistUp`) — any shared point counts → a 12-bit mask */
+export function underGaps(twist, gapUp, twistUp) {
+  let m = 0;
+  for (let s = 0; s < SLICES; s++) {
+    for (let g = 0; g < SLICES; g++) {
+      if (((gapUp >> g) & 1) && arcsMeet(sliceStart(s), sliceStart(s + 1) - sliceStart(s), wrap(sliceStart(g) + twistUp - twist), sliceStart(g + 1) - sliceStart(g))) { m |= 1 << s; break; }
+    }
+  }
+  return m;
+}
+/** a mover's TRACK (a 12-bit mask; 0 = no mover) */
+export function trackMask(m) {
+  let t = 0;
+  for (let q = 0, n = (m >> 4) & 15; q < n; q++) t |= 1 << (((m & 15) + q) % SLICES);
+  return t;
+}
+/** a mover's slice at tick `t` (−1 = no mover): back and forth along its track, a slice every `pace` ticks */
+export function moverSlice(m, t, R = CLASSIC) {
+  const n = (m >> 4) & 15;
+  if (!n) return -1;
+  const per = 2 * n - 2, j = (Math.floor(t / R.gen.move.pace) + (m >> 8)) % per;
+  return ((m & 15) + (j < n ? j : per - j)) % SLICES;
+}
+
+/** one more mover for the floor in `out` (its `red` loses the track's own static red) → the mover, or 0 = no room; `other` = the mover the floor already has (0 = none) */
+function layMover(h, i, R, out, gapUp, twistUp, cand, salt, other) {
+  const G = R.gen, MV = G.move, gap = out.gap, twist = out.twist, reach = reachAt(i, R);
+  const oTrack = trackMask(other), oS = other & 15, oN = (other >> 4) & 15;
+  const c0 = pick(h, i, salt) % SLICES;
+  for (let j = 0; j < SLICES; j++) {
+    const s = (c0 + j) % SLICES;
+    if (!((cand >> s) & 1)) continue;
+    let run = 1;
+    while (run < MV.max && ((cand >> ((s + run) % SLICES)) & 1)) run++;
+    for (let n = run; n >= 2; n--) {
+      const m = s | (n << 4), track = trackMask(m);
+      if ((track & oTrack) || bits(out.red & track) > 1) continue;   // (at most ONE static red in a track — never a wall of red traded for one mover)
+      const still = out.red & ~track;
+      if (SLICES - bits(gap) - bits(still) - (other ? 2 : 1) < G.safeMin) continue;
+      let ok = true;
+      for (let q = 0; q < n && ok; q++) {
+        for (let r = 0; r < (oN || 1) && ok; r++) {
+          const red = still | (1 << ((s + q) % SLICES)) | (oN ? 1 << ((oS + r) % SLICES) : 0);
+          if (!reachOk(gap, red, R.hop) || !windowOk(red, twist, gapUp, twistUp, reach)) ok = false;
+        }
+      }
+      if (!ok) continue;
+      out.red = still;
+      return m | ((pick(h, i, salt + 1) % (2 * n - 2)) << 8);
+    }
+  }
+  return 0;
+}
+/** a floor's MOVING RED, written INTO `out` (`m1` · `m2` — 0 = none) — and `out.red` without the tracks' own static red */
+function moversInto(h, i, R, out, gapUp, twistUp) {
+  out.m1 = 0; out.m2 = 0;
+  const G = R.gen, MV = G.move;
+  if (!MV || i < MV.from || i < 1) return;
+  const lap = lapOf(i, G);
+  let chance = MV.chance + (lap - 1) * MV.lap;
+  if (chance > 256) chance = 256;
+  if ((pick(h, i, 0x9ca701) & 255) >= chance) return;
+  const cand = ~out.gap & ~underGaps(out.twist, gapUp, twistUp) & FULL;
+  out.m1 = layMover(h, i, R, out, gapUp, twistUp, cand, 0x9ca710, 0);
+  if (out.m1 && MV.two && lap >= MV.two) out.m2 = layMover(h, i, R, out, gapUp, twistUp, cand, 0x9ca720, out.m1);
+}
+
+/** how many reds move on floor record `fl` (0 … 2) */
+export const moverCount = fl => (fl.m1 ? 1 : 0) + (fl.m2 ? 1 : 0);
+/** THE MOVING RED's slices on floor record `fl` at tick `t` → a 12-bit mask (0 = none) */
+export function moversAt(fl, t, R = CLASSIC) {
+  let m = 0;
+  if (fl.m1) m |= 1 << moverSlice(fl.m1, t, R);
+  if (fl.m2) m |= 1 << moverSlice(fl.m2, t, R);
+  return m;
+}
+/** every slice a mover of the floor ever stands on (a 12-bit mask; 0 = none) */
+export const trackOf = fl => trackMask(fl.m1) | trackMask(fl.m2);
+/** a slice's kind AT TICK `t` — the static layout + the moving red (the engine's landings read THIS) */
+export const kindAtTick = (fl, s, t, R = CLASSIC) => ((fl.gap >> s) & 1 ? GAP : ((fl.red >> s) & 1) || (fl.m1 && ((moversAt(fl, t, R) >> s) & 1)) ? RED : SAFE);
+
+/** floor `i` of the tower with seed hash `h`, written INTO `out` { i, twist, gap, red, m1, m2 } (the engine keeps ONE record a run) → out */
 export function floorInto(h, i, R, out) {
-  const twist = twistOf(h, i), gap = gapsOf(h, i, R);
+  const twist = twistOf(h, i), gap = gapsOf(h, i, R), gapUp = i > 0 ? gapsOf(h, i - 1, R) : 0, twistUp = i > 0 ? twistOf(h, i - 1) : 0;
   out.i = i; out.twist = twist; out.gap = gap;
-  out.red = i > 0 ? redOf(h, i, R, gap, twist, gapsOf(h, i - 1, R), twistOf(h, i - 1)) : redOf(h, i, R, gap, twist, 0, 0);
+  out.red = redOf(h, i, R, gap, twist, gapUp, twistUp);
+  moversInto(h, i, R, out, gapUp, twistUp);
   return out;
 }
 /** … from the seed's hash → a new record */
-export const floorAt = (h, i, R = CLASSIC) => floorInto(h, i, R, { i: 0, twist: 0, gap: 0, red: 0 });
+export const floorAt = (h, i, R = CLASSIC) => floorInto(h, i, R, { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 });
 
 /**
- * buildFloor(seed, i) → { i, twist, gap, red, slices } — a PURE FUNCTION of (seed, floor index): `twist` 0 … 4095 · `gap` / `red` = 12-bit
- * masks (bit s = slice s) · `slices` = the 12 kinds in order (SAFE 0 · GAP 1 · RED 2). Slice s covers the floor's own angles
+ * buildFloor(seed, i) → { i, twist, gap, red, m1, m2, slices } — a PURE FUNCTION of (seed, floor index): `twist` 0 … 4095 · `gap` / `red` = 12-bit
+ * masks (bit s = slice s) · `slices` = the 12 kinds in order (SAFE 0 · GAP 1 · RED 2 — the STATIC layout; a trench floor's MOVING RED:
+ * `m1` / `m2`, moversAt(floor, tick)). Slice s covers the floor's own angles
  * sliceStart(s) … sliceStart(s + 1) − 1; in the world it sits at (its own angle + twist + the tower's angle A).
  */
 export function buildFloor(seed, i, R = CLASSIC) {

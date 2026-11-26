@@ -3,8 +3,9 @@
 // FROM THE OUTSIDE (this file's own maths, angle by angle or slice by slice — never the generator's own helpers for the rule under test).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TURN, SLICES, BALL, SAFE, GAP, RED, GEN, REACH, HOP, FALL, BOUNCE, HUMAN, RULE_SETS, makeRuleSet, rampOf } from '../js/games/freefall/tuning.js';
-import { buildFloor, floorAt, floorInto, seedHash, twistOf, gapsOf, sliceStart, sliceOf, sliceUnder, kindAt, wrap, angDiff, windowOk, reachOk, reachAt } from '../js/games/freefall/tower-gen.js';
+import { TURN, SLICES, BALL, SAFE, GAP, RED, GEN, REACH, HOP, FALL, BOUNCE, HUMAN, MOVE, RULE_SETS, makeRuleSet, rampOf } from '../js/games/freefall/tuning.js';
+import { createHash } from 'node:crypto';
+import { buildFloor, floorAt, floorInto, seedHash, twistOf, gapsOf, sliceStart, sliceOf, sliceUnder, kindAt, kindAtTick, wrap, angDiff, windowOk, reachOk, reachAt, underGaps, trackOf, trackMask, moverSlice, moversAt, moverCount } from '../js/games/freefall/tower-gen.js';
 
 const SEEDS = 2000, FLOORS = 240;          // every seed: floors 0 … 239 (THE ROOFTOP … THE BOTTOM + the first lap of THE TRENCH)
 const DEEP_SEEDS = 250, DEEP_TO = 520;     // + THE TRENCH's laps for 250 seeds
@@ -13,7 +14,7 @@ const count = m => { let n = 0; for (let s = 0; s < SLICES; s++) n += bit(m, s);
 const row = fl => Array.from({ length: SLICES }, (_, s) => 'sGR'[kindAt(fl, s)]).join('');
 /** every floor of the proof, once: (h, i, floor, the floor above | null, seed index) */
 function eachFloor(fn, seeds = SEEDS, floors = FLOORS, from = 0) {
-  const a = { i: 0, twist: 0, gap: 0, red: 0 }, b = { i: 0, twist: 0, gap: 0, red: 0 };
+  const a = { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 }, b = { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 };
   for (let k = 0; k < seeds; k++) {
     const h = seedHash(`t${k}`);
     let up = null, cur = a;
@@ -75,13 +76,13 @@ test('buildFloor(seed, i) IS A PURE FUNCTION of (seed, floor index): any floor, 
   const order = [199, 0, 57, 3, 120, 56, 58, 400, 1, 239], first = order.map(i => buildFloor('pure', i));
   for (let pass = 0; pass < 3; pass++) for (const [n, i] of [...order.entries()].reverse()) assert.deepEqual(buildFloor('pure', i), first[n], `floor ${i} again`);
   const f = buildFloor('pure', 57);
-  assert.deepEqual(Object.keys(f).sort(), ['gap', 'i', 'red', 'slices', 'twist']);
+  assert.deepEqual(Object.keys(f).sort(), ['gap', 'i', 'm1', 'm2', 'red', 'slices', 'twist']);   // (F2: m1 · m2 = THE TRENCH's moving red — 0 above it)
   assert.equal(f.i, 57); assert.ok(Number.isInteger(f.twist) && f.twist >= 0 && f.twist < TURN);
   assert.equal(f.slices.length, 12);
   for (let s = 0; s < SLICES; s++) assert.equal(f.slices[s], bit(f.gap, s) ? GAP : bit(f.red, s) ? RED : SAFE);
   assert.equal(f.gap & f.red, 0, 'a slice is one kind');
   const h = seedHash('pure');
-  assert.deepEqual(floorAt(h, 57), { i: 57, twist: f.twist, gap: f.gap, red: f.red }, 'the engine\'s own reader builds the same floor');
+  assert.deepEqual(floorAt(h, 57), { i: 57, twist: f.twist, gap: f.gap, red: f.red, m1: 0, m2: 0 }, 'the engine\'s own reader builds the same floor');
   assert.equal(twistOf(h, 57), f.twist); assert.equal(gapsOf(h, 57), f.gap);
   assert.equal(seedHash(57), seedHash('57'), 'a seed is its text');
   // another seed = another tower (the twists alone differ on almost every floor)
@@ -268,10 +269,10 @@ test('THE DIFFICULTY RAMPS BY LAYOUT ONLY: down the tower the gaps get fewer and
     const h = seedHash(`t${k}`);
     for (const b of bands) for (let i = b.from; i < b.to; i++) {
       const fl = floorAt(h, i);
-      b.n++; b.open += count(fl.gap); b.red += count(fl.red);
+      b.n++; b.open += count(fl.gap); b.red += count(fl.red) + (fl.m1 ? 1 : 0) + (fl.m2 ? 1 : 0);   // (F2: a moving red is red — one slice at a time)
       for (let s = 0; s < SLICES; s++) {
         if (bit(fl.gap, s) && !bit(fl.gap, s - 1)) { b.gaps++; if (bit(fl.gap, s + 1)) b.wide++; }
-        if (!bit(fl.gap, s) && (bit(fl.gap, s - 1) || bit(fl.gap, s + 1))) { b.beside++; if (bit(fl.red, s)) b.hug++; }
+        if (!bit(fl.gap, s) && (bit(fl.gap, s - 1) || bit(fl.gap, s + 1))) { b.beside++; if (bit(fl.red | trackOf(fl), s)) b.hug++; }   // (F2: a moving red's track beside a gap hugs it too)
       }
     }
   }
@@ -309,4 +310,104 @@ test('A RULE-SET ROW owns the layout: a what-if row (makeRuleSet) builds its own
   }
   assert.ok(less > 100, `the softer row lays less red on ${less} of 200 floors`);
   assert.deepEqual(floorAt(h, 150), floorAt(h, 150, RULE_SETS.classic));
+});
+
+// ---- F2 — MOVING RED (THE TRENCH, solo — docs/freefall.md "MOVING RED"): checked FROM THE OUTSIDE, with every mover on every slice of its track
+const P5 = { floors: 0, movers: 0, two: 0, stands: 0, points: 0 };
+test('F2 — FLOORS 0–200 ARE F1\'s, TO THE BIT: the moving red changes nothing above THE TRENCH (the digest of F1\'s tower, taken on 639f7fca before the change) — and no floor up there has a mover', () => {
+  const hsh = createHash('sha256');
+  for (let s = 0; s < 300; s++) { const h = seedHash(`d${s}`); for (let i = 0; i <= 200; i++) { const f = floorAt(h, i); hsh.update(`${f.twist},${f.gap},${f.red};`); assert.equal(f.m1 | f.m2, 0, `floor ${i}: no mover above the trench`); } }
+  assert.equal(hsh.digest('hex').slice(0, 16), '01feecfdacd61711', 'floors 0–200 of 300 towers: twist, gaps, red — F1\'s, bit for bit');
+  assert.deepEqual(MOVE, { from: 201, pace: 45, max: 4, chance: 154, lap: 51, two: 3 });
+  // a what-if row without the rule builds F1's trench too (the static red is only ever touched by a mover's own track)
+  const plain = JSON.parse(JSON.stringify(RULE_SETS.classic)); delete plain.reach; delete plain.hop;
+  const still = makeRuleSet({ ...plain, id: 'still', gen: { ...plain.gen, move: null } });
+  const h = seedHash('still');
+  for (let i = 201; i < 420; i++) { const a = floorAt(h, i), b = floorAt(h, i, still); assert.equal(b.m1 | b.m2, 0); assert.equal(a.gap, b.gap); assert.equal(a.twist, b.twist); assert.equal(a.red & ~trackOf(a), b.red & ~trackOf(a), 'outside a track the static red is F1\'s'); assert.ok(count(b.red & trackOf(a)) <= moverCount(a), 'a track takes at most ONE static red — the one that moves now'); }
+});
+
+test('F2 — MOVING RED, FAIR BY CONSTRUCTION — wherever the movers stand: ≥ 3 safe slices, red ≤ 8, THE FALL WINDOW + NO ISLAND hold; a track is 2–4 solid slices, never a slice STRAIGHT BELOW A GAP of the floor above (angle by angle), two tracks never share a slice', () => {
+  const a = { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 }, b = { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 }, x = { i: 0, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 };
+  const lapN = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], lapM = lapN.slice(), lap2 = lapN.slice();
+  const sweep = (seeds, from, to, angles) => {
+    for (let k = 0; k < seeds; k++) {
+      const h = seedHash(`mv${k}`);
+      for (let i = from; i < to; i++) {
+        const up = floorInto(h, i - 1, RULE_SETS.classic, a), fl = floorInto(h, i, RULE_SETS.classic, b);
+        const lap = Math.floor((i - 201) / 40) + 1;
+        P5.floors++; lapN[Math.min(9, lap)]++;
+        if (!fl.m1) { assert.equal(fl.m2, 0, 'never a second mover without a first'); continue; }
+        P5.movers++; lapM[Math.min(9, lap)]++; if (fl.m2) { P5.two++; lap2[Math.min(9, lap)]++; }
+        const t1 = trackMask(fl.m1), t2 = trackMask(fl.m2), n1 = count(t1), n2 = count(t2);
+        assert.ok(n1 >= 2 && n1 <= MOVE.max && (!fl.m2 || (n2 >= 2 && n2 <= MOVE.max)), `floor ${i}: a track is 2 … ${MOVE.max} slices`);
+        assert.equal(t1 & t2, 0, 'two tracks never share a slice');
+        assert.equal((t1 | t2) & (fl.gap | fl.red), 0, 'a track is solid ground that is not static red');
+        // (a track's slices lie side by side: its mask is one run of the ring)
+        for (const [m, t] of [[fl.m1, t1], [fl.m2, t2]]) if (m) for (let q = 0; q < ((m >> 4) & 15); q++) assert.ok(bit(t, (m & 15) + q));
+        // STRAIGHT BELOW A GAP: this file's own interval maths — no track slice shares an angle with a gap of the floor above
+        for (let s = 0; s < SLICES; s++) {
+          if (!bit(t1 | t2, s)) continue;
+          for (let g = 0; g < SLICES; g++) {
+            if (!bit(up.gap, g)) continue;
+            const g0 = wrap(sliceStart(g) + up.twist - fl.twist), gl = sliceStart(g + 1) - sliceStart(g), s0 = sliceStart(s), sl = sliceStart(s + 1) - s0;
+            if (inArc(s0, g0, gl) || inArc(g0, s0, sl)) assert.fail(`floor ${i}: track slice ${s} lies under a gap (${row(up)} twist ${up.twist} over ${row(fl)} twist ${fl.twist})`);
+          }
+        }
+        if (angles) for (let A = 0; A < TURN; A++) { if (kindAt(up, sliceUnder(A, up.twist)) === GAP) { P5.points++; assert.equal(bit(t1 | t2, sliceUnder(A, fl.twist)), 0, `floor ${i} angle ${A}: a ball through the gap lands on a track`); } }
+        // EVERY STAND of the movers: the static rules, proved again by this file's own checkers (1 · 3 · 4) on the floor as it stands then
+        for (let q = 0; q < n1; q++) for (let r = 0; r < (n2 || 1); r++) {
+          const stands = (1 << (((fl.m1 & 15) + q) % SLICES)) | (fl.m2 ? 1 << (((fl.m2 & 15) + r) % SLICES) : 0);
+          x.i = i; x.twist = fl.twist; x.gap = fl.gap; x.red = fl.red | stands;
+          P5.stands++;
+          assert.ok(SLICES - count(x.gap) - count(x.red) >= 3 && count(x.red) <= 8, `floor ${i}: ${row(x)}`);
+          proof3.check(h, i, x, up); proof4.check(h, i, x);
+        }
+      }
+    }
+  };
+  sweep(500, 201, 281, false); sweep(150, 281, 521, false); sweep(30, 201, 441, true);
+  const share = l => lapM[l] / lapN[l], twos = l => lap2[l] / lapN[l];
+  console.log(`[freefall-tower] moving red — ${P5.floors} trench floors, ${P5.movers} with a mover (${P5.two} with two), ${P5.stands} stands checked, ${P5.points} gap points · by lap: ${[1, 2, 3, 4, 5, 6].map(l => `${l}: ${(share(l) * 100).toFixed(0)} % (two ${(twos(l) * 100).toFixed(0)} %)`).join(' · ')}`);
+  assert.ok(P5.movers > 30000 && P5.two > 5000 && P5.stands > 150000 && P5.points > 500000);
+  assert.ok(share(1) > 0.45 && share(1) < 0.65 && share(2) > share(1) + 0.1 && share(3) > share(2), `more floors move each lap: ${share(1).toFixed(2)} → ${share(2).toFixed(2)} → ${share(3).toFixed(2)}`);
+  assert.equal(twos(1) + twos(2), 0, 'ONE mover a floor on the first two laps');
+  assert.ok(twos(3) > 0.2 && twos(5) > 0.2, `from the third lap TWO reds move on ${(twos(3) * 100).toFixed(0)} % of the floors`);
+});
+
+test('F2 — MOVING RED\'s SLICE IS A PURE FUNCTION OF (seed, floor, tick): a fixed slow rate (a slice every 45 ticks), only ever to the slice NEXT to it, back and forth over its whole track — and a slice\'s kind at a tick = the static layout + the movers', () => {
+  let seen = 0;
+  for (let k = 0; k < 60 && seen < 400; k++) {
+    const h = seedHash(`mt${k}`);
+    for (let i = 201; i < 400; i++) {
+      const fl = floorAt(h, i);
+      for (const m of [fl.m1, fl.m2]) {
+        if (!m) continue;
+        seen++;
+        const n = (m >> 4) & 15, per = 2 * n - 2, track = trackMask(m);
+        let visited = 0, prev = moverSlice(m, 0);
+        for (let t = 0; t <= per * MOVE.pace * 2; t++) {
+          const s = moverSlice(m, t);
+          assert.ok(bit(track, s), 'it stays on its track');
+          if (t % MOVE.pace !== 0) assert.equal(s, prev, `tick ${t}: it only moves every ${MOVE.pace} ticks`);
+          else if (t) { const d = ((s - prev) % SLICES + SLICES) % SLICES; assert.ok(d === 1 || d === SLICES - 1, `tick ${t}: one slice to the side (${prev} → ${s})`); }
+          visited |= 1 << s; prev = s;
+          assert.equal(moverSlice(m, t + per * MOVE.pace), s, 'its walk repeats');
+        }
+        assert.equal(visited, track, 'it walks its whole track');
+        assert.equal(moverSlice(m, 123456), moverSlice(m, 123456), 'asked twice');
+      }
+      // the kind at a tick
+      if (fl.m1) for (const t of [0, 44, 45, 1000, 9999]) {
+        const at = moversAt(fl, t);
+        assert.equal(count(at), moverCount(fl));
+        for (let s = 0; s < SLICES; s++) assert.equal(kindAtTick(fl, s, t), bit(fl.gap, s) ? GAP : bit(fl.red | at, s) ? RED : SAFE);
+      }
+      // the same floor asked again, in another order, is the same floor
+      assert.deepEqual(floorAt(h, i), fl);
+    }
+  }
+  assert.ok(seen >= 400);
+  assert.equal(moverSlice(0, 5), -1); assert.equal(trackMask(0), 0); assert.equal(moversAt(floorAt(seedHash('x'), 50), 99), 0);
+  assert.equal(underGaps(0, 0b000000000010, 0), 0b000000000010, 'the slice straight below');
+  assert.equal(underGaps(100, 0b000000000010, 0), 0b000000000011, 'a twist of 100 units: the gap lies over two slices');
 });

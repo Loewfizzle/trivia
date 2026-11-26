@@ -10,7 +10,7 @@
 import { rngFrom, hashString } from '../../core/rng.js';
 import { TURN, SLICES, BALL, GAP, RED } from './tuning.js';
 import { stepTo, turn, isOver, floorNow } from './engine.js';
-import { wrap, sliceStart, sliceOf, kindAt, floorAt } from './tower-gen.js';
+import { wrap, sliceStart, sliceOf, kindAt, floorAt, moversAt } from './tower-gen.js';
 
 /**
  * THE FOUR BOTS — `react` ticks before it answers something it did not see coming · `spin` angle units a tick at most (68 = 1 turn a
@@ -110,7 +110,13 @@ function fallPlan(run, bot, fl, p, left) {
 
 /** ONE FLIGHT's plan: the local turn the bot will make before the next landing + the ticks it waits first → { d, wait } */
 export function planFlight(run, bot) {
-  const { P } = bot, R = run.R, fl = floorNow(run), p = wrap(BALL - run.a - fl.twist), left = run.nl - run.t;
+  const { P } = bot, R = run.R, fl0 = floorNow(run);
+  // (F2 — MOVING RED, THE TRENCH: as a person does, a bot keeps off the slice a moving red stands on NOW — and a CAREFUL one off the
+  //  slice it is stepping to as well (where it stands a slice's time from now: the landing lies between the two). A floor with no
+  //  mover rolls no dice: floors 0–200 play exactly as in F1.)
+  const mv = fl0.m1 ? moversAt(fl0, run.t, R) | (bot.rand() < P.care ? moversAt(fl0, run.t + R.gen.move.pace, R) | moversAt(fl0, run.nl, R) : 0) : 0;
+  const fl = !mv ? fl0 : { twist: fl0.twist, gap: fl0.gap, red: fl0.red | mv };
+  const p = wrap(BALL - run.a - fl.twist), left = run.nl - run.t;
   const fresh = bot.seen !== run.floor;
   bot.seen = run.floor;
   if (run.blaze) return blazePlan(run, bot, fl, p, left);

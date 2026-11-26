@@ -17,7 +17,7 @@ const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2
 /** one bot, one mode, `n` seeds → its numbers (times in seconds) */
 export function simBot(id, mode, n, tag = 's', rules = undefined, bots = BOTS) {
   const time = [], floor = [], to200 = [], causes = { red: 0, dark: 0, made: 0, cap: 0 };
-  let r120 = 0, r200 = 0, stopped = 0, terminal = 0, bounces = 0, floors = 0, blazes = 0, afterShatter = 0, stayMax = 0;
+  let r120 = 0, r200 = 0, stopped = 0, terminal = 0, bounces = 0, floors = 0, blazes = 0, afterShatter = 0, stayMax = 0, saves = 0, saved = 0, trench = 0;
   for (let i = 0; i < n; i++) {
     const seed = `${tag}${i}`, run = createRun({ seed, mode, rules }), bot = makeBot(bots[id], seed);
     // (floor by floor — to see how long a bot ever STAYS on one floor: THE DARKNESS needs lead × pace ticks to reach a ball that stands still)
@@ -30,12 +30,14 @@ export function simBot(id, mode, n, tag = 's', rules = undefined, bots = BOTS) {
       if (run.floor === BOTTOM_FLOOR && !done) { to200.push(run.at / TICK_HZ); done = true; }
     }
     if (!isOver(run)) stopped++; else causes[run.st === 'out' ? run.cause : run.st]++;
-    if (run.cause === 'red' && run.sf === run.floor) afterShatter++;   // (out on the landing right after a shatter)
+    if (run.cause === 'red' && run.sf === run.floor && run.R.shatterSafe !== true) afterShatter++;   // (a what-if row without rule b: out on the floor a shatter dropped the ball to)
     time.push((isOver(run) ? run.end : run.at) / TICK_HZ); floor.push(run.floor);
     if (run.floor >= HARBOR_FLOOR) r120++;
     if (run.floor >= BOTTOM_FLOOR) r200++;
     if (run.maxNb >= TERMINAL_RUN) terminal++;
     bounces += run.bounces; floors += run.floor; blazes += run.blazes;
+    saves += run.saves; if (run.saves) saved++;   // (F2 — the landing right after a shatter is never an out: how often that rule turned a red landing into a bounce)
+    if (run.floor > BOTTOM_FLOOR) trench += run.floor - BOTTOM_FLOOR;
   }
   time.sort((a, b) => a - b); floor.sort((a, b) => a - b); to200.sort((a, b) => a - b);
   return {
@@ -44,6 +46,7 @@ export function simBot(id, mode, n, tag = 's', rules = undefined, bots = BOTS) {
     floor: { med: pct(floor, 0.5), p10: pct(floor, 0.1), p90: pct(floor, 0.9) },
     r120: r120 / n, r200: r200 / n, terminal: terminal / n,
     perFloor: floors ? bounces / floors : 0, blazes: blazes / n, afterShatter: afterShatter / n, stayMax: stayMax / TICK_HZ,
+    saves: saves / n, saved: saved / n, trench: r200 ? trench / r200 : 0,
     to200: to200.length ? { med: pct(to200, 0.5), p10: pct(to200, 0.1), p90: pct(to200, 0.9) } : null,
   };
 }
@@ -71,11 +74,11 @@ if (isMain) {
     console.log(`FREEFALL — the bot sims · ${n} seeds a bot · FIRST ${FIRST} · BOUNCE ${BOUNCE} · FALL ${FALL} · BLAZE ${BLAZE} · MAX SPIN ${MAX_SPIN} · DARK grace ${DARK.grace} pace ${DARK.pace} lead ${DARK.lead} · match cap ${mmss(MODES.match.capTicks / TICK_HZ)}`);
     console.log(`gaps ${JSON.stringify(GEN.gaps)} · wide ${JSON.stringify(GEN.wide)} · red ${JSON.stringify(GEN.red)} · hug ${JSON.stringify(GEN.hug)}`);
     console.log(`bots ${BOT_IDS.map(id => `${id} ${JSON.stringify(BOTS[id])}`).join(' · ')}`);
-    console.log('| mode | bot | floor med (p10–p90) | time med (p10–p90) | ≥ 120 | ≥ 200 | to floor 200 med (p10–p90) | red · dark · made · cap | out right after a shatter | the longest stay on a floor | TERMINAL | bounces a floor |');
+    console.log('| mode | bot | floor med (p10–p90) | time med (p10–p90) | ≥ 120 | ≥ 200 | to floor 200 med (p10–p90) | red · dark · made · cap | saved by the shatter rule (runs · a run) | the longest stay on a floor | TERMINAL | bounces a floor |');
     console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const r of rows) {
       const c = r.causes, p = v => `${(v * 100 / r.n).toFixed(1)} %`;
-      console.log(`| ${r.mode} | ${r.bot} | ${r.floor.med} (${r.floor.p10}–${r.floor.p90}) | ${mmss(r.time.med)} (${mmss(r.time.p10)}–${mmss(r.time.p90)}) | ${(r.r120 * 100).toFixed(1)} % | ${(r.r200 * 100).toFixed(1)} % | ${r.to200 ? `${mmss(r.to200.med)} (${mmss(r.to200.p10)}–${mmss(r.to200.p90)})` : '—'} | ${p(c.red)} · ${p(c.dark)} · ${p(c.made)} · ${p(c.cap)} | ${(r.afterShatter * 100).toFixed(1)} % | ${r.stayMax.toFixed(1)} s | ${(r.terminal * 100).toFixed(1)} % | ${r.perFloor.toFixed(2)} |${r.stopped ? ` (${r.stopped} stopped at floor ${SOLO_STOP})` : ''}`);
+      console.log(`| ${r.mode} | ${r.bot} | ${r.floor.med} (${r.floor.p10}–${r.floor.p90}) | ${mmss(r.time.med)} (${mmss(r.time.p10)}–${mmss(r.time.p90)}) | ${(r.r120 * 100).toFixed(1)} % | ${(r.r200 * 100).toFixed(1)} % | ${r.to200 ? `${mmss(r.to200.med)} (${mmss(r.to200.p10)}–${mmss(r.to200.p90)})` : '—'} | ${p(c.red)} · ${p(c.dark)} · ${p(c.made)} · ${p(c.cap)} | ${(r.saved * 100).toFixed(1)} % · ${r.saves.toFixed(2)} | ${r.stayMax.toFixed(1)} s | ${(r.terminal * 100).toFixed(1)} % | ${r.perFloor.toFixed(2)} |${r.stopped ? ` (${r.stopped} stopped at floor ${SOLO_STOP})` : ''}`);
     }
     console.log(`THE STALLER (no input, ${stall.n} seeds): the darkness takes ${stall.dark} of ${stall.n} runs, between ${stall.lo.toFixed(1)} s and ${stall.hi.toFixed(1)} s`);
   }

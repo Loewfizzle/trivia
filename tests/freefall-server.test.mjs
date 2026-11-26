@@ -4,8 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { judgeRun, judgePacked, serverRow } from '../api/_lib/freefall.js';
-import { createRun, stepTo, turn, isOver, resultOf, logOf } from '../js/games/freefall/engine.js';
-import { packLog, unpackLog, logProblem, seedProblem, maxEntries, replay, rulesOf } from '../js/games/freefall/replay.js';
+import { createRun, stepTo, turn, hold, isOver, resultOf, logOf } from '../js/games/freefall/engine.js';
+import { packLog, packRun, unpackLog, logProblem, seedProblem, maxEntries, replay, rulesOf } from '../js/games/freefall/replay.js';
 import { angDiff } from '../js/games/freefall/tower-gen.js';
 import { BOT_IDS, makeBot, playBot } from '../js/games/freefall/bot.js';
 import { MODES, MODE_IDS, MAX_SPIN, TURN, DARK, MAX_LOG, SEED_MAX, RULE_SETS } from '../js/games/freefall/tuning.js';
@@ -104,7 +104,7 @@ test('EVERY REFUSAL, BY NAME: rules · mode · seed · log · too many entries �
   for (const l of [undefined, null, 'abc', 5, {}, { length: 2 }, new Set()]) assert.equal(why({ seed, mode, log: l }), 'log');
   // too many entries — named by its length alone, before an entry is read
   const cap = MODES.match.capTicks;
-  assert.equal(maxEntries('match'), cap); assert.equal(maxEntries('solo'), MAX_LOG); assert.equal(maxEntries('nope'), MAX_LOG);
+  assert.equal(maxEntries('match'), cap); assert.equal(maxEntries('solo'), MAX_LOG + MODES.solo.holds); assert.equal(maxEntries('nope'), MAX_LOG);   // (F2: a solo log = its moves + its holds)
   assert.equal(why({ seed, mode, log: new Array(cap + 1).fill(null) }), 'too many entries');
   assert.equal(why({ seed, mode, log: new Array(cap).fill(null) }), 'entry');
   // entry
@@ -216,4 +216,34 @@ test('A RUN SCORED AS IT STANDS (`until` — a match scored live): the floors + 
     assert.deepEqual([r.floor, r.tick, r.end, r.cause], [run.floor, run.at, run.end, resultOf(run).cause]);
   }
   for (const bad of [NaN, -5, 12.5, '600', {}, Infinity]) assert.deepEqual([replay({ seed: 'until', mode: 'match', log, until: bad }).floor, replay({ seed: 'until', mode: 'match', log, until: bad }).over], [0, false]);
+});
+
+test('F2 — THE HOLD through the server half: a held solo run (its holds in the log) is judged to the tick — list + packed; the answer carries `holds`; a 4th hold, a hold in a match, a hold out of order = refused by name; the shatter rule + the moving red are the judge\'s too', () => {
+  let saves = 0, moved = 0;
+  for (let k = 0; k < 40; k++) {
+    const seed = `sh-${k}`, run = createRun({ seed, mode: 'solo' }), bot = makeBot(k % 2 ? 'great' : 'human', seed);
+    for (const stop of [400 + k * 7, 2000 + k * 11, 5000 + k * 13]) {
+      while (!isOver(run) && run.t < stop) playBot(run, bot, { maxFloor: run.floor + 1 });
+      if (!isOver(run)) assert.equal(hold(run, Math.max(run.t + 1, run.mt)), true);
+    }
+    playBot(run, bot, { maxFloor: 260 });
+    stepTo(run, MODES.solo.capTicks);
+    saves += run.saves; if (run.floor > 215) moved++;
+    const live = resultOf(run), log = logOf(run), v = judgeRun({ seed, mode: 'solo', log });
+    assert.equal(v.ok, true, `${seed}: ${v.why}`);
+    assert.deepEqual([v.floor, v.tick, v.end, v.cause, v.bounces, v.shatters, v.blazes, v.bestRun, v.moves, v.holds || 0], [live.floor, live.tick, live.end, live.cause, live.bounces, live.shatters, live.blazes, live.bestRun, live.moves, run.holds]);
+    const p = judgePacked({ seed, mode: 'solo', log: packRun(run) });
+    assert.deepEqual(p, v, 'the packed log judges the same');
+    assert.equal(packLog(log), packRun(run));
+    // the same log as a MATCH's: its holds are refused (a match never holds)
+    if (run.holds) assert.deepEqual(judgeRun({ seed, mode: 'match', log }), { ok: false, why: 'too many holds' });
+    // one more hold than the mode has
+    if (run.holds === 3) assert.deepEqual(judgeRun({ seed, mode: 'solo', log: [...log, { k: 'hold', t: live.end + 5 }] }), { ok: false, why: 'too many holds' });
+  }
+  assert.ok(moved >= 3, `${moved} of the runs went deep into THE TRENCH (the judge replays its moving red)`);
+  assert.ok(saves >= 0);
+  assert.deepEqual(judgePacked({ seed: 'x', mode: 'solo', log: '!5!4!1!1' }), { ok: false, why: 'too many holds' });
+  assert.deepEqual(judgePacked({ seed: 'x', mode: 'solo', log: '+5!0!0' }), { ok: false, why: 'log' }, 'not a canonical log');
+  assert.equal(judgePacked({ seed: 'x', mode: 'solo', log: '.5+5!0+1' }).holds, 1);
+  assert.deepEqual(serverRow(judgeRun({ seed: 'x', mode: 'solo', log: [{ k: 'hold', t: 50 }] })), { f: 0, t: 0, w: 'dark', e: 1140 + (50 - 18) }, 'a held empty run: the lights still go out — the hold gave back exactly the 32 ticks of the bounce it started over (the first landing was at tick 18)');
 });

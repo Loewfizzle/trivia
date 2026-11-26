@@ -53,7 +53,7 @@ export const makeRuleSet = r => {
     ...r,
     dark: Object.freeze({ ...r.dark }),
     human: Object.freeze({ ...r.human }),
-    gen: Object.freeze({ ...r.gen, gaps: freezeKnots(r.gen.gaps), wide: freezeKnots(r.gen.wide), red: freezeKnots(r.gen.red), hug: freezeKnots(r.gen.hug), lap: Object.freeze({ ...r.gen.lap }) }),
+    gen: Object.freeze({ ...r.gen, gaps: freezeKnots(r.gen.gaps), wide: freezeKnots(r.gen.wide), red: freezeKnots(r.gen.red), hug: freezeKnots(r.gen.hug), lap: Object.freeze({ ...r.gen.lap }), move: r.gen.move ? Object.freeze({ ...r.gen.move }) : null }),
     modes: Object.freeze(Object.fromEntries(Object.entries(r.modes).map(([k, v]) => [k, Object.freeze({ ...v })]))),
     reach, hop: hop < 1 ? 1 : hop,
   });
@@ -68,6 +68,7 @@ export const makeRuleSet = r => {
  *   bounce      a BOUNCE: the ticks from a landing on a SAFE slice to the next landing on the SAME floor — it never changes with depth
  *   fall        a FALL: the ticks from passing a floor (a gap, or a shatter) to the landing on the next one — it never changes with depth
  *   blaze       THE BLAZE: this many floors fallen in a row without a bounce light it
+ *   shatterSafe (F2 — the owner's rule b) THE LANDING RIGHT AFTER A SHATTER is never an out: red there = a BOUNCE (the clean count resets as for any bounce)
  *   dark        THE LIGHTS GO OUT: `grace` ticks of rest, then one floor every `pace` ticks; never more than `lead` floors above the ball's floor
  *   human       THE HUMAN PACE the fairness proofs are written for: a reaction of `react` ticks, then at most `spin` units a tick (1 turn a second)
  *   gen         THE LAYOUT (tower-gen.js) — difficulty comes from here only. Curves by floor (rampOf), each value in 256ths:
@@ -77,7 +78,10 @@ export const makeRuleSet = r => {
  *               windowRamp (THE FALL WINDOW comes in over this many floors from `belowUntil`: the escape a floor may ask for grows from 0 to the human reach)
  *               redMax · safeMin · gapSlicesMax (the hard bounds) · lap { from, every, red, hug } (THE TRENCH: past `from`, every `every` floors
  *               the red aim grows by `red` 256ths and the hug chance by `hug`)
+ *               move (F2 — MOVING RED, THE TRENCH only: floors ≥ `from`): { from, pace (the ticks it stays on a slice — a fixed slow rate), max (the
+ *               longest track, slices), chance (256ths: a floor of the first lap has one) + lap (… more each lap), two (from this lap TWO reds move) } — tower-gen.js#moverInto
  *   modes       each mode's `finish` (the floor that ends the run as MADE IT; null = endless) + `capTicks` (the tick the run ends where it stands)
+ *               + `holds` (F2 — THE HOLD: how often a run may be held — the page hidden / the phone locked; solo only: a match never holds)
  *   (derived)   reach = THE FALL WINDOW's human reach in angle units · hop = the longest red run (slices) a human-paced bounce crosses
  */
 export const RULE_SETS = Object.freeze({
@@ -86,6 +90,7 @@ export const RULE_SETS = Object.freeze({
     maxSpin: 171,
     first: 18, bounce: 36, fall: 18,
     blaze: 3,
+    shatterSafe: true,
     dark: { grace: 4 * TICK_HZ, pace: 150, lead: 6 },
     human: { react: 12, spin: 68 },
     gen: {
@@ -96,11 +101,12 @@ export const RULE_SETS = Object.freeze({
       redFrom: 10, hugFrom: 40, belowUntil: 120, windowRamp: 40,
       redMax: 8, safeMin: 3, gapSlicesMax: 6,
       lap: { from: 200, every: 40, red: 128, hug: 8 },
+      move: { from: 201, pace: 45, max: 4, chance: 154, lap: 51, two: 3 },
     },
     modes: {
-      solo: { finish: null, capTicks: 30 * 60 * TICK_HZ },
-      match: { finish: 200, capTicks: 3 * 60 * TICK_HZ },
-      daily: { finish: 200, capTicks: 3 * 60 * TICK_HZ },
+      solo: { finish: null, capTicks: 30 * 60 * TICK_HZ, holds: 3 },
+      match: { finish: 200, capTicks: 3 * 60 * TICK_HZ, holds: 0 },
+      daily: { finish: 200, capTicks: 3 * 60 * TICK_HZ, holds: 0 },
     },
   }),
 });
@@ -118,6 +124,10 @@ export const FIRST = C.first;
 export const BOUNCE = C.bounce;
 export const FALL = C.fall;
 export const BLAZE = C.blaze;
+/** F2 — THE LANDING RIGHT AFTER A SHATTER is never an out (red there = a bounce) */
+export const SHATTER_SAFE = C.shatterSafe;
+/** F2 — MOVING RED (THE TRENCH): { from, pace, max, chance, lap } */
+export const MOVE = C.gen.move;
 export const DARK = C.dark;
 export const HUMAN = C.human;
 export const GEN = C.gen;
@@ -151,5 +161,7 @@ export const TERMINAL_RUN = 15;
 export const SEED_MAX = 64;
 /** a run's whole log at most: ONE entry a tick (the ticks rise) — so never more entries than the longest mode has ticks */
 export const MAX_LOG = Object.values(C.modes).reduce((m, v) => (v.capTicks > m ? v.capTicks : m), 0);
+/** F2 — THE HOLD: the most holds any mode allows (the log's bound: its entries + this many holds) */
+export const HOLDS_MAX = Object.values(C.modes).reduce((m, v) => ((v.holds || 0) > m ? v.holds : m), 0);
 /** the longest a packed entry is: '.' + a gap (≤ 4 base-36 digits: 108000 = "2bc0") + a sign + a turn (≤ 3 digits: 2048 = "1kw") */
 export const ENTRY_CHARS_MAX = 9;

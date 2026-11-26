@@ -55,7 +55,7 @@ test('FREEFALL IS INVISIBLE TO PLAYERS (F1): no GAMES entry, no DAILIES row, no 
   assert.deepEqual(dir, ['bot.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'replay.js', 'tower-gen.js', 'tuning.js'], 'F1\'s files: no meta.js / index.js / view.js / director.js');
   for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
   // THE DAILY MODE is daily-ready only: it lives in the engine + the judge, and NOTHING turns it on
-  assert.match(read('js/games/freefall/tuning.js'), /daily: \{ finish: 200, capTicks: 3 \* 60 \* TICK_HZ \}/);
+  assert.match(read('js/games/freefall/tuning.js'), /daily: \{ finish: 200, capTicks: 3 \* 60 \* TICK_HZ, holds: 0 \}/);
   for (const f of ['js/daily', 'api/_lib']) for (const n of readdirSync(new URL(`../${f}/`, import.meta.url)).filter(x => x.endsWith('.js') && x !== 'freefall.js')) assert.doesNotMatch(read(`${f}/${n}`), /freefall/i, `${f}/${n}: no daily path`);
 });
 

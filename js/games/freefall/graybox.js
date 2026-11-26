@@ -5,7 +5,7 @@
 // VIEW ONLY: it reads the run + its EVENTS (engine.js) and eases the ball between two landings itself — the rules never read the frame clock.
 import * as THREE from 'three';
 import { TURN, SLICES, GAP, RED } from './tuning.js';
-import { buildFloor, sliceStart, sliceUnder } from './tower-gen.js';
+import { buildFloor, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
 
 const BG = 0x07060b;
 /** the world: a floor every H down the shaft; the ring from the pillar (RI) out to RO; the ball rides at RB, R_BALL wide */
@@ -59,15 +59,16 @@ export function createGraybox(host) {
   // ---- the floors in sight (built once each — buildFloor is pure) + the slices THE BLAZE broke
   let seed = '', floors = new Map(), broken = new Map(), laidFrom = -1, laidKey = '';
   const floorOf = i => { let f = floors.get(i); if (!f) { f = buildFloor(seed, i); floors.set(i, f); if (floors.size > 40) for (const k of floors.keys()) { if (k < i - 12) floors.delete(k); } } return f; };
-  function lay(from, dark) {
-    const key = `${from}|${dark}|${broken.size}`;
+  function lay(from, dark, tick = 0) {
+    // (F2 — THE TRENCH's MOVING RED: a mover's slice is red where it stands at this tick; the floors are laid again when one steps)
+    const key = `${from}|${dark}|${broken.size}|${from + BELOW > 200 ? Math.floor(tick / 45) : 0}`;
     if (key === laidKey) return;
     laidKey = key; laidFrom = from;
     let n = 0;
     for (let i = from; i <= from + BELOW; i++) {
       const f = floorOf(i), gone = broken.get(i) || 0;
       for (let s = 0; s < SLICES; s++) {
-        const kind = f.slices[s];
+        const kind = f.m1 && ((moversAt(f, tick) >> s) & 1) ? RED : f.slices[s];
         if (kind === GAP || ((gone >> s) & 1)) continue;
         Q.setFromAxisAngle(Y, (sliceStart(s) + f.twist) * UNIT);
         // (a red slice is a taller block: its top RED_RISE above the floor — a shape, not only a colour)
@@ -150,7 +151,7 @@ export function createGraybox(host) {
     camY += (want - camY) * k;
     place();
     tower.rotation.y = run.a * UNIT;
-    lay(run.floor, run.dk);
+    lay(run.floor, run.dk, Math.floor(tau));
     const y = -run.floor * SHAPE.H + SHAPE.R_BALL + ballY(run, tau);
     ball.position.set(0, y, SHAPE.RB);
     const f = floorOf(run.floor), su = sliceUnder(run.a, f.twist);

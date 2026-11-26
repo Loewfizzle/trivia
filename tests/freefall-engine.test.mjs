@@ -4,11 +4,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TICK_HZ, TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MAX_SPIN, FIRST, BOUNCE, FALL, BLAZE, DARK, HUMAN, MODES, MODE_IDS, AREAS, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, MAX_LOG, SEED_MAX, RULE_SETS, RULES_DEFAULT, ruleSet, makeRuleSet, isRuleRow } from '../js/games/freefall/tuning.js';
-import { createRun, stepTo, turn, setAngle, isOver, resultOf, logOf, floorNow, sliceNow, darkGap, modeRow, seedHash } from '../js/games/freefall/engine.js';
-import { sliceStart, sliceUnder, kindAt, wrap, angDiff, floorAt } from '../js/games/freefall/tower-gen.js';
+import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, floorNow, sliceNow, darkGap, modeRow, seedHash } from '../js/games/freefall/engine.js';
+import { sliceStart, sliceUnder, kindAt, kindAtTick, moversAt, wrap, angDiff, floorAt } from '../js/games/freefall/tower-gen.js';
 import { END_WORDS, endWords, seedOf, tickOf, areaOf, areaIndex, featsOf, FEAT_NAMES, rankCompare, standings } from '../js/games/freefall/logic.js';
-import { replay, judgeRun, logProblem, packLog, packRun, unpackLog } from '../js/games/freefall/replay.js';
-import { BOTS, BOT_IDS, makeBot, playBot } from '../js/games/freefall/bot.js';
+import { replay, judgeRun, logProblem, packLog, packRun, unpackLog, isHold, maxEntries } from '../js/games/freefall/replay.js';
+import { BOTS, BOT_IDS, makeBot, playBot, planFlight as planFlightOf } from '../js/games/freefall/bot.js';
 import { hashString } from '../js/core/rng.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
@@ -18,12 +18,12 @@ const C = RULE_SETS.classic;
 // ---- THE HAND: it puts the slice it wants under the ball before the next landing (MAX SPIN is 171 a tick: half a turn fits in any flight)
 /** the tower angle that puts floor-local angle `u` of the ball's floor under the ball */
 const angleFor = (run, u) => wrap(BALL - floorNow(run).twist - u);
-/** the kind under the ball as the tower stands */
-const under = run => kindAt(floorNow(run), sliceNow(run));
+/** the kind under the ball as the tower stands — AT THE NEXT LANDING's tick (F2: THE TRENCH's red moves) */
+const under = run => kindAtTick(floorNow(run), sliceNow(run), run.nl, run.R);
 /** a slice of `kind` on the ball's floor (the nearest to where the ball is), or −1 */
 function sliceOfKind(run, kind) {
   const fl = floorNow(run), s0 = sliceNow(run);
-  for (let k = 0; k <= SLICES / 2; k++) for (const s of [(s0 + k) % SLICES, (s0 + SLICES - k) % SLICES]) if (kindAt(fl, s) === kind) return s;
+  for (let k = 0; k <= SLICES / 2; k++) for (const s of [(s0 + k) % SLICES, (s0 + SLICES - k) % SLICES]) if (kindAtTick(fl, s, run.nl, run.R) === kind) return s;
   return -1;
 }
 /** turn the tower (tick by tick from the tick after the run stands, ≤ MAX SPIN each) until floor-local angle `u` is under the ball — all before the next landing */
@@ -58,7 +58,7 @@ test('THE NUMBERS: 60 ticks a second · one turn = 4096 units, 12 slices · MAX 
   assert.deepEqual([BOUNCE, FALL, FIRST], [C.bounce, C.fall, C.first]);
   assert.ok(Number.isInteger(BOUNCE) && Number.isInteger(FALL) && BOUNCE > FALL && FALL > HUMAN.react, 'a fall is shorter than a bounce — and longer than a human reaction');
   assert.deepEqual(DARK, { grace: 240, pace: 150, lead: 6 });
-  assert.deepEqual(MODES, { solo: { finish: null, capTicks: 30 * 60 * 60 }, match: { finish: 200, capTicks: 3 * 60 * 60 }, daily: { finish: 200, capTicks: 3 * 60 * 60 } });
+  assert.deepEqual(MODES, { solo: { finish: null, capTicks: 30 * 60 * 60, holds: 3 }, match: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 }, daily: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 } });
   assert.deepEqual(MODE_IDS, ['solo', 'match', 'daily']);
   assert.deepEqual(AREAS.map(a => [a.from, a.id, a.name]), [[0, 'rooftop', 'THE ROOFTOP'], [40, 'offices', 'THE OFFICES'], [80, 'speakeasy', 'THE SPEAKEASY'], [120, 'harbor', 'UNDER THE HARBOR'], [160, 'deep', 'THE DEEP'], [200, 'bottom', 'THE BOTTOM'], [201, 'trench', 'THE TRENCH']]);
   assert.deepEqual([HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN], [120, 200, 15]);
@@ -190,8 +190,11 @@ test('THE BLAZE: the 3rd floor fallen in a row without a bounce lights it · it 
   assert.equal(run.st, 'live', 'THE BLAZE goes through red');
   assert.deepEqual(ev.find(e => e.e === 'shatter'), { e: 'shatter', floor: f, slice: ev[0].slice, red: true, t: Lr });
   assert.deepEqual([run.floor, run.blaze, run.clean, run.shatters], [f + 1, false, 0, 2]);
-  // … and with the blaze spent, red is red again
-  if (aim(run, RED)) { land(run); assert.deepEqual([run.st, run.cause], ['out', 'red']); }
+  // … and with the blaze spent, red is red again — but NOT on the landing right after the shatter (F2, the owner's rule b: a bounce)
+  if (aim(run, RED)) {
+    land(run); assert.deepEqual([run.st, run.fl, run.clean], ['live', 'bounce', 0], 'the landing right after a shatter is never an out');
+    if (aim(run, RED)) { land(run); assert.deepEqual([run.st, run.cause], ['out', 'red'], 'the next landing on red is'); }
+  }
   // A BOUNCE ENDS THE COUNT: gap, gap, bounce, gap, gap → never lit
   const b = runAt(12, { seed: 'blaze' });
   dive(b, 2); aim(b, SAFE); land(b); assert.deepEqual([b.clean, b.blaze], [0, false]);
@@ -668,4 +671,205 @@ test('THE RULES NEVER READ A CLOCK OR A DICE — AND ARE INTEGERS ONLY: no Date 
     for (let i = 1; i < run.lt.length; i++) assert.ok(run.lt[i] > run.lt[i - 1]);
   }
   assert.deepEqual(Object.keys(BOTS), ['sloppy', 'good', 'great', 'human']);
+});
+
+// ======================================================================================================================================
+// F2 — THE RULES FIXES (docs/freefall.md "THE RULES — F2"; the owner's decisions: docs/games/plan.md "FREEFALL — F2")
+// ======================================================================================================================================
+
+/** a run brought to a lit BLAZE on a floor that has a RED slice, the blaze carried from gap to gap until then */
+function blazeOverRed(seed, mode = 'solo', rules = undefined) {
+  const run = createRun({ seed, mode, rules });
+  while (run.floor < 12) floorDown(run);
+  dive(run, 3); assert.ok(run.blaze);
+  let guard = 0;
+  // (a floor with red on it AND red on the next: the shatter drops the ball onto red)
+  for (;;) {
+    assert.ok(guard++ < 200 && !isOver(run));
+    const nxt = floorAt(run.h, run.floor + 1, run.R);
+    if (sliceOfKind(run, SAFE) >= 0 && nxt.red) break;
+    dive(run, 1); assert.ok(run.blaze, 'carried from gap to gap');
+  }
+  return run;
+}
+
+test('F2 — THE LANDING RIGHT AFTER A SHATTER IS NEVER AN OUT (the owner\'s rule b): red there = a BOUNCE (`bounce.red`), the clean count resets as for any bounce; the NEXT landing on red is out again; a what-if row without the rule plays F1\'s game', () => {
+  assert.equal(C.shatterSafe, true);
+  let tried = 0;
+  for (let k = 0; k < 12; k++) {
+    const run = blazeOverRed(`sh${k}`), ev = [];
+    aim(run, SAFE, ev); const Ls = land(run, ev);                    // THE BLAZE shatters a slice …
+    assert.equal(ev.filter(e => e.e === 'shatter').length, 1);
+    assert.deepEqual([run.sh, run.blaze, run.clean, run.fl], [true, false, 0, 'fall'], 'the next landing is the one right after a shatter');
+    if (!aim(run, RED, ev)) continue;                                // … and the ball comes down ON RED
+    tried++;
+    ev.length = 0;
+    const f = run.floor, b0 = run.bounces, nb0 = run.maxNb, L = land(run, ev);
+    assert.equal(L, Ls + FALL);
+    assert.deepEqual([run.st, run.floor, run.fl, run.nl, run.clean, run.nb, run.bounces, run.saves, run.sh], ['live', f, 'bounce', L + BOUNCE, 0, 0, b0 + 1, 1, false], 'a bounce — the floor is NOT passed, the counts reset');
+    assert.equal(run.maxNb, nb0);
+    assert.deepEqual(ev.map(e => e.e), ['land', 'bounce']);
+    assert.deepEqual(ev[0], { e: 'land', floor: f, slice: ev[0].slice, kind: RED, t: L });
+    assert.deepEqual(ev[1], { e: 'bounce', floor: f, slice: ev[0].slice, red: true, t: L }, 'the view\'s cue: a red flash + the slice cracks');
+    // the tower did not move: the NEXT landing is on the same red slice — and that one is out
+    const L2 = land(run, ev);
+    assert.deepEqual([run.st, run.cause, run.end, L2], ['out', 'red', L + BOUNCE, L + BOUNCE], 'only the landing RIGHT after the shatter is spared');
+    // live == the judge
+    const v = judgeRun({ seed: `sh${k}`, mode: 'solo', log: logOf(run) });
+    assert.deepEqual([v.ok, v.floor, v.cause, v.end], [true, f, 'red', L2]);
+  }
+  assert.ok(tried >= 6, `${tried} shatter-landings on red tried`);
+  // a plain bounce's event keeps F1's shape (no `red` key)
+  const p = createRun({ seed: 'plain' }), pe = [];
+  land(p, pe); assert.deepEqual(Object.keys(pe.find(e => e.e === 'bounce')), ['e', 'floor', 'slice', 't']);
+  // a landing on SAFE or a GAP right after a shatter: nothing special (the flag is spent)
+  const g = blazeOverRed('sh-gap'); aim(g, SAFE); land(g); assert.ok(g.sh);
+  if (aim(g, GAP)) { land(g); assert.deepEqual([g.sh, g.clean, g.saves], [false, 1, 0]); }
+  // THE RULE IS THE ROW's: a what-if row without it = F1 (the landing after a shatter on red is out)
+  const plain = JSON.parse(JSON.stringify(C)); delete plain.reach; delete plain.hop;
+  const f1 = makeRuleSet({ ...plain, id: 'f1', shatterSafe: false });
+  let outs = 0;
+  for (let k = 0; k < 12; k++) {
+    const run = blazeOverRed(`sh${k}`, 'solo', f1);
+    aim(run, SAFE); land(run);
+    if (!aim(run, RED)) continue;
+    land(run); assert.deepEqual([run.st, run.cause, run.saves], ['out', 'red', 0]); outs++;
+  }
+  assert.ok(outs >= 6);
+});
+
+test('F2 — MOVING RED in the engine (THE TRENCH, solo): a landing reads the slice AT ITS OWN TICK — on the mover\'s slice then = OUT, on the same slice when the mover has walked on = a bounce; the blaze shatters it like any red; above floor 201 nothing moves', () => {
+  // a seed's first trench floor with a mover
+  const seed = 'mover', run = createRun({ seed, mode: 'solo' });
+  dive(run, 200);
+  aim(run, SAFE); land(run);   // (THE BLAZE is lit after the dive: spent on a shatter — floor 201 from here on, bounce by bounce)
+  assert.deepEqual([run.floor, run.blaze], [201, false]);
+  let guard = 0;
+  while (!floorNow(run).m1) { assert.ok(guard++ < 30); floorDown(run); }
+  const f = run.floor, fl = floorNow(run), R = run.R;
+  assert.ok(f >= 201 && fl.m1);
+  // rest on a SAFE slice (the hand reads the kinds at the landing's tick)
+  aim(run, SAFE); land(run); assert.deepEqual([run.fl, run.floor], ['bounce', f]);
+  // ON THE MOVER at the landing's tick → out
+  const a = { ...run, lt: run.lt.slice(), la: run.la.slice(), ht: run.ht.slice(), cur: { ...run.cur } };
+  const at = moversAt(fl, a.nl, R); assert.ok(at);
+  const s = 31 - Math.clz32(at);
+  assert.equal(kindAt(fl, s), SAFE, 'the static layout calls that slice safe'); assert.equal(kindAtTick(fl, s, a.nl, R), RED, '… at that tick it is red');
+  steerTo(a, sliceStart(s) + 170); const ev = []; const L = land(a, ev);
+  assert.deepEqual([a.st, a.cause, a.end], ['out', 'red', L]);
+  assert.deepEqual(ev[0], { e: 'land', floor: f, slice: s, kind: RED, t: L });
+  // THE SAME SLICE when the mover stands elsewhere → a bounce
+  const b = { ...run, lt: run.lt.slice(), la: run.la.slice(), ht: run.ht.slice(), cur: { ...run.cur } };
+  let hops = 0;
+  while ((moversAt(fl, b.nl, R) >> s) & 1) { assert.ok(hops++ < 12); aim(b, SAFE); land(b); assert.equal(b.st, 'live'); }
+  steerTo(b, sliceStart(s) + 170); land(b);
+  assert.deepEqual([b.st, b.fl, b.floor], ['live', 'bounce', f], 'the mover has walked on: the slice is safe ground');
+  // live == the judge, on both
+  for (const r of [a, b]) { const cut = logOf(r); assert.equal(judgeRun({ seed, mode: 'solo', log: cut, until: r.t }).floor, f); }
+  // above THE TRENCH the kind at a tick is the static kind, at any tick
+  const h = seedHash(seed);
+  for (let i = 0; i <= 200; i += 7) { const x = floorAt(h, i); for (let q = 0; q < SLICES; q++) for (const t of [0, 77, 5000]) assert.equal(kindAtTick(x, q, t, R), kindAt(x, q)); }
+});
+
+test('F2 — THE HOLD (HIGH RISE\'s — SOLO only: 3 a run; a match + the daily never hold): a LOGGED event { k: "hold", t } — every landing before its tick happens, then THE BALL\'s FLIGHT STARTS OVER at that tick and THE DARKNESS waits as long; a floor already passed never changes', () => {
+  assert.deepEqual([MODES.solo.holds, MODES.match.holds, MODES.daily.holds], [3, 0, 0]);
+  // IN A BOUNCE
+  const run = runAt(20, { seed: 'hold' });
+  const L = run.pl, nl = run.nl, dn = run.dn, floor = run.floor, at = run.at;
+  assert.equal(nl, L + BOUNCE);
+  const T = L + 10, ev = [];
+  assert.equal(hold(run, T, ev), true);
+  assert.deepEqual([run.holds, run.ht, run.pl, run.nl, run.dn, run.t, run.mt], [1, [T], T, T + BOUNCE, dn + 10, T, T + 1], 'the bounce starts over at the hold\'s tick; the darkness waits the 10 ticks too');
+  assert.deepEqual([run.floor, run.at, run.st], [floor, at, 'live'], 'nothing already decided changes');
+  assert.deepEqual(ev, [{ e: 'hold', t: T }]);
+  assert.deepEqual(resultOf(run).holds, 1);
+  assert.equal('holds' in resultOf(createRun({ seed: 'x' })), false, 'a run never held keeps F1\'s result shape');
+  // a move after the hold counts at T + 1 at the earliest (the log's order: a hold, then the moves after it)
+  assert.equal(turn(run, T, 5), 5); assert.equal(run.mt, T + 1);
+  assert.deepEqual(logOf(run).slice(-2), [{ k: 'hold', t: T }, { t: T + 1, a: run.a }]);
+  // IN A FALL: it starts over too (the ball comes back to a whole fall)
+  aim(run, GAP); const Lg = land(run); assert.equal(run.fl, 'fall');
+  assert.equal(hold(run, Lg + 4), true);
+  assert.deepEqual([run.nl, run.pl, run.holds], [Lg + 4 + FALL, Lg + 4, 2]);
+  // REFUSED: a tick the run was already stepped to · a landing at / after it decided · not a tick · the run over · no hold left
+  assert.equal(hold(run, run.t), false, 'a tick already stepped to'); assert.equal(hold(run, run.t - 3), false);
+  for (const bad of [-1, 1.5, NaN, Infinity, '5', null, undefined, -0 - 1]) assert.equal(hold(run, bad), false);
+  assert.equal(hold(run, run.t + 1), true); assert.equal(run.holds, 3);
+  assert.equal(hold(run, run.t + 1), false, 'the 4th hold is refused'); assert.equal(run.holds, 3);
+  const dead = createRun({ seed: 'hold-dead' }); stepTo(dead, 5000); assert.ok(isOver(dead)); assert.equal(hold(dead, 6000), false);
+  // a hold steps the run to the tick before it first: a landing that was due happens — it is not held away
+  const late = runAt(5, { seed: 'hold' }), due = late.nl, bounces = late.bounces;
+  assert.equal(hold(late, due + 3), true);
+  assert.equal(late.bounces, bounces + 1, 'the landing before the hold\'s tick happened'); assert.equal(late.nl, due + 3 + BOUNCE);
+  // a hold AT a landing's own tick comes first: that landing is the flight that starts over
+  const edge = runAt(5, { seed: 'hold' }), e0 = edge.nl, eb = edge.bounces;
+  assert.equal(hold(edge, e0), true); assert.deepEqual([edge.bounces, edge.nl], [eb, e0 + BOUNCE]);
+  // THE CAP + THE MODES: a match never holds, a hold at / past the cap is refused
+  for (const mode of ['match', 'daily']) { const m = runAt(3, { seed: 'hold', mode }); assert.equal(hold(m, m.t + 2), false, `${mode}: no hold`); assert.equal(m.holds, 0); }
+  // THE DARKNESS: held again and again, a staller still only gets the three holds' own ticks back — and is taken
+  const st = createRun({ seed: 'hold-stall' });
+  for (const t of [100, 400, 700]) assert.equal(hold(st, t), true);
+  stepTo(st, 5000); assert.deepEqual([st.st, st.cause], ['out', 'dark']);
+  assert.ok(st.end > DARK.grace + DARK.lead * DARK.pace && st.end <= DARK.grace + DARK.lead * DARK.pace + 3 * BOUNCE, `a staller with three holds is out at tick ${st.end}`);
+});
+
+test('F2 — THE HOLD: REPLAY = LIVE with holds at random ticks (300 sessions — moves before, at and after a hold), the judge\'s refusals by name (too many holds · ticks not rising · entry · hold · past the cap), the packed log with holds — canonical', () => {
+  const rnd = (() => { let x = hashString('hold-fuzz') || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; })();
+  let held = 0, saves = 0;
+  for (let k = 0; k < 300; k++) {
+    const seed = `hf${k}`, run = createRun({ seed, mode: 'solo' }), bot = makeBot(k % 2 ? 'good' : 'great', seed), live = [];
+    const stops = [Math.floor(rnd() * 600), 600 + Math.floor(rnd() * 900), 1500 + Math.floor(rnd() * 2000), 4000 + Math.floor(rnd() * 2000)].map(t => t + 1);
+    // the bot plays flight by flight; at each stop the page holds the run (as play.js does: step to now, then hold at the next free tick)
+    while (!isOver(run) && run.floor < 150) {
+      if (stops.length && run.t >= stops[0]) {
+        stops.shift();
+        const T = Math.max(run.t + 1, run.mt);
+        const ok = hold(run, T, live);
+        assert.equal(ok, run.holds <= 3 && live[live.length - 1].e === 'hold' && live[live.length - 1].t === T, 'three holds, the fourth refused');
+        if (ok) held++;
+        if (rnd() < 0.5 && !isOver(run)) turn(run, T, Math.floor(rnd() * 300) - 150, live);   // (a finger that moves the instant the run goes on)
+        continue;
+      }
+      const N = run.nl, pl = planFlightOf(run, bot), spin = bot.P.spin;
+      let rest = pl.d;
+      for (let t = run.t + 1 + pl.wait; t <= N && rest !== 0 && !isOver(run); t++) { const step = rest > spin ? spin : rest < -spin ? -spin : rest; turn(run, t, -step, live); rest -= step; }
+      stepTo(run, N, live);
+    }
+    stepTo(run, MODES.solo.capTicks, live);
+    saves += run.saves;
+    const log = logOf(run), evR = [], r = replay({ seed, mode: 'solo', log, ev: evR });
+    assert.equal(r.bad, -1, `${seed}: ${r.why}`); assert.equal(r.used, log.length);
+    const { used, bad, why, ...res } = r;
+    assert.deepEqual(res, resultOf(run), `${seed}: the replay's result`);
+    assert.deepEqual(evR, live, `${seed}: event for event`);
+    assert.equal(log.filter(isHold).length, run.holds);
+    const v = judgeRun({ seed, mode: 'solo', log });
+    assert.equal(v.ok, true, `${seed}: ${v.why}`); assert.equal(v.holds || 0, run.holds);
+    // packed: canonical, both ways
+    const packed = packRun(run);
+    assert.equal(packed, packLog(log)); assert.deepEqual(unpackLog(packed), log); assert.equal(packLog(unpackLog(packed)), packed);
+    assert.equal((packed.match(/!/g) || []).length, run.holds);
+  }
+  assert.ok(held > 500, `${held} holds played`); assert.ok(saves > 5, `${saves} shatter-landings saved on the way`);
+  // ---- the judge's refusals
+  const why = (log, mode = 'solo') => { const v = judgeRun({ seed: 'hj', mode, log }); assert.equal(v.ok, false, JSON.stringify(v).slice(0, 100)); return v.why; };
+  const H = t => ({ k: 'hold', t });
+  assert.equal(judgeRun({ seed: 'hj', mode: 'solo', log: [H(5), H(9), H(40)] }).holds, 3);
+  assert.equal(why([H(5), H(9), H(40), H(41)]), 'too many holds');
+  assert.equal(why([H(5)], 'match'), 'too many holds', 'a match never holds'); assert.equal(why([H(5)], 'daily'), 'too many holds');
+  assert.equal(why([H(9), H(9)]), 'ticks not rising'); assert.equal(why([H(9), H(5)]), 'ticks not rising');
+  assert.equal(why([{ t: 10, a: 5 }, H(9)]), 'ticks not rising', 'a hold before the move before it');
+  assert.equal(why([H(9), { t: 9, a: 5 }]), 'ticks not rising', 'a move at a hold\'s own tick comes BEFORE it');
+  assert.equal(judgeRun({ seed: 'hj', mode: 'solo', log: [{ t: 9, a: 5 }, H(9), { t: 10, a: 9 }] }).ok, true, 'a move, a hold at its tick, the next move a tick later');
+  for (const e of [{ k: 'hold' }, { k: 'hold', t: -1 }, { k: 'hold', t: 1.5 }, { k: 'hold', t: '5' }, { k: 'hold', t: -0 }, { k: 'hold', t: 2 ** 53 }]) assert.equal(why([e]), 'entry', JSON.stringify(e));
+  assert.equal(why([H(MODES.solo.capTicks)]), 'past the cap');
+  assert.equal(why([H(0)]), 'hold', 'tick 0 is the tick the run stands at: nothing to hold yet');
+  assert.equal(why([H(30000)]), 'past the end', 'a hold after the lights went out');
+  assert.equal(maxEntries('solo'), MAX_LOG + 3); assert.equal(maxEntries('match'), MODES.match.capTicks);
+  assert.equal(logProblem([H(5)], 'solo'), null); assert.equal(isHold(H(1)), true); assert.equal(isHold({ t: 1, a: 2 }), false); assert.equal(isHold(null), false);
+  // ---- the packed form: '!' + the ticks since the event before ("0" = at the tick of the move before it)
+  assert.equal(packLog([{ t: 11, a: 99 }, H(11), { t: 12, a: 100 }, H(20), H(21)]), '.c+2r!0+1!8!1');
+  assert.deepEqual(unpackLog('.c+2r!0+1!8!1'), [{ t: 11, a: 99 }, H(11), { t: 12, a: 100 }, H(20), H(21)]);
+  assert.equal(packLog([H(0)]), '!1'); assert.deepEqual(unpackLog('!1'), [H(0)]);
+  for (const bad of ['!0', '!', '!01', '!1!0', '+5!00', '!-1', '!.2', '+5!0!0', '!zzzzz', '+5!']) assert.equal(unpackLog(bad), null, bad);
 });

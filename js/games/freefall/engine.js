@@ -6,7 +6,7 @@
 // costs one step a landing, not one a tick). The phone's live run and the server's judge run THIS code.
 // PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
 import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, RULE_SETS, RULES_DEFAULT, ruleSet, isRuleRow, AREAS } from './tuning.js';
-import { seedHash, floorInto, sliceUnder, kindAt, wrap, angDiff } from './tower-gen.js';
+import { seedHash, floorInto, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { areaIndex } from './logic.js';
 
 const CLASSIC = RULE_SETS[RULES_DEFAULT];
@@ -40,10 +40,12 @@ export function createRun({ seed, mode = 'solo', rules = RULES_DEFAULT } = {}) {
     nb: 0, maxNb: 0,                        // THE NO-BOUNCE RUN (gaps + shatters, reset only by a bounce) · its best (TERMINAL VELOCITY)
     bounces: 0, shatters: 0, blazes: 0,
     sf: -1,                                 // the floor the LAST SHATTER dropped the ball to (−1 = none yet)
+    sh: false, saves: 0,                    // (F2) the NEXT landing is the one right after a shatter (never an out) · how often that rule saved the run
+    holds: 0, ht: [],                       // (F2 — THE HOLD) the holds used · their ticks
     dk: -R.dark.lead, dn: R.dark.grace + R.dark.pace,   // THE DARKNESS: the floor it has reached · the tick of its next floor down
     area: 0,                                // the area the ball's floor is in (tuning.js#AREAS)
     cause: '', end: -1,                     // out: 'red' | 'dark' · the tick the run ended
-    cur: { i: -1, twist: 0, gap: 0, red: 0 },   // the floor record the landings read (ONE, rewritten — never a new object in play)
+    cur: { i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 },   // the floor record the landings read (ONE, rewritten — never a new object in play)
   };
 }
 export const isOver = run => run.st !== 'live';
@@ -64,22 +66,28 @@ export function floorNow(run) {
  *   GAP → the ball falls to the next floor (the floor counts; the clean count + the no-bounce run grow; the 3rd clean floor lights THE BLAZE)
  *   THE BLAZE lit + a solid slice (SAFE or RED alike) → it SHATTERS: the floor counts, the ball keeps falling, the blaze is spent, clean = 0
  *   SAFE → a bounce (clean = 0, the no-bounce run = 0), the next landing on the SAME floor · RED → OUT ('red')
+ *   F2 (the owner's rule b — `shatterSafe`): THE LANDING RIGHT AFTER A SHATTER is never an out — red there = a BOUNCE (`bounce.red`: the
+ *   view's red flash + the cracked slice); the clean count resets as for any bounce.
+ *   F2 — MOVING RED (THE TRENCH): the slice's kind is read AT THE LANDING's TICK (tower-gen.js#kindAtTick).
  */
 function landing(run, L, ev) {
-  const R = run.R, f = run.floor, fl = floorNow(run), s = sliceUnder(run.a, fl.twist), kind = kindAt(fl, s);
-  run.ll = L;
+  const R = run.R, f = run.floor, fl = floorNow(run), s = sliceUnder(run.a, fl.twist), kind = kindAtTick(fl, s, L, R);
+  const after = run.sh;   // (this landing is the one right after a shatter)
+  run.ll = L; run.sh = false;
   if (ev) ev.push({ e: 'land', floor: f, slice: s, kind, t: L });
   if (kind !== GAP && !run.blaze) {
-    if (kind === RED) return finish(run, 'out', 'red', L, ev);
+    const saved = kind === RED && after && R.shatterSafe === true;
+    if (kind === RED && !saved) return finish(run, 'out', 'red', L, ev);
     run.clean = 0; run.nb = 0; run.bounces++;
     run.fl = 'bounce'; run.pl = L; run.nl = L + R.bounce;
-    if (ev) ev.push({ e: 'bounce', floor: f, slice: s, t: L });
+    if (saved) { run.saves++; if (ev) ev.push({ e: 'bounce', floor: f, slice: s, red: true, t: L }); }
+    else if (ev) ev.push({ e: 'bounce', floor: f, slice: s, t: L });
     return;
   }
   // the floor is PASSED
   let lit = false;
   if (kind !== GAP) {
-    run.blaze = false; run.clean = 0; run.shatters++; run.sf = f + 1;
+    run.blaze = false; run.clean = 0; run.shatters++; run.sf = f + 1; run.sh = true;
     if (ev) ev.push({ e: 'shatter', floor: f, slice: s, red: kind === RED, t: L });
   } else {
     run.clean++;
@@ -114,7 +122,7 @@ function darker(run, D, ev) {
  * landing first (a ball that falls through a gap that tick has left the floor the darkness takes). THE CAP (a mode's capTicks) ends the
  * run where it stands AT its tick — before anything else that tick. `ev` (optional) collects the EVENTS for the view, each with its tick `t`:
  *   land { floor, slice, kind } · bounce { floor, slice } · shatter { floor, slice, red } · fall { floor, clean } · blaze { floor } ·
- *   area { id, floor } · dark { floor } · out { cause } · made · cap
+ *   area { id, floor } · dark { floor } · out { cause } · made · cap · (F2) bounce.red = the landing right after a shatter, saved · hold (hold())
  *   — a landing's own events come together, in order: land → bounce | out | ( shatter → ) fall → blaze → area → dark → made.
  *   (`fall.floor` / `blaze.floor` / `area.floor` = THE FLOORS PASSED after it — the floor the ball now falls to.)
  * EVERY MOVE WITH A TICK ≤ T MUST BE IN BEFORE THIS (turn / setAngle step the run themselves — a view calls them first, then stepTo).
@@ -172,10 +180,40 @@ export function setAngle(run, T, a, ev) {
   return turn(run, T, angDiff(a, run.a), ev);
 }
 
-/** THE INPUT LOG as the judge reads it: [{ t, a }] — the ticks A changed at, rising */
+/**
+ * F2 — THE HOLD (HIGH RISE's — docs/freefall.md "THE HOLD"): a LOGGED event { k: 'hold', t: T } — the page was hidden / the phone locked
+ * (SOLO only: a mode's `holds`; a match never holds). T is a PLAY tick: the time away and the 3 · 2 · 1 before the run goes on are not
+ * run time. Every landing BEFORE T happens first; then THE BALL's FLIGHT STARTS OVER at T (the same flight, from its start: a bounce's
+ * next landing = T + bounce, a fall's = T + fall) and THE DARKNESS waits exactly as long — the player comes back to a whole flight,
+ * never to a landing a blink away. A floor already passed never changes. → true = held · false = refused: no hold left in this mode,
+ * the run over, T not a whole tick, a tick the run was already stepped to, a move already counted after T, T at / past THE CAP.
+ * After a hold the next move counts at T + 1 at the earliest.
+ */
+export function hold(run, T, ev) {
+  if (!Number.isSafeInteger(T) || T < 0 || run.st !== 'live') return false;
+  const M = run.R.modes[run.mode];
+  if (run.holds >= (M.holds || 0)) return false;
+  if (T <= run.t) return false;   // (a tick the run was already stepped to: what happened there stands — the page holds at the NEXT tick)
+  if (T - 1 > run.t) stepTo(run, T - 1, ev);
+  if (run.st !== 'live' || T <= run.ll || T < run.mt) return false;
+  if (M.capTicks != null && T >= M.capTicks) return false;
+  const d = T - run.pl;
+  run.pl = T; run.nl += d; run.dn += d;
+  run.holds++; run.ht.push(T + 0); run.mt = T + 1;
+  if (T > run.t) run.t = T;
+  if (ev) ev.push({ e: 'hold', t: T });
+  return true;
+}
+
+/** THE INPUT LOG as the judge reads it: [{ t, a }] — the ticks A changed at, rising — and (F2) its HOLDS { k: 'hold', t } in their place (a move at a hold's own tick comes before it) */
 export function logOf(run) {
   const out = [];
-  for (let i = 0; i < run.lt.length; i++) out.push({ t: run.lt[i], a: run.la[i] });
+  let k = 0;
+  for (let i = 0; i < run.lt.length; i++) {
+    while (k < run.ht.length && run.ht[k] < run.lt[i]) out.push({ k: 'hold', t: run.ht[k++] });
+    out.push({ t: run.lt[i], a: run.la[i] });
+  }
+  while (k < run.ht.length) out.push({ k: 'hold', t: run.ht[k++] });
   return out;
 }
 
@@ -192,6 +230,7 @@ export function resultOf(run) {
     cause: run.st === 'out' ? run.cause : run.st === 'made' || run.st === 'cap' ? run.st : '',
     made: run.st === 'made',
     bounces: run.bounces, shatters: run.shatters, blazes: run.blazes, bestRun: run.maxNb, moves: run.lt.length,
+    ...(run.holds ? { holds: run.holds } : {}),
     feats: { reachedHarbor: run.floor >= HARBOR_FLOOR, terminal: run.maxNb >= TERMINAL_RUN, reachedBottom: run.floor >= BOTTOM_FLOOR },
   };
 }
