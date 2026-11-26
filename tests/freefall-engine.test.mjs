@@ -771,49 +771,85 @@ test('F2 — MOVING RED in the engine (THE TRENCH, solo): a landing reads the sl
   for (let i = 0; i <= 200; i += 7) { const x = floorAt(h, i); for (let q = 0; q < SLICES; q++) for (const t of [0, 77, 5000]) assert.equal(kindAtTick(x, q, t, R), kindAt(x, q)); }
 });
 
-test('F2 — THE HOLD (HIGH RISE\'s — SOLO only: 3 a run; a match + the daily never hold): a LOGGED event { k: "hold", t } — every landing before its tick happens, then THE BALL\'s FLIGHT STARTS OVER at that tick and THE DARKNESS waits as long; a floor already passed never changes', () => {
+test('THE HOLD = EXACT RESUME (F3 — the owner, Nov 26; SOLO only: 3 a run; a match + the daily never hold): a LOGGED event { k: "hold", t } — everything up to AND AT its tick happens, then THE WHOLE STATE IS FROZEN and resumed unchanged: the flight, the tower, the darkness; a hold never cancels or restarts a landing', () => {
   assert.deepEqual([MODES.solo.holds, MODES.match.holds, MODES.daily.holds], [3, 0, 0]);
-  // IN A BOUNCE
+  // IN A BOUNCE: nothing of the flight moves
   const run = runAt(20, { seed: 'hold' });
-  const L = run.pl, nl = run.nl, dn = run.dn, floor = run.floor, at = run.at;
+  const L = run.pl, nl = run.nl, dn = run.dn, dk = run.dk, a = run.a, floor = run.floor, at = run.at;
   assert.equal(nl, L + BOUNCE);
   const T = L + 10, ev = [];
   assert.equal(hold(run, T, ev), true);
-  assert.deepEqual([run.holds, run.ht, run.pl, run.nl, run.dn, run.t, run.mt], [1, [T], T, T + BOUNCE, dn + 10, T, T + 1], 'the bounce starts over at the hold\'s tick; the darkness waits the 10 ticks too');
+  assert.deepEqual([run.holds, run.ht, run.fl, run.pl, run.nl, run.dn, run.dk, run.a, run.t, run.mt], [1, [T], 'bounce', L, nl, dn, dk, a, T, T + 1], 'the bounce goes on from where it was: its start, its landing, the darkness — unchanged');
   assert.deepEqual([run.floor, run.at, run.st], [floor, at, 'live'], 'nothing already decided changes');
   assert.deepEqual(ev, [{ e: 'hold', t: T }]);
   assert.deepEqual(resultOf(run).holds, 1);
   assert.equal('holds' in resultOf(createRun({ seed: 'x' })), false, 'a run never held keeps F1\'s result shape');
-  // a move after the hold counts at T + 1 at the earliest (the log's order: a hold, then the moves after it)
+  // a move after the hold counts at T + 1 at the earliest (no input counts while the run is held; the log's order: a hold, then the moves after it)
   assert.equal(turn(run, T, 5), 5); assert.equal(run.mt, T + 1);
   assert.deepEqual(logOf(run).slice(-2), [{ k: 'hold', t: T }, { t: T + 1, a: run.a }]);
-  // IN A FALL: it starts over too (the ball comes back to a whole fall)
+  // IN A FALL: the same — the ball comes back to the SAME point of its fall
   aim(run, GAP); const Lg = land(run); assert.equal(run.fl, 'fall');
   assert.equal(hold(run, Lg + 4), true);
-  assert.deepEqual([run.nl, run.pl, run.holds], [Lg + 4 + FALL, Lg + 4, 2]);
-  // REFUSED: a tick the run was already stepped to · a landing at / after it decided · not a tick · the run over · no hold left
+  assert.deepEqual([run.nl, run.pl, run.holds], [Lg + FALL, Lg, 2]);
+  // REFUSED: a tick the run was already stepped to · not a tick · the run over · no hold left
   assert.equal(hold(run, run.t), false, 'a tick already stepped to'); assert.equal(hold(run, run.t - 3), false);
   for (const bad of [-1, 1.5, NaN, Infinity, '5', null, undefined, -0 - 1]) assert.equal(hold(run, bad), false);
   assert.equal(hold(run, run.t + 1), true); assert.equal(run.holds, 3);
   assert.equal(hold(run, run.t + 1), false, 'the 4th hold is refused'); assert.equal(run.holds, 3);
   const dead = createRun({ seed: 'hold-dead' }); stepTo(dead, 5000); assert.ok(isOver(dead)); assert.equal(hold(dead, 6000), false);
-  // a hold steps the run to the tick before it first: a landing that was due happens — it is not held away
+  // a landing due BEFORE the hold's tick happens — and the flight it started goes on from ITS start
   const late = runAt(5, { seed: 'hold' }), due = late.nl, bounces = late.bounces;
   assert.equal(hold(late, due + 3), true);
-  assert.equal(late.bounces, bounces + 1, 'the landing before the hold\'s tick happened'); assert.equal(late.nl, due + 3 + BOUNCE);
-  // a hold AT a landing's own tick comes first: that landing is the flight that starts over
-  const edge = runAt(5, { seed: 'hold' }), e0 = edge.nl, eb = edge.bounces;
-  assert.equal(hold(edge, e0), true); assert.deepEqual([edge.bounces, edge.nl], [eb, e0 + BOUNCE]);
+  assert.deepEqual([late.bounces, late.pl, late.nl], [bounces + 1, due, due + BOUNCE], 'the landing before the hold\'s tick happened; its bounce is 3 ticks old');
+  // a hold AT a landing's own tick: THE LANDING LANDS (F2 held it away — the free dodge), then the run is held
+  const edge = runAt(5, { seed: 'hold' }), e0 = edge.nl, eb = edge.bounces, evE = [];
+  assert.equal(hold(edge, e0, evE), true);
+  assert.deepEqual([edge.bounces, edge.pl, edge.nl], [eb + 1, e0, e0 + BOUNCE]);
+  assert.equal(names(evE), 'land bounce hold', 'the landing\'s events, then the hold');
+  // … and a move after it never reaches back to that landing
+  assert.equal(turn(edge, e0, 9), 9); assert.equal(edge.mt, e0 + 1);
   // THE CAP + THE MODES: a match never holds, a hold at / past the cap is refused
   for (const mode of ['match', 'daily']) { const m = runAt(3, { seed: 'hold', mode }); assert.equal(hold(m, m.t + 2), false, `${mode}: no hold`); assert.equal(m.holds, 0); }
-  // THE DARKNESS: held again and again, a staller still only gets the three holds' own ticks back — and is taken
+  assert.equal(hold(createRun({ seed: 'hold-cap' }), MODES.solo.capTicks), false, 'at the cap');
+  // THE DARKNESS: a hold gives NOTHING back — a staller with three holds is out at the very tick of one with none
   const st = createRun({ seed: 'hold-stall' });
   for (const t of [100, 400, 700]) assert.equal(hold(st, t), true);
-  stepTo(st, 5000); assert.deepEqual([st.st, st.cause], ['out', 'dark']);
-  assert.ok(st.end > DARK.grace + DARK.lead * DARK.pace && st.end <= DARK.grace + DARK.lead * DARK.pace + 3 * BOUNCE, `a staller with three holds is out at tick ${st.end}`);
+  stepTo(st, 5000); assert.deepEqual([st.st, st.cause, st.end], ['out', 'dark', DARK.grace + DARK.lead * DARK.pace]);
 });
 
-test('F2 — THE HOLD: REPLAY = LIVE with holds at random ticks (300 sessions — moves before, at and after a hold), the judge\'s refusals by name (too many holds · ticks not rising · entry · hold · past the cap), the packed log with holds — canonical', () => {
+test('THE HOLD = EXACT RESUME: a hold ONE TICK BEFORE a red landing STILL ENDS ON RED (and at its tick, and ten ticks before) — at the SAME tick as the run never held; a hold whose own tick ends the run is refused and leaves no entry', () => {
+  const seed = 'hold-red', f = floorWith(seed, RED, 12);
+  assert.ok(f > 0);
+  const toRed = () => { const r = runAt(f, { seed }); assert.ok(aim(r, RED)); assert.equal(under(r), RED); return r; };
+  const plain = toRed(), N = plain.nl;
+  stepTo(plain, N + 5);
+  assert.deepEqual([plain.st, plain.cause, plain.end], ['out', 'red', N]);
+  for (const before of [1, 2, 10]) {
+    const r = toRed();
+    if (N - before <= r.t) continue;   // (the steer took the ticks: nothing to hold there)
+    assert.equal(hold(r, N - before), true, `held ${before} tick(s) before the red landing`);
+    assert.equal(r.nl, N, 'the landing is still due at its tick');
+    stepTo(r, N + 5);
+    assert.deepEqual([r.st, r.cause, r.end, r.floor], ['out', 'red', N, plain.floor], `a hold ${before} tick(s) before: still out on red, at the same tick`);
+    const v = judgeRun({ seed, mode: 'solo', log: logOf(r) });
+    assert.deepEqual([v.ok, v.cause, v.end, v.holds], [true, 'red', N, 1]);
+  }
+  // the hold AT the red landing's tick: the landing lands (out) — the hold is refused, nothing is logged
+  const r = toRed(), n = logOf(r).length, ev = [];
+  assert.equal(hold(r, N, ev), false);
+  assert.deepEqual([r.st, r.cause, r.end, r.holds, logOf(r).length], ['out', 'red', N, 0, n]);
+  assert.equal(names(ev), 'land out');
+  // the first move after GO counts: a hold one tick before, then a turn at the landing's tick that takes the ball off the red — a move like any other
+  const out = toRed();
+  assert.equal(hold(out, N - 1), true);
+  assert.equal(turn(out, N - 1, 171), 171, 'a move at the hold\'s own tick, after it …'); assert.equal(out.mt, N, '… counts at the next tick — the landing\'s: before the landing reads the tower');
+  const k = under(out);
+  stepTo(out, N);
+  assert.equal(out.st, k === RED ? 'out' : 'live', 'the landing reads the tower as that move left it — a move like any other');
+  assert.equal(judgeRun({ seed, mode: 'solo', log: logOf(out), until: N }).ok, true);
+});
+
+test('THE HOLD = EXACT RESUME: REPLAY = LIVE with holds at random ticks (300 sessions — moves before, at and after a hold) AND THE SAME RUN WITH ITS HOLDS TAKEN OUT replays to the same result, event for event; the judge\'s refusals by name (too many holds · ticks not rising · entry · hold · past the cap), the packed log with holds — canonical', () => {
   const rnd = (() => { let x = hashString('hold-fuzz') || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; })();
   let held = 0, saves = 0;
   for (let k = 0; k < 300; k++) {
@@ -843,6 +879,11 @@ test('F2 — THE HOLD: REPLAY = LIVE with holds at random ticks (300 sessions �
     assert.deepEqual(res, resultOf(run), `${seed}: the replay's result`);
     assert.deepEqual(evR, live, `${seed}: event for event`);
     assert.equal(log.filter(isHold).length, run.holds);
+    // THE HOLDS TAKEN OUT: the same moves replay to the same run — a hold changed nothing (only its own events + the count are gone)
+    const bare = log.filter(e => !isHold(e)), evB = [], rb = replay({ seed, mode: 'solo', log: bare, ev: evB });
+    assert.equal(rb.bad, -1, `${seed}: without its holds — ${rb.why}`);
+    { const { used: u2, bad: b2, why: w2, ...resB } = rb, want = { ...resultOf(run) }; delete want.holds; assert.deepEqual(resB, want, `${seed}: the run without its holds is the same run`); }
+    assert.deepEqual(evB, live.filter(e => e.e !== 'hold'), `${seed}: … event for event`);
     const v = judgeRun({ seed, mode: 'solo', log });
     assert.equal(v.ok, true, `${seed}: ${v.why}`); assert.equal(v.holds || 0, run.holds);
     // packed: canonical, both ways

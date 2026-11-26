@@ -62,87 +62,126 @@ const auto = (p, mode) => p.evaluate(m => { window.__ffPlay.auto = m; }, mode);
 const hideShow = (p, hidden) => p.evaluate(hd => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (hd ? 'hidden' : 'visible') }); document.dispatchEvent(new Event('visibilitychange')); }, hidden);
 
 // =============================================================================================================== THE LOOK (the review's shots)
+// F3: BOTH LOOKS (`?look=night|day`), every area, THE OPENING, a banner, THE BLAZE on the day's water. `--scenes=a,b` + `--looks=night`
+// shoot a part of it (a refine pass looks at what it changed); the files: f3-<look>-<nn>-<name>.png
+const SCENES = (argv.find(a => a.startsWith('--scenes=')) || '').slice(9).split(',').filter(Boolean), LOOKS = ((argv.find(a => a.startsWith('--looks=')) || '').slice(8) || 'night,day').split(',').filter(Boolean);
+const want = s => !SCENES.length || SCENES.includes(s);
+const grey = async (p, on) => { await p.evaluate(g => { document.querySelector('.ff-stage').style.filter = g ? 'grayscale(1)' : ''; }, on); await sleep(120); };
+/** the areas' shots: [name, the floor the run starts from] — the ball bouncing two floors on */
+const AREA_SHOTS = [['rooftop', 0], ['border-offices', 36], ['offices', 46], ['border-speakeasy', 77], ['speakeasy', 88], ['border-harbor', 116], ['harbor', 128], ['border-deep', 157], ['deep', 168], ['trench', 205], ['trench-lap2', 250], ['trench-lap3', 300]];
 async function look() {
-  const SIZES = [[390, 844, 3, '']];
-  for (const [w, h, dpr] of SIZES) {
-    // THE OPENING
-    let t = await open(w, h, dpr, '?seed=look1&tier=2', { best: 88 });
-    await sleep(900);
-    await shot(t.p, 'f2-01-opening.png');
-    console.log('opening', JSON.stringify((await st(t.p)).info), t.errs, t.logs.slice(0, 6));
-    // the first floors: THE ROOFTOP
-    await start(t); await auto(t.p, 'play');
-    await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');
-    await sleep(250); await shot(t.p, 'f2-02-rooftop.png');
-    // THE BLAZE
-    await auto(t.p, 'gap');
-    await waitFor(t.p, 'window.__ffPlay.state().blaze');
-    await sleep(420); await shot(t.p, 'f2-03-blaze.png');
-    // (the F2 add-on — THE BLAZE = NEON FIRE: it must read with the colour removed, the brightest thing on the screen)
-    await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = 'grayscale(1)'); await sleep(120); await shot(t.p, 'f2-03b-blaze-greyscale.png'); await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = '');
-    // … through a slice: SMASH
-    await auto(t.p, 'smash');
-    await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1');
-    await sleep(70); await shot(t.p, 'f2-04-shatter.png');
-    await sleep(160); await shot(t.p, 'f2-04b-shatter-later.png');
-    await t.close();
-    // every area's wall (the ball bouncing on a floor of it) + THE TRENCH's moving red
-    for (const [name, floor] of [['offices', 46], ['seam-speakeasy', 77], ['speakeasy', 88], ['harbor', 128], ['deep', 168], ['trench', 214], ['trench-lap3', 300]]) {
-      t = await open(w, h, dpr, `?seed=look2&tier=2&floor=${floor}`, { best: 141 });
-      await start(t); await auto(t.p, 'play');
-      await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
-      await auto(t.p, 'safe');
-      await sleep(500); await shot(t.p, `f2-05-${name}.png`);
-      if (name === 'speakeasy') { await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = 'grayscale(1)'); await sleep(120); await shot(t.p, 'f2-06-red-greyscale.png'); await t.p.evaluate(() => document.querySelector('.ff-stage').style.filter = ''); }
-      if (name === 'trench') console.log('trench', JSON.stringify((await st(t.p)).info));
+  const [w, h, dpr] = [390, 844, 3];
+  for (const lk of LOOKS) {
+    const q = `&tier=2&look=${lk}`, f = n => `f3-${lk}-${n}.png`;
+    let t;
+    if (want('opening')) {
+      // THE OPENING: the title as it fades in, mid-GLINT, at rest
+      t = await open(w, h, dpr, `?seed=look1${q}`, { best: 88 });
+      await sleep(520); await shot(t.p, f('01a-opening-glint'));
+      await sleep(900); await shot(t.p, f('01-opening'));
+      console.log(lk, 'opening', JSON.stringify((await st(t.p)).info), t.errs, t.logs.slice(0, 6));
       await t.close();
     }
-    // YOUR BEST's tape + the crossing
-    t = await open(w, h, dpr, '?seed=look3&tier=2', { best: 6 });
-    await start(t); await auto(t.p, 'play');
-    await waitFor(t.p, 'window.__ffPlay.state().floor >= 2 && window.__ffPlay.state().fl === "bounce"');
-    await sleep(200); await shot(t.p, 'f2-07-best-tape.png');
-    await waitFor(t.p, 'window.__ffPlay.state().newBest');
-    await sleep(350); await shot(t.p, 'f2-08-new-best.png');
-    // THE DARKNESS closing in (hands off)
-    await auto(t.p, 'safe');
-    await waitFor(t.p, 'window.__ffPlay.state().dark <= 2', 30000);
-    await sleep(300); await shot(t.p, 'f2-09-darkness.png');
-    await waitFor(t.p, 'window.__ffPlay.state().shown', 30000);
-    await sleep(500); await shot(t.p, 'f2-10-end-dark-newbest.png');
-    await t.close();
-    // THE DARKNESS in a walled area (the wall above its line goes out; the ball + its floor stay lit)
-    t = await open(w, h, dpr, '?seed=look5&tier=2&floor=86', { best: 141 });
-    await start(t); await auto(t.p, 'play');
-    await waitFor(t.p, 'window.__ffPlay.state().floor >= 88 && window.__ffPlay.state().fl === "bounce"', 30000);
-    await auto(t.p, 'safe');
-    await waitFor(t.p, 'window.__ffPlay.state().dark <= 2', 30000);
-    await sleep(500); await shot(t.p, 'f2-09b-darkness-speakeasy.png');
-    await t.close();
-    // THE HOLD + the end on red
-    t = await open(w, h, dpr, '?seed=look4&tier=2', { best: 88 });
-    await start(t); await auto(t.p, 'play');
-    await waitFor(t.p, 'window.__ffPlay.state().floor >= 12');
-    await hideShow(t.p, true); await sleep(200); await hideShow(t.p, false);
-    await sleep(700); await shot(t.p, 'f2-11-hold.png');
-    await waitFor(t.p, '!window.__ffPlay.state().held', 6000);
-    await auto(t.p, 'red');
-    await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
-    await sleep(500); await shot(t.p, 'f2-12-end.png');
-    console.log('end', JSON.stringify(await t.p.evaluate(() => window.__ffPlay.ends.map(e => [e.same, e.live.cause, e.live.floor, e.holds]))), t.errs, t.logs.slice(-4));
-    await t.close();
-  }
-  // the other sizes: the opening + a play frame
-  for (const [w, h, dpr] of [[375, 667, 2], [430, 932, 3], [1440, 900, 1]]) {
-    const t = await open(w, h, dpr, '?seed=look1&tier=2', { best: 88 });
-    await sleep(700); await shot(t.p, `f2-20-opening-${w}x${h}.png`);
-    await start(t); await auto(t.p, 'play');
-    await waitFor(t.p, 'window.__ffPlay.state().floor >= 4 && window.__ffPlay.state().fl === "bounce"');
-    await sleep(250); await shot(t.p, `f2-21-play-${w}x${h}.png`);
-    await auto(t.p, 'red');
-    await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
-    await sleep(400); await shot(t.p, `f2-22-end-${w}x${h}.png`);
-    await t.close();
+    if (want('blaze')) {
+      t = await open(w, h, dpr, `?seed=look1${q}`, { best: 88 });
+      await start(t); await auto(t.p, 'play');
+      await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');
+      await sleep(250); await shot(t.p, f('02-rooftop-ball'));
+      await auto(t.p, 'gap');
+      await waitFor(t.p, 'window.__ffPlay.state().blaze');
+      await sleep(520); await shot(t.p, f('03-blaze'));
+      await grey(t.p, true); await shot(t.p, f('03b-blaze-greyscale')); await grey(t.p, false);
+      await auto(t.p, 'smash');
+      await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1');
+      await sleep(70); await shot(t.p, f('04-shatter'));
+      await sleep(160); await shot(t.p, f('04b-shatter-later'));
+      await t.close();
+      // THE BLAZE on the water (UNDER THE HARBOR — by day: the pale water)
+      t = await open(w, h, dpr, `?seed=look6${q}&floor=124`, { best: 141 });
+      await start(t); await auto(t.p, 'gap');
+      await waitFor(t.p, 'window.__ffPlay.state().blaze && window.__ffPlay.state().floor >= 129', 30000);
+      await sleep(330); await shot(t.p, f('03c-blaze-harbor'));
+      await grey(t.p, true); await shot(t.p, f('03d-blaze-harbor-greyscale')); await grey(t.p, false);
+      await t.close();
+    }
+    if (want('areas')) {
+      for (const [name, floor] of AREA_SHOTS) {
+        if (SCENES.length && argv.includes('--few') && /border|lap/.test(name)) continue;
+        t = await open(w, h, dpr, `?seed=look2${q}${floor ? `&floor=${floor}` : ''}`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
+        await auto(t.p, 'safe');
+        await sleep(2300);   // (an arrival's banner has left)
+        await shot(t.p, f(`05-${name}`));
+        if (!/border|lap/.test(name)) { await grey(t.p, true); await shot(t.p, f(`06-${name}-greyscale`)); await grey(t.p, false); }
+        if (t.errs.length) console.log(lk, name, t.errs);
+        await t.close();
+      }
+    }
+    if (want('banner')) {
+      // THE ARRIVAL BANNERS: the ball falls into an area — the band at its fullest
+      for (const [name, floor] of [['speakeasy', 78], ['harbor', 118]]) {
+        t = await open(w, h, dpr, `?seed=look2${q}&floor=${floor}`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2}`, 30000);
+        await sleep(620); await shot(t.p, f(`07-banner-${name}`));
+        await t.close();
+      }
+    }
+    if (want('best')) {
+      t = await open(w, h, dpr, `?seed=look3${q}`, { best: 6 });
+      await start(t); await auto(t.p, 'play');
+      await waitFor(t.p, 'window.__ffPlay.state().floor >= 2 && window.__ffPlay.state().fl === "bounce"');
+      await sleep(200); await shot(t.p, f('08-best-tape'));
+      await waitFor(t.p, 'window.__ffPlay.state().newBest');
+      await sleep(350); await shot(t.p, f('08b-new-best'));
+      await t.close();
+    }
+    if (want('dark')) {
+      // THE DARKNESS closing in (hands off): the rooftop (by day THE STORM CLOUD), a walled room, under the water (by day THE MURK)
+      for (const [name, floor] of [['rooftop', 0], ['speakeasy', 86], ['harbor', 126]]) {
+        t = await open(w, h, dpr, `?seed=look5${q}${floor ? `&floor=${floor}` : ''}`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000);
+        await auto(t.p, 'safe');
+        await waitFor(t.p, 'window.__ffPlay.state().dark <= 2', 30000);
+        await sleep(500); await shot(t.p, f(`09-darkness-${name}`));
+        if (name === 'rooftop') { await waitFor(t.p, 'window.__ffPlay.state().shown', 30000); await sleep(500); await shot(t.p, f('10-end-dark')); }
+        await t.close();
+      }
+    }
+    if (want('hold')) {
+      t = await open(w, h, dpr, `?seed=look4${q}`, { best: 88 });
+      await start(t); await auto(t.p, 'play');
+      await waitFor(t.p, 'window.__ffPlay.state().floor >= 12');
+      await hideShow(t.p, true); await sleep(200); await hideShow(t.p, false);
+      await sleep(700); await shot(t.p, f('11-hold'));
+      await waitFor(t.p, '!window.__ffPlay.state().held', 6000);
+      await auto(t.p, 'red');
+      await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
+      await sleep(500); await shot(t.p, f('12-end'));
+      console.log(lk, 'end', JSON.stringify(await t.p.evaluate(() => window.__ffPlay.ends.map(e => [e.same, e.live.cause, e.live.floor, e.holds]))), t.errs, t.logs.slice(-4));
+      await t.close();
+    }
+    if (want('sizes')) {
+      // the other sizes: the opening, a play frame, an arrival's banner, the end
+      for (const [sw, sh, sd] of [[375, 667, 2], [430, 932, 3], [1440, 900, 1], [844, 390, 2]]) {
+        t = await open(sw, sh, sd, `?seed=look1${q}`, { best: 88 });
+        await sleep(1500); await shot(t.p, f(`20-opening-${sw}x${sh}`));
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 4 && window.__ffPlay.state().fl === "bounce"');
+        await sleep(250); await shot(t.p, f(`21-play-${sw}x${sh}`));
+        await auto(t.p, 'red');
+        await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
+        await sleep(400); await shot(t.p, f(`22-end-${sw}x${sh}`));
+        await t.close();
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=118`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 120', 30000);
+        await sleep(620); await shot(t.p, f(`23-banner-${sw}x${sh}`));
+        await t.close();
+      }
+    }
   }
 }
 
@@ -246,11 +285,11 @@ async function checks1() {
     return { hd: q('.ff-ec-hd').textContent, cols: [c('.fn-w1'), c('.fn-w2'), c('.fn-m')], cause: q('.ff-ec-cause').textContent, causeCol: c('.ff-ec-cause'), n: q('.ff-ec-n').getAttribute('aria-label'), nFs: parseFloat(getComputedStyle(q('.ff-ec-n')).fontSize), fl: q('.ff-ec-fl').textContent, best: q('.ff-ec-best').textContent, line: q('.ff-ec-line').textContent,
       again: { x: r('.ff-again').left, r: r('.ff-again').right, h: r('.ff-again').height, b: r('.ff-again').bottom, bg: getComputedStyle(q('.ff-again')).backgroundColor, rad: getComputedStyle(q('.ff-again')).borderRadius }, share: { dis: q('.ff-share').disabled, text: q('.ff-share').textContent, h: r('.ff-share').height }, city: { href: q('.ff-city').getAttribute('href'), h: r('.ff-city').height }, lineB: r('.ff-ec-line').bottom, againT: r('.ff-again').top, hudOp: +getComputedStyle(q('.ff-hud')).opacity,
       last: { same: last.same, cause: last.live.cause, floor: last.live.floor, judge: last.judge.ok, jf: last.judge.floor, holds: last.holds, entries: last.entries } }; });
-  ok(e.hd === 'FREEFALL · SOLO' && e.cols.join('|') === 'rgb(195, 91, 255)|rgb(184, 255, 59)|rgb(201, 182, 255)', `the header "${e.hd}": FREE ultraviolet · FALL lime · the mode lavender (${e.cols.join(' ')})`);
-  ok(e.cause === 'HIT THE RED' && e.causeCol === 'rgb(195, 91, 255)', `the cause "${e.cause}" in ultraviolet neon (${e.causeCol}) — never red`);
+  ok(e.hd === 'FREEFALL · SOLO' && e.cols.join('|') === 'rgb(255, 79, 168)|rgb(39, 224, 230)|rgb(207, 239, 245)', `the header "${e.hd}": FREE hot pink · FALL electric teal · the mode a pale ice — title-05's colours (${e.cols.join(' ')})`);
+  ok(e.cause === 'HIT THE RED' && e.causeCol === 'rgb(39, 224, 230)', `the cause "${e.cause}" in teal neon (${e.causeCol}) — never red`);
   ok(e.n === String(s.floor) && e.nFs >= 84 && e.fl === 'FLOORS', `the big number ${e.n} (${e.nFs.toFixed(0)} px) · ${e.fl}`);
   ok(e.best === 'YOUR BEST · 88' && /^\d+ BOUNCES? · \d+ BLAZES? · BEST RUN \d+$/.test(e.line), `"${e.best}" in gold · "${e.line}"`);
-  ok(e.again.h >= 58 && e.again.x >= 15 && e.again.r <= 375 && e.again.bg === 'rgb(184, 255, 59)' && e.again.rad === '8px' && e.lineB < e.againT, `PLAY AGAIN: one solid lime bar, ${e.again.h.toFixed(0)} pt tall, a rounded rectangle (${e.again.rad}), under the card`);
+  ok(e.again.h >= 58 && e.again.x >= 15 && e.again.r <= 375 && e.again.bg === 'rgb(39, 224, 230)' && e.again.rad === '8px' && e.lineB < e.againT, `PLAY AGAIN: one solid teal bar, ${e.again.h.toFixed(0)} pt tall, a rounded rectangle (${e.again.rad}), under the card`);
   ok(e.share.dis && e.share.text === 'SHARE · SOON' && e.city.href === '/' && e.share.h >= 44 && e.city.h >= 44, `the foot: ${e.share.text} (a placeholder until F4) | CITY (→ ${e.city.href}), both ≥ 44 pt`);
   ok(e.hudOp === 0, 'the HUD leaves at once when the card comes');
   ok(e.last.same && e.last.judge && e.last.jf === e.last.floor && e.last.cause === 'red' && e.last.holds === 3, `REPLAY = LIVE: the log (${e.last.entries} entries + ${e.last.holds} holds) through a fresh engine + the judge = the live run (floor ${e.last.floor})`);

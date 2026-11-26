@@ -106,9 +106,10 @@ export const COPY_F = 'precision highp float; uniform sampler2D tMap; uniform fl
 // outward: a floor just passed).
 export const SLICE_V = /* glsl */`
 attribute vec4 aE, aI, aC, aF;
+attribute vec3 aR;
 uniform float uSpin;
 varying vec4 vE, vC, vF;
-varying vec3 vW, vN;
+varying vec3 vW, vN, vR;
 varying float vKind;
 void main() {
   vec3 p = position;
@@ -119,13 +120,13 @@ void main() {
   float a = aI.x + uSpin, c = cos(a), s = sin(a);
   vec3 w = vec3(p.x * c + p.z * s, p.y + aI.y, -p.x * s + p.z * c);
   vN = vec3(normal.x * c + normal.z * s, normal.y, -normal.x * s + normal.z * c);
-  vW = w; vE = aE; vC = aC; vF = aF; vKind = aI.w;
+  vW = w; vE = aE; vC = aC; vF = aF; vR = aR; vKind = aI.w;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 export const SLICE_F = /* glsl */`
 uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey;
 varying vec4 vE, vC, vF;
-varying vec3 vW, vN;
+varying vec3 vW, vN, vR;
 varying float vKind;
 const vec3 RED = vec3(1.0, 0.03, 0.09), RED_DARK = vec3(0.16, 0.0, 0.012);
 void main() {
@@ -135,12 +136,10 @@ void main() {
   float depth = max(0.0, uTopY - vW.y);
   float far = clamp(depth / 7.0, 0.0, 1.0);
   vec3 base = vC.rgb;
-  // (the hue walks with depth: a gap two floors down never shows the same flat colour — pink → violet → blue → teal)
-  // THE OWNER's GRADIENT ON ONE SCREEN (the review: it walked by area only, and fogged to grey-lilac): whatever the area's colour, the
-  // floors in sight walk on — violet two floors down, a saturated blue by four, teal at the foot — and stay SATURATED as they dim
-  vec3 walk = mix(vec3(0.36, 0.05, 1.0), vec3(0.03, 0.08, 1.0), smoothstep(0.3, 0.68, far));
-  walk = mix(walk, vec3(0.0, 0.42, 0.95), smoothstep(0.72, 1.0, far));
-  base = mix(base, walk, smoothstep(0.1, 0.5, far) * 0.92 * (1.0 - red));
+  // THE AREA PALETTES ARE DEPTH-RELATIVE (F3 — the owner: replaces F2's gradient on one screen): a slice wears ITS OWN floor's colour
+  // (night.js#colourOf — its area's, the last three floors of an area leaning to the next one's) + its area's RIM colour (vR: brass in
+  // THE SPEAKEASY, ultraviolet in THE DEEP). Under the ball the tower only DIMS — it keeps its hue.
+  vec3 rimHue = vR;
   float dim = mix(1.0, 0.5, far);
   // distances to this face's edges, in world units
   float dOut = (1.0 - rad) * uRing;                      // to the rim
@@ -173,11 +172,13 @@ void main() {
       rim *= 1.0; base = RED;
     }
     // (a red slice's rim is HOT RED — never the safe slices' white line: danger has its own edge)
-    vec3 rimC = red > 0.5 ? vec3(1.0, 0.2, 0.24) * 1.7 : mix(base, vec3(1.0), 0.72) * 1.75;
+    vec3 rimC = red > 0.5 ? vec3(1.0, 0.2, 0.24) * 1.7 : mix(rimHue, vec3(1.0), 0.22) * 1.75;
     col = mix(col, rimC, rim);
-    col += base * halo * 0.3;
-    emit += rim * 1.0 + halo * 0.22; emitC = mix(emitC, rimC, rim);
-    if (emit > 0.0 && red < 0.5) emitC = mix(base, rimC, rim);
+    // (the halo behind the line is the RIM's own colour: on THE DEEP's dark indigo it is the ultraviolet glow — a red slice's stays red)
+    vec3 haloC = red > 0.5 ? base : rimHue;
+    col += haloC * halo * 0.42;
+    emit += rim * 1.0 + halo * 0.3; emitC = mix(emitC, rimC, rim);
+    if (emit > 0.0 && red < 0.5) emitC = mix(haloC, rimC, rim);
     // THE WARNING (the moving red steps onto this slice next): red hatching that blinks
     float warn = vF.y * (0.55 + 0.45 * sin(uTime * 12.0));
     float hx = rad * 2.6 - abs(ang) * 0.9 + 0.15, hatch = 1.0 - smoothstep(-fwidth(hx) * 1.2 - 1e-4, fwidth(hx) * 1.2 + 1e-4, abs(fract(hx) - 0.81) - 0.19);
@@ -197,7 +198,7 @@ void main() {
     float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.2);   // (0.2 = the slab's thickness: night.js SHAPE.THICK)
     col = base * mix(0.5, 0.2, vE.w);
     if (red > 0.5) { float sx = ang * 1.5 + vE.w * 0.5, sw = fwidth(sx) * 1.2 + 1e-4, chev = 1.0 - smoothstep(-sw, sw, abs(fract(sx) - 0.75) - 0.25); col = mix(RED * 0.5, RED_DARK, chev * 0.6); emit = (1.0 - chev) * 0.15; emitC = RED; base = RED; }
-    vec3 rimC = mix(base, vec3(1.0), 0.6) * 1.5;
+    vec3 rimC = mix(rimHue, vec3(1.0), 0.18) * 1.5;
     if (red > 0.5) rimC = vec3(1.0, 0.2, 0.24) * 1.5;
     col = mix(col, rimC, topEdge);
     emit += topEdge * 0.9; emitC = mix(emitC, rimC, topEdge);
@@ -254,14 +255,19 @@ ${FIRE_RAMP}
 void main() {
   vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
   float nv = max(dot(N, V), 0.0);
-  vec3 core = vec3(1.0, 0.985, 0.96) * 1.5;
+  vec3 core = vec3(1.0, 0.985, 0.96) * 1.12;
   float k = smoothstep(0.1, 0.9, nv);
   vec3 col = mix(uEdge * 1.1, core, k * k);
+  // F3 (the owner): a PINK-WHITE RIM round the unlit ball + a small WHITE DOT at its centre in a thin pink ring — the centre decides, and
+  // it shows (the white-hot core + the glow stay)
+  col = mix(col, vec3(1.0, 0.42, 0.78), 1.0 - smoothstep(0.34, 0.6, nv));
+  col = mix(col, vec3(1.0, 0.2, 0.62), smoothstep(0.9, 0.93, nv) * (1.0 - smoothstep(0.958, 0.978, nv)) * 0.9);
+  col = mix(col, vec3(1.25), smoothstep(0.962, 0.982, nv));
   // THE BLAZE: the ball IS the fire's heart — white-yellow through its middle, orange, a neon-pink rim that flickers
   vec3 burn = fire(clamp(0.12 + nv * 1.05 + 0.06 * sin(uTime * 22.0 + N.y * 9.0), 0.0, 1.0)) * (1.15 + 0.5 * k);
   col = mix(col, burn, uBlaze);
   col = mix(col, vec3(0.2, 0.2, 0.26) * (0.4 + 0.6 * nv), uOut);   // (the lights took it: a dead grey ball)
-  if (uBloom > 0.5) col *= 0.9 * (1.0 - uOut);
+  if (uBloom > 0.5) col *= mix(0.34, 0.9, uBlaze) * (1.0 - uOut);   // (unlit: a soft glow — its rim + its centre dot must stay read through its own bloom)
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

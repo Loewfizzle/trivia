@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { TURN, SLICES, AREAS, FIRST, RULE_SETS, RULES_DEFAULT } from './tuning.js';
 import { floorInto, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
 import { areaIndex } from './logic.js';
+import { PALETTES, TRENCH_PALETTES } from './palettes.js';
 import { WALL_V, WALL_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, FLAME_V, FLAME_F, RIBBON_V, RIBBON_F, createBloom } from './night-fx.js';
 
 /** bump when a picture is replaced (the walls' cache key) */
@@ -30,14 +31,13 @@ const MAXI = (BELOW + 3) * SLICES;
 const SHARDS = 48, SPARKS = 192, LIGHTS = 8, PUNCH0 = 3, PUNCHES = 4;
 /** THE BLAZE's flame sprites: a FIXED pool — the tiers trim how many are lit a second (FLAME_RATE: tier 0 · 1 · 2), never the pool */
 export const FLAMES = 96, FLAME_RATE = Object.freeze([46, 84, 128]), EMBER_RATE = Object.freeze([10, 22, 36]);
+/** a flame's longest life in seconds (F3 — the owner: the column ~2× longer, a little wider; F2's was 0.41): the ball falls away from its flames, so a
+ *  flame's life IS the column's length — the pool still holds every flame alive at once (128 a second × ≤ 0.82 s × ¾ on average < 96) */
+export const FLAME_LIFE = 0.82;
 /** the wall of each area (tuning.js#AREAS, in order): null = the open sky (THE ROOFTOP) */
 export const WALLS = Object.freeze([null, 'offices', 'speakeasy', 'harbor', 'deep', 'deep', 'deep']);
 const WALL_TINT = { offices: [0.5, 0.56, 0.82], speakeasy: [0.82, 0.74, 0.86], harbor: [1.9, 2.3, 2.5], deep: [1.5, 1.45, 1.7] };
-/** THE FLOORS' COLOURS by area (the owner's mockup: hot pink → violet → blue; the depth under the ball walks the hue on in the shader) */
-export const FLOOR_HEX = Object.freeze([0xff36cf, 0xcf46ff, 0xf02fd6, 0x5f7bff, 0x8a4dff, 0x8a4dff, 0x8a4dff]);
-/** THE TRENCH's laps cycle the deep's palettes */
-export const TRENCH_HEX = Object.freeze([0x8a4dff, 0x3fa2ff, 0xd63cff, 0x35d6c0]);
-const GOLD = 0xffc83c;
+const GOLD = 0xffc83c, LAP = 40, TRENCH_FROM = 201;
 
 const wedgeGeo = () => {
   // a slice = a wedge of the ring: its top, its outer wall, its two cut sides (the foot + the pillar's side are never seen)
@@ -97,7 +97,9 @@ export function createNight(host, o = {}) {
   const R = RULE_SETS[RULES_DEFAULT], PACE = R.gen.move.pace;
   const col = new THREE.Color();
   const lin = hex => { col.set(hex); return [col.r, col.g, col.b]; };
-  const FLOOR_RGB = FLOOR_HEX.map(lin), TRENCH_RGB = TRENCH_HEX.map(lin);
+  // (the palettes in linear light, flat: an area's 12 numbers — a · b · rim · day; the trench's laps after the areas')
+  const PL = new Float32Array((PALETTES.length + TRENCH_PALETTES.length) * 12);
+  [...PALETTES, ...TRENCH_PALETTES].forEach((p, i) => { PL.set([...lin(p.a), ...lin(p.b), ...lin(p.rim), ...lin(p.day)], i * 12); });
 
   // ---- the uniforms every material shares (ONE object each: a twin material in the bloom pass reads the same values)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uSpin: { value: 0 }, uAspect: { value: 1 }, uGrey: { value: 0 } };
@@ -161,7 +163,7 @@ export function createNight(host, o = {}) {
   const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uCol: { value: new THREE.Color(0x2a1466) } } });
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(SHAPE.RI - 0.004, SHAPE.RI - 0.004, 44, 28, 1, false), pillarMat);   // (capped: the tower's top is its end — nothing stands over the ball's floor)
   pillar.frustumCulled = false; scene.add(pillar); twin(pillar, pillarMat);
-  const sGeo = wedgeGeo(), aI = inst(sGeo, 'aI', MAXI, 4), aC = inst(sGeo, 'aC', MAXI, 4), aF = inst(sGeo, 'aF', MAXI, 4);
+  const sGeo = wedgeGeo(), aI = inst(sGeo, 'aI', MAXI, 4), aC = inst(sGeo, 'aC', MAXI, 4), aF = inst(sGeo, 'aF', MAXI, 4), aR = inst(sGeo, 'aR', MAXI, 3);
   const sliceMat = new THREE.ShaderMaterial({ vertexShader: SLICE_V, fragmentShader: SLICE_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uTime: G.uTime, uSpin: G.uSpin, uGrey: G.uGrey, uRing: { value: SHAPE.RO - SHAPE.RI }, uWidth: { value: SHAPE.RO * (WEDGE - 2 * MARGIN) / 2 } }, extensions: derivs, ...premul });
   const slices = new THREE.Mesh(sGeo, sliceMat);
   slices.frustumCulled = false; sGeo.instanceCount = 0; scene.add(slices); twin(slices, sliceMat);
@@ -203,7 +205,7 @@ export function createNight(host, o = {}) {
   const flameMat = new THREE.ShaderMaterial({ vertexShader: FLAME_V, fragmentShader: FLAME_F, uniforms: flameU, ...addOpt });
   const flames = new THREE.Mesh(fGeo, flameMat);
   flames.frustumCulled = false; scene.add(flames); twin(flames, flameMat);
-  const ribbonU = { uAt: { value: new THREE.Vector3() }, uLen: { value: 1 }, uWid: { value: SHAPE.R_BALL * 1.5 }, uTime: G.uTime, uOn: { value: 0 }, uBloom: G.uBloom };
+  const ribbonU = { uAt: { value: new THREE.Vector3() }, uLen: { value: 1 }, uWid: { value: SHAPE.R_BALL * 1.8 }, uTime: G.uTime, uOn: { value: 0 }, uBloom: G.uBloom };
   const ribbonMat = new THREE.ShaderMaterial({ vertexShader: RIBBON_V, fragmentShader: RIBBON_F, uniforms: ribbonU, side: THREE.DoubleSide, ...addOpt });
   const ribbon = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 2, 16), ribbonMat);
   ribbon.frustumCulled = false; scene.add(ribbon); twin(ribbon, ribbonMat);
@@ -215,17 +217,21 @@ export function createNight(host, o = {}) {
 
   // ---- the floors in sight: a ring of records written INTO (never a new object in play) + what happened to each (broken · cracked · its flashes)
   let run0 = null, h = 0, RR = R;
-  const FL = [], FLi = new Int32Array(RING).fill(-1), broken = new Uint16Array(RING), cracked = new Uint16Array(RING), flash = new Float32Array(RING * SLICES), fcol = new Float32Array(RING * 3);
+  const FL = [], FLi = new Int32Array(RING).fill(-1), broken = new Uint16Array(RING), cracked = new Uint16Array(RING), flash = new Float32Array(RING * SLICES), fcol = new Float32Array(RING * 3), frim = new Float32Array(RING * 3), fday = new Float32Array(RING * 3);
   for (let i = 0; i < RING; i++) FL.push({ i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 });
+  /** a floor's palette (its place in PL): its area's — THE TRENCH's by its lap */
+  const palOf = i => { const k = areaIndex(i); return (k >= 6 ? PALETTES.length + Math.floor((i - TRENCH_FROM) / LAP) % TRENCH_PALETTES.length : k) * 12; };
   function colourOf(i, slot) {
-    // the area's colour; THE TRENCH cycles the deep's palettes a lap; two floors either side of a seam blend
-    const k = areaIndex(i), lapN = i > 200 ? Math.floor((i - 201) / 40) : 0;
-    const a = k >= 6 ? TRENCH_RGB[lapN % TRENCH_RGB.length] : FLOOR_RGB[k];
-    let r = a[0], g = a[1], b = a[2];
-    if (k + 1 < AREAS.length && k < 5) { const d = AREAS[k + 1].from - i; if (d <= 3) { const n = FLOOR_RGB[k + 1], t = (4 - d) / 8; r += (n[0] - r) * t; g += (n[1] - g) * t; b += (n[2] - b) * t; } }
-    // (a floor a shade off its neighbours: every second one leans a little cooler)
-    const lean = i & 1 ? 0.9 : 1;
-    fcol[slot * 3] = r * lean; fcol[slot * 3 + 1] = g; fcol[slot * 3 + 2] = b * (i & 1 ? 1.06 : 1);
+    // THE AREA PALETTE, DEPTH-RELATIVE: this floor's own colour — a → b down its area; its last three floors lean to the next area's
+    const k = areaIndex(i), p = palOf(i), from = k >= 6 ? TRENCH_FROM + Math.floor((i - TRENCH_FROM) / LAP) * LAP : AREAS[k].from, len = k === 5 ? 1 : LAP;
+    const t = len > 1 ? (i - from) / (len - 1) : 0, d = from + len - i, q = d <= 3 ? palOf(i + d) : p, tt = q !== p ? (4 - d) / 4 : 0;
+    const s3 = slot * 3, lean = i & 1 ? 0.9 : 1;   // (a floor a shade off its neighbours: every second one a little deeper)
+    for (let c = 0; c < 3; c++) {
+      const top = PL[p + c] + (PL[p + 3 + c] - PL[p + c]) * t;
+      fcol[s3 + c] = (top + (PL[q + c] - top) * tt) * lean;
+      frim[s3 + c] = PL[p + 6 + c] + (PL[q + 6 + c] - PL[p + 6 + c]) * tt;
+      fday[s3 + c] = PL[p + 9 + c] + (PL[q + 9 + c] - PL[p + 9 + c]) * tt;
+    }
   }
   function floorRec(i) {
     const slot = i % RING;
@@ -241,7 +247,7 @@ export function createNight(host, o = {}) {
   const S = new Float64Array(24);
   const CAMY = 0, KICK = 1, SQUASH = 2, BLAZE = 3, TIME = 4, GH0 = 5, GH1 = 6, GT0 = 7, GT1 = 8, PITCH = 9, BACK = 10, BALLY = 11, PF = 12, PT = 13, OUTK = 14, BEST = 15, LANDT = 16, SHAKE = 17, LASTFLOOR = 18;
   S[GH0] = S[GH1] = -1; S[PITCH] = POSE.play.pitch; S[BACK] = 1; S[BALLY] = POSE.play.ballY; S[BEST] = 0; S[LANDT] = -10;
-  let poseFrom = POSE.play, poseTo = POSE.play, poseT0 = -1e9, state = 'live', tier = o.tier == null ? 2 : o.tier, bloom = null;
+  let poseFrom = POSE.play, poseTo = POSE.play, poseT0 = -1e9, state = 'live', tier = o.tier == null ? 2 : o.tier, bloom = null, day = o.look === 'day';
   let shardN = 0, sparkN = 0, punchN = 0, flameN = 0, flameOwed = 0, emberOwed = 0, fxHave = 0, wK = -1, wA = 0, wB = 0, wS = 0, areaA = 0;
   const punchAt = new Float64Array(PUNCHES).fill(-10);
   const rnd = (() => { let x = 0x2545f491; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; })();
@@ -426,7 +432,7 @@ export function createNight(host, o = {}) {
     const mv = rec.m1 ? moversAt(rec, tick, RR) : 0;
     let warn = 0, wk = 0;
     if (rec.m1) { warn = moversAt(rec, tick + PACE, RR) & ~mv; const into = tick % PACE; wk = 0.35 + 0.65 * Math.min(1, Math.max(0, (into - (PACE - 18)) / 18)); }
-    const y = -i * SHAPE.H, r = fcol[slot * 3], g = fcol[slot * 3 + 1], b = fcol[slot * 3 + 2], I = aI.array, C = aC.array, F = aF.array;
+    const y = -i * SHAPE.H, s3 = slot * 3, tc = day ? fday : fcol, r = tc[s3], g = tc[s3 + 1], b = tc[s3 + 2], I = aI.array, C = aC.array, F = aF.array, RM = aR.array;
     for (let s = 0; s < SLICES; s++) {
       if (((rec.gap | gone_) >> s) & 1) continue;
       if (n >= MAXI) return n;
@@ -434,6 +440,7 @@ export function createNight(host, o = {}) {
       I[q] = (sliceStart(s) + rec.twist) * UNIT; I[q + 1] = y; I[q + 2] = kind ? SHAPE.RISE : 0; I[q + 3] = kind;
       C[q] = r * shade; C[q + 1] = g * shade; C[q + 2] = b * shade; C[q + 3] = alpha;
       F[q] = flash[slot * SLICES + s]; F[q + 1] = (warn >> s) & 1 ? wk : 0; F[q + 2] = (crk >> s) & 1; F[q + 3] = out;
+      RM[n * 3] = frim[s3]; RM[n * 3 + 1] = frim[s3 + 1]; RM[n * 3 + 2] = frim[s3 + 2];
       n++;
     }
     return n;
@@ -477,7 +484,7 @@ export function createNight(host, o = {}) {
       if (S[GH0 + gi] >= 0) { const e = Math.max(0, (age - 0.25) / 0.75); n = putFloor(gf, n, 1 - e * e, e, tick); }
     }
     sGeo.instanceCount = n;
-    aI.needsUpdate = aC.needsUpdate = aF.needsUpdate = true;
+    aI.needsUpdate = aC.needsUpdate = aF.needsUpdate = aR.needsUpdate = true;
 
     // the ball
     const lift = ballLift(run, tau), by = -run.floor * SHAPE.H + SHAPE.R_BALL + lift;
@@ -517,14 +524,14 @@ export function createNight(host, o = {}) {
 
     // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames shed where it has just been (it falls away from them: a billowing
     // column), embers drifting off it — a fixed budget, the tier trims the rate
-    ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.45 + 0.5 * falling;
+    ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.9 + 1.0 * falling;
     if (fxTex.have !== fxHave) { fxHave = fxTex.have; flameU.tFx.value = fxTex.tex; flameU.uHave.value = 1; flameU.uFlip.value = fxTex.flip; }
     if (bz > 0.4 && alive && !reduce) {
       flameOwed += sec * FLAME_RATE[tier]; emberOwed += sec * EMBER_RATE[tier];
       let made = 0;
       while (flameOwed >= 1 && made < 6) {
         flameOwed -= 1; made++;
-        flame((rnd() - 0.5) * 0.12, ball.position.y + rnd() * 0.12, SHAPE.RB + (rnd() - 0.5) * 0.1, (rnd() - 0.5) * 0.75, 0.08 + rnd() * 0.4, (rnd() - 0.5) * 0.36 + 0.12, 0.22 + rnd() * 0.19, 0.17 + rnd() * 0.12);
+        flame((rnd() - 0.5) * 0.15, ball.position.y + rnd() * 0.12, SHAPE.RB + (rnd() - 0.5) * 0.12, (rnd() - 0.5) * 0.9, 0.08 + rnd() * 0.4, (rnd() - 0.5) * 0.42 + 0.12, FLAME_LIFE * (0.54 + rnd() * 0.46), 0.2 + rnd() * 0.14);
       }
       if (flameOwed > 6) flameOwed = 0;
       if (made) fO.needsUpdate = fV.needsUpdate = fT.needsUpdate = true;

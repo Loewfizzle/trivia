@@ -245,5 +245,5 @@ test('F2 — THE HOLD through the server half: a held solo run (its holds in the
   assert.deepEqual(judgePacked({ seed: 'x', mode: 'solo', log: '!5!4!1!1' }), { ok: false, why: 'too many holds' });
   assert.deepEqual(judgePacked({ seed: 'x', mode: 'solo', log: '+5!0!0' }), { ok: false, why: 'log' }, 'not a canonical log');
   assert.equal(judgePacked({ seed: 'x', mode: 'solo', log: '.5+5!0+1' }).holds, 1);
-  assert.deepEqual(serverRow(judgeRun({ seed: 'x', mode: 'solo', log: [{ k: 'hold', t: 50 }] })), { f: 0, t: 0, w: 'dark', e: 1140 + (50 - 18) }, 'a held empty run: the lights still go out — the hold gave back exactly the 32 ticks of the bounce it started over (the first landing was at tick 18)');
+  assert.deepEqual(serverRow(judgeRun({ seed: 'x', mode: 'solo', log: [{ k: 'hold', t: 50 }] })), { f: 0, t: 0, w: 'dark', e: 1140 }, 'a held empty run: the lights go out at the very tick of a run never held — THE HOLD = EXACT RESUME (F3): a hold gives nothing back');
 });

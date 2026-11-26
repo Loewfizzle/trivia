@@ -1,28 +1,28 @@
 // FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2 — docs/freefall.md "THE END SCREEN"; HIGH RISE's endscreen.js is the
 // pattern). ONE builder for the test page's own card today and the cartridge's body inside the console's podium frame in F4 — top to
 // bottom, JAYWALK's layout, type, sizes + spacing:
-//   the HEADER "FREEFALL · SOLO" (· MATCH in a match) — FREE in ultraviolet, FALL in lime, the mode in a soft lavender (THE END NEON's
+//   the HEADER "FREEFALL · SOLO" (· MATCH in a match) — FREE in hot pink, FALL in electric teal (F3: title-05's colours — the owner), the mode a pale ice (THE END NEON's
 //     class names — ui/fin-neon.js; FREEFALL has no row in metas.js yet (nothing is registered): the card writes the colours itself)
-//   the CAUSE — big neon words, up to two lines, in FREEFALL's ultraviolet (the colour IS the letter); MADE IT TO THE BOTTOM = GOLD.
+//   the CAUSE — big neon words, up to two lines, in FREEFALL's TEAL (the colour IS the letter); MADE IT TO THE BOTTOM = GOLD.
 //     NEVER RED: red is danger on the tower and nothing else, anywhere.
-//   THE FLOOR NUMBER, huge — the one WHITE hero, an ultraviolet glow — and FLOORS under it
+//   THE FLOOR NUMBER, huge — the one WHITE hero, a hot-pink glow — and FLOORS under it
 //   YOUR BEST · 88 in gold (NEW BEST · WAS 88 when this run beat it) + ONE small line: 12 BOUNCES · 3 BLAZES · BEST RUN 9
 // THE TABLE's slot follows (YOUR TABLE — F4); THE FOOT is the caller's (the console's universal footer · the page's PLAY AGAIN bar).
 // No stats strip, no pills. A VIEW's helper: DOM only — no rules, no storage, no fetch.
 import { h } from '../../ui/dom.js';
 
-/** FREEFALL's neon: ULTRAVIOLET + LIME (+ mint as a touch) — no other game uses them (docs/games/plan.md "FREEFALL — F2") */
-export const NEON = Object.freeze({ uv: '#9b5cff', uv2: '#c35bff', uv3: '#6a6bff', lime: '#b8ff3b', mint: '#5dffc0', mode: '#c9b6ff', gold: '#ffc83c' });
+/** FREEFALL's ACCENT = title-05's colours (F3 — the owner, Nov 26: docs/games/plan.md "FREEFALL — F3"; replaces F2's ultraviolet + lime): HOT PINK + ELECTRIC TEAL */
+export const NEON = Object.freeze({ pink: '#ff4fa8', teal: '#27e0e6', mode: '#cfeff5', gold: '#ffc83c' });
 const whole = n => Math.max(0, Math.floor(Number(n) || 0));
 const say = n => whole(n).toLocaleString('en-US');
 const many = (n, one) => `${say(n)} ${one}${whole(n) === 1 ? '' : 'S'}`;
 
-/** the header's words in their own neon: FREE (ultraviolet) FALL (lime) · the mode (lavender) — one node (fin-neon's shape) */
+/** the header's words in their own neon: FREE (hot pink) FALL (electric teal) · the mode (a pale ice) — one node (fin-neon's shape) */
 export function endHeader(mode = 'solo') {
   const m = mode === 'match' ? 'MATCH' : mode === 'daily' ? 'DAILY' : 'SOLO';
   const w = (cls, text, c, g) => { const b = h(cls, { 'aria-hidden': 'true' }, text); b.style.setProperty('--fn', c); b.style.setProperty('--fn-g', g); return b; };
   return h('span.fn-hd', { role: 'heading', 'aria-level': '1', 'aria-label': `Freefall, ${m.toLowerCase()}` },
-    w('b.fn-w.fn-w1', 'FREE', NEON.uv2, NEON.uv), w('b.fn-w.fn-w2', 'FALL', NEON.lime, NEON.lime), w('i.fn-m', ` · ${m}`, NEON.mode, NEON.uv3));
+    w('b.fn-w.fn-w1', 'FREE', NEON.pink, NEON.pink), w('b.fn-w.fn-w2', 'FALL', NEON.teal, NEON.teal), w('i.fn-m', ` · ${m}`, NEON.mode, NEON.teal));
 }
 /** "12 BOUNCES · 3 BLAZES · BEST RUN 9" (1 BOUNCE · 1 BLAZE) */
 export const statsLine = (bounces, blazes, bestRun) => `${many(bounces, 'BOUNCE')} · ${many(blazes, 'BLAZE')} · BEST RUN ${say(bestRun)}`;
@@ -34,7 +34,7 @@ export const statsLine = (bounces, blazes, bestRun) => `${many(bounces, 'BOUNCE'
  */
 export function endCard({ header = '' } = {}) {
   const cause = h('div.ff-ec-cause.fn-line'), n = h('div.ff-ec-n'), fl = h('div.ff-ec-fl', 'FLOORS'), bestL = h('div.ff-ec-best'), line = h('div.ff-ec-line'), table = h('div.ff-ec-table', { 'aria-hidden': 'true' });
-  cause.style.setProperty('--fn', NEON.uv2); cause.style.setProperty('--fn-g', NEON.uv);
+  cause.style.setProperty('--fn', NEON.teal); cause.style.setProperty('--fn-g', NEON.teal);
   const hd = header ? h('div.ff-ec-hd', endHeader(header)) : null;
   const el = h('div.ff-ec', hd, cause, n, fl, bestL, line, table);
   return {

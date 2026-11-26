@@ -181,26 +181,27 @@ export function setAngle(run, T, a, ev) {
 }
 
 /**
- * F2 — THE HOLD (HIGH RISE's — docs/freefall.md "THE HOLD"): a LOGGED event { k: 'hold', t: T } — the page was hidden / the phone locked
- * (SOLO only: a mode's `holds`; a match never holds). T is a PLAY tick: the time away and the 3 · 2 · 1 before the run goes on are not
- * run time. Every landing BEFORE T happens first; then THE BALL's FLIGHT STARTS OVER at T (the same flight, from its start: a bounce's
- * next landing = T + bounce, a fall's = T + fall) and THE DARKNESS waits exactly as long — the player comes back to a whole flight,
- * never to a landing a blink away. A floor already passed never changes. → true = held · false = refused: no hold left in this mode,
- * the run over, T not a whole tick, a tick the run was already stepped to, a move already counted after T, T at / past THE CAP.
- * After a hold the next move counts at T + 1 at the earliest.
+ * THE HOLD = EXACT RESUME (F3 — the owner, Nov 26; F2's hold restarted the ball's flight: a hold at the right tick was a free dodge of
+ * a landing — docs/freefall.md "THE HOLD"): a LOGGED event { k: 'hold', t: T } — the page was hidden / the phone locked (SOLO only: a
+ * mode's `holds`; a match never holds). T is a PLAY tick: the time away and the 3 · 2 · 1 before the run goes on are not run time.
+ * THE WHOLE STATE IS FROZEN AT T AND RESUMED UNCHANGED: everything up to AND AT T happens first (a landing due at T lands — on the
+ * angle the tower stood at), then nothing moves — the ball's flight (`fl` · `pl` · `nl`: its phase + its height), the tower's angle,
+ * THE DARKNESS (`dk` · `dn`) are exactly what they were. A HOLD NEVER CANCELS OR RESTARTS A LANDING: a log with its holds taken out
+ * replays to the SAME run, tick for tick. The only thing a hold changes: the next move counts at T + 1 at the earliest (no input
+ * counts while the run is held — the log's order: a move at a hold's own tick comes before it).
+ * → true = held · false = refused: no hold left in this mode, the run over (or ended by what was due at T), T not a whole tick, a tick
+ * the run was already stepped to, a move already counted after T, T at / past THE CAP.
  */
 export function hold(run, T, ev) {
   if (!Number.isSafeInteger(T) || T < 0 || run.st !== 'live') return false;
   const M = run.R.modes[run.mode];
   if (run.holds >= (M.holds || 0)) return false;
   if (T <= run.t) return false;   // (a tick the run was already stepped to: what happened there stands — the page holds at the NEXT tick)
-  if (T - 1 > run.t) stepTo(run, T - 1, ev);
-  if (run.st !== 'live' || T <= run.ll || T < run.mt) return false;
+  if (T < run.mt) return false;
   if (M.capTicks != null && T >= M.capTicks) return false;
-  const d = T - run.pl;
-  run.pl = T; run.nl += d; run.dn += d;
+  stepTo(run, T, ev);             // (what is due at T happens: a hold takes nothing away — the landing, the darkness's step)
+  if (run.st !== 'live') return false;
   run.holds++; run.ht.push(T + 0); run.mt = T + 1;
-  if (T > run.t) run.t = T;
   if (ev) ev.push({ e: 'hold', t: T });
   return true;
 }

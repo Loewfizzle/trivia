@@ -7,7 +7,8 @@
 //     coalesced sample at its own) — 60 Hz and 120 Hz phones are equal. THE DRAG is 1 : 1 (the ring under the ball moves as far as the
 //     finger — F1's scale, the owner's phone check); MAX SPIN's rest is offered again tick by tick (≤ 8 ticks owed).
 //   · THE HOLD (SOLO — engine.js#hold): the page hidden / the phone locked = the run is HELD (a logged event the judge replays); back =
-//     a 3 · 2 · 1, then on — the ball's flight starts over. A mode with no hold left (a match: none) runs on behind the hidden page.
+//     a 3 · 2 · 1, then on — EXACTLY where it was (F3 — THE HOLD = EXACT RESUME: the ball at the same point of its flight, the tower at
+//     the same angle; nothing the finger does while PAUSED or in the count counts). A mode with no hold left (a match: none) runs on behind the hidden page.
 //   · ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): a live frame makes no objects of its own — the HUD writes only what changed, the
 //     big number is BAKED (bakedtext.js), the cues are constants; what is left is what a LANDING makes (the engine's events, a sound's source).
 import { h } from '../../ui/dom.js';
@@ -312,7 +313,7 @@ export function createStage(app, o = {}) {
       if (late) continue;
       if (e.e === 'blaze') say('BLAZE!', 'is-blaze', 2, 900, now);
       else if (e.e === 'shatter') say('SMASH!', 'is-blaze', 2, 800, now);
-      else if (e.e === 'bounce' && e.red) say('CLOSE CALL', 'is-uv', 1, 800, now);
+      else if (e.e === 'bounce' && e.red) say('CLOSE CALL', 'is-teal', 1, 800, now);
       else if (e.e === 'area') { if (areaL.animate) areaL.animate(SWELL, { duration: 900, easing: 'ease-out' }); }
       else if (e.e === 'fall' && !fromRun && crossedBest(best, e.floor)) {
         // THE CROSSING (once a run): NEW BEST — the number turns gold for the rest of the run

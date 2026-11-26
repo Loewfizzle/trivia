@@ -68,7 +68,7 @@ export function replay({ seed, mode = 'solo', log = [], until = null, rules = RU
   for (let i = 0; i < log.length; i++) {
     const e = log[i];
     if (until != null && e.t > until) break;
-    // (F2 — a HOLD: every landing before its tick, then the flight starts over — engine.js#hold; refused = not a log the engine wrote)
+    // (a HOLD — F3: EXACT RESUME — everything up to + at its tick happens, then nothing moves: engine.js#hold; refused = not a log the engine wrote)
     if (isHold(e)) {
       if (hold(run, e.t, ev)) { used++; continue; }
       bad = i; why = isOver(run) ? 'past the end' : 'hold';

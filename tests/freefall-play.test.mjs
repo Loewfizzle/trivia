@@ -12,6 +12,7 @@ import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, BOUNCE_VARY_DB, MUSIC, SCALE_ST
 import { createRun, stepTo, turn, isOver } from '../js/games/freefall/engine.js';
 import { makeBot, planFlight } from '../js/games/freefall/bot.js';
 import { MODES, AREAS } from '../js/games/freefall/tuning.js';
+import { PALETTES, TRENCH_PALETTES } from '../js/games/freefall/palettes.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
@@ -65,7 +66,7 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store; THE DOOR is shut before the stage mounts', () => {
   const g = graph(`${FF}play.js`);
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'best.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'best.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
   assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/errlog.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers, THE SHEET, the lazy loader, the integer hash');
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
   for (const f of g.files) assert.ok(!/\/(profile|progress|board|daily|vault|chat|admin|screens)\/|js\/(firebase|store|room|host|identity|seat|app|config)\.js|^api\//.test(f), `${f}: nothing that counts is in the graph`);
@@ -208,7 +209,7 @@ test('THE SOUNDS\' PLAYER (sfx.js — static): the shared engine\'s SFX bus thro
 test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for the slices (only the floors in sight), our own bloom at tier 2 only, the walls at half resolution, the warm frame, the pictures decoded off the frame, RED is more than a colour, the darkness never dims the ball', () => {
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`);
   assert.match(n, /export const BELOW = 9;/, 'only the ~10 nearest floors are drawn');
-  assert.match(n, /const sGeo = wedgeGeo\(\), aI = inst\(sGeo, 'aI', MAXI, 4\), aC = inst\(sGeo, 'aC', MAXI, 4\), aF = inst\(sGeo, 'aF', MAXI, 4\);/, 'the slices: ONE instanced mesh');
+  assert.match(n, /const sGeo = wedgeGeo\(\), aI = inst\(sGeo, 'aI', MAXI, 4\), aC = inst\(sGeo, 'aC', MAXI, 4\), aF = inst\(sGeo, 'aF', MAXI, 4\), aR = inst\(sGeo, 'aR', MAXI, 3\);/, 'the slices: ONE instanced mesh (aR — F3: its area\'s rim colour)');
   assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.2, HOP: 0\.42, RISE: 0\.1, RW: 2\.7 \}\);/);
   assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/, 'the play camera = F1\'s graybox camera (the drag\'s 1 : 1 scale is the owner\'s phone check)');
   assert.match(read(`${FF}graybox.js`), /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/);
@@ -221,7 +222,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /assets\/freefall\/walls\/\$\{name\}-night\.webp/); assert.match(n, /assets\/jaywalk\/skyline-night\.webp/, 'THE ROOFTOP: JAYWALK\'s night skyline (reused, no copy)');
   for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-night.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 120000, `${w}: its night wall ships, small`); }
   // RED: hsl(352) — and readable with the colour removed: it stands proud, dark chevrons, a pulse
-  assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the chevrons, their edges smoothed by their own width on the screen (THE REVIEW: never a stair-step)'); assert.match(fx, /vec3 rimC = red > 0\.5 \? vec3\(1\.0, 0\.2, 0\.24\) \* 1\.7 : mix\(base, vec3\(1\.0\), 0\.72\) \* 1\.75;/, 'THE REVIEW: a red slice\'s rim is hot red — never the safe slices\' white line'); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
+  assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the chevrons, their edges smoothed by their own width on the screen (THE REVIEW: never a stair-step)'); assert.match(fx, /vec3 rimC = red > 0\.5 \? vec3\(1\.0, 0\.2, 0\.24\) \* 1\.7 : mix\(rimHue, vec3\(1\.0\), 0\.22\) \* 1\.75;/, 'THE REVIEW: a red slice\'s rim is hot red — never the safe slices\' white line'); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
   assert.match(n, /I\[q \+ 2\] = kind \? SHAPE\.RISE : 0;/, 'a red slice stands proud of the floor');
   // THE DARKNESS: the wall only (above its line) + the screen's edges — never the slices, never the ball
   assert.match(fx, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/); assert.doesNotMatch(fx.slice(fx.indexOf('export const SLICE_F'), fx.indexOf('export const PILLAR_V')), /uDarkY/, 'the slices never read the darkness');
@@ -231,7 +232,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   const css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of css.matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g)) { const [r, g, b] = [+m[1], +m[2], +m[3]]; assert.ok(!(r > 200 && g < 90 && b < 110), `no red in the stylesheet: ${m[0]}`); }
   assert.doesNotMatch(css, /border-radius:\s*(999|9999|50)px|border-radius:\s*100px/, 'NO PILLS');
-  assert.match(code(`${FF}endscreen.js`), /export const NEON = Object\.freeze\(\{ uv: '#9b5cff', uv2: '#c35bff', uv3: '#6a6bff', lime: '#b8ff3b', mint: '#5dffc0'/, 'FREEFALL\'s colours: ultraviolet + lime, mint as a touch');
+  assert.match(code(`${FF}endscreen.js`), /export const NEON = Object\.freeze\(\{ pink: '#ff4fa8', teal: '#27e0e6', mode: '#cfeff5', gold: '#ffc83c' \}\);/, 'FREEFALL\'s ACCENT (F3 — the owner): title-05\'s hot pink + electric teal');
 });
 
 test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that runs every frame builds a list, a record, a closure, a spread or a string; the big number is BAKED', () => {
@@ -260,18 +261,41 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
 });
 
+test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s colour): one palette an area in tuning.js#AREAS\' order, each its own hue, RED IS THE ONLY RED — no colour within 25° of hue 352; the last three floors of an area lean to the next one\'s', () => {
+  const hsl = hex => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(mx + mn - 1)) : 0, (mx + mn) / 2]; };
+  const far = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+  assert.equal(PALETTES.length, AREAS.length - 1, 'one palette an area — THE TRENCH has its own four (a lap each)');
+  for (const [i, p] of [...PALETTES, ...TRENCH_PALETTES].entries()) for (const k of ['a', 'b', 'rim', 'day']) {
+    const [h, s] = hsl(p[k]);
+    assert.ok(s < 0.12 || far(h, 352) > 25, `palette ${i}.${k} #${p[k].toString(16)} — hue ${h.toFixed(0)}: RED IS THE ONLY RED`);
+  }
+  // each area clearly its own colour: pink · violet → blue · rose + plum (brass rims) · teal + aqua · dark indigo (ultraviolet rims)
+  const hue = hex => hsl(hex)[0], inR = (v, lo, hi) => v >= lo && v <= hi;
+  assert.ok(inR(hue(PALETTES[0].a), 300, 327) && inR(hue(PALETTES[0].b), 290, 327), 'THE ROOFTOP: hot pink + magenta');
+  assert.ok(inR(hue(PALETTES[1].a), 255, 285) && inR(hue(PALETTES[1].b), 215, 240), 'THE OFFICES: electric violet → blue');
+  assert.ok(inR(hue(PALETTES[2].a), 300, 327) && inR(hue(PALETTES[2].b), 280, 300) && inR(hue(PALETTES[2].rim), 30, 55) && hsl(PALETTES[2].a)[2] < hsl(PALETTES[0].a)[2] - 0.1, 'THE SPEAKEASY: DEEP rose + plum, warm brass rims');
+  assert.ok(inR(hue(PALETTES[3].a), 165, 185) && inR(hue(PALETTES[3].b), 180, 195), 'UNDER THE HARBOR: teal + aqua');
+  assert.ok(inR(hue(PALETTES[4].a), 235, 255) && hsl(PALETTES[4].a)[2] < 0.35 && inR(hue(PALETTES[4].rim), 265, 285) && hsl(PALETTES[4].rim)[2] > 0.6, 'THE DEEP: dark indigo, glowing ultraviolet rims');
+  // the scene: a floor's own colour (never its place on the screen), the border's lean
+  const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`);
+  assert.match(n, /const t = len > 1 \? \(i - from\) \/ \(len - 1\) : 0, d = from \+ len - i, q = d <= 3 \? palOf\(i \+ d\) : p, tt = q !== p \? \(4 - d\) \/ 4 : 0;/, 'a → b down the area; its last three floors lean ¼ · ½ · ¾ to the next area\'s');
+  const sl = fx.slice(fx.indexOf('export const SLICE_F'), fx.indexOf('// ---- THE PILLAR'));
+  assert.doesNotMatch(sl, /vec3 walk =/, 'F2\'s gradient on one screen is gone: under the ball the tower only dims');
+  assert.match(sl, /vec3 rimHue = vR;/);
+});
+
 test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = the open sky), THE TRENCH cycles the deep\'s palettes; the end = JAYWALK\'s standard — header, cause, number, YOUR BEST, one line, the table\'s slot, PLAY AGAIN · SHARE | CITY', () => {
   const n = code(`${FF}night.js`);
   assert.match(n, /export const WALLS = Object\.freeze\(\[null, 'offices', 'speakeasy', 'harbor', 'deep', 'deep', 'deep'\]\);/);
   assert.equal(AREAS.length, 7, 'one wall an area');
-  assert.match(n, /export const TRENCH_HEX = Object\.freeze\(\[0x8a4dff, 0x3fa2ff, 0xd63cff, 0x35d6c0\]\);/);
+  assert.equal(TRENCH_PALETTES.length, 4, 'THE TRENCH = THE DEEP\'s, cycled: four laps\' rims'); assert.deepEqual([TRENCH_PALETTES[0].a, TRENCH_PALETTES[0].b, TRENCH_PALETTES[0].rim], [PALETTES[4].a, PALETTES[4].b, PALETTES[4].rim], 'its first lap = the deep\'s own');
   const e = code(`${FF}endscreen.js`), s = code(`${FF}stage.js`);
   assert.match(e, /const el = h\('div\.ff-ec', hd, cause, n, fl, bestL, line, table\);/, 'top to bottom: the header · the cause · the number · FLOORS · YOUR BEST · the line · the table\'s slot');
-  assert.match(e, /w\('b\.fn-w\.fn-w1', 'FREE', NEON\.uv2, NEON\.uv\), w\('b\.fn-w\.fn-w2', 'FALL', NEON\.lime, NEON\.lime\), w\('i\.fn-m', ` · \$\{m\}`, NEON\.mode, NEON\.uv3\)/, 'FREE ultraviolet · FALL lime · the mode lavender (THE END NEON\'s classes)');
-  assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.uv2\);/, 'the cause in ultraviolet — never red');
+  assert.match(e, /w\('b\.fn-w\.fn-w1', 'FREE', NEON\.pink, NEON\.pink\), w\('b\.fn-w\.fn-w2', 'FALL', NEON\.teal, NEON\.teal\), w\('i\.fn-m', ` · \$\{m\}`, NEON\.mode, NEON\.teal\)/, 'FREE hot pink · FALL electric teal · the mode a pale ice (THE END NEON\'s classes)');
+  assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
   assert.match(s, /h\('div\.ff-endfoot', again, h\('div\.ff-foot-row', share, city\)\)/, 'the foot: PLAY AGAIN, then SHARE | CITY');
   assert.match(s, /'SHARE · SOON'\), city = h\('a\.ff-foot-b\.ff-city', \{ href: '\/' \}, 'CITY'\)/, 'SHARE is a placeholder until F4; CITY goes home');
-  assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-lime\); color: #10210a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
+  assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');
 });
 
