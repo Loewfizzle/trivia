@@ -46,6 +46,8 @@ async function open(w, h, dpr, q = '', { best = 0, auto = false } = {}) {
   return { p, cdp, errs, reqs, sockets, logs, up, touch: w < 700, w, h, close: () => ctx.close() };
 }
 const st = p => p.evaluate(() => window.__ffPlay.state());
+/** the band that is up (F3B: every band is its own kept node — an arrival touches no DOM) */
+const bandSel = s => `.ff-banners > .ff-banner:nth-of-type(${s.banner.at + 1})`;
 /** a REAL finger: down at (x, y), across by `dx` px in `steps` moves, (up) */
 async function drag(t, x, y, dx, { steps = 4, up = true, down = true } = {}) {
   const pt = px => ({ x: px, y, id: 1, radiusX: 4, radiusY: 4, force: 1 });
@@ -75,7 +77,7 @@ const AREA_SHOTS = [['rooftop', 0], ['rooftop-30', 28], ['border-offices', 36], 
 async function look() {
   const [w, h, dpr] = [390, 844, 3];
   for (const lk of LOOKS) {
-    const q = `&tier=2&look=${lk}`, f = n => `f3-${lk}-${n}.png`;
+    const q = `&tier=2&look=${lk}`, f = n => `f3b-${lk}-${n}.png`;
     let t;
     if (want('opening')) {
       // THE OPENING: the title as it fades in, mid-GLINT, at rest
@@ -169,6 +171,73 @@ async function look() {
       await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
       await sleep(500); await shot(t.p, f('12-end'));
       console.log(lk, 'end', JSON.stringify(await t.p.evaluate(() => window.__ffPlay.ends.map(e => [e.same, e.live.cause, e.live.floor, e.holds]))), t.errs, t.logs.slice(-4));
+      await t.close();
+    }
+    // ---- F3B's scenes: THE ROOF BELOW (the title + floors 0 / 15 / 30 / 39 at three phone sizes) · each BREAKTHROUGH mid-play (a burst of
+    // frames through it — at the 4 sizes) · THE COLOUR RULE (each area's floor beside a red slice — and with the colour removed) · PAUSED
+    const toFloor = async (t2, n) => { await start(t2); await auto(t2.p, 'play'); await waitFor(t2.p, `window.__ffPlay.state().floor >= ${n} && window.__ffPlay.state().fl === "bounce"`, 40000); await auto(t2.p, 'safe'); await sleep(450); };
+    if (want('roof')) {
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3]]) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look1${q}`, { best: 88 });
+        await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000); await sleep(1200);
+        await shot(t.p, f(`30-roof-title-${tag}`));
+        await t.close();
+        for (const floor of [0, 15, 30, 39]) {
+          t = await open(sw, sh, sd, `?seed=look2${q}${floor > 2 ? `&floor=${floor - 2}` : ''}`, { best: 141 });
+          await toFloor(t, Math.max(1, floor));
+          await shot(t.p, f(`31-roof-floor-${String(floor).padStart(2, '0')}-${tag}`));
+          if (t.errs.length) console.log(lk, 'roof', floor, t.errs);
+          await t.close();
+        }
+      }
+    }
+    if (want('breaks')) {
+      // each breakthrough: the floor before it (the piece in sight), then a burst of frames through the moment
+      const through = async (t2, name, until, n, gap, first = 0) => { await waitFor(t2.p, until, 40000); if (first) await sleep(first); for (let i = 0; i < n; i++) { await shot(t2.p, f(`${name}-${i + 1}`)); if (i + 1 < n) await sleep(gap); } };
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3], [1440, 900, 1]]) {
+        const tag = sw === 390 ? '' : `-${sw}x${sh}`, few = sw !== 390;
+        // THE SKYLIGHT (floor 40)
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=37`, { best: 141 });
+        await toFloor(t, 39); await shot(t.p, f(`40-skylight-0-before${tag}`));
+        await auto(t.p, 'play'); await through(t, `40-skylight${tag}`, 'window.__ffPlay.state().info.breaks.skylight >= 1', few ? 2 : 5, 40);
+        await t.close();
+        // THE SPLASHDOWN (floor 120)
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=116`, { best: 141 });
+        await toFloor(t, 118); await shot(t.p, f(`41-splashdown-0-before${tag}`));
+        await auto(t.p, 'play'); await through(t, `41-splashdown${tag}`, 'window.__ffPlay.state().info.breaks.splash >= 1', few ? 2 : 5, 30);
+        if (!few) { await sleep(900); await shot(t.p, f('41-splashdown-6-under')); }
+        await t.close();
+        // THE BOTTOM (floor 200) — SOLO: the impact, then the seabed cracks open
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=196`, { best: 141 });
+        await toFloor(t, 198); await shot(t.p, f(`42-bottom-0-before${tag}`));
+        await auto(t.p, 'play'); await through(t, `42-bottom${tag}`, 'window.__ffPlay.state().info.breaks.bottom >= 1', few ? 2 : 3, 120);
+        if (!few) await through(t, '42-bottom-crack', 'window.__ffPlay.state().info.breaks.bottom >= 2', 3, 110);
+        await t.close();
+        // … and as a FINISH (match): the drop onto the seabed, the gold band, by night the firework
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=196&mode=match`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await through(t, `43-finish${tag}`, 'window.__ffPlay.state().info.breaks.bottom >= 1', few ? 2 : 5, few ? 700 : 260, 60);
+        if (!few) { await waitFor(t.p, 'window.__ffPlay.state().shown', 6000); await sleep(400); await shot(t.p, f('43-finish-9-card')); }
+        await t.close();
+      }
+    }
+    if (want('colours')) {
+      // THE COLOUR RULE: each area's floor beside a red slice — and with the colour removed (red must still read)
+      for (const [name, floor] of [['rooftop', 22], ['offices', 60], ['speakeasy', 100], ['harbor', 140], ['deep', 180], ['trench', 215]]) {
+        t = await open(w, h, dpr, `?seed=look7${q}&floor=${floor - 2}`, { best: name === 'speakeasy' ? 103 : 141 });
+        await toFloor(t, floor); await sleep(1900);
+        await shot(t.p, f(`50-colour-${name}`));
+        await grey(t.p, true); await shot(t.p, f(`51-colour-${name}-greyscale`)); await grey(t.p, false);
+        await t.close();
+      }
+    }
+    if (want('paused')) {
+      t = await open(w, h, dpr, `?seed=look4${q}`, { best: 88 });
+      await start(t); await auto(t.p, 'play');
+      await waitFor(t.p, 'window.__ffPlay.state().floor >= 12');
+      await hideShow(t.p, true); await sleep(200); await hideShow(t.p, false);
+      await sleep(900); await shot(t.p, f('60-paused'));
       await t.close();
     }
     if (want('sizes')) {
@@ -537,56 +606,54 @@ async function checks3() {
     ok(got && !t.errs.length, `${area} by day (floor ${s.floor}): the motes' kind ${s.info.moteKind} (${['none', 'bubbles', 'drifting particles', 'dust'][s.info.moteKind]}), data-area ${s.areaAttr}`);
     await t.close();
   }
-  // ---- THE ARRIVAL BANNERS: the band crosses the foot of the screen on reaching an area — baked AHEAD of the arrival, never over the ball or the number
+  // ---- THE ARRIVAL BANNERS (F3 · F3B — the owner: UNDER THE BIG NUMBER, never over a floor below the ball; THE STUTTERS: every band of the run
+  // baked BEHIND THE OPENING, kept — an arrival bakes nothing)
+  const ALL_BANDS = 'THE OFFICES|FLOOR 40,THE SPEAKEASY|FLOOR 80,UNDER THE HARBOR|FLOOR 120,THE DEEP|FLOOR 160,YOU HIT THE BOTTOM|FLOOR 200,THE TRENCH|FLOOR 201,THE TRENCH|LAP 2 · FLOOR 241';
   for (const lk of ['night', 'day']) {
     t = await open(390, 844, 3, `?seed=bnr1&look=${lk}&floor=77`);
-    await start(t);
-    await waitFor(t.p, 'window.__ffPlay.state().banner.baked', 4000);
-    s = await st(t.p);
-    const ahead = s.banner;
-    ok(s.floor < 80 && ahead.baked && ahead.key === 'THE SPEAKEASY|FLOOR 80' && ahead.shows === 0, `${lk}: on floor ${s.floor} the NEXT arrival's band is ready — "${ahead.key.replace('|', '" / "')}" baked ahead (${ahead.bakes} bake)`);
-    await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().banner.baked >= 7', 6000);
+    await sleep(700);   // (the fonts are in: the bands are settled)
+    const ahead = (await st(t.p)).banner;
+    ok(ahead.keys.join(',') === ALL_BANDS && ahead.shows === 0, `${lk}: behind the opening EVERY band of the run is baked (${ahead.baked}: the areas' six + the trench's first lap)`);
+    await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
     await sleep(520);
     s = await st(t.p);
-    const band = await box(t.p, '.ff-banner'), numB = await box(t.p, '.ff-num'), ink = await t.p.evaluate(() => { const b = document.querySelector('.ff-banner'), cs = getComputedStyle(b), c = b.querySelector('canvas'), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height).data; let on = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) on++; return { bg: cs.backgroundImage, rule: cs.borderTopColor, on, w: c.width, words: b.querySelector('.ff-banner-n').textContent + ' / ' + b.querySelector('.ff-banner-s').textContent, hidden: getComputedStyle(b.querySelector('.ff-banner-n')).color }; });
-    const ballB = s.frame.ball.y + s.frame.ball.d / 2;
-    ok(s.floor >= 80 && s.banner.showing && band.op > 0.9 && s.banner.bakes === ahead.bakes, `${lk}: the ball reaches floor 80 — the band crosses (opacity ${band.op.toFixed(2)}); nothing was baked in the arrival's frame (${s.banner.bakes} bake in all)`);
-    ok(band.x <= 0.5 && band.r >= 389.5 && band.h >= 66 && band.b <= 844 - 60 && band.y > ballB + 120 && band.y > numB.b + 300, `${lk}: a band across the foot of the screen (${band.y.toFixed(0)} … ${band.b.toFixed(0)} of 844) — never over the ball (its foot at ${ballB.toFixed(0)}) or the big number (${numB.b.toFixed(0)})`);
-    ok(ink.words === 'THE SPEAKEASY / FLOOR 80' && ink.on > 400 && ink.w === 1170 && ink.hidden === 'rgba(0, 0, 0, 0)' && (lk === 'day' ? /236, 247, 255/.test(ink.bg) && ink.rule !== 'rgb(255, 79, 168)' : /8, 4, 20/.test(ink.bg) && ink.rule === 'rgb(255, 79, 168)'), `${lk}: "${ink.words}" BAKED into the band's canvas (${ink.on} inked samples at 3×), the DOM words transparent under it; ${lk === 'day' ? 'a frosted pale band' : 'a dark band between two thin pink rules'}`);
+    const sel = bandSel(s), band = await box(t.p, sel), numB = await box(t.p, '.ff-num'), apex = await t.p.evaluate(() => window.__ffPlay.apexY());
+    const ink = await t.p.evaluate(q => { const b = document.querySelector(q), cs = getComputedStyle(b), c = b.querySelector('canvas'), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height).data; let on = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) on++; return { bg: cs.backgroundImage, rule: cs.borderTopColor, on, w: c.width, words: b.querySelector('.ff-banner-n').textContent + ' / ' + b.querySelector('.ff-banner-s').textContent, hidden: getComputedStyle(b.querySelector('.ff-banner-n')).color, kids: document.querySelector('.ff-banners').children.length }; }, sel);
+    ok(s.floor >= 80 && s.banner.showing && band.op > 0.9 && s.banner.bakes === ahead.bakes && ink.kids === 8, `${lk}: the ball reaches floor 80 — the band crosses (opacity ${band.op.toFixed(2)}); NOTHING was baked or built in the run (${s.banner.bakes} bakes, all behind the opening; the same ${ink.kids - 1} band nodes)`);
+    ok(band.x <= 0.5 && band.r >= 389.5 && band.h >= 40 && band.y >= numB.b && band.b <= apex + 0.5, `${lk}: the band lies UNDER THE BIG NUMBER (${band.y.toFixed(0)} … ${band.b.toFixed(0)} of 844 — the number's foot ${numB.b.toFixed(0)}) and ends above the ball's highest point (${apex.toFixed(0)}): never over a floor below the ball`);
+    ok(ink.words === 'THE SPEAKEASY / FLOOR 80' && ink.on > 250 && ink.w === 1170 && ink.hidden === 'rgba(0, 0, 0, 0)' && (lk === 'day' ? /236, 247, 255/.test(ink.bg) && ink.rule !== 'rgb(255, 79, 168)' : /8, 4, 20/.test(ink.bg) && ink.rule === 'rgb(255, 79, 168)'), `${lk}: "${ink.words}" BAKED into the band's canvas (${ink.on} inked samples at 3×), the DOM words transparent under it; ${lk === 'day' ? 'a frosted pale band' : 'a dark band between two thin pink rules'}`);
     await sleep(1500);
-    const after = await box(t.p, '.ff-banner');
-    await waitFor(t.p, "window.__ffPlay.state().banner.key === 'UNDER THE HARBOR|FLOOR 120'", 4000);
+    const after = await box(t.p, sel);
     s = await st(t.p);
-    ok(after.op < 0.05 && s.banner.key === 'UNDER THE HARBOR|FLOOR 120' && s.banner.baked && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${after.op.toFixed(2)}); the next one is made ready between two arrivals — "${s.banner.key.replace('|', '" / "')}"`);
+    ok(after.op < 0.05 && s.banner.bakes === ahead.bakes && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${after.op.toFixed(2)}); the next ones were ready all along (${s.banner.bakes} bakes)`);
     await t.close();
   }
-  // THE BOTTOM (200) + THE TRENCH (201) arrive one floor apart: the second band crosses after the first; a later LAP names itself
+  // THE BOTTOM (200) = the GOLD band "YOU HIT THE BOTTOM" (with the impact); THE TRENCH (201) crosses after it; a later LAP names itself
   t = await open(390, 844, 2, '?seed=bnr2&floor=198');
   await start(t); await auto(t.p, 'play');
   await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
-  const first = (await st(t.p)).banner.key;
+  const first = (await st(t.p)).banner, goldInk = await t.p.evaluate(q => getComputedStyle(document.querySelector(q)).borderTopColor, bandSel({ banner: first }));
   await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 2', 12000);
   s = await st(t.p);
-  ok(first === 'THE BOTTOM|FLOOR 200' && s.banner.key === 'THE TRENCH|FLOOR 201' && s.floor >= 201, `floor 200 "${first.replace('|', '" / "')}", then — after it — "${s.banner.key.replace('|', '" / "')}" (the ball on floor ${s.floor})`);
+  ok(first.key === 'YOU HIT THE BOTTOM|FLOOR 200' && first.gold && goldInk === 'rgb(255, 200, 60)' && s.banner.key === 'THE TRENCH|FLOOR 201' && !s.banner.gold && s.floor >= 201, `floor 200: the GOLD band "${first.key.replace('|', '" / "')}" (its rules ${goldInk}), then — after it — "${s.banner.key.replace('|', '" / "')}" (the ball on floor ${s.floor})`);
   await t.close();
   t = await open(390, 844, 2, '?seed=bnr3&floor=239');
-  await start(t);
-  await waitFor(t.p, 'window.__ffPlay.state().banner.baked', 4000);
-  const lapKey = (await st(t.p)).banner.key;
-  await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().banner.baked >= 7', 6000);
+  await start(t); await auto(t.p, 'play');
   const lapShown = await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1 && window.__ffPlay.state().floor >= 241', 30000);
+  const lapKey = (await st(t.p)).banner.key;
   ok(lapKey === 'THE TRENCH|LAP 2 · FLOOR 241' && lapShown && !t.errs.length, `THE TRENCH's second lap names itself: "${lapKey.replace('|', '" / "')}"`);
   await t.close();
-  // a narrow phone + a phone held sideways: the longest name fits its band
-  for (const [w, h] of [[375, 667], [844, 390]]) {
+  // a narrow phone + a phone held sideways: the longest name fits its band — still under the number, above the ball's highest point
+  for (const [w, h] of [[375, 667], [430, 932], [844, 390]]) {
     t = await open(w, h, 2, '?seed=bnr4&floor=118');
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
     await sleep(500);
-    const band = await box(t.p, '.ff-banner'), nm = await box(t.p, '.ff-banner-n'), stg = await box(t.p, '.ff-stage');
-    s = await st(t.p);
-    ok(nm.text === 'UNDER THE HARBOR' && nm.x >= stg.x + 2 && nm.r <= stg.r - 2 && band.b <= h - 10 && band.y > s.frame.ball.y + s.frame.ball.d / 2 + 30, `${w} × ${h}: "${nm.text}" fits its band (${nm.x.toFixed(0)} … ${nm.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}), under the ball`);
+    const sel = bandSel(await st(t.p)), band = await box(t.p, sel), nm = await box(t.p, `${sel} .ff-banner-n`), stg = await box(t.p, '.ff-stage'), numB = await box(t.p, '.ff-num'), apex = await t.p.evaluate(() => window.__ffPlay.apexY());
+    ok(nm.text === 'UNDER THE HARBOR' && nm.x >= stg.x + 2 && nm.r <= stg.r - 2 && band.y >= numB.b - 0.5 && band.b <= apex + 1, `${w} × ${h}: "${nm.text}" fits its band (${nm.x.toFixed(0)} … ${nm.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}), under the number (${numB.b.toFixed(0)}), above the ball's highest point (${band.b.toFixed(0)} ≤ ${apex.toFixed(0)})`);
     await t.close();
   }
   // ---- AUTO (no `?look=`): the phone's clock at once, then the site's own sun rule — one look, the page's attribute = the picture's; nothing asked of a server
@@ -595,6 +662,116 @@ async function checks3() {
   s = await st(t.p);
   ok(t.up && !t.errs.length && (s.look === 'day' || s.look === 'night') && s.lookAttr === s.look && s.info.look === s.look, `AUTO: the look is the ${s.look}'s (the phone's clock, then the sun rule) — the stage + the scene agree`);
   ok(!t.reqs.some(r => /\/api\//.test(r)) && t.reqs.some(r => /core\/sky\.js/.test(r)), 'AUTO asks the SITE\'s own sun rule (core/sky.js — worked out on the phone): nothing is asked of /api');
+  await t.close();
+}
+
+// =============================================================================================================== F3B — THE ROOF BELOW + THE BREAKTHROUGHS
+async function checks4() {
+  let t, s;
+  const P = (p, js) => p.evaluate(js);
+  const wanted = p => p.evaluate(() => window.__ffPlay.sfx.wanted().map(q => `${q.id}+${q.delay}`));
+  // ---- THE ROOF BELOW: the title screen has the roof's painting + its city + the 3D skylight riding on it; EVERY picture of the look is in before the first drag
+  for (const lk of ['night', 'day']) {
+    t = await open(390, 844, 2, `?seed=f3b1&look=${lk}&tier=2`);
+    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    s = await st(t.p);
+    const names = s.info.walls.split(' ').map(x => x.split(':')[0]).sort().join(' ');
+    ok(s.info.landed === 12 && s.info.roof[0] === 1 && s.info.roof[2] === 1 && s.info.roof[3] === 1 && s.info.breaks.deck && s.info.breaks.glass && !t.errs.length, `${lk} — THE TITLE SCREEN: the roof below (its painting + its city in, all of it there) with the 3D skylight riding on it; ${s.info.landed} pictures in before the first drag (${names})`);
+    const before = s.info.landed, shows0 = s.info.roof[1];
+    await start(t); await auto(t.p, 'gap');
+    await waitFor(t.p, 'window.__ffPlay.state().floor >= 30', 30000);
+    s = await st(t.p);
+    ok(s.info.roof[1] < shows0 * 0.6 && s.info.roof[0] === 1 && s.info.breaks.skylight === 0, `${lk}: by floor ${s.floor} the roof has RISEN toward you (a world unit shows ${(shows0 / s.info.roof[1]).toFixed(2)}× the painting it did on floor 0)`);
+    // THE SKYLIGHT (floor 40)
+    await waitFor(t.p, 'window.__ffPlay.state().info.breaks.skylight >= 1', 30000);
+    await sleep(700);
+    s = await st(t.p);
+    const w = await wanted(t.p);
+    ok(s.info.breaks.played === 1 && s.info.roof[0] < 0.05 && s.floor >= 40 && w.includes('skylight+0.133') && !w.some(x => x.startsWith('area-arrive')), `${lk} — THE SKYLIGHT: the ball breaks through at floor 40 (played once; the roof below is gone, the room under it open) — its own sound at the hit (${w.filter(x => /skylight/.test(x)).join(' ')}), no arrival jingle over it`);
+    await waitFor(t.p, 'window.__ffPlay.state().floor >= 48', 30000);
+    s = await st(t.p);
+    ok(s.info.landed === before && s.info.breaks.skylight === 2 && !s.hitchLog.some(h => h.why === 'pic' || h.why === 'band') && !t.errs.length, `${lk}: NO picture landed and NO band was baked in the run (${s.info.landed} pictures still; ${s.hitches} long frames: ${s.hitchLog.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ') || 'none'})`);
+    await t.close();
+  }
+  // a run that starts under the roof: the skylight just is not there (no effect played)
+  t = await open(390, 844, 2, '?seed=f3b2&floor=46');
+  await start(t); await sleep(600);
+  s = await st(t.p);
+  ok(s.info.breaks.skylight === 2 && s.info.breaks.played === 0 && s.info.roof[0] < 0.05, `?floor=46: the skylight is long gone (nothing played), the roof below with it`);
+  await t.close();
+  // ---- THE SPLASHDOWN (floor 120): the plunge, the waterline's sweep, the mix muffled, its own sound
+  for (const lk of ['night', 'day']) {
+    t = await open(390, 844, 2, `?seed=f3b3&look=${lk}&floor=116`);
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().floor >= 118 && window.__ffPlay.state().info.breaks.water', 30000);
+    s = await st(t.p);
+    ok(s.info.breaks.water && s.info.breaks.splash === 0 && s.info.breaks.line === -2, `${lk}: on floor ${s.floor} the water lies under the last speakeasy floors (a real plane, calm)`);
+    await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash >= 1', 30000);
+    const mid = await st(t.p);
+    await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash === 2', 4000);
+    s = await st(t.p);
+    const w = await wanted(t.p);
+    ok(mid.info.breaks.splash >= 1 && s.info.breaks.splash === 2 && !s.info.breaks.water && s.muffles === 1 && w.includes('splashdown+0.133') && !t.errs.length, `${lk} — THE SPLASHDOWN: the plunge at floor 120, THE WATERLINE swept up the screen (the plane is gone: under water), the mix muffled once, its own sound at the plunge`);
+    await t.close();
+  }
+  // ---- THE BOTTOM (floor 200), SOLO: the seabed rises into view, the impact, the gold band, then it CRACKS OPEN into THE TRENCH
+  t = await open(390, 844, 2, '?seed=f3b4&floor=196');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().floor >= 198 && window.__ffPlay.state().info.breaks.bed', 30000);
+  s = await st(t.p);
+  ok(s.info.breaks.bed && s.info.breaks.bottom === 0, `SOLO: on floor ${s.floor} the seabed has risen into view`);
+  await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 2', 30000);
+  s = await st(t.p);
+  let w = await wanted(t.p);
+  ok(s.floor >= 201 && !s.over && w.includes('bottom+0.3') && s.info.breaks.played >= 2, `SOLO — THE BOTTOM: the impact (bottom.mp3 at the hit), then the seabed CRACKS OPEN — the run falls on into THE TRENCH (floor ${s.floor}, still live)`);
+  await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom === 3', 5000);
+  s = await st(t.p);
+  ok(s.info.breaks.bottom === 3 && !s.info.breaks.bed && !w.some(x => x.startsWith('fireworks')) && !t.errs.length, 'the bed is gone (endless, as before) — no firework in solo');
+  await t.close();
+  // ---- THE BOTTOM as a FINISH (match + daily): MADE IT — the moment plays before the card, then the run is handed on (the hook F4 wires)
+  for (const lk of ['night', 'day']) {
+    t = await open(390, 844, 2, `?seed=f3b5&look=${lk}&mode=match&floor=196`);
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, "window.__ffPlay.state().st === 'made'", 30000);
+    const t0 = Date.now();
+    await sleep(1500);
+    s = await st(t.p);
+    const midShown = s.shown, midBand = s.banner;
+    await waitFor(t.p, 'window.__ffPlay.state().shown', 6000);
+    const cardMs = Date.now() - t0;
+    s = await st(t.p);
+    w = await wanted(t.p);
+    const words = await t.p.evaluate(() => document.querySelector('.ff-ec-cause').textContent);
+    ok(!midShown && midBand.key === 'YOU HIT THE BOTTOM|FLOOR 200' && midBand.gold && s.info.breaks.bottom === 1 && cardMs >= 2200 && words === 'MADE IT TO THE BOTTOM', `${lk} — THE FINISH: the ball drops onto the seabed, the gold band, the card waits for the moment (${cardMs} ms) — "${words}"`);
+    ok(s.finished && s.finished.floor === 200 && s.finished.mode === 'match' && s.finished.same === true && s.finished.judged === true && s.finished.look === lk, `${lk}: THE FINISH's HOOK — the run handed on once: floor ${s.finished && s.finished.floor}, REPLAY = LIVE, the judge's own verdict`);
+    ok(w.includes('bottom+0.3') && (lk === 'night' ? w.includes('fireworks+1.2') && s.info.breaks.played >= 3 : !w.some(x => x.startsWith('fireworks')) && s.info.breaks.played === 1) && !t.errs.length, `${lk}: bottom.mp3 at the hit${lk === 'night' ? ', then the FIREWORK (its sound softly, 0.9 s on; the bursts played)' : ' — no firework by day'}`);
+    await t.close();
+  }
+  // ---- PAUSED: a dark, BLURRED cover over the tower while held
+  t = await open(390, 844, 2, '?seed=f3b6');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().floor >= 3', 20000);
+  await hideShow(t.p, true); await sleep(150); await hideShow(t.p, false); await sleep(300);
+  const cover = await t.p.evaluate(() => { const cs = getComputedStyle(document.querySelector('.ff-hold')); return { blur: cs.backdropFilter || cs.webkitBackdropFilter || '', bg: cs.backgroundColor, n: document.querySelector('.ff-hold-n').textContent, l: document.querySelector('.ff-hold-l').textContent }; });
+  s = await st(t.p);
+  ok(s.held && /blur\(18px\)/.test(cover.blur) && /rgba\(5, 3, 13, 0\.8\)/.test(cover.bg) && /^[123]$/.test(cover.n) && /PAUSES LEFT/.test(cover.l), `PAUSED: a dark, blurred cover over the tower (${cover.blur} on ${cover.bg}) — the count "${cover.n}" + "${cover.l}" sharp on it`);
+  await t.close();
+  // ---- THE DARKNESS EASES WITH DEPTH on the page: a ball that stops is out 6 s after its last floor up to floor 100, 8 s from floor 160
+  for (const [floor, ticks] of [[60, 360], [170, 480]]) {
+    t = await open(390, 844, 2, `?seed=f3b7&floor=${floor}`);
+    await start(t); await auto(t.p, 'safe');
+    await waitFor(t.p, 'window.__ffPlay.state().over', 25000);
+    const r = await t.p.evaluate(() => { const P = window.__ffPlay, r = P.result(); return { cause: r.cause, floor: r.floor, stood: r.end - r.tick }; });
+    await waitFor(t.p, 'window.__ffPlay.ends.length === 1', 4000);
+    const same = await t.p.evaluate(() => window.__ffPlay.ends[0].same);
+    ok(r.cause === 'dark' && r.stood === ticks && same, `a ball that stops on floor ${r.floor}: THE LIGHTS WENT OUT ${(r.stood / 60).toFixed(0)} s after it got there (${r.stood} ticks) — REPLAY = LIVE`);
+    await t.close();
+  }
+  // ---- THE COLOURS: YOUR BEST's tape on a GOLD floor (THE SPEAKEASY) is white with a dark edge
+  t = await open(390, 844, 2, '?seed=f3b8&floor=84', { best: 90 });
+  await start(t); await sleep(500);
+  const tape = await t.p.evaluate(() => { const v = window.__ffPlay.view; return v.tapeInfo ? v.tapeInfo() : null; });
+  ok(tape && tape.dark === 1 && tape.col[0] > 1 && tape.col[1] > 1 && tape.col[2] > 1, `YOUR BEST on floor 90 (THE SPEAKEASY's gold): the tape is WHITE with a dark edge (${tape && tape.col.map(x => x.toFixed(2)).join(' ')})`);
   await t.close();
 }
 
@@ -618,13 +795,61 @@ async function perf() {
     ok(r.look === lk && r.fps >= 58 && r.p95 <= 20, `${lk} · ${where} · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) — floor ${r.floor}, ${r.shatters} shatters, ${r.motes} motes, @${r.dpr}`);
     await d.close();
   }
+  // F3B — EACH BREAKTHROUGH PLAYING (both looks, tiers 2 + 0, 1× + 4× CPU): the frames from four floors above it to four floors past it
+  for (const [lk, floor, where, mode] of [['night', 36, 'THE SKYLIGHT', ''], ['day', 36, 'THE SKYLIGHT', ''], ['night', 116, 'THE SPLASHDOWN', ''], ['day', 116, 'THE SPLASHDOWN', ''], ['night', 196, 'THE BOTTOM (solo: the crack)', ''], ['day', 196, 'THE BOTTOM (solo: the crack)', ''], ['night', 196, 'THE BOTTOM (a finish + the firework)', '&mode=match']]) for (const tier of [2, 0]) for (const rate of [1, 4]) {
+    if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
+    const d = await open(390, 844, 3, `?seed=perfb&tier=${tier}&floor=${floor}&look=${lk}${mode}`);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
+    await start(d); await auto(d.p, 'play');
+    await sleep(1100);
+    await d.p.evaluate(() => { window.__f0 = performance.now(); window.__n0 = window.__ffPlay.state().info.frames; });
+    await waitFor(d.p, mode ? 'window.__ffPlay.state().shown' : `window.__ffPlay.state().floor >= ${floor + 8} || window.__ffPlay.state().over`, 40000);
+    const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s = P.state(), n = s.info.frames - window.__n0, ms = performance.now() - window.__f0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / ms, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], worst: a[a.length - 1], dpr: s.info.dpr, floor: s.floor, played: s.info.breaks.played, look: s.info.look, hitches: s.hitches, log: s.hitchLog.map(h => `${h.why} ${h.ms} @${h.floor}`).join(', '), motes: s.info.motes }; });
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    rows.push({ lk, where, tier, rate, ...r });
+    ok(r.look === lk && r.played >= 1 && r.fps >= 58 && r.p95 <= 20, `${lk} · ${where} · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps through it (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms; ${r.hitches} long frames${r.log ? `: ${r.log}` : ''}) — floor ${r.floor}, @${r.dpr}`);
+    await d.close();
+  }
   console.log('\n| look | where | tier | cpu | fps | frame ms (p50 · p95 · worst) | size | motes |\n| --- | --- | --- | --- | --- | --- | --- | --- |');
   for (const r of rows) console.log(`| ${r.lk} | ${r.where} | ${r.tier} | ${r.rate}× | ${r.fps.toFixed(1)} | ${r.p50.toFixed(1)} · ${r.p95.toFixed(1)} · ${r.worst.toFixed(1)} | 390×844 @${r.dpr} | ${r.motes} |`);
 }
 
+// THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run at tier 2): a WHOLE run, the roof to the trench, at 4× CPU in both looks — every frame
+// over 25 ms counted BY AREA and every one over 33 ms NAMED (what landed before it). The target here: worst ≤ 25 ms, HITCH ≤ 2 a run.
+async function stutters() {
+  const AREAS = [['THE ROOFTOP', 0], ['THE OFFICES', 40], ['THE SPEAKEASY', 80], ['UNDER THE HARBOR', 120], ['THE DEEP', 160], ['THE TRENCH', 201]];
+  const out = [];
+  for (const lk of LOOKS) for (const rate of [4]) {
+    const d = await open(390, 844, 3, `?seed=stut1&tier=2&look=${lk}`);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await sleep(800);
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
+    await start(d); await auto(d.p, 'play');
+    // (the page itself keeps each area's worst frame + its count over 25 ms: read once a frame, written into typed slots)
+    await d.p.evaluate(() => {
+      const P = window.__ffPlay, W = new Float32Array(8), N = new Int32Array(8), F = new Int32Array(8), from = [0, 40, 80, 120, 160, 201];
+      let last = performance.now(), t0 = last;
+      window.__st = { W, N, F };
+      const tick = now => { const dt = now - last; last = now; const s = P.state(); if (!s.over && s.started && !s.held && now - t0 > 1200) { let k = 0; for (let i = 0; i < from.length; i++) if (s.floor >= from[i]) k = i; F[k]++; if (dt > W[k]) W[k] = dt; if (dt > 25) N[k]++; } if (!window.__stStop) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    });
+    await waitFor(d.p, 'window.__ffPlay.state().floor >= 212 || window.__ffPlay.state().over', 400000);
+    const r = await d.p.evaluate(() => { window.__stStop = true; const s = window.__ffPlay.state(), T = window.__st; return { floor: s.floor, over: s.over, cause: s.cause, hitches: s.hitches, worst: s.worstMs, log: s.hitchLog, W: [...T.W], N: [...T.N], F: [...T.F], landed: s.info.landed, bakes: s.banner.bakes, tier: s.tier }; });
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    out.push({ lk, rate, ...r });
+    ok(r.floor >= 205 && r.hitches <= 2 && r.landed === 12, `${lk} at ${rate}× CPU, the roof to the trench (floor ${r.floor}): HITCH ${r.hitches} (frames over 33 ms${r.log.length ? `: ${r.log.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ')}` : ''}) · worst ${r.worst.toFixed(1)} ms · no picture landed in the run (${r.landed})`);
+    await d.close();
+  }
+  console.log('\n| look | cpu | area | frames | worst ms | over 25 ms |\n| --- | --- | --- | --- | --- | --- |');
+  for (const r of out) AREAS.forEach(([name], k) => console.log(`| ${r.lk} | ${r.rate}× | ${name} | ${r.F[k]} | ${r.W[k].toFixed(1)} | ${r.N[k]} |`));
+}
+
 if (LOOK) await look();
+else if (argv.includes('--stutters')) await stutters();
 else if (PERF) await perf();
-else { await checks1(); await checks2(); await checks3(); }
+else if (argv.includes('--f3b')) await checks4();
+else { await checks1(); await checks2(); await checks3(); await checks4(); }
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

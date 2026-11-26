@@ -69,7 +69,9 @@ export const makeRuleSet = r => {
  *   fall        a FALL: the ticks from passing a floor (a gap, or a shatter) to the landing on the next one — it never changes with depth
  *   blaze       THE BLAZE: this many floors fallen in a row without a bounce light it
  *   shatterSafe (F2 — the owner's rule b) THE LANDING RIGHT AFTER A SHATTER is never an out: red there = a BOUNCE (the clean count resets as for any bounce)
- *   dark        THE LIGHTS GO OUT: `grace` ticks of rest, then one floor every `pace` ticks; never more than `lead` floors above the ball's floor
+ *   dark        THE LIGHTS GO OUT: `grace` ticks of rest, then one floor every `pace` ticks; never more than `lead` floors above the ball's floor.
+ *               F3B — IT EASES WITH DEPTH (darkPaceAt): `pace` down to floor `easeFrom`, then a straight line to `paceDeep` at floor `easeTo`,
+ *               `paceDeep` from there on — by the floor the BALL is on when a step is set (a row without them: `pace` at every depth)
  *   human       THE HUMAN PACE the fairness proofs are written for: a reaction of `react` ticks, then at most `spin` units a tick (1 turn a second)
  *   gen         THE LAYOUT (tower-gen.js) — difficulty comes from here only. Curves by floor (rampOf), each value in 256ths:
  *                 gaps  the gaps a floor has (512 = 2; the fraction = the chance of one more) · wide  the chance a gap is 2 slices wide (else 1)
@@ -91,7 +93,12 @@ export const RULE_SETS = Object.freeze({
     first: 18, bounce: 36, fall: 18,
     blaze: 3,
     shatterSafe: true,
-    dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3 },   // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW the darkness; now a stopped ball has 6 s and it is always in sight)
+    // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW
+    //  the darkness; now a stopped ball has 6 s and it is always in sight. F3B — THE DARKNESS EASES WITH DEPTH, the owner Nov 26: floors
+    //  0–100 EXACTLY as F3 built them (a floor every 120 ticks: 6 s stopped), a straight line over floors 100–160, a floor every 160 ticks
+    //  from floor 160 on (8 s stopped — THE DEEP + THE TRENCH: the stall budget follows the layout's difficulty). Nothing was ever recorded:
+    //  no new row.)
+    dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 },
     human: { react: 12, spin: 68 },
     gen: {
       gaps: [[0, 512], [80, 448], [120, 384], [160, 300], [200, 256]],
@@ -110,6 +117,17 @@ export const RULE_SETS = Object.freeze({
     },
   }),
 });
+/**
+ * THE DARKNESS's PACE AT A DEPTH (F3B — THE DARKNESS EASES WITH DEPTH): the ticks to its next floor down, by the floor the BALL is on when
+ * the step is set — `pace` down to `easeFrom`, a straight line to `paceDeep` at `easeTo`, `paceDeep` below. PURE, integers only (the phone's
+ * run and the judge's replay read the same number); a row that names no ease keeps `pace` at every depth.
+ */
+export function darkPaceAt(R, floor) {
+  const D = R.dark;
+  if (D.paceDeep == null || floor <= D.easeFrom) return D.pace;
+  if (floor >= D.easeTo) return D.paceDeep;
+  return D.pace + Math.floor((D.paceDeep - D.pace) * (floor - D.easeFrom) / (D.easeTo - D.easeFrom));
+}
 /** the rule set a run is played on when it names none */
 export const RULES_DEFAULT = 'classic';
 /** a rule set's id is short + plain (F4's proof node `rs` — the rules will allow nothing else) */

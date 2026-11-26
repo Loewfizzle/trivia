@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TICK_HZ, TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MAX_SPIN, FIRST, BOUNCE, FALL, BLAZE, DARK, HUMAN, MODES, MODE_IDS, AREAS, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, MAX_LOG, SEED_MAX, RULE_SETS, RULES_DEFAULT, ruleSet, makeRuleSet, isRuleRow } from '../js/games/freefall/tuning.js';
+import { TICK_HZ, TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MAX_SPIN, FIRST, BOUNCE, FALL, BLAZE, DARK, HUMAN, MODES, MODE_IDS, AREAS, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, MAX_LOG, SEED_MAX, RULE_SETS, RULES_DEFAULT, ruleSet, makeRuleSet, isRuleRow, darkPaceAt } from '../js/games/freefall/tuning.js';
 import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, floorNow, sliceNow, darkGap, modeRow, seedHash } from '../js/games/freefall/engine.js';
 import { sliceStart, sliceUnder, kindAt, kindAtTick, moversAt, wrap, angDiff, floorAt } from '../js/games/freefall/tower-gen.js';
 import { END_WORDS, endWords, seedOf, tickOf, areaOf, areaIndex, featsOf, FEAT_NAMES, rankCompare, standings } from '../js/games/freefall/logic.js';
@@ -57,7 +57,7 @@ test('THE NUMBERS: 60 ticks a second · one turn = 4096 units, 12 slices · MAX 
   assert.ok(MAX_SPIN * TICK_HZ / TURN > 2.49 && MAX_SPIN * TICK_HZ / TURN < 2.51, '171 a tick = 2.5 turns a second');
   assert.deepEqual([BOUNCE, FALL, FIRST], [C.bounce, C.fall, C.first]);
   assert.ok(Number.isInteger(BOUNCE) && Number.isInteger(FALL) && BOUNCE > FALL && FALL > HUMAN.react, 'a fall is shorter than a bounce — and longer than a human reaction');
-  assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3 });   // (F3 — the owner, Nov 26: it was 240 · 150 · 6; a stopped ball has 6 s now, and the darkness is always in sight)
+  assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 });   // (F3 — the owner, Nov 26: it was 240 · 150 · 6; a stopped ball has 6 s now, and the darkness is always in sight · F3B: it EASES WITH DEPTH — 8 s from floor 160)
   assert.deepEqual(MODES, { solo: { finish: null, capTicks: 30 * 60 * 60, holds: 3 }, match: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 }, daily: { finish: 200, capTicks: 3 * 60 * 60, holds: 0 } });
   assert.deepEqual(MODE_IDS, ['solo', 'match', 'daily']);
   assert.deepEqual(AREAS.map(a => [a.from, a.id, a.name]), [[0, 'rooftop', 'THE ROOFTOP'], [40, 'offices', 'THE OFFICES'], [80, 'speakeasy', 'THE SPEAKEASY'], [120, 'harbor', 'UNDER THE HARBOR'], [160, 'deep', 'THE DEEP'], [200, 'bottom', 'THE BOTTOM'], [201, 'trench', 'THE TRENCH']]);
@@ -275,6 +275,43 @@ test('THE LIGHTS GO OUT: the grace, then one floor every PACE ticks · never mor
     let last = r.dk;
     while (!isOver(r) && r.floor < 260) { playBot(r, bot, { maxFloor: r.floor + 1 }); assert.ok(r.dk >= last && r.floor - r.dk <= DARK.lead && (isOver(r) || r.dk < r.floor)); last = r.dk; }
   }
+});
+
+test('THE DARKNESS EASES WITH DEPTH (F3B — the owner, Nov 26): floors 0–100 EXACTLY as F3 (a floor every 120 ticks: 6 s stopped), a straight line over floors 100–160, a floor every 160 ticks from 160 on (8 s stopped — THE DEEP + THE TRENCH); a pure function of the BALL\'s floor (integers); the judge replays it; a row without the ease keeps one pace', () => {
+  // the pace at a depth: pure, integers, never below F3's, never above the deep pace
+  assert.deepEqual([0, 1, 50, 99, 100, 101, 102, 115, 130, 145, 159, 160, 161, 200, 201, 600].map(f => darkPaceAt(C, f)), [120, 120, 120, 120, 120, 120, 121, 130, 140, 150, 159, 160, 160, 160, 160, 160]);
+  for (let f = 0; f < 700; f++) { const p = darkPaceAt(C, f); assert.ok(Number.isSafeInteger(p) && p >= 120 && p <= 160 && p >= darkPaceAt(C, f - 1 < 0 ? 0 : f - 1), `floor ${f}: ${p}`); }
+  assert.deepEqual([100, 130, 160].map(f => DARK.lead * darkPaceAt(C, f) / TICK_HZ), [6, 7, 8], 'a stopped ball: 6 s down to floor 100 · 7 s at 130 · 8 s from 160');
+  // (a what-if row that names no ease — a sim's own, an older shape: ONE pace at every depth)
+  const flat = makeRuleSet({ ...JSON.parse(JSON.stringify({ ...C, reach: undefined, hop: undefined })), id: 'flat', dark: { grace: 180, pace: 120, lead: 3 } });
+  assert.deepEqual([0, 130, 400].map(f => darkPaceAt(flat, f)), [120, 120, 120]);
+  // A BALL THAT STOPS at a depth is out EXACTLY lead × the pace at its floor after it got there — on the live engine and on the judge's replay
+  for (const [f, pace] of [[60, 120], [100, 120], [130, 140], [150, 153], [160, 160], [205, 160], [262, 160]]) {
+    assert.equal(darkPaceAt(C, f), pace);
+    let done = 0;
+    for (let i = 0; i < 40 && done < 3; i++) {
+      const seed = `deep${f}-${i}`, run = createRun({ seed, mode: 'solo' });
+      // (down through the gaps to floor f — a run the blaze + the red never ended — then hands off on SAFE ground)
+      while (!isOver(run) && run.floor < f) { aim(run, GAP); land(run); }
+      if (isOver(run) || run.floor !== f) continue;
+      while (!isOver(run) && run.blaze) { aim(run, SAFE); land(run); }   // (a lit blaze would shatter the ground: bounce it out first — on the same floor or a few lower)
+      if (isOver(run)) continue;
+      const on = run.floor, at = run.at, want = at + DARK.lead * darkPaceAt(C, on);
+      // it stands: every landing from here on SAFE ground of this floor (aimed again each bounce — the trench's red moves)
+      while (!isOver(run)) { if (!aim(run, SAFE)) break; land(run); if (run.floor !== on) break; }
+      if (run.floor !== on || run.cause !== 'dark') continue;
+      assert.equal(run.end, want, `floor ${on} (seed ${seed}): out lead × ${darkPaceAt(C, on)} ticks after it got there — ${(DARK.lead * darkPaceAt(C, on) / TICK_HZ).toFixed(2)} s`);
+      const v = judgeRun({ seed, mode: 'solo', log: logOf(run) });
+      assert.deepEqual([v.ok, v.cause, v.floor, v.end], [true, 'dark', on, want], 'REPLAY = LIVE: the judge reads the same pace');
+      done++;
+    }
+    assert.ok(done >= 1, `floor ${f}: a stalled run was found`);
+  }
+  // the darkness's own steps deep down: one floor every pace-at-the-ball's-floor — never faster than F3's, slower from floor 100
+  const r = runAt(170), ev = [];
+  const on = r.floor, at = r.at;
+  while (!isOver(r)) { if (!aim(r, SAFE, ev)) break; land(r, ev); if (r.floor !== on) break; }
+  if (r.floor === on && r.cause === 'dark') assert.deepEqual(ev.filter(e => e.e === 'dark').map(e => e.t - at), [160, 320, 480], 'three steps of 160 ticks: 8 s');
 });
 
 test('THE DARKNESS + A LANDING AT THE SAME TICK: the landing first — a ball that falls through a gap that tick has left the floor the darkness takes; one that bounces is caught', () => {

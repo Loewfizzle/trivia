@@ -10,7 +10,7 @@ import { simBot, simStaller, SOLO_STOP } from '../scripts/freefall-sim.mjs';
 import { BOTS, BOT_IDS, makeBot, playBot } from '../js/games/freefall/bot.js';
 import { createRun, stepTo, isOver, logOf, resultOf } from '../js/games/freefall/engine.js';
 import { judgeRun } from '../js/games/freefall/replay.js';
-import { MODES, MODE_IDS, TICK_HZ, DARK, BOUNCE, FALL, RULE_SETS, makeRuleSet } from '../js/games/freefall/tuning.js';
+import { MODES, MODE_IDS, TICK_HZ, DARK, BOUNCE, FALL, RULE_SETS, makeRuleSet, darkPaceAt } from '../js/games/freefall/tuning.js';
 import { createHash } from 'node:crypto';
 
 const N = 200;
@@ -84,6 +84,32 @@ test('THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE (F3 — 3 s · a floor every 2 
     if (run.cause === 'dark') assert.equal(run.end, run.at + DARK.lead * DARK.pace, `seed st${i}: out exactly lead × pace after its last floor`);
     assert.ok((run.end - at) / TICK_HZ <= 25);
   }
+});
+
+test('THE DARKNESS EASES WITH DEPTH (F3B — the owner, Nov 26: 6 s stopped down to floor 100, a straight line to 8 s at floor 160, 8 s below): no bot is caught at ANY depth — and no stay on a floor ever uses its whole stall budget; a ball that STOPS deep down is always caught, lead × the pace at its floor after it got there', () => {
+  for (const id of BOT_IDS) for (const r of [match[id], solo[id]]) {
+    assert.equal(r.dark100, 0, `${id} (${r.mode}): nobody is out in the dark from floor 100 down`);
+    assert.ok(r.used < 1, `${id} (${r.mode}): the most of its stall budget any stay used: ${(r.used * 100).toFixed(0)} %`);
+    if (id !== 'sloppy') assert.ok(r.used < 0.5, `${id} (${r.mode}): … under half of it (${(r.used * 100).toFixed(0)} %): pressure, never a trap, at every depth`);
+  }
+  assert.ok(solo.great.deep160 > N * 0.5 && solo.great.stay160 < DARK.lead * darkPaceAt(RULE_SETS.classic, 160) / TICK_HZ / 2, `THE DEEP + THE TRENCH (the great bot lives there): its longest stay on a floor ${solo.great.stay160.toFixed(1)} s of the 8`);
+  console.log(`[freefall-sim] THE DARKNESS BY DEPTH — ${BOT_IDS.map(id => `${id}: ${solo[id].deep100} runs past floor 100 (${solo[id].deep160} past 160), longest stay there ${solo[id].stay100.toFixed(1)} s · ${solo[id].stay160.toFixed(1)} s, budget used ≤ ${(solo[id].used * 100).toFixed(0)} %`).join(' | ')}`);
+  // A BALL THAT STOPS DEEP DOWN: a great bot plays to a depth, then lets go — caught lead × the pace AT THAT FLOOR after its last floor (or it rolls onto red)
+  let caught = 0;
+  for (const depth of [70, 110, 135, 165, 215]) for (let i = 0; i < 14; i++) {
+    const run = createRun({ seed: `dp${depth}-${i}`, mode: 'solo' });
+    playBot(run, makeBot('great', `dp${depth}-${i}`), { maxFloor: depth });
+    if (isOver(run)) continue;
+    stepTo(run, MODES.solo.capTicks);
+    assert.ok(['dark', 'red'].includes(resultOf(run).cause), 'a stopped ball never goes on for ever');
+    if (run.cause !== 'dark') continue;
+    assert.equal(run.end, run.at + DARK.lead * darkPaceAt(run.R, run.floor), `depth ${depth}, seed ${i}: out exactly lead × the pace at floor ${run.floor} after it got there`);
+    assert.ok((run.end - run.at) / TICK_HZ >= 6 && (run.end - run.at) / TICK_HZ <= 8);
+    if (run.floor >= 160) assert.equal((run.end - run.at) / TICK_HZ, 8, 'from floor 160 down: 8 s');
+    if (run.floor <= 100) assert.equal((run.end - run.at) / TICK_HZ, 6, 'down to floor 100: 6 s, exactly as F3');
+    caught++;
+  }
+  assert.ok(caught >= 20, `${caught} stopped balls caught`);
 });
 
 test('THE BLAZE + TERMINAL VELOCITY in the sims: every bot lights the blaze; the feat (15 floors without a bounce) is a DARING player\'s — the careful bots almost never get it, a daring one often does', () => {

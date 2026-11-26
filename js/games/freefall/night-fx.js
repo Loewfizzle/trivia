@@ -30,6 +30,9 @@ uniform float uTan, uAspect, uHaveA, uHaveB, uFlipA, uFlipB, uSkyA, uSkyB, uSeam
 // (F3 — THE DAY LOOK: day-fx.js) the look · each wall's area (tuning.js#AREAS' index) + whether it is under water · the surface's height ·
 // the haze below + THE DARKNESS's colour, wall A + wall B
 uniform float uDay, uAreaA, uAreaB, uWetA, uWetB, uSurfY;
+// (F3B — THE BREAKTHROUGHS) the lights of the room below a broken skylight come on floor by floor from uLitY down, from uLitT on (−1000 = long
+// since) · the light shafts under the harbor's surface fade in after the plunge (uShafts 0 … 1)
+uniform float uLitT, uLitY, uShafts;
 uniform vec3 uFogA, uFogB, uDarkA, uDarkB;
 varying vec2 vS;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -81,10 +84,24 @@ void main() {
     col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.35 * uGlow;
     // (the top of the screen is the HUD's: the wall steps back behind the big number)
     col *= mix(1.0, 0.5, smoothstep(0.3, 1.0, vS.y));
+    // F3B — UNDER THE HARBOR BY NIGHT: the speakeasy's neon falls through the surface — soft shafts of teal + pink light slanting down
+    // the water, standing in the WORLD (the ball falls past them); they die with the depth and fade in after the plunge
+    float wetN = mix(step(2.5, uAreaA) * step(uAreaA, 3.5), step(2.5, uAreaB) * step(uAreaB, 3.5), k);
+    if (wetN > 0.01 && on) {
+      float su = atan(hit.x, -hit.z) * 3.2 + hitY * 0.16;
+      float sh = pow(vnoise(vec2(su * 2.2 + uTime * 0.06, 1.3)) * 0.6 + vnoise(vec2(su * 5.1 - uTime * 0.09, 7.7)) * 0.4, 2.4);
+      col += mix(vec3(0.1, 0.75, 0.8), vec3(0.9, 0.2, 0.7), vnoise(vec2(su * 0.7, 3.0))) * sh * 0.5 * exp(-max(0.0, uSurfY - hitY) / 14.0) * step(hitY, uSurfY) * wetN * uShafts;
+    }
     // THE DARKNESS: above its line the lights are out (a thin live edge where it stands) — the wall only; never the ball or its floor
     float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
     float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
     col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
+  }
+  // F3B — THE LIGHTS COME ON below a broken skylight: floor by floor from the roof down, each with a flicker as it catches
+  if (uLitT > -900.0) {
+    float below = uLitY - hitY, front = (uTime - uLitT) * 7.0 - below;
+    float fl = floor(below), onK = clamp(front, 0.0, 1.0) * (front > 1.6 ? 1.0 : step(0.35, fract(sin(fl * 12.9898 + floor(uTime * 22.0) * 78.233) * 43758.5453)));
+    col *= mix(1.0, mix(0.1, 1.0, onK), step(0.0, below));
   }
   // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
   gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
@@ -99,9 +116,18 @@ void main() {
 // it. THE DARKNESS reads here as on the walls (above its line: the lights out · by day THE STORM CLOUD). A red pixel leans to pink.
 export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9998, 1.0); }';
 export const SKY_F = /* glsl */`
-uniform sampler2D tPano;
+uniform sampler2D tPano, tRoof, tCity;
 uniform vec3 uCam, uRight, uUp, uFwd, uDarkA;
 uniform float uTan, uAspect, uHave, uFlip, uSeamY, uBallY, uDarkY, uTime, uRW, uRise, uShift, uDay, uBloom, uSpanAz, uSpanEl, uTopEl, uGlow;
+// THE ROOF BELOW (F3B — the owner: the title screen + the first 40 floors can not be the weak spot): the building's own roof seen from
+// high above, the skylight straight under the tower — the painting on a plane that leans toward the viewer (uGN its normal, uGV its
+// AWAY axis, uGC its centre from the camera, uGK = uGC · uGN), uGW = painting widths a world unit: it RISES floor by floor (night.js
+// scales it), the city round it (the painting's own borders, repeated mirrored) runs on to the horizon where the panorama stands. NO fog
+// wash: only a light distance haze far out. uGA = how much of it is there (it goes when the skylight breaks) · uOpen = the skylight is
+// open (the room below shows under the seam — until then the roof covers it)
+uniform vec3 uGN, uGV, uGC;
+uniform vec2 uRoof;
+uniform float uGK, uGW, uGA, uGCurl, uOpen, uHaveR, uFlipR, uHaveC, uFlipC;
 varying vec2 vS;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 ${NOISE}
@@ -122,10 +148,6 @@ void main() {
     col = mix(p, mix(vec3(0.6, 0.84, 0.98), vec3(0.86, 0.95, 1.0), smoothstep(1.0, 2.8, v)), smoothstep(0.88, 1.02, v));
     float cl = fbm(vec2(az * 1.6 + uTime * 0.012, v * 2.2 - uTime * 0.004));
     col = mix(col, vec3(1.0), smoothstep(0.5, 0.8, cl) * 0.6 * smoothstep(1.02, 1.6, v));
-    // THE STORM CLOUD above the darkness's line: slate, rolling
-    float roll = fbm(vec2(az * 3.0 + uTime * 0.05, hitY * 0.6 - uTime * 0.03));
-    col = mix(uDarkA * (0.65 + 0.7 * roll), col, lit);
-    col = mix(col, uDarkA * 0.5, exp(-pow((hitY - uDarkY - 0.3) / 0.24, 2.0)) * 0.55);
   } else {
     p = mix(mix(vec3(0.035, 0.01, 0.08), vec3(0.003, 0.002, 0.016), smoothstep(0.9, 0.0, v)), p * 1.2, uHave);
     // under its foot: the dark roof; the glow from below (eased with the walls')
@@ -134,10 +156,37 @@ void main() {
     col = mix(col, mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(9.0, 19.0, deep)), smoothstep(6.5, 17.0, deep) * uGlow);
     col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.35 * uGlow;
     col *= mix(1.0, 0.62, smoothstep(0.45, 1.0, vS.y));   // (the top of the screen is the HUD's: the sky steps back behind the big number)
+  }
+  // THE ROOF BELOW: the ray meets the leaning plane; the painting about its skylight, the city's tile beyond it
+  float dn = dot(d, uGN);
+  if (uGA > 0.001 && dn < -1e-4) {
+    vec3 gp = d * (uGK / dn) - uGC;
+    vec2 q = vec2(gp.x, dot(gp, uGV)) * uGW;                  // in painting widths: + x right, + y AWAY from the viewer
+    float fy = max(0.0, q.y - 0.4);
+    q.y += fy * fy * uGCurl;                                  // (past the roof's far edge the city runs off to the horizon faster)
+    vec2 ru = vec2(uRoof.x + q.x, uRoof.y - q.y);             // the painting, measured from its top-left (its far side is its top)
+    vec2 re = abs(ru - 0.5);
+    float outside = smoothstep(0.455, 0.5, max(re.x, re.y));
+    vec3 rf = pow(texture2D(tRoof, vec2(ru.x, mix(1.0 - ru.y, ru.y, uFlipR))).rgb, vec3(2.2));
+    vec3 ct = pow(texture2D(tCity, vec2(ru.x * 2.0, mix(1.0 - ru.y * 2.0, ru.y * 2.0, uFlipC))).rgb, vec3(2.2));
+    vec3 flat_ = mix(vec3(0.016, 0.012, 0.04), vec3(0.3, 0.33, 0.38), uDay);
+    vec3 g = mix(mix(flat_, rf, uHaveR), mix(flat_, ct, uHaveC), outside);
+    g *= mix(1.5, 1.0, uDay);                                 // (by night the painting is shown a little over its own light: the neon reads from 40 floors up)
+    // only a LIGHT distance haze, far out — where the city meets the panorama
+    vec3 hz = mix(vec3(0.02, 0.012, 0.055), vec3(0.56, 0.74, 0.93), uDay);
+    g = mix(g, hz, smoothstep(0.7, 2.6, q.y) * mix(0.75, 0.6, uDay));
+    col = mix(col, g, smoothstep(0.78, 0.96, v) * uGA);
+  }
+  // THE DARKNESS above its line: by night the lights are out (a thin live edge where it stands) · by day THE STORM CLOUD — slate, rolling
+  if (uDay > 0.5) {
+    float roll = fbm(vec2(az * 3.0 + uTime * 0.05, hitY * 0.6 - uTime * 0.03));
+    col = mix(uDarkA * (0.65 + 0.7 * roll), col, lit);
+    col = mix(col, uDarkA * 0.5, exp(-pow((hitY - uDarkY - 0.3) / 0.24, 2.0)) * 0.55);
+  } else {
     float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
     col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
   }
-  gl_FragColor = vec4(col, (1.0 - k) * (1.0 - uBloom));
+  gl_FragColor = vec4(col, (1.0 - k * uOpen) * (1.0 - uBloom));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -170,7 +219,7 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 export const SLICE_F = /* glsl */`
-uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust;
+uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust, uFogK;
 uniform vec3 uFog;
 varying vec4 vE, vC, vF;
 varying vec3 vW, vN, vR;
@@ -274,10 +323,11 @@ export const PILLAR_V = /* glsl */`
 varying vec3 vW, vN;
 void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
 export const PILLAR_F = /* glsl */`
-uniform float uBloom, uTopY, uDay;
+uniform float uBloom, uTopY, uDay, uFogK, uCutY;
 uniform vec3 uCol, uFog;
 varying vec3 vW, vN;
 void main() {
+  if (vW.y < uCutY) discard;   // (F3B: THE ROOF is shut until the skylight breaks — the pillar is not seen under it)
   vec3 V = normalize(cameraPosition - vW);
   float nv = max(dot(normalize(vN), V), 0.0);
   float far = clamp((uTopY - vW.y) / 7.0, 0.0, 1.0);
@@ -290,7 +340,7 @@ void main() {
     float band = pow(max(dot(N, normalize(vec3(-0.35, 0.25, 1.0))), 0.0), 6.0);
     col = mix(vec3(0.26, 0.36, 0.48), vec3(0.78, 0.87, 0.96), nv) * brush + vec3(1.0) * band * 0.45;
     col = mix(col, vec3(0.1, 0.3, 0.42), step(0.5, vN.y));
-    col = mix(col, uFog, far * 0.62);
+    col = mix(col, uFog, far * 0.62 * uFogK);
   }
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col, 1.0);
@@ -547,16 +597,18 @@ varying float vY;
 void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 export const TAPE_F = /* glsl */`
 uniform vec3 uCol;
-uniform float uGlow, uBloom, uHalf;
+uniform float uGlow, uBloom, uHalf, uDark;
 varying float vY;
 void main() {
   float px = fwidth(vY) + 1e-6, a = abs(vY);
   float hw = max(1.2 * px, uHalf * 0.2);
   float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);
-  float halo = exp(-a / (uHalf * 0.5)) * 0.5 * smoothstep(uHalf, uHalf * 0.6, a);
+  float halo = exp(-a / (uHalf * 0.5)) * 0.5 * smoothstep(uHalf, uHalf * 0.6, a) * (1.0 - uDark);
   float k = uGlow * (uBloom > 0.5 ? 0.45 : 1.0);
   vec3 c = (uCol * line + uCol * halo * (1.0 - line)) * k + vec3(1.0, 0.95, 0.8) * line * 0.25 * k;
-  gl_FragColor = vec4(c, min(1.0, line + halo * 0.6) * k);
+  // (F3B — ON GOLD FLOORS the tape is WHITE WITH A DARK EDGE: a dark band each side of the line covers the gold behind it)
+  float hw2 = hw * 2.6 + px, edge = (1.0 - smoothstep(hw2 - 0.75 * px, hw2 + 0.75 * px, a)) * (1.0 - line) * uDark * (1.0 - uBloom);
+  gl_FragColor = vec4(c * (1.0 - edge) + vec3(0.03, 0.02, 0.06) * edge, max(min(1.0, line + halo * 0.6) * k, edge));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;

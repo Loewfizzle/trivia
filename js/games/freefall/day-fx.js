@@ -54,7 +54,7 @@ export const DAY_MAIN = /* glsl */`
         float shallow = exp(-max(0.0, uSurfY - hit.y) / 30.0);
         float ru = atan(hit.x, -hit.z) * 3.2 + hit.y * 0.16;
         float rays = pow(vnoise(vec2(ru * 2.2 + uTime * 0.07, 1.3)) * 0.6 + vnoise(vec2(ru * 5.1 - uTime * 0.11, 7.7)) * 0.4, 2.2);
-        wcol += vec3(0.75, 1.0, 0.95) * rays * (0.25 + 0.75 * sy) * 0.55 * shallow;
+        wcol += vec3(0.75, 1.0, 0.95) * rays * (0.25 + 0.75 * sy) * 0.55 * shallow * uShafts;   // (F3B: the shafts fade in after the plunge)
         // … and THE CAUSTICS on the wall
         wcol += vec3(0.7, 1.0, 0.95) * caust(uv * 20.0, uTime) * 0.2 * shallow;
         col = mix(col, wcol, wet);
@@ -83,7 +83,9 @@ export const DAY_SLICE = /* glsl */`
       float rim = 1.0 - smoothstep(0.022 - aa, 0.022 + aa, dOut), cut = 1.0 - smoothstep(0.0, 0.014 + aas, dSide);
       col = tint * (0.9 + 0.1 * rad);
       col = mix(col, vec3(1.0), exp(-dOut / 0.07) * 0.26);                      // the frost toward the rim
-      col = mix(col, vec3(0.9, 0.98, 1.0), cut * 0.8);                           // the cyan-white seams
+      // the seams: cyan-white on a coloured face — on PEARL (F3B: UNDER THE HARBOR's near-white glass) the rim's own bright cyan, so they read
+      float pale = smoothstep(0.5, 0.62, min(tint.r, min(tint.g, tint.b)));
+      col = mix(col, mix(vec3(0.9, 0.98, 1.0), rimC * 0.92, pale), cut * 0.8);
       col = mix(col, rimC, rim);                                                 // the rim: the area's colour, brighter
       col = mix(col, vec3(1.0), (1.0 - smoothstep(0.0, 0.006 + aa, abs(dOut - 0.03))) * 0.55);   // … a white highlight along its inside
       col *= 0.92 + 0.08 * smoothstep(0.0, 0.16, rad);
@@ -108,7 +110,7 @@ export const DAY_SLICE = /* glsl */`
       // the ball's soft shadow on its own floor (by day the ball gives no pool of light)
       vec2 bd = vW.xz - vec2(0.0, 0.66);
       col *= 1.0 - 0.24 * exp(-dot(bd, bd) / 0.045) * smoothstep(1.2, 0.0, depth) * (1.0 - red);
-      if (uCaust > 0.001) col += vec3(0.75, 1.0, 0.95) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.5 * uCaust * (1.0 - red * 0.6);
+      if (uCaust > 0.001) col += vec3(0.75, 1.0, 0.95) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.12 * uCaust * (1.0 - red * 0.6);   // (F3B — the owner: the ripples stay ON THE WATER; the slices keep only a faint shimmer — it was 0.5)
     } else if (face < 1.5) {
       float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.2);
       col = tint * mix(0.78, 0.5, vE.w);   // (its wall: the same colour, in shade)
@@ -118,8 +120,9 @@ export const DAY_SLICE = /* glsl */`
       col = tint * 0.52;
       if (red > 0.5) col = RED * 0.45;
     }
-    col = mix(col, uFog, far * 0.62);
-    alpha *= mix(1.0, 0.62, smoothstep(0.35, 1.0, far));
+    // (uFogK — F3B: the haze's strength by area; THE ROOFTOP has almost none — NO fog wash over the roof below)
+    col = mix(col, uFog, far * 0.62 * uFogK);
+    alpha *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, far)), uFogK);
     col = mix(col, vec3(1.0, 0.36, 0.7), clamp(vF.x, 0.0, 1.0) * (face < 0.5 ? 0.5 : 0.2));   // (a landing's flash: the ball's own pink on the ice)
     if (uBloom > 0.5) col = vec3(0.0);`;
 

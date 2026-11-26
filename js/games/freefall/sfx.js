@@ -70,10 +70,31 @@ function out(ctx) {
   busCtx = ctx; workAt = performance.now();
   const comp = ctx.createDynamicsCompressor(), trim = ctx.createGain();
   for (const [k, v] of Object.entries(LIMITER)) { try { comp[k].value = v; } catch { /* an old Safari */ } }
-  trim.gain.value = TRIM; comp.connect(trim); trim.connect(getSfxBus() || ctx.destination);
+  // (F3B — THE MUFFLE: a low-pass after the limiter, wide open — the splashdown closes it for a moment: the mix goes under water)
+  lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = MUFFLE.open; lp.Q.value = 0.5;
+  trim.gain.value = TRIM; comp.connect(trim); trim.connect(lp); lp.connect(getSfxBus() || ctx.destination);
   bus = comp;
   return bus;
 }
+// THE MUFFLE (F3B — THE SPLASHDOWN: "the mix goes muffled"): FREEFALL's own sounds through a low-pass that closes fast and opens again
+// over `sec` seconds, starting `delay` s from now (the plunge's own splash is heard first). Locked / muted / no limiter yet = nothing.
+export const MUFFLE = Object.freeze({ open: 20000, shut: 420, close: 0.07 });
+let lp = null, muffled = 0;
+export function muffle(sec = 1.5, delay = 0) {
+  try {
+    const ctx = getContext();
+    if (!ctx || !isUnlocked()) return false;
+    if (!lp || busCtx !== ctx) out(ctx);   // (the limiter + its low-pass are built at the unlock — or here, if a muffle is the first thing asked)
+    if (!lp || busCtx !== ctx) return false;
+    const t = ctx.currentTime + delay, f = lp.frequency;
+    f.cancelScheduledValues(t); f.setValueAtTime(MUFFLE.open, t); f.exponentialRampToValueAtTime(MUFFLE.shut, t + MUFFLE.close);
+    f.setValueAtTime(MUFFLE.shut, t + sec * 0.45); f.exponentialRampToValueAtTime(MUFFLE.open, t + sec);
+    muffled++;
+    return true;
+  } catch { return false; }
+}
+/** how often the mix was muffled (the checks) */
+export const muffles = () => muffled;
 /** THE SOUND SYNC: is EVERY fetched sound decoded for the live context (nothing a landing would have to wait for)? */
 export const ready = () => { const ctx = getContext(); return !!ctx && bufCtx === ctx && bytes.size > 0 && [...bytes.keys()].every(k => bufs.has(k)); };
 /** → a promise: every sound decoded — or `ms` passed (no engine, no signal, a locked phone: the run never waits longer) */
@@ -182,7 +203,7 @@ export const files = () => SOUND_FILES;
 try {
   onRebuild(() => {
     for (let i = 0; i < POOL; i++) { const v = slots[i]; if (v.src) v.src.onended = null; v.on = false; v.src = null; v.busy = 0; v.g = null; v.gctx = null; }
-    bus = null; busCtx = null; bufs.clear(); decoding.clear(); gate.reset(); bufCtx = null;
+    bus = null; busCtx = null; lp = null; bufs.clear(); decoding.clear(); gate.reset(); bufCtx = null;
     if (bytes.size) decode().catch(() => {});
   });
 } catch { /* no engine */ }

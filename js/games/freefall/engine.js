@@ -5,7 +5,7 @@
 // between two landings only THE DARKNESS moves, at ticks the engine knows exactly — stepTo jumps from one to the next (a judge's replay
 // costs one step a landing, not one a tick). The phone's live run and the server's judge run THIS code.
 // PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
-import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, RULE_SETS, RULES_DEFAULT, ruleSet, isRuleRow, AREAS } from './tuning.js';
+import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, RULE_SETS, RULES_DEFAULT, ruleSet, isRuleRow, AREAS, darkPaceAt } from './tuning.js';
 import { seedHash, floorInto, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { areaIndex } from './logic.js';
 
@@ -101,9 +101,10 @@ function landing(run, L, ev) {
   if (lit && ev) ev.push({ e: 'blaze', floor: run.floor, t: L });
   const k = areaIndex(run.floor);
   if (k !== run.area) { run.area = k; if (ev) ev.push({ e: 'area', id: AREAS[k].id, floor: run.floor, t: L }); }
-  // THE DARKNESS is never more than `lead` floors above the deepest floor the ball has reached (and its pace starts again from there)
+  // THE DARKNESS is never more than `lead` floors above the deepest floor the ball has reached (and its pace starts again from there —
+  // F3B: THE PACE EASES WITH DEPTH, by the floor the ball is on: tuning.js#darkPaceAt)
   if (run.floor - R.dark.lead > run.dk) {
-    run.dk = run.floor - R.dark.lead; run.dn = L + R.dark.pace;
+    run.dk = run.floor - R.dark.lead; run.dn = L + darkPaceAt(R, run.floor);
     if (ev) ev.push({ e: 'dark', floor: run.dk, t: L });
   }
   const M = R.modes[run.mode];
@@ -112,7 +113,7 @@ function landing(run, L, ev) {
 
 /** THE DARKNESS comes one floor down at tick D — when it reaches the ball's floor the run is OUT ('dark') */
 function darker(run, D, ev) {
-  run.dk++; run.dn = D + run.R.dark.pace;
+  run.dk++; run.dn = D + darkPaceAt(run.R, run.floor);
   if (ev) ev.push({ e: 'dark', floor: run.dk, t: D });
   if (run.dk >= run.floor) finish(run, 'out', 'dark', D, ev);
 }

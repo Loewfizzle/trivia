@@ -19,7 +19,7 @@ import { sliceStart, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { replay, judgeRun } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
-import { CUE_NEW_BEST } from './sounds.js';
+import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
 import { resolveLook, sunUpNow } from '../kit/look.js';
 import { createNight, FF_ART_REV } from './night.js';
@@ -34,6 +34,12 @@ const LAP0 = 201;
 export const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
 /** the end card comes this long after EVERY end (the ball's last moment is seen) */
 export const END_HOLD_MS = 700;
+/** … and this long after a FINISH (F3B — THE BOTTOM: the last drop onto the seabed, the shockwave, the gold band, by night the firework) */
+export const END_HOLD_MADE_MS = 2600;
+/** THE BOTTOM's gold band: its words (the arrival's own stay THE BOTTOM · FLOOR 200 — logic.js) */
+export const BOTTOM_WORDS = 'YOU HIT THE BOTTOM';
+/** THE SPLASHDOWN: the mix goes under water for this long (s), from a moment after the plunge's own splash */
+export const MUFFLE_S = 1.5, MUFFLE_AFTER_S = 0.25;
 /** the START waits at most this long for the sounds' decode (THE SOUND SYNC — a first-ever touch is also the audio's unlock) */
 export const START_WAIT_MS = 600;
 /** THE HOLD's way back: 3 · 2 · 1, this long each */
@@ -75,6 +81,8 @@ export function createStage(app, o = {}) {
   const bestAt = o.best || { read: () => 0, write() {} }, readBest = () => cleanBest(bestAt.read()), writeBest = n => bestAt.write(n);
   const ac = new AbortController(), sig = { signal: ac.signal };   // (unmounted: every listener on the document goes with it)
   let gone = false;
+  // (THE HITCH LOG's clocks — set where the one-off work happens, read by hitchNow below)
+  let hN = 0, worstMs = 0, domAt = -1e9, tierAt = -1e9;
   // THE SOUND SYNC (HIGH RISE S4A): a LIVE run holds the audio context awake — a lease renewed once a second from the frame
   // (audio/engine.js#holdAwake through its hub: THE STALE-MODULE RULE), let go on the end card, on a hold, on a hide
   const awake = on => { const f = globalThis.__nsHoldAwake; if (f) { try { f(on, 'freefall'); } catch { /* audio is polish */ } } };
@@ -135,7 +143,7 @@ export function createStage(app, o = {}) {
   catch { stage.append(noGL()); return null; }
   hook.view = view;
   const tierPath = [pin == null ? 2 : pin];
-  const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
+  const tiers = createTiers({ apply: t => { view.setTier(t); tierAt = performance.now(); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
   // THE LOST CONTEXT (JAYWALK's lesson — iOS takes a WebGL context away under memory pressure; the run is on the clock): the scene is
   // REBUILT — destroyed + created again on the same run — the moment the context is restored, or after 1.5 s without it. No context to
   // be had yet: the line says so, the run goes on, the rebuild tries again (every 1.5 s × 8, and when the page is back in front).
@@ -184,8 +192,12 @@ export function createStage(app, o = {}) {
   // THE ANNOUNCER: one call at a time, a bigger moment never wiped by a smaller (a Web Animations one-shot: opacity + transform, no reflow)
   let callUntil = 0, callPri = 0, callAnim = null;
   const POP = [{ opacity: 0, transform: 'scale(0.6)' }, { opacity: 1, transform: 'scale(1.12)', offset: 0.22 }, { opacity: 1, transform: 'scale(1)', offset: 0.4 }, { opacity: 1, transform: 'scale(1)', offset: 0.8 }, { opacity: 0, transform: 'scale(1.04)' }];
+  // (F3B: THE BAND lies in the announcer's lane now — a call that comes while a band is up waits for it to leave, the biggest one wins)
+  let pendText = '', pendCls = '', pendPri = 0, pendMs = 0, pendAt = 0;
   function say(text, cls, pri, ms, now) {
+    if (BNR.showing()) { if (pri >= pendPri) { pendText = text; pendCls = cls; pendPri = pri; pendMs = ms; pendAt = now; } return; }
     if (now < callUntil && pri < callPri) return;
+    domAt = now;
     callUntil = now + ms; callPri = pri;
     call.textContent = text; call.className = `ff-call ${cls}`;
     if (callAnim) callAnim.cancel();
@@ -193,17 +205,30 @@ export function createStage(app, o = {}) {
   }
   // ---- THE ARRIVALS: the band of the NEXT arrival is made ready between two arrivals (a timer — never the frame a ball lands in); an
   // arrival while a band is still up (THE TRENCH's, one floor after THE BOTTOM's) crosses after it
-  let bnrQueued = -1, bnrTimer = 0;
-  function prepBanner(from) { const w = arrivalWords(nextArrival(from)); BNR.prepare(w.name, w.sub); }
+  let bnrQueued = -1, bnrTimer = 0, bedTimer = 0;
+  /** an arrival's band: its words + its class — THE BOTTOM's is the GOLD one (F3B: "YOU HIT THE BOTTOM") */
+  const bandName = (floor, w) => (floor === BREAK_AT.seabed ? BOTTOM_WORDS : w.name), bandCls = floor => (floor === BREAK_AT.seabed ? 'is-gold' : '');
+  /** F3B — THE STUTTERS: EVERY band a run can meet soon is baked AHEAD — the areas' six behind the opening (kept: the next run bakes nothing), a trench lap's between two arrivals */
+  function prepBanner(from) {
+    let f = from;
+    for (let k = 0; k < 7; k++) { f = nextArrival(f); const w = arrivalWords(f); BNR.prepare(bandName(f, w), w.sub, bandCls(f)); if (f > LAP0) break; }   // (… the next six areas + the trench's first lap: from the roof, 40 · 80 · 120 · 160 · 200 · 201 · 241)
+  }
   function arrive(floor) {
+    // (THE BOTTOM's gold band comes with the IMPACT — a whole fall after the arrival's event; the run may be over by then: a finish)
+    if (floor === BREAK_AT.seabed && !bedTimer) { bedTimer = setTimeout(() => { if (!gone) { arrive(floor); bedTimer = 0; } }, BOTTOM_HIT_S * 1000); return; }
     if (BNR.showing()) { bnrQueued = floor; return; }
     const w = arrivalWords(floor);
-    if (!BNR.ready(w.name, w.sub)) BNR.prepare(w.name, w.sub);   // (a `?floor=N` start can land past the one made ready: baked now, once)
-    BNR.show(bannerDone);
+    domAt = performance.now();
+    BNR.show(bandName(floor, w), w.sub, bannerDone, bandCls(floor));   // (a `?floor=N` start can land past the ones made ready: baked now, once)
     clearTimeout(bnrTimer);
     bnrTimer = setTimeout(() => { if (!gone && !BNR.showing()) prepBanner(run.floor); }, BANNER_MS + 250);
   }
-  function bannerDone() { if (bnrQueued >= 0 && !gone) { const f = bnrQueued; bnrQueued = -1; arrive(f); } }
+  function bannerDone() {
+    if (gone) return;
+    if (bnrQueued >= 0) { const f = bnrQueued; bnrQueued = -1; arrive(f); return; }
+    // (the call that waited for the band: said now, if its moment is not long gone)
+    if (pendText) { const now = performance.now(), t = pendText, c = pendCls, p = pendPri, m = pendMs, old = now - pendAt > 1800; pendText = ''; pendPri = 0; if (!old) say(t, c, p, m, now); }
+  }
   window.addEventListener('resize', () => BNR.dirty(), sig);   // (the band is baked for its width)
 
   // ---- the run: the pure engine on this page's clock
@@ -212,11 +237,14 @@ export function createStage(app, o = {}) {
   let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
   let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hudInk = '', hitches = 0;
   let ev = [], fed = 0;
-  const cues = [];
+  const cues = [], FIREWORK_CUES = [CUE_FIREWORKS];
+  /** F3B — THE FINISH's hook: what a finished run hands on (F4's cartridge wires the match here) · the last one, for the checks */
+  let finished = null;
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
     held = false; countAt = 0; away = false; hitches = 0;
+    worstMs = 0; hN = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.reset(run); view.setBest(tapeFloor); view.pose('open', true);
     end.hidden = true; holdEl.hidden = true; soundsBtn.hidden = false; note.hidden = false;
@@ -227,6 +255,7 @@ export function createStage(app, o = {}) {
     stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); BN.dirty();
     setNum(0); hudArea = areaOf(0).name; hudInk = areaOf(0).id; stage.dataset.area = hudInk;
     bnrQueued = -1; clearTimeout(bnrTimer); BNR.clear(); prepBanner(0);
+    clearTimeout(bedTimer); bedTimer = 0; pendText = ''; pendPri = 0; finished = null;
     stage.dataset.dark = '';
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
@@ -365,6 +394,10 @@ export function createStage(app, o = {}) {
       else if (e.e === 'bounce' && e.red) say('CLOSE CALL', 'is-teal', 1, 800, now);
       else if (e.e === 'area') arrive(e.floor);
       else if (e.e === 'fall' && e.floor > LAP0 && isArrival(e.floor)) arrive(e.floor);   // (THE TRENCH's later laps — the engine names an area once)
+      // F3B — THE BREAKTHROUGHS (the scene plays them — night.js; the sounds: sounds.js#cuesOf): THE SPLASHDOWN muffles the mix for a moment ·
+      // a FINISH by night: the firework's sound, softly, right after the seabed's
+      if (e.e === 'area' && e.floor === BREAK_AT.splash && snd && snd.muffle) snd.muffle(MUFFLE_S, BREAK_HIT_S + MUFFLE_AFTER_S);
+      if (e.e === 'made' && lookT === 'night' && snd) snd.playCues(FIREWORK_CUES);
       if (e.e === 'fall' && !fromRun && crossedBest(best, e.floor)) {
         // THE CROSSING (once a run): NEW BEST — the number turns gold for the rest of the run
         newBest = true; stage.classList.add('is-gold'); BN.dirty();
@@ -391,6 +424,9 @@ export function createStage(app, o = {}) {
     // YOUR BEST (this phone's — nothing counts): a `?floor=N` start is not a run
     const isNew = !fromRun && res.floor > was;
     if (isNew) { best = nextBest(best, res.floor); writeBest(best); }
+    // F3B — THE FINISH's HOOK (match + daily: THE BOTTOM is their finish — MADE IT): the moment has played; the run is handed on ONCE, with the
+    // judge's own verdict on its log (F4's cartridge wires the match / the daily here — the test page only keeps it for the checks)
+    if (res.made) { finished = { seed, mode: MODE, floor: res.floor, tick: res.tick, look: lookT, same, judged: verdict.ok === true }; if (o.onFinish) { try { o.onFinish(finished, log); } catch { /* the page's own business */ } } }
     EC.set({ words: endWords(res), made: res.made, floor: res.floor, bounces: res.bounces, blazes: res.blazes, bestRun: res.bestRun });
     EC.best(fromRun ? was : best, isNew, was);
     end.hidden = false; soundsBtn.hidden = false; note.hidden = false;
@@ -445,7 +481,7 @@ export function createStage(app, o = {}) {
     }
     const over = isOver(run);
     if (over && !endedAt) { endedAt = now; awake(false); }
-    if (over && !shown && now - endedAt >= END_HOLD_MS) showEnd(now);
+    if (over && !shown && now - endedAt >= (run.st === 'made' ? END_HOLD_MADE_MS : END_HOLD_MS)) showEnd(now);
     view.draw(run, over ? run.end : tau, dt, pre);
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
     if (run.floor !== hudFloor) hudFloorNow();
@@ -455,8 +491,19 @@ export function createStage(app, o = {}) {
     tiers.sample(now, prevWork); prevWork = work;
     if (pin == null && frameN % 10 === 0) tiers.tick(now);
     frames[frameK++ % 600] = dt;
-    if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitches++;
+    if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitchNow(dt, now);
+    else if (t0 != null && !over && !held && dt > worstMs && now - t0 > 1000) worstMs = dt;
     if (fps && frameN % 30 === 0) fpsLine();
+  }
+  // THE HITCH LOG (F3B — THE STUTTERS; HIGH RISE's): a frame over 33 ms in a run is counted AND NAMED — what one-off work landed just before
+  // it: a picture's upload (`pic`), a sound's decode (`snd`), a band's bake (`band`), a tier step (`tier`), the HUD's own writes (`dom`);
+  // else `frame`. The last 24, in records made once.
+  const HLOG = 24, hMs = new Float32Array(HLOG), hFloor = new Int32Array(HLOG), hWhy = new Uint8Array(HLOG), WHY = ['frame', 'pic', 'snd', 'band', 'tier', 'dom'];
+  function hitchNow(dt, now) {
+    const i = hN++ % HLOG, at = now - dt;
+    hMs[i] = dt; hFloor[i] = run.floor;
+    hWhy[i] = at - view.lastWork() < 160 ? 1 : snd && snd.lastWork && at - snd.lastWork() < 160 ? 2 : at - BNR.lastBake() < 160 ? 3 : at - tierAt < 400 ? 4 : at - domAt < 120 ? 5 : 0;
+    hitches++; if (dt > worstMs) worstMs = dt;
   }
   /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
   function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); BNR.dirty(); }
@@ -465,14 +512,14 @@ export function createStage(app, o = {}) {
     hudFloor = run.floor; setNum(hudFloor);
     const a = areaOf(hudFloor).name, ink = areaOf(Math.max(0, hudFloor - INK_LAG)).id;
     if (a !== hudArea) hudArea = a;
-    if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; }   // (`data-area` = the area whose WALL is behind the top of the screen — THE REVIEW: it changes INK_LAG floors after a border, as the wall does: the day's inks + THE DARKNESS's look read it)
+    if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; domAt = performance.now(); }   // (`data-area` = the area whose WALL is behind the top of the screen — THE REVIEW: it changes INK_LAG floors after a border, as the wall does: the day's inks + THE DARKNESS's look read it)
     if (newBest) topL.textContent = bestLine(hudFloor);
   }
   /** THE DARKNESS — ALWAYS IN SIGHT (F3: JAYWALK-style pressure — never more than 3 floors above): the stage's data-dark = the floors it is
    *  above the ball (3 · 2 · 1; '' = no run / over): the stylesheet's dark edge creeps down from the top IN STEP with it — never over the
    *  ball or its floor; the warning + THE RUMBLE (sfx.js — it swells as the darkness closes) from 2 floors, loudest on the last one */
   function hudDarkNow(gap, over) {
-    hudGap = gap;
+    hudGap = gap; domAt = performance.now();
     const on = t0 != null && !over;
     stage.dataset.dark = on ? String(Math.max(1, Math.min(3, gap))) : '';
     stage.classList.toggle('is-near', gap <= 1 && on);
@@ -485,12 +532,12 @@ export function createStage(app, o = {}) {
     const n = Math.min(frameK, 120);
     for (let i = 0; i < n; i++) { const v = frames[(frameK - 1 - i + 6000) % 600]; sum += v; if (v > worst) worst = v; }
     const i = view.info();
-    fpsA.data = `${(1000 * n / sum).toFixed(0)} fps · worst ${worst.toFixed(0)} ms · HITCH ${hitches} · tier ${i.tier} @${i.dpr} · ${i.calls} calls · ${i.slices} slices`;
+    fpsA.data = `${(1000 * n / sum).toFixed(0)} fps · worst ${worst.toFixed(0)} ms · HITCH ${hitches}${hitches ? ` (last: ${WHY[hWhy[(hN - 1) % HLOG]]} ${hMs[(hN - 1) % HLOG].toFixed(0)} ms @${hFloor[(hN - 1) % HLOG]})` : ''} · tier ${i.tier} @${i.dpr} · ${i.calls} calls · ${i.slices} slices`;
   }
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
   Object.assign(hook, {
-    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** the top of the ball at the top of its bounce, in px from the top of the screen (the HUD ends above it) */
@@ -508,6 +555,6 @@ export function createStage(app, o = {}) {
   raf = requestAnimationFrame(frame);
   return {
     hook, restart,
-    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); clearTimeout(bedTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }
