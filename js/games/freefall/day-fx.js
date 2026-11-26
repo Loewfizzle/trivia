@@ -1,0 +1,174 @@
+// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — docs/freefall.md "THE DAY LOOK"; night.js builds the ONE scene both looks share, night-fx.js
+// holds the materials — each reads `uDay` and takes the piece below for its day half). GLSL text only: no three.js, nothing runs here.
+// The owner's targets: Downloads\NEON\freefall\ff-day.png (UNDER THE HARBOR by day) + freefall-mocks-day.jpg. Everything is written in
+// LINEAR light (a hex colour is its linear value here).
+
+/** THE CAUSTICS (the shader's own — ff-caustics.png is not used): the bright net where ripples of light cross, moving */
+export const CAUST = /* glsl */`
+float caust1(vec2 p, float t) {
+  vec2 q = p + 0.35 * vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.9 - t * 0.8));
+  float a = sin(q.x * 3.1 + t) + sin(q.y * 2.7 - t * 1.2) + sin((q.x + q.y) * 2.2 + t * 0.7) + sin((q.x - q.y) * 2.9 - t * 0.5);
+  return pow(clamp(1.0 - abs(a) * 0.5, 0.0, 1.0), 5.0);
+}
+float caust(vec2 p, float t) { return caust1(p, t) + 0.6 * caust1(p * 1.73 + 3.1, t * 1.31 + 2.0); }`;
+
+/** soft noise for the clouds, the storm, the sun rays (needs the wall shader's own `hash`) */
+export const NOISE = /* glsl */`
+float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+float fbm(vec2 p) { return vnoise(p) * 0.55 + vnoise(p * 2.1 + 7.3) * 0.3 + vnoise(p * 4.3 + 1.7) * 0.15; }`;
+
+/** THE ROOFTOP BY DAY: a bright sky, the sun high on the right, JAYWALK's day skyline on the horizon (it lifts out of sight over the
+ *  first floors — uSink), under it the open air the tower stands in: a pale haze, soft clouds drifting through it. + an area's DAY WALL:
+ *  its painting, tinted — THE DEEP adds a sunken wreck's warm lamps (a few warm lights on the wall, breathing). */
+export const DAY_WALLS = /* glsl */`
+vec3 skyDay(vec3 d) {
+  float el = asin(clamp(d.y, -1.0, 1.0)) + uSink;
+  float az = atan(d.x, -d.z) * 0.15915494;
+  vec3 zen = vec3(0.13, 0.42, 0.9), hor = vec3(0.66, 0.86, 0.98);
+  vec3 c = mix(hor, zen, smoothstep(-0.1, 0.5, el));
+  vec2 sd = vec2((az - 0.075) * 5.0, (el + 0.06) * 1.6);
+  float s2 = dot(sd, sd);
+  c += vec3(1.0, 0.95, 0.8) * (exp(-s2 * 60.0) * 1.2 + exp(-s2 * 5.0) * 0.32);
+  // (the day's skyline sits a little LOWER than the night's: the opening's tagline — white caps — lies on the sky over it, never on the city)
+  float u = az * 5.2 + 0.5, v = (el + 0.61) / 0.4;
+  if (uHaveSky > 0.5 && v > 0.0 && v < 1.0) {
+    vec3 s = pow(texture2D(tSky, vec2(fract(u), mix(v, 1.0 - v, uFlipSky))).rgb, vec3(2.2));
+    s.b = mix(s.b, max(s.b, s.r * 0.85), step(s.g, s.r * 0.5));   // (RED IS DANGER ONLY: the lighthouse's red bands read pink here)
+    c = mix(c, s, smoothstep(0.0, 0.16, v) * smoothstep(1.0, 0.8, v));
+  }
+  float low = smoothstep(-0.51, -0.69, el);
+  c = mix(c, mix(vec3(0.6, 0.84, 0.98), vec3(0.86, 0.95, 1.0), smoothstep(-0.6, -1.4, el)), low);
+  float cl = fbm(vec2(az * 10.0 + uTime * 0.012, el * 4.0 - uTime * 0.004));
+  return mix(c, vec3(1.0), smoothstep(0.5, 0.8, cl) * 0.6 * smoothstep(-0.3, -0.75, el));
+}
+vec3 wallDay(sampler2D t, float have, float flip, vec3 tint, vec2 uv, float area) {
+  vec3 w = pow(texture2D(t, vec2(uv.x, mix(uv.y, 1.0 - uv.y, flip))).rgb, vec3(2.2));
+  vec3 c = mix(tint * 0.3, w * tint, have);
+  if (area > 3.5) {
+    vec2 g = uv * 3.0, cell = floor(g), f = fract(g) - 0.5;
+    float h = hash(cell + 11.0);
+    vec2 o = (vec2(hash(cell + 3.7), hash(cell + 9.1)) - 0.5) * 0.5;
+    c += vec3(1.0, 0.5, 0.14) * step(0.7, h) * exp(-dot(f - o, f - o) * 24.0) * (0.75 + 0.25 * sin(uTime * (0.7 + h) + h * 40.0)) * 1.5;
+  }
+  return c;
+}`;
+
+/** the wall shader's DAY half (inside its main: `d` the ray, `on` it met the wall, `hit` where, `uv` the wall's own coordinates, `k` 0 = wall A … 1 = wall B below the seam) */
+export const DAY_MAIN = /* glsl */`
+    vec3 fogC = mix(uFogA, uFogB, k);
+    if (on) {
+      vec3 A = uSkyA > 0.5 ? skyDay(d) : wallDay(tA, uHaveA, uFlipA, uTintA, uv, uAreaA);
+      vec3 B = uSkyB > 0.5 ? skyDay(d) : wallDay(tB, uHaveB, uFlipB, uTintB, uv, uAreaB);
+      col = mix(A, B, k);
+      float wall = mix(1.0 - uSkyA, 1.0 - uSkyB, k);
+      col *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, abs(hit.x) / uRW)), wall);   // (a round room: its wall darker towards its edges — never the open sky)
+      // UNDER THE HARBOR (the owner's ff-day.png): the water's own gradient down the screen — #7fe3ea · #2bb5c9 · #0b6b8f · #063a5c
+      float wet = mix(uWetA, uWetB, k);
+      if (wet > 0.01) {
+        float sy = vS.y * 0.5 + 0.5;
+        vec3 g = mix(vec3(0.0018, 0.042, 0.107), vec3(0.0033, 0.147, 0.275), smoothstep(0.0, 0.34, sy));
+        g = mix(g, vec3(0.0242, 0.462, 0.584), smoothstep(0.3, 0.68, sy));
+        g = mix(g, vec3(0.212, 0.768, 0.823), smoothstep(0.64, 1.0, sy));
+        vec3 wcol = mix(g, col, 0.4);
+        // THE SUN RAYS from the surface: shafts of light slanting down the water — they stand in the WORLD (the ball falls past them) and drift
+        float shallow = exp(-max(0.0, uSurfY - hit.y) / 30.0);
+        float ru = atan(hit.x, -hit.z) * 3.2 + hit.y * 0.16;
+        float rays = pow(vnoise(vec2(ru * 2.2 + uTime * 0.07, 1.3)) * 0.6 + vnoise(vec2(ru * 5.1 - uTime * 0.11, 7.7)) * 0.4, 2.2);
+        wcol += vec3(0.75, 1.0, 0.95) * rays * (0.25 + 0.75 * sy) * 0.55 * shallow;
+        // … and THE CAUSTICS on the wall
+        wcol += vec3(0.7, 1.0, 0.95) * caust(uv * 5.0, uTime) * 0.2 * shallow;
+        col = mix(col, wcol, wet);
+      }
+    } else {
+      col = uSkyA > 0.5 ? skyDay(d) : fogC;
+    }
+    // the haze the tower fades into below (the area's own: pale air · dusty amber · deep water)
+    col = mix(col, fogC, smoothstep(5.0, 16.0, uBallY - hitY) * 0.8);
+    // THE DARKNESS BY DAY — the same line, the same timing, another look: THE STORM CLOUD (the rooftop) · the lights out (indoors) ·
+    // THE MURK (under the water). It rolls; the wall only — never the ball or its floor.
+    float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
+    vec3 dk = mix(uDarkA, uDarkB, k);
+    float roll = fbm(vec2(atan(hit.x, -hit.z) * 3.0 + uTime * 0.05, hitY * 0.6 - uTime * 0.03));
+    col = mix(dk * (0.65 + 0.7 * roll), col, lit);
+    col = mix(col, dk * 0.5, exp(-pow((hitY - uDarkY - 0.3) / 0.24, 2.0)) * 0.55);`;
+
+/** a slice's DAY half (inside the slice shader's main): FROSTED ICE GLASS tinted in its area's colour (vC = the palette's day tint),
+ *  cyan-white seams, a white bevel at the rim; RED = the same red, the same chevrons + pulse; under the ball the tower fades into the
+ *  area's haze and thins; UNDER THE HARBOR the caustics run over it */
+export const DAY_SLICE = /* glsl */`
+    vec3 tint = vC.rgb, ice = mix(vec3(0.86, 0.94, 1.0), tint, 0.32);
+    if (face < 0.5) {
+      float rim = 1.0 - smoothstep(0.02 - aa, 0.02 + aa, dOut), cut = 1.0 - smoothstep(0.0, 0.014 + aas, dSide);
+      col = ice * (0.88 + 0.12 * rad);
+      col = mix(col, mix(tint, vec3(0.3, 0.78, 1.0), 0.6) * 0.82, cut * 0.8);   // the cyan-white seams
+      col = mix(col, vec3(1.0), exp(-dOut / 0.05) * 0.4);
+      col = mix(col, vec3(1.0), rim);
+      col *= 0.9 + 0.1 * smoothstep(0.0, 0.16, rad);
+      if (red > 0.5) {
+        float pulse = 0.9 + 0.1 * sin(uTime * 3.1 + vW.y * 2.0);
+        float cx = rad * 2.6 - abs(ang) * 0.9 + 0.15, cw = fwidth(cx) * 1.2 + 1e-4, cf = abs(fract(cx) - 0.75) - 0.24;
+        float chev = 1.0 - smoothstep(-cw, cw, cf);
+        col = mix(RED * 0.92, RED_DARK * 1.3, chev * 0.84) * (0.86 + 0.2 * rad) * pulse;
+        col *= 1.0 - 0.4 * cut;
+        float edge = 1.0 - smoothstep(0.022 - aas, 0.022 + aas, min(dSide, min(dOut, rad * uRing)));
+        col = mix(col, vec3(1.0, 0.72, 0.72), edge * step(1.5, vKind) * 0.9);
+        col = mix(col, vec3(1.0, 0.3, 0.34), rim);
+      }
+      float warn = vF.y * (0.55 + 0.45 * sin(uTime * 12.0));
+      float hx = rad * 2.6 - abs(ang) * 0.9 + 0.15, hatch = 1.0 - smoothstep(-fwidth(hx) * 1.2 - 1e-4, fwidth(hx) * 1.2 + 1e-4, abs(fract(hx) - 0.81) - 0.19);
+      col = mix(col, RED, warn * (0.3 + 0.6 * hatch));
+      if (vF.z > 0.5) {
+        vec2 q = vec2(ang, rad * 2.0 - 1.0);
+        float c1 = abs(q.y - 0.55 * q.x - 0.1 * sin(q.x * 9.0)), c2 = abs(q.y + 0.8 * q.x + 0.12 * sin(q.x * 7.0 + 1.0)), c3 = abs(q.x - 0.15 * sin(q.y * 8.0) + 0.1);
+        col = mix(col, vec3(0.16, 0.0, 0.02), (1.0 - smoothstep(0.0, 0.07, min(c1, min(c2, c3)))) * 0.9);
+      }
+      // the ball's soft shadow on its own floor (by day the ball gives no pool of light)
+      vec2 bd = vW.xz - vec2(0.0, 0.66);
+      col *= 1.0 - 0.24 * exp(-dot(bd, bd) / 0.045) * smoothstep(1.2, 0.0, depth) * (1.0 - red);
+      if (uCaust > 0.001) col += vec3(0.75, 1.0, 0.95) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.5 * uCaust * (1.0 - red * 0.6);
+    } else if (face < 1.5) {
+      float topEdge = 1.0 - smoothstep(0.012, 0.03, vE.w * 0.2);
+      col = mix(ice, mix(tint, vec3(0.3, 0.62, 0.9), 0.5), 0.5) * mix(0.84, 0.62, vE.w);
+      if (red > 0.5) { float sx = ang * 1.5 + vE.w * 0.5, sw = fwidth(sx) * 1.2 + 1e-4, chev = 1.0 - smoothstep(-sw, sw, abs(fract(sx) - 0.75) - 0.25); col = mix(RED * 0.7, RED_DARK * 1.3, chev * 0.6); }
+      col = mix(col, red > 0.5 ? vec3(1.0, 0.3, 0.34) : vec3(1.0), topEdge * 0.9);
+    } else {
+      col = mix(ice, tint, 0.5) * 0.6;
+      if (red > 0.5) col = RED * 0.45;
+    }
+    col = mix(col, uFog, far * 0.62);
+    alpha *= mix(1.0, 0.62, smoothstep(0.35, 1.0, far));
+    col = mix(col, vec3(1.0, 0.36, 0.7), clamp(vF.x, 0.0, 1.0) * (face < 0.5 ? 0.5 : 0.2));   // (a landing's flash: the ball's own pink on the ice)
+    if (uBloom > 0.5) col = vec3(0.0);`;
+
+/** THE MOTES (a FIXED pool of small quads — the tiers trim how many are drawn, never the pool): UNDER THE HARBOR's rising BUBBLES ·
+ *  THE DEEP's drifting particles · the dust in a sunlit room. A mote = (its angle round the shaft, its height's phase, how far out, a
+ *  seed): its place is a pure function of the time — it stands in the WORLD (wrapped into a window round the camera), never on the
+ *  screen; none in the sector in front of the ball. uKind: 1 a bubble (a bright ring, a highlight) · 2 a soft dot. */
+export const MOTE_V = /* glsl */`
+attribute vec4 aS;
+uniform float uTime, uBaseY, uSpan, uSpeed, uSize;
+varying vec2 vQ; varying float vSeed;
+void main() {
+  float seed = aS.w, a = (0.17 + aS.x * 0.66) * 6.2832 + sin(uTime * 0.21 + seed * 30.0) * 0.1;
+  float r = mix(1.14, 2.45, aS.z);
+  float y = uBaseY + mod(aS.y * uSpan + uSpeed * (0.6 + 0.8 * seed) * uTime - uBaseY, uSpan);
+  vec3 p = vec3(sin(a) * r + sin(uTime * 1.1 + seed * 50.0) * 0.05, y, cos(a) * r);
+  vec4 c = projectionMatrix * viewMatrix * vec4(p, 1.0);
+  c.xy += position.xy * 2.0 * uSize * (0.5 + fract(seed * 7.13)) * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
+  gl_Position = c; vQ = position.xy * 2.0; vSeed = seed;
+}`;
+export const MOTE_F = /* glsl */`
+uniform float uKind, uAlpha, uBloom;
+uniform vec3 uCol;
+varying vec2 vQ; varying float vSeed;
+void main() {
+  float r = length(vQ), a;
+  if (uKind < 1.5) {
+    vec2 hl = vQ - vec2(-0.34, 0.36);
+    a = smoothstep(1.0, 0.88, r) * (0.14 + 0.86 * smoothstep(0.6, 0.86, r)) + exp(-dot(hl, hl) * 30.0) * 0.9;
+  } else a = exp(-r * r * 4.0) * (1.0 - smoothstep(0.8, 1.0, r));
+  a = min(1.0, a) * uAlpha * (0.55 + 0.45 * fract(vSeed * 3.7)) * (1.0 - uBloom);
+  gl_FragColor = vec4(uCol * a, a * 0.85);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;

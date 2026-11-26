@@ -28,7 +28,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* loading */ } await sleep(40); } return false; };
 const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
 
-async function open(w, h, dpr, q = '', { best = 0 } = {}) {
+/** (F3) a check names its look: without `?look=` the page is AUTO — it would follow the clock of the machine the checks run on. `auto: true` = leave it AUTO */
+const withLook = (q, auto) => (auto || /[?&]look=/.test(q) ? q : `${q}${q ? '&' : '?'}look=night`);
+async function open(w, h, dpr, q = '', { best = 0, auto = false } = {}) {
+  q = withLook(q, auto);
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [], reqs = [], sockets = [], logs = [];
   p.on('pageerror', e => errs.push(String(e.message || e)));
   p.on('console', m => { const t = m.text(); if (m.type() === 'error' || /freefall|WebGL|THREE/i.test(t)) logs.push(`${m.type()}: ${t}`); });
@@ -476,29 +479,95 @@ async function checks2() {
   }
 }
 
+// =============================================================================================================== THE DAY LOOK (F3)
+async function checks3() {
+  // ---- `?look=day`: the day scene, the page's inks, the day pictures — and nothing asked of a server
+  let t = await open(390, 844, 3, '?seed=day1&look=day', { best: 88 });
+  await waitFor(t.p, '/sky-day:1/.test(window.__ffPlay.state().info.walls)', 8000);
+  let s = await st(t.p);
+  const pics = t.reqs.filter(r => /\/walls\/|skyline/.test(r)).map(r => r.split('/').pop().split('?')[0]);
+  ok(t.up && !t.errs.length && s.look === 'day' && s.lookAttr === 'day' && s.info.look === 'day' && /sky-day:1/.test(s.info.walls), `?look=day: the page loads in THE DAY LOOK — the scene, the stage's data-look (${s.lookAttr}), no error (${t.errs.join(' | ') || 'none'})`);
+  ok(pics.length >= 2 && pics.every(p => /-day\.webp$/.test(p)), `by day only the DAY pictures are asked for: ${pics.join(' · ')}`);
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');
+  await sleep(300);
+  let num = await box(t.p, '.ff-num'), bestL = await box(t.p, '.ff-best');
+  ok(num.col === 'rgb(255, 63, 168)' && bestL.col === 'rgb(11, 42, 74)', `by day the big number is PINK (${num.col}) in its dark outline, YOUR BEST in navy ink on the open sky (${bestL.col})`);
+  // the look turns LIVE mid-run (the console's GAME LOOK): the picture + the inks follow at once — the run is untouched
+  await t.p.evaluate(() => window.__ffPlay.setLook('night')); await sleep(260);
+  s = await st(t.p); num = await box(t.p, '.ff-num');
+  ok(s.look === 'night' && s.lookAttr === 'night' && s.info.look === 'night' && num.col === 'rgb(255, 255, 255)' && !s.over, `the look turned LIVE mid-run (day → night): the scene, the stage, the number's ink (${num.col}) — the run goes on (floor ${s.floor})`);
+  await t.p.evaluate(() => window.__ffPlay.setLook('day')); await sleep(200);
+  // THE LOST CONTEXT by day: the scene is rebuilt IN THE DAY LOOK
+  const lost = await t.p.evaluate(() => window.__ffPlay.lose());
+  const back = await waitFor(t.p, 'window.__ffPlay.state().rebuilds >= 1', 6000);
+  s = await st(t.p);
+  ok(!lost || (back && s.info.look === 'day' && s.lookAttr === 'day'), `a lost context by day: the scene is rebuilt in the day look (${s.rebuilds} rebuild, look ${s.info.look})`);
+  await auto(t.p, 'red');
+  await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
+  const e = await t.p.evaluate(() => window.__ffPlay.ends[0]);
+  ok(e && e.same && e.live.over && !t.errs.length, `REPLAY = LIVE on a run whose look turned twice and whose context was lost (floor ${e && e.live.floor}, ${e && e.live.cause} — the first ten floors have no red: the lights took it; errors: ${t.errs.join(' | ') || 'none'})`);
+  ok(!t.reqs.some(r => COUNTS.test(r)) && !t.sockets.length && t.reqs.every(r => r.startsWith('GET ') && (r.includes(BASE) || OUTSIDE.test(r.slice(4)))), `by day too: ${t.reqs.length} requests — its own static files, three.js, the fonts; nothing that counts, no socket`);
+  await t.close();
+  // ---- UNDER THE HARBOR by day: THE CAUSTICS on the slices, the rising BUBBLES (a fixed pool — the tier's count); by night neither
+  t = await open(390, 844, 3, '?seed=day2&look=day&floor=124&tier=2');
+  await start(t); await auto(t.p, 'play');
+  const wet = await waitFor(t.p, 'window.__ffPlay.state().floor >= 126 && window.__ffPlay.state().info.moteKind === 1 && window.__ffPlay.state().info.motes === 48 && window.__ffPlay.state().info.caust > 0.9', 30000);
+  s = await st(t.p);
+  ok(wet && s.areaAttr === 'harbor' && /harbor-day:1/.test(s.info.walls), `UNDER THE HARBOR by day (floor ${s.floor}): the caustics on the slices (${s.info.caust.toFixed(2)}), ${s.info.motes} bubbles of a pool of 48, its day wall (${s.info.walls})`);
+  await t.p.evaluate(() => window.__ffPlay.setTier(0));
+  const trimmed = await waitFor(t.p, 'window.__ffPlay.state().info.motes === 18 && window.__ffPlay.state().info.caust < 0.05', 6000);
+  s = await st(t.p);
+  ok(trimmed, `tier 0 trims it: ${s.info.motes} bubbles, the caustics on the wall only (${s.info.caust.toFixed(2)} on the slices)`);
+  await t.p.evaluate(() => { window.__ffPlay.setTier(2); window.__ffPlay.setLook('night'); });
+  const dry = await waitFor(t.p, 'window.__ffPlay.state().info.motes === 0 && window.__ffPlay.state().info.caust < 0.05', 6000);
+  ok(dry && !t.errs.length, 'by night: no motes, no caustics (the night look is F2\'s)');
+  await t.close();
+  // ---- the other areas' motes by day: dust in the two rooms, drifting particles in THE DEEP, none on the rooftop
+  for (const [floor, kind, area] of [[2, 0, 'rooftop'], [44, 3, 'offices'], [164, 2, 'deep']]) {
+    t = await open(390, 844, 2, `?seed=day4&look=day&floor=${floor}&tier=2`);
+    await start(t); await auto(t.p, 'play');
+    const got = await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().info.moteKind === ${kind} && window.__ffPlay.state().areaAttr === '${area}'`, 30000);
+    s = await st(t.p);
+    ok(got && !t.errs.length, `${area} by day (floor ${s.floor}): the motes' kind ${s.info.moteKind} (${['none', 'bubbles', 'drifting particles', 'dust'][s.info.moteKind]}), data-area ${s.areaAttr}`);
+    await t.close();
+  }
+  // ---- AUTO (no `?look=`): the phone's clock at once, then the site's own sun rule — one look, the page's attribute = the picture's; nothing asked of a server
+  t = await open(390, 844, 2, '?seed=day3', { auto: true });
+  await sleep(900);
+  s = await st(t.p);
+  ok(t.up && !t.errs.length && (s.look === 'day' || s.look === 'night') && s.lookAttr === s.look && s.info.look === s.look, `AUTO: the look is the ${s.look}'s (the phone's clock, then the sun rule) — the stage + the scene agree`);
+  ok(!t.reqs.some(r => /\/api\//.test(r)) && t.reqs.some(r => /core\/sky\.js/.test(r)), 'AUTO asks the SITE\'s own sun rule (core/sky.js — worked out on the phone): nothing is asked of /api');
+  await t.close();
+}
+
 // =============================================================================================================== THE SPEED (FREEFALL's speed test)
+const ONE = (argv.find(a => a.startsWith('--one=')) || '').slice(6);
 async function perf() {
   const rows = [];
-  for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
-    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=84`);
-    await start(d); await auto(d.p, 'smash');   // (the heaviest play: THE BLAZE's trail, a shatter's shards + sparks every few floors, THE SPEAKEASY's wall)
+  // BOTH LOOKS: the heaviest play in THE SPEAKEASY (THE BLAZE's fire, a shatter every few floors) — and by day UNDER THE HARBOR (the
+  // caustics on the slices + the wall, the sun rays, the bubbles, the fire on the water)
+  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
+    if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;   // (`--one=day-84-1-4`: one row again)
+    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}`);
+    await start(d); await auto(d.p, 'smash');
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     await sleep(1500);
     await d.p.evaluate(() => { window.__f0 = performance.now(); window.__n0 = window.__ffPlay.state().info.frames; });
     await sleep(10000);
-    const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s = P.state(), n = s.info.frames - window.__n0, ms = performance.now() - window.__f0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / ms, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], worst: a[a.length - 1], calls: s.info.calls, slices: s.info.slices, dpr: s.info.dpr, floor: s.floor, over: s.over, shatters: s.shatters, hitches: s.hitches }; });
+    const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s = P.state(), n = s.info.frames - window.__n0, ms = performance.now() - window.__f0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / ms, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], worst: a[a.length - 1], calls: s.info.calls, slices: s.info.slices, dpr: s.info.dpr, floor: s.floor, over: s.over, shatters: s.shatters, hitches: s.hitches, motes: s.info.motes, caust: s.info.caust, look: s.info.look, pic: Math.round(performance.now() - P.view.lastWork()), walls: s.info.walls }; });
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-    rows.push({ tier, rate, ...r });
-    ok(r.fps >= 58 && r.p95 <= 20, `tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) — floor ${r.floor}, ${r.shatters} shatters, @${r.dpr}`);
+    rows.push({ lk, where, tier, rate, ...r });
+    ok(r.look === lk && r.fps >= 58 && r.p95 <= 20, `${lk} · ${where} · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) — floor ${r.floor}, ${r.shatters} shatters, ${r.motes} motes, @${r.dpr}`);
     await d.close();
   }
-  console.log('\n| tier | cpu | fps | frame ms (p50 · p95 · worst) | size | hitches |\n| --- | --- | --- | --- | --- | --- |');
-  for (const r of rows) console.log(`| ${r.tier} | ${r.rate}× | ${r.fps.toFixed(1)} | ${r.p50.toFixed(1)} · ${r.p95.toFixed(1)} · ${r.worst.toFixed(1)} | 390×844 @${r.dpr} | ${r.hitches} |`);
+  console.log('\n| look | where | tier | cpu | fps | frame ms (p50 · p95 · worst) | size | motes |\n| --- | --- | --- | --- | --- | --- | --- | --- |');
+  for (const r of rows) console.log(`| ${r.lk} | ${r.where} | ${r.tier} | ${r.rate}× | ${r.fps.toFixed(1)} | ${r.p50.toFixed(1)} · ${r.p95.toFixed(1)} · ${r.worst.toFixed(1)} | 390×844 @${r.dpr} | ${r.motes} |`);
 }
 
 if (LOOK) await look();
 else if (PERF) await perf();
-else { await checks1(); await checks2(); }
+else { await checks1(); await checks2(); await checks3(); }
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

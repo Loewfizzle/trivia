@@ -66,8 +66,10 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store; THE DOOR is shut before the stage mounts', () => {
   const g = graph(`${FF}play.js`);
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'best.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
-  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/errlog.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers, THE SHEET, the lazy loader, the integer hash');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'best.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
+  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
+  // (HIGH RISE's page carries the same five: they are PURE — the sun's place is worked out on the phone, nothing is asked of a server)
+  for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
   for (const f of g.files) assert.ok(!/\/(profile|progress|board|daily|vault|chat|admin|screens)\/|js\/(firebase|store|room|host|identity|seat|app|config)\.js|^api\//.test(f), `${f}: nothing that counts is in the graph`);
   // THE DOOR (HIGH RISE's): the shared audio engine COUNTS a leave once (errlog.js#countQuiet → /api/log) and the skew wrapper may ask
@@ -213,13 +215,13 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.2, HOP: 0\.42, RISE: 0\.1, RW: 2\.7 \}\);/);
   assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/, 'the play camera = F1\'s graybox camera (the drag\'s 1 : 1 scale is the owner\'s phone check)');
   assert.match(read(`${FF}graybox.js`), /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/);
-  assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, 1\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass');
+  assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, day \? 0\.4 : 1\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass');
   assert.match(n, /dpr = Math\.min\(devDpr, dprMax, tier === 2 \? 3 : tier === 1 \? 2 : 1\.5\);/, 'the tiers: full 3× · 2× no bloom · 1.5×');
   assert.match(n, /wallRT\.setSize\(Math\.max\(2, bw >> 1\), Math\.max\(2, bh >> 1\)\);/, 'the shaft\'s wall is drawn at HALF resolution, then copied up');
   assert.match(n, /createImageBitmap\(bl\)/); assert.match(n, /try \{ renderer\.initTexture\(tex\); \}/, 'a picture is decoded off the frame + uploaded at once (LAG RULES 1)');
   assert.match(n, /renderer\.compile\(scene, cam\); renderer\.compile\(wallScene, wallCam\);/, 'THE WARM FRAME builds every program');
   assert.match(n, /renderer\.sortObjects = false;/); assert.match(n, /scene\.matrixAutoUpdate = false; scene\.matrixWorldAutoUpdate = false;/);
-  assert.match(n, /assets\/freefall\/walls\/\$\{name\}-night\.webp/); assert.match(n, /assets\/jaywalk\/skyline-night\.webp/, 'THE ROOFTOP: JAYWALK\'s night skyline (reused, no copy)');
+  assert.match(n, /assets\/freefall\/walls\/\$\{name\}-\$\{lk\}\.webp/); assert.match(n, /assets\/jaywalk\/skyline-night\.webp/, 'THE ROOFTOP: JAYWALK\'s night skyline (reused, no copy)');
   for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-night.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 120000, `${w}: its night wall ships, small`); }
   // RED: hsl(352) — and readable with the colour removed: it stands proud, dark chevrons, a pulse
   assert.match(fx, /const vec3 RED = vec3\(1\.0, 0\.03, 0\.09\), RED_DARK/); assert.match(fx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the chevrons, their edges smoothed by their own width on the screen (THE REVIEW: never a stair-step)'); assert.match(fx, /vec3 rimC = red > 0\.5 \? vec3\(1\.0, 0\.2, 0\.24\) \* 1\.7 : mix\(rimHue, vec3\(1\.0\), 0\.22\) \* 1\.75;/, 'THE REVIEW: a red slice\'s rim is hot red — never the safe slices\' white line'); assert.match(fx, /float pulse = 0\.86 \+ 0\.14 \* sin\(uTime \* 3\.1/);
@@ -240,7 +242,7 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
     [/\bnew\s+[A-Z]/, 'a new object'], [/\.(map|filter|slice|concat|flatMap|reduce|split|join|keys|values|entries|toFixed|toString|padStart)\(/, 'a list- / string-making call'], [/Array\.from|Object\.(assign|keys|values|entries)|JSON\.|String\(/, 'a builder'], [/\bfor\s*\([^)]*\bof\b/, 'a for … of (an iterator)']];
   const frameFns = {
     'stage.js': ['  function frame(now) {', '  function settle(T) {'],
-    'night.js': ['  function draw(run, tau, dt, extra = 0) {', '  function putFloor(i, n, alpha, out, tick) {', '  function floorRec(i) {', '  function colourOf(i, slot) {', '  function ballLift(run, tau) {', '  function place(c, pitchDeg, back, ballY, camY, kick) {', '  function walls(floor) {'],
+    'night.js': ['  function draw(run, tau, dt, extra = 0) {', '  function putFloor(i, n, alpha, out, tick) {', '  function floorRec(i) {', '  function colourOf(i, slot) {', '  function ballLift(run, tau) {', '  function place(c, pitchDeg, back, ballY, camY, kick) {', '  function walls(floor) {', '  const wantWall = k => {'],
     'night-fx.js': ['    render(scene, cam, twins, k = 1) {'],
     'sounds.js': ['export function cuesOf(events, late = false, out = [], from = 0) {'],
   };
@@ -260,6 +262,55 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(code(`${FF}stage.js`), /stage\.classList\.add\('is-gold'\); BN\.warm\(\); stage\.classList\.remove\('is-gold'\); BN\.dirty\(\);/);
   assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
 });
+
+test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material carries uDay; the day pieces in day-fx.js), the four day walls + JAYWALK\'s day skyline, the areas\' day numbers, THE MOTES a fixed pool the tiers trim, by day light COVERS, the caustics are the shader\'s; the stage: the kit\'s shared look — the console\'s read live, the page ?look= or AUTO', () => {
+  const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`), dfx = read(`${FF}day-fx.js`), st = code(`${FF}stage.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  // the pictures: the APPROVED day walls ship, small; the rooftop = JAYWALK's day skyline (reused, no copy); the caustics picture is NOT shipped
+  for (const w of ['offices', 'speakeasy', 'harbor', 'deep']) { const u = new URL(`../assets/freefall/walls/${w}-day.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 160000, `${w}: its day wall ships, small`); }
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/walls/', import.meta.url)).sort(), ['deep-day.webp', 'deep-night.webp', 'harbor-day.webp', 'harbor-night.webp', 'offices-day.webp', 'offices-night.webp', 'speakeasy-day.webp', 'speakeasy-night.webp'], 'eight walls — no caustics picture, no -v1 / -v2');
+  assert.match(n, /assets\/jaywalk\/skyline-day\.webp/); assert.ok(existsSync(new URL('../assets/jaywalk/skyline-day.webp', import.meta.url)));
+  assert.match(n, /const skyNow = \(\) => \(day \? picture\('sky-day', SKY_URL\[1\], false\) : picture\('sky', SKY_URL\[0\], false\)\);/, 'the day skyline is asked for only when the look is day');
+  // ONE scene: the look is a uniform every material reads — never a second scene, never a rebuild
+  assert.match(n, /uDay: \{ value: 0 \}, uCover: \{ value: 0 \}, uFog: \{ value: new THREE\.Vector3\(0\.62, 0\.84, 0\.98\) \}, uCaust: \{ value: 0 \}/);
+  assert.match(n, /function setLook\(l\) \{\s+day = l === 'day';\s+G\.uDay\.value = day \? 1 : 0; G\.uCover\.value = day \? 1 : 0;/, 'setLook: at once');
+  for (const name of ['WALL_F', 'SLICE_F', 'PILLAR_F', 'BALL_F']) { const at = fx.indexOf(`export const ${name}`), end = fx.indexOf('export const', at + 20); assert.match(fx.slice(at, end), /uDay/, `${name} has its day half`); }
+  for (const name of ['LIGHT_F', 'FLAME_F', 'RIBBON_F', 'SPARK_F']) { const at = fx.indexOf(`export const ${name}`), end = fx.indexOf('export const', at + 20); assert.match(fx.slice(at, end < 0 ? undefined : end), /uCover/, `${name}: by day its light COVERS (added light is lost on a bright ground)`); }
+  // RED by day = the same red, the same chevrons + pulse (readable with the colour removed); the slices + the ball never read the darkness
+  assert.match(dfx, /float cx = rad \* 2\.6 - abs\(ang\) \* 0\.9 \+ 0\.15, cw = fwidth\(cx\) \* 1\.2 \+ 1e-4, cf = abs\(fract\(cx\) - 0\.75\) - 0\.24;/, 'the day slice: the same chevrons');
+  assert.match(dfx, /col = mix\(RED \* 0\.92, RED_DARK \* 1\.3, chev \* 0\.84\) \* \(0\.86 \+ 0\.2 \* rad\) \* pulse;/);
+  assert.doesNotMatch(dfx.slice(dfx.indexOf('export const DAY_SLICE'), dfx.indexOf('export const MOTE_V')), /uDarkY|uDarkA/, 'the day slices never read the darkness');
+  // the water (the owner's ff-day.png): its four colours top to bottom, the sun rays in the WORLD, the caustics the shader's own
+  const main = dfx.slice(dfx.indexOf('export const DAY_MAIN'), dfx.indexOf('export const DAY_SLICE'));
+  assert.ok(main.indexOf('vec3(0.0018, 0.042, 0.107)') < main.indexOf('vec3(0.0033, 0.147, 0.275)') && main.indexOf('vec3(0.0033, 0.147, 0.275)') < main.indexOf('vec3(0.0242, 0.462, 0.584)') && main.indexOf('vec3(0.0242, 0.462, 0.584)') < main.indexOf('vec3(0.212, 0.768, 0.823)'), '#063a5c · #0b6b8f · #2bb5c9 · #7fe3ea, the foot of the screen to its top (linear light)');
+  assert.match(main, /float ru = atan\(hit\.x, -hit\.z\) \* 3\.2 \+ hit\.y \* 0\.16;/, 'the sun rays stand in the world (the wall\'s own angle + height) — and drift');
+  assert.match(dfx, /float caust\(vec2 p, float t\)/); assert.doesNotMatch(n + code(`${FF}day-fx.js`), /ff-caustics|caustics\.(png|webp)/, 'no caustics picture');
+  // THE DARKNESS by day: the same line + timing, another look (the wall + the screen's edges; never the ball or its floor)
+  assert.match(main, /float lit = smoothstep\(uDarkY \+ 0\.9, uDarkY - 0\.25, hitY\);/, 'the same line as the night\'s');
+  assert.match(css, /\.ff-stage\[data-look='day'\]\[data-area='rooftop'\] \.ff-dark \{ --ff-dk: 50, 56, 74; \}/, 'THE STORM CLOUD over the rooftop');
+  assert.match(css, /\.ff-stage\[data-look='day'\]:is\(\[data-area='harbor'\], \[data-area='deep'\], \[data-area='bottom'\], \[data-area='trench'\]\) \.ff-dark \{ --ff-dk: 5, 36, 40; \}/, 'THE MURK under the water');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-dark \{ background: radial-gradient\(ellipse 66% 46% at 50% 45%, rgba\(var\(--ff-dk\), 0\) 44%/, 'the same clear window round the ball');
+  // THE MOTES: a fixed pool, the tiers trim how many are drawn; an area's kind
+  assert.match(n, /export const MOTES = 48, MOTE_N = Object\.freeze\(\[18, 32, 48\]\), MOTE_SPAN = 12;/); assert.match(n, /mGeo\.instanceCount = MOTE_N\[t\];/);
+  assert.equal(AREA_DAY_KINDS(n).join(' '), '0 3 3 1 2', 'the rooftop none · dust in the two rooms · bubbles under the harbor · drifting particles in the deep');
+  assert.match(dfx, /float y = uBaseY \+ mod\(aS\.y \* uSpan \+ uSpeed \* \(0\.6 \+ 0\.8 \* seed\) \* uTime - uBaseY, uSpan\);/, 'a mote stands in the WORLD (wrapped round the camera) — a pure function of the time');
+  // the big number by day: pink #ff3fa8 in a soft dark outline; the ball pink
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-num \{ color: #ff3fa8; text-shadow: var\(--ff-out\)/);
+  assert.match(fx, /col = mix\(vec3\(1\.0, 0\.08, 0\.4\), vec3\(1\.0, 0\.4, 0\.7\), k \* k\);/, 'the day ball: pink (#ff50aa in linear light)');
+  // the stage: the kit's shared look
+  assert.match(st, /import \{ resolveLook, sunUpNow \} from '\.\.\/kit\/look\.js';/, 'the match kit\'s shared DAY / NIGHT');
+  assert.match(st, /let lookT = o\.lookNow \? cleanLk\(o\.lookNow\(\)\) : LOOK_Q \|\| guessLook\(new Date\(\)\.getHours\(\)\), lookSeen = '';/, 'the console\'s look · ?look= · AUTO by the phone\'s clock');
+  assert.match(st, /if \(o\.lookNow && frameN % 15 === 0\) \{ const l = cleanLk\(o\.lookNow\(\)\); if \(l !== lookT\) setLook\(l\); \}/, 'the console\'s GAME LOOK read LIVE');
+  assert.match(st, /if \(!o\.lookNow && !LOOK_Q\) \{ askSun\(\); sunTimer = setInterval\(askSun, SUN_EVERY_MS\); \}/, 'AUTO: the site\'s own sun rule, asked again every minute');
+  assert.match(code(`${FF}play.js`), /const LOOK = Q\.get\('look'\) === 'day' \|\| Q\.get\('look'\) === 'night' \? Q\.get\('look'\) : null;/);
+  assert.doesNotMatch(st, /ff-look|LOOK_LABEL|look-b/, 'no look switch of its own on the screen');
+});
+
+/** the motes' kind of the five areas' day rows (night.js#AREA_DAY — its 11th number) */
+function AREA_DAY_KINDS(src) {
+  const at = src.indexOf('export const AREA_DAY = Object.freeze(['), rows = [...src.slice(at, src.indexOf(']);', at)).matchAll(/\[([\d., ]+)\]/g)].map(m => m[1].split(',').map(Number));
+  const deep = src.match(/DEEP_D = \[([\d., ]+)\]/)[1].split(',').map(Number);
+  return [...rows.slice(0, 4).map(r => r[10]), deep[10]];
+}
 
 test('THE OPENING = title-05 (F3 — the owner\'s pick): Grok\'s lettering + tagline as two pictures over the LIVE tower (WebP with alpha, two widths, small), 85 % of the width in the top third; F2\'s tube sign + its dropping ball are gone; THE GLINT = a CSS band masked to the lettering\'s alpha every 7 s while the opening waits — transform + opacity only, ONE sweep under reduced motion', () => {
   const st = code(`${FF}stage.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -348,7 +399,7 @@ test('THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): ONE ramp whit
   assert.match(read(`${FF}night.js`), /an ember: gold or neon pink/); assert.match(fx, /LIT BY THE FIRE \(a shard only ever flies from THE BLAZE's shatter\): gold glints on the faces turned to it, a neon-pink rim/);
   assert.match(fx, /THE FIRE SHOCKWAVE: a ring running out from the shatter — white-yellow at its inner lip, orange, neon pink at its outer edge/);
   // the ball's normal UNLIT glow stays as it was (the halo's colour + size at blaze 0 = F2's own numbers)
-  assert.match(n, /LC\[0\] = 1; LC\[1\] = 0\.42 - 0\.2 \* bz; LC\[2\] = 0\.36 \+ 0\.22 \* bz;/); assert.match(n, /P\[3\] = SHAPE\.R_BALL \* \(3\.6 \+ 1\.6 \* bz\);/);
+  assert.match(n, /LC\[0\] = 1; LC\[1\] = day \? 0\.09 \+ 0\.13 \* bz : 0\.42 - 0\.2 \* bz; LC\[2\] = day \? 0\.42 \+ 0\.16 \* bz : 0\.36 \+ 0\.22 \* bz;/); assert.match(n, /P\[3\] = SHAPE\.R_BALL \* \(3\.6 \+ 1\.6 \* bz\);/);
   assert.match(fx, /vec3 col = mix\(uEdge \* 1\.1, core, k \* k\);/, 'unlit: the white-hot core + its warm edge');
   // the greyscale check greys the WHOLE picture (the fire too)
   assert.match(n, /grey\(on\) \{ G\.uGrey\.value = 0; el\.style\.filter = on \? 'grayscale\(1\)' : ''; \}/);

@@ -1,5 +1,5 @@
 // FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST PAGE"; HIGH RISE's stage.js is the pattern): the run loop on the pure engine, the
-// night scene (night.js), the HUD, THE OPENING, THE HOLD, YOUR BEST, the sounds' cues, the end card — ONE module: the test page mounts
+// scene (night.js — F3: BOTH LOOKS, the shared DAY / NIGHT read live), the HUD, THE OPENING, THE HOLD, YOUR BEST, the sounds' cues, the end card — ONE module: the test page mounts
 // it today (play.js), F4's cartridge will mount the same one. It COUNTS NOTHING itself: no /api, no profile, no report — the page hands
 // it a best to read + write (this phone's), nothing else.
 //   · THE RUN: tick 0 = the START (the first drag — after ≤ 0.6 s for the sounds' decode: THE SOUND SYNC); the RULES never read the
@@ -21,6 +21,7 @@ import { endWords, tickOf, areaOf } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
 import { CUE_NEW_BEST } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
+import { resolveLook, sunUpNow } from '../kit/look.js';
 import { createNight, FF_ART_REV } from './night.js';
 import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
@@ -38,6 +39,10 @@ export const KEY_SPIN = 60;
 export const OWED_MAX = 8 * MAX_SPIN;
 /** a frame this long (after a run's first second) is a HITCH (`?fps=1` counts them) */
 export const HITCH_MS = 33;
+/** THE LOOK before the sun rule has answered (it is a lazy module): the phone's own clock — day from 7 to 19 (HIGH RISE's guess) */
+export const guessLook = hour => (hour >= 7 && hour < 19 ? 'day' : 'night');
+/** AUTO asks the sun again this often */
+export const SUN_EVERY_MS = 60000;
 /** a press this soon after a restart starts nothing (the second tap of a double tap on PLAY AGAIN) */
 export const RESTART_GUARD_MS = 350;
 
@@ -51,12 +56,17 @@ function press(node, fn) {
   return node;
 }
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
-const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, destroy() {} };
+const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, destroy() {} };
 
 export function createStage(app, o = {}) {
   const PAGE = !!o.page, FIXED = String(o.seed || '').slice(0, SEED_MAX);
   const MODE = MODE_IDS.includes(o.mode) ? o.mode : 'solo';
   const FROM = Math.max(0, Math.min(600, Math.floor(Number(o.from) || 0)));
+  // THE LOOK (F3 — the match kit's shared DAY / NIGHT, games/kit/look.js): the console's GAME LOOK read LIVE (`o.lookNow` — F4's cartridge:
+  // the host's AUTO · DAY · NIGHT; no switch of its own) · the test page: `?look=day|night` for a check (`o.look`), else AUTO — the phone's
+  // clock at once, then THE SITE's OWN SUN RULE (sunUpNow: the city's sun at this phone's place), asked again every minute. Same rules in both looks.
+  const LOOK_Q = o.look === 'day' || o.look === 'night' ? o.look : null, cleanLk = l => (l === 'day' ? 'day' : 'night');
+  let lookT = o.lookNow ? cleanLk(o.lookNow()) : LOOK_Q || guessLook(new Date().getHours()), lookSeen = '';
   const bestAt = o.best || { read: () => 0, write() {} }, readBest = () => cleanBest(bestAt.read()), writeBest = n => bestAt.write(n);
   const ac = new AbortController(), sig = { signal: ac.signal };   // (unmounted: every listener on the document goes with it)
   let gone = false;
@@ -103,7 +113,7 @@ export function createStage(app, o = {}) {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  const stage = h('div.ff-stage.is-open', play, dark, shade, topL, hud, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE ? note : null, fps);
+  const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE ? note : null, fps);
   app.replaceChildren(stage);
   const hook = { ends: [], view: null, sfx: null, auto: null };
   // (the page installs the shared engine itself; in the console it is running long since)
@@ -114,7 +124,7 @@ export function createStage(app, o = {}) {
   const pin = o.tier == null ? null : Math.max(0, Math.min(2, o.tier));
   const noGL = () => h('p.ff-nogl', 'This browser can’t draw the game here (it has no WebGL).');
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0 }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT }); }
   catch { stage.append(noGL()); return null; }
   hook.view = view;
   const tierPath = [pin == null ? 2 : pin];
@@ -131,7 +141,7 @@ export function createStage(app, o = {}) {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0 }); }
+    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -148,6 +158,12 @@ export function createStage(app, o = {}) {
 
   // ---- THE HUD: written only when it changes; the big number's digits keep their boxes, its glow is BAKED
   const BN = bakedNumber(num);
+  // THE LOOK, live: the scene flips at once (night.js#setLook); the page's words follow the picture in the next frame (`data-look` — the
+  // baked number is baked again in its day ink)
+  function setLook(l) { lookT = cleanLk(l); view.setLook(lookT); }
+  let sunTimer = 0;
+  const askSun = () => sunUpNow(Date.now()).then(up => { if (!gone) setLook(resolveLook('auto', up)); }, () => {});
+  if (!o.lookNow && !LOOK_Q) { askSun(); sunTimer = setInterval(askSun, SUN_EVERY_MS); }
   let numShown = -1, digits = 1;
   function setNum(n) {
     if (n === numShown) return;
@@ -189,7 +205,7 @@ export function createStage(app, o = {}) {
     hudFloor = -1; hudGap = -99; hudArea = ''; callUntil = 0; callPri = 0; if (callAnim) { callAnim.cancel(); callAnim = null; } call.textContent = ''; call.className = 'ff-call';
     // (THE BAKED HUD's warm-up: the plain + the gold digits are baked behind the opening — a NEW BEST bakes nothing in its frame)
     stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); BN.dirty();
-    setNum(0); areaL.textContent = areaOf(0).name; hudArea = areaL.textContent;
+    setNum(0); areaL.textContent = areaOf(0).name; hudArea = areaL.textContent; stage.dataset.area = areaOf(0).id;
     dark.style.opacity = '0';
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
@@ -370,6 +386,8 @@ export function createStage(app, o = {}) {
     const w0 = performance.now();
     frameN++;
     if (!warmed && frameN > 2 && t0 == null) warmed = view.warm(run);
+    if (o.lookNow && frameN % 15 === 0) { const l = cleanLk(o.lookNow()); if (l !== lookT) setLook(l); }   // (the console's GAME LOOK, read LIVE — four times a second)
+    if (lookT !== lookSeen) lookNow();
     let tau = FIRST;   // (THE OPENING: the ball rests on floor 0)
     if (t0 != null) {
       if (held) {
@@ -417,11 +435,13 @@ export function createStage(app, o = {}) {
     if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitches++;
     if (fps && frameN % 30 === 0) fpsLine();
   }
+  /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
+  function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); }
   /** a floor was passed: the big number, the area's name (YOUR BEST's line once it is beaten) */
   function hudFloorNow() {
     hudFloor = run.floor; setNum(hudFloor);
-    const a = areaOf(hudFloor).name;
-    if (a !== hudArea) { hudArea = a; areaL.textContent = a; }
+    const ar = areaOf(hudFloor), a = ar.name;
+    if (a !== hudArea) { hudArea = a; areaL.textContent = a; stage.dataset.area = ar.id; }   // (`data-area`: THE DARKNESS's look by day — the storm cloud · the murk)
     if (newBest) topL.textContent = bestLine(hudFloor);
   }
   /** THE DARKNESS: the screen's edges close in from above as it comes nearer (6 floors off — its lead — = nothing) — never over the ball or its floor */
@@ -442,7 +462,7 @@ export function createStage(app, o = {}) {
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
   Object.assign(hook, {
-    state: () => ({ mode: MODE, seed, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: areaL.textContent, top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: areaL.textContent, top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** the top of the ball at the top of its bounce, in px from the top of the screen (the HUD ends above it) */
@@ -452,7 +472,7 @@ export function createStage(app, o = {}) {
     restart: s => restart(s), begin: () => begin(performance.now()), dive: n => { if (t0 != null) { dive(n); t0 = performance.now() - run.t * TICK_MS; fromRun = true; } },
     hide, show, log: () => logOf(run), events: () => ev.slice(), result: () => resultOf(run),
     frames: () => { const out = [], n = Math.min(frameK, 600); for (let i = n - 1; i >= 0; i--) out.push(frames[(frameK - 1 - i + 6000) % 600]); return out; },
-    setTier: t => tiers.set(t), lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
+    setLook: l => setLook(l), setTier: t => tiers.set(t), lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
     stop() { cancelAnimationFrame(raf); },
   });
   if (o.hook) window[o.hook] = hook;
@@ -460,6 +480,6 @@ export function createStage(app, o = {}) {
   raf = requestAnimationFrame(frame);
   return {
     hook, restart,
-    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); awake(false); clearTimeout(lostTimer); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

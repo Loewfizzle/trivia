@@ -52,7 +52,7 @@ test('FREEFALL IS INVISIBLE TO PLAYERS (F1): no GAMES entry, no DAILIES row, no 
     assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
   }
   const dir = readdirSync(new URL('../js/games/freefall/', import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'best.js', 'bot.js', 'endscreen.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'F1\'s files + F2\'s test page: no meta.js / index.js / view.js / director.js');
+  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'best.js', 'bot.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'F1\'s files + F2\'s test page: no meta.js / index.js / view.js / director.js');
   for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
   // THE DAILY MODE is daily-ready only: it lives in the engine + the judge, and NOTHING turns it on
   assert.match(read('js/games/freefall/tuning.js'), /daily: \{ finish: 200, capTicks: 3 \* 60 \* TICK_HZ, holds: 0 \}/);

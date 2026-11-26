@@ -1,7 +1,9 @@
-// FREEFALL — THE NIGHT LOOK's SHADERS + THE BLOOM (F2 — docs/freefall.md "THE NIGHT LOOK"; night.js builds the scene). HIGH RISE's way
+// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT LOOK · F3: every material reads `uDay` and takes its day half from day-fx.js —
+// docs/freefall.md "THE NIGHT LOOK" + "THE DAY LOOK"; night.js builds the ONE scene both looks share). HIGH RISE's way
 // (js/games/highrise/night-fx.js): three.js core only — no add-on, no post-processing library; everything is written in LINEAR light and
 // ends in three's own colour-space chunk. Every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn).
 import * as THREE from 'three';
+import { CAUST, NOISE, DAY_WALLS, DAY_MAIN, DAY_SLICE } from './day-fx.js';
 
 // ---- THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): a WHITE core → YELLOW → ORANGE → NEON PINK outer flame (synthwave
 // fire). ONE ramp for everything that burns (the flame sprites, the ribbon, the ball, the shockwave): `heat` 1 = white-hot … 0 = out.
@@ -25,8 +27,14 @@ export const WALL_F = /* glsl */`
 uniform sampler2D tA, tB, tSky;
 uniform vec3 uCam, uRight, uUp, uFwd, uTintA, uTintB;
 uniform float uTan, uAspect, uHaveA, uHaveB, uFlipA, uFlipB, uSkyA, uSkyB, uHaveSky, uFlipSky, uSeamY, uBallY, uDarkY, uTime, uRW, uTile, uSink;
+// (F3 — THE DAY LOOK: day-fx.js) the look · each wall's area (tuning.js#AREAS' index) + whether it is under water · the surface's height ·
+// the haze below + THE DARKNESS's colour, wall A + wall B
+uniform float uDay, uAreaA, uAreaB, uWetA, uWetB, uSurfY;
+uniform vec3 uFogA, uFogB, uDarkA, uDarkB;
 varying vec2 vS;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+${NOISE}
+${CAUST}
 // THE OPEN SKY (THE ROOFTOP): deep navy overhead, a violet haze low; stars; the skyline painting a band on the horizon line (uSink
 // lifts it out of sight as the ball goes down the first floors); under it the dark roof, lit pink round the tower's foot
 vec3 sky(vec3 d) {
@@ -57,41 +65,48 @@ vec3 wallTex(sampler2D t, float have, float flip, vec3 tint, vec2 uv) {
   w = pow(w, vec3(2.2));
   return mix(vec3(0.012, 0.006, 0.03), w * tint, have);
 }
+${DAY_WALLS}
 void main() {
   vec3 d = normalize(uFwd + uRight * (vS.x * uTan * uAspect) + uUp * (vS.y * uTan));
   // the far face of the wall's cylinder (x² + z² = RW²)
   float a = dot(d.xz, d.xz), b = dot(uCam.xz, d.xz), cc = dot(uCam.xz, uCam.xz) - uRW * uRW, disc = b * b - a * cc;
-  vec3 col;
-  float hitY = uCam.y + d.y * 40.0;
-  if (disc > 0.0 && a > 1e-6) {
-    float t = (-b + sqrt(disc)) / a;
-    vec3 hit = uCam + d * t;
-    hitY = hit.y;
+  bool on = disc > 0.0 && a > 1e-6;
+  vec3 col, hit = uCam + d * 40.0;
+  vec2 uv = vec2(0.0);
+  float k = 0.0;
+  if (on) {
+    hit = uCam + d * ((-b + sqrt(disc)) / a);
     // (the angle's own seam lies on the NEAR side — never seen through; on the far face it was a 1 px line from the top of the screen to the tower)
-    vec2 uv = vec2(atan(hit.x, -hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
-    vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv);
-    vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv);
-    // (the seam between two areas lies at a world height: below it the next area's wall — it is seen rising from the dark)
-    float k = smoothstep(uSeamY + 1.6, uSeamY - 1.6, hit.y);
-    col = mix(A, B, k);
-    // the wall curves away to the shaft's sides: darker towards its edges (a round room, not a flat picture)
-    float side = abs(hit.x) / uRW;
-    col *= mix(1.0, 0.42, smoothstep(0.35, 1.0, side));
-  } else {
-    col = uSkyA > 0.5 ? sky(d) : vec3(0.004, 0.002, 0.012);
+    uv = vec2(atan(hit.x, -hit.z) * 0.15915494 * uTile, hit.y * uTile / (6.2831853 * uRW));
+    // (the seam between two areas lies at a world height: below it the next area's wall — it is seen rising from below)
+    k = smoothstep(uSeamY + 1.6, uSeamY - 1.6, hit.y);
   }
-  // THE GLOW FROM BELOW: pink at the shaft's foot, violet above it — it rises with the depth under the ball
-  float deep = uBallY - hitY;
-  float fog = smoothstep(4.5, 15.0, deep);
-  vec3 glow = mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(8.0, 18.0, deep));
-  col = mix(col, glow, fog * 0.85);
-  col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.3;
-  // (the top of the screen is the HUD's: the wall steps back behind the big number)
-  col *= mix(1.0, 0.5, smoothstep(0.3, 1.0, vS.y));
-  // THE DARKNESS: above its line the lights are out (a thin live edge where it stands) — the wall only; never the ball or its floor
-  float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
-  float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
-  col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
+  float hitY = hit.y;
+  if (uDay > 0.5) {${DAY_MAIN}
+  } else {
+    if (on) {
+      vec3 A = uSkyA > 0.5 ? sky(d) : wallTex(tA, uHaveA, uFlipA, uTintA, uv);
+      vec3 B = uSkyB > 0.5 ? sky(d) : wallTex(tB, uHaveB, uFlipB, uTintB, uv);
+      col = mix(A, B, k);
+      // the wall curves away to the shaft's sides: darker towards its edges (a round room, not a flat picture)
+      float side = abs(hit.x) / uRW;
+      col *= mix(1.0, 0.42, smoothstep(0.35, 1.0, side));
+    } else {
+      col = uSkyA > 0.5 ? sky(d) : vec3(0.004, 0.002, 0.012);
+    }
+    // THE GLOW FROM BELOW: pink at the shaft's foot, violet above it — it rises with the depth under the ball
+    float deep = uBallY - hitY;
+    float fog = smoothstep(4.5, 15.0, deep);
+    vec3 glow = mix(vec3(0.1, 0.02, 0.3), vec3(0.9, 0.1, 0.6), smoothstep(8.0, 18.0, deep));
+    col = mix(col, glow, fog * 0.85);
+    col += vec3(0.6, 0.05, 0.5) * pow(smoothstep(-0.35, -1.0, vS.y), 2.0) * 0.3;
+    // (the top of the screen is the HUD's: the wall steps back behind the big number)
+    col *= mix(1.0, 0.5, smoothstep(0.3, 1.0, vS.y));
+    // THE DARKNESS: above its line the lights are out (a thin live edge where it stands) — the wall only; never the ball or its floor
+    float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
+    float edge = exp(-pow((hitY - uDarkY - 0.3) / 0.16, 2.0));
+    col = col * mix(0.035, 1.0, lit) + vec3(0.55, 0.3, 1.0) * edge * 0.5 * (0.7 + 0.3 * sin(uTime * 9.0 + vS.x * 14.0));
+  }
   // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
   gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
 }`;
@@ -124,11 +139,13 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 export const SLICE_F = /* glsl */`
-uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey;
+uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust;
+uniform vec3 uFog;
 varying vec4 vE, vC, vF;
 varying vec3 vW, vN, vR;
 varying float vKind;
 const vec3 RED = vec3(1.0, 0.03, 0.09), RED_DARK = vec3(0.16, 0.0, 0.012);
+${CAUST}
 void main() {
   float face = vE.z, ang = vE.x, rad = vE.y;
   float red = step(0.5, vKind);
@@ -145,7 +162,10 @@ void main() {
   float dOut = (1.0 - rad) * uRing;                      // to the rim
   float dSide = (1.0 - abs(ang)) * uWidth * (0.2 + 0.8 * rad);   // to a cut side (a wedge is narrow at the pillar)
   float aa = fwidth(dOut) * 1.2 + 1e-5, aas = fwidth(dSide) * 1.2 + 1e-5;
-  vec3 col; float emit = 0.0; vec3 emitC = vec3(0.0);
+  vec3 col; float alpha = vC.a;
+  if (uDay > 0.5) {${DAY_SLICE}
+  } else {
+  float emit = 0.0; vec3 emitC = vec3(0.0);
   if (face < 0.5) {
     // THE TOP: the colour at full strength, brighter out at the rim; a soft pool of light where the ball's glow falls
     float lit = 0.52 + 0.48 * smoothstep(0.0, 1.0, rad);
@@ -211,8 +231,8 @@ void main() {
   float flash = vF.x;
   col += vec3(1.0, 0.9, 0.95) * flash * (face < 0.5 ? 0.7 : 0.25);
   if (uGrey > 0.5) { float g = dot(col, vec3(0.2126, 0.7152, 0.0722)); col = vec3(g); }   // (the review's shot: red must read with the colour removed)
-  float alpha = vC.a;
   if (uBloom > 0.5) col = (emitC * emit * 0.85 * mix(1.0, 0.3, far) + vec3(1.0, 0.9, 0.95) * flash * 0.3);
+  }
   gl_FragColor = vec4(col * alpha, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -223,8 +243,8 @@ export const PILLAR_V = /* glsl */`
 varying vec3 vW, vN;
 void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
 export const PILLAR_F = /* glsl */`
-uniform float uBloom, uTopY;
-uniform vec3 uCol;
+uniform float uBloom, uTopY, uDay;
+uniform vec3 uCol, uFog;
 varying vec3 vW, vN;
 void main() {
   vec3 V = normalize(cameraPosition - vW);
@@ -232,6 +252,15 @@ void main() {
   float far = clamp((uTopY - vW.y) / 7.0, 0.0, 1.0);
   vec3 col = uCol * (0.3 + 1.1 * nv * nv) * mix(1.0, 0.25, far) + vec3(0.5, 0.2, 1.0) * pow(1.0 - nv, 2.0) * 0.55 * (1.0 - far);
   col *= step(vN.y, 0.5) + 0.35 * step(0.5, vN.y);   // (its cap: the dark eye in the middle of the top ring)
+  if (uDay > 0.5) {
+    // BY DAY: BRUSHED STEEL — a bright band down its front, cool shade at its sides, fine brushing round it; its cap a dark teal eye
+    vec3 N = normalize(vN);
+    float brush = 0.975 + 0.025 * sin(atan(N.x, N.z) * 60.0 + sin(vW.y * 3.0) * 2.0);   // (the brushing runs DOWN it: fine upright streaks — rings round it read as a screw's thread)
+    float band = pow(max(dot(N, normalize(vec3(-0.35, 0.25, 1.0))), 0.0), 6.0);
+    col = mix(vec3(0.26, 0.36, 0.48), vec3(0.78, 0.87, 0.96), nv) * brush + vec3(1.0) * band * 0.45;
+    col = mix(col, vec3(0.1, 0.3, 0.42), step(0.5, vN.y));
+    col = mix(col, uFog, far * 0.62);
+  }
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
@@ -248,7 +277,7 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 export const BALL_F = /* glsl */`
-uniform float uBloom, uBlaze, uTime, uOut;
+uniform float uBloom, uBlaze, uTime, uOut, uDay;
 uniform vec3 uEdge;
 varying vec3 vN, vW;
 ${FIRE_RAMP}
@@ -263,11 +292,18 @@ void main() {
   col = mix(col, vec3(1.0, 0.42, 0.78), 1.0 - smoothstep(0.34, 0.6, nv));
   col = mix(col, vec3(1.0, 0.2, 0.62), smoothstep(0.9, 0.93, nv) * (1.0 - smoothstep(0.958, 0.978, nv)) * 0.9);
   col = mix(col, vec3(1.25), smoothstep(0.962, 0.982, nv));
+  if (uDay > 0.5) {
+    // BY DAY: a PINK ball (#ff50aa), lighter where the light meets it, the same white rim + white centre dot
+    col = mix(vec3(1.0, 0.08, 0.4), vec3(1.0, 0.4, 0.7), k * k);
+    col = mix(col, vec3(1.0), 1.0 - smoothstep(0.3, 0.5, nv));
+    col = mix(col, vec3(0.86, 0.02, 0.3), smoothstep(0.9, 0.93, nv) * (1.0 - smoothstep(0.958, 0.978, nv)) * 0.6);
+    col = mix(col, vec3(1.0), smoothstep(0.962, 0.982, nv));
+  }
   // THE BLAZE: the ball IS the fire's heart — white-yellow through its middle, orange, a neon-pink rim that flickers
   vec3 burn = fire(clamp(0.12 + nv * 1.05 + 0.06 * sin(uTime * 22.0 + N.y * 9.0), 0.0, 1.0)) * (1.15 + 0.5 * k);
   col = mix(col, burn, uBlaze);
   col = mix(col, vec3(0.2, 0.2, 0.26) * (0.4 + 0.6 * nv), uOut);   // (the lights took it: a dead grey ball)
-  if (uBloom > 0.5) col *= mix(0.34, 0.9, uBlaze) * (1.0 - uOut);   // (unlit: a soft glow — its rim + its centre dot must stay read through its own bloom)
+  if (uBloom > 0.5) col *= mix(mix(0.34, 0.12, uDay), 0.9, uBlaze) * (1.0 - uOut);   // (unlit: a soft glow — its rim + its centre dot must stay read through its own bloom)
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -298,7 +334,7 @@ void main() {
   vQ = position.xy * 2.0; vK = aQ; vC = aC;
 }`;
 export const LIGHT_F = /* glsl */`
-uniform float uTime, uBloom;
+uniform float uTime, uBloom, uCover;
 varying vec2 vQ; varying vec4 vK; varying vec3 vC;
 ${FIRE_RAMP}
 void main() {
@@ -323,7 +359,8 @@ void main() {
   a *= vK.y;
   vec3 col = mix(mix(vC, vec3(1.0), min(1.0, heart)), ring, isRing) * a;
   if (uBloom > 0.5) col *= 0.55;
-  gl_FragColor = vec4(col, 0.0);
+  // (BY DAY added light is lost on a bright ground: a light COVERS what is behind it — uCover; by night it is 0: light is added)
+  gl_FragColor = vec4(col, min(1.0, a) * uCover);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -351,7 +388,7 @@ void main() {
 }`;
 export const FLAME_F = /* glsl */`
 uniform sampler2D tFx;
-uniform float uHave, uFlip, uBloom;
+uniform float uHave, uFlip, uBloom, uCover;
 varying vec2 vUv; varying vec3 vK;
 ${FIRE_RAMP}
 float cell(float i, vec2 uv) { return texture2D(tFx, vec2((i + clamp(uv.x, 0.02, 0.98)) * 0.25, mix(uv.y, 1.0 - uv.y, uFlip))).r; }
@@ -367,10 +404,13 @@ void main() {
   float cool = pow(1.0 - k, 1.7);
   float heat = clamp(cool * (0.55 + 0.6 * body), 0.0, 1.0);
   float a = body * smoothstep(0.0, 0.08, k) * pow(1.0 - k, 0.85);
+  // (BY DAY the SAME fire must COVER — added light is lost on a bright sky: a flame is thicker there and a shade cooler, so its orange +
+  //  its neon pink stand against the pale ground round the white-yellow heart)
+  a = mix(a, pow(a, 0.5) * pow(1.0 - k, 0.6), uCover); heat *= mix(1.0, 0.74, uCover);
   vec3 col = fire(heat) * a * mix(1.15, 0.85, smoothstep(0.5, 1.0, heat));
   if (uBloom > 0.5) col *= 0.5;
   // (light that also COVERS a little of what is behind it: a flame over another keeps its own colour — the yellow + the orange bands stay)
-  gl_FragColor = vec4(col, a * 0.7);
+  gl_FragColor = vec4(col, a * mix(0.7, 0.96, uCover));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -390,7 +430,7 @@ void main() {
   vQ = vec2(position.x * 2.0, t);
 }`;
 export const RIBBON_F = /* glsl */`
-uniform float uOn, uBloom, uTime;
+uniform float uOn, uBloom, uTime, uCover;
 varying vec2 vQ;
 ${FIRE_RAMP}
 void main() {
@@ -398,9 +438,10 @@ void main() {
   float flick = 0.88 + 0.12 * sin(t * 31.0 - uTime * 40.0);
   float heat = clamp(pow(core, 1.5) * (1.0 - t) * 1.12 * flick, 0.0, 1.0);   // (white only at the ball: yellow by a third of its length, orange past half, pink at its tip + its edges)
   float a = smoothstep(0.0, 0.35, core) * (1.0 - t) * smoothstep(0.0, 0.03, t) * uOn;
-  vec3 col = fire(heat) * a * 1.25;
+  a = mix(a, pow(a, 0.55), uCover); heat *= mix(1.0, 0.86, uCover);
+  vec3 col = fire(heat) * a * mix(1.25, 1.0, uCover);
   if (uBloom > 0.5) col *= 0.5;
-  gl_FragColor = vec4(col, 0.0);
+  gl_FragColor = vec4(col, min(1.0, a) * uCover);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -458,11 +499,12 @@ void main() {
   vK = k; vQ = position.xy * 2.0; vC = aC;
 }`;
 export const SPARK_F = /* glsl */`
+uniform float uCover;
 varying float vK; varying vec2 vQ; varying vec3 vC;
 void main() {
   float a = (1.0 - abs(vQ.x)) * (1.0 - vQ.y * vQ.y) * (1.0 - vK * vK);
   vec3 hue = mix(vec3(1.0, 0.97, 0.92), vC, smoothstep(0.0, 0.55, vK));
-  gl_FragColor = vec4(hue * a * 1.7, 0.0);
+  gl_FragColor = vec4(hue * a * 1.7, min(1.0, a * 1.4) * uCover);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
