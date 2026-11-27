@@ -344,7 +344,11 @@ ${glow('hr-glow', 2.4)}</defs>
 <path d="M0 104h8v-6h7v9h6v-12h8v14h7v-8h6v-5h9v13h6V94h7v12h8v-7h6v9h7v-10h9" fill="none" stroke="#ff4fd8" stroke-opacity="0.28" stroke-width="1"/>
 <g transform="translate(9 3)" fill="none" stroke-linecap="round" stroke-linejoin="round">${HR_TUBES}</g></svg>`;
 
-const ART = { highrise: () => HIGHRISE, jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// FREEFALL (F5A): its mark
+const FREEFALL = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>${glow('ff-glow', 2.5)}</defs><rect width="120" height="120" fill="#140b33"/>
+<g transform="translate(10 7)" fill="none" stroke-linecap="round" stroke-linejoin="round">${MARKS.freefall.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="${(t.w || 6) + 4}" opacity="0.5" filter="url(#ff-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="${t.w || 6}"/>`).join('')}</g></svg>`;
+
+const ART = { freefall: () => FREEFALL, highrise: () => HIGHRISE, jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

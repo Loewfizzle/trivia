@@ -79,7 +79,12 @@ test('THE ICON = "A · THE TOWER": a cyan isometric stack + the pink slab droppi
   const svg = markSvg({ id: 'highrise' });
   assert.equal((svg.match(/stroke-width:4\.5;/g) || []).length, 3); assert.match(svg, /^<svg viewBox="0 0 100 100" aria-hidden="true" class="nd-shelf-mark">/);
   assert.equal((markSvg({ id: 'jaywalk' }).match(/stroke-width:7;/g) || []).length, MARKS.jaywalk.tubes.length, 'every other mark keeps the house width');
-  for (const [id, mk] of Object.entries(MARKS)) if (id !== 'highrise') assert.equal(mk.w, undefined, `${id}: no width of its own`);
+  // (FREEFALL F5A: its mark names its own width too — 6 — and ONE of its tubes a width of its own: the thin core flame)
+  for (const [id, mk] of Object.entries(MARKS)) if (id !== 'highrise' && id !== 'freefall') assert.equal(mk.w, undefined, `${id}: no width of its own`);
+  assert.equal(MARKS.freefall.w, 6); assert.equal(MARKS.freefall.tubes.length, 5);
+  const ff = markSvg({ id: 'freefall' });
+  assert.equal((ff.match(/stroke-width:6;/g) || []).length, 4, 'FREEFALL: the floor, the two flames, the ball at 6'); assert.equal((ff.match(/stroke-width:3;/g) || []).length, 1, '… its core flame thin');
+  for (const [id, mk] of Object.entries(MARKS)) if (id !== 'freefall') for (const t of mk.tubes) assert.equal(t.w, undefined, `${id}: no tube with a width of its own`);
 });
 
 // ---- THE ADD-ONS (the inbox, Nov 19 2:57 pm + 3:00 pm — the owner's picks): THE WELCOME = "A · THE SIGN" · THE END = "A · THE HERO NUMBER"
