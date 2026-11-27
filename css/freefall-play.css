@@ -372,11 +372,11 @@
 .ff-marks.is-r { right: calc(max(7px, env(safe-area-inset-right, 0px)) + 28px); justify-items: end; }
 .ff-marks.is-dn { bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); }
 .ff-marks.is-up { top: calc(var(--ff-band-top) + 52px); }
-.ff-mark { font: 800 17px/1.15 var(--font-ui); letter-spacing: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -1.5px 0 0 #07040f, 1.5px 0 0 #07040f, 0 -1.5px 0 #07040f, 0 1.5px 0 #07040f, 0 0 8px rgba(7, 4, 15, 0.95); }
+.ff-mark { font: 800 17px/1.15 var(--font-ui); letter-spacing: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -2px 0 0 #07040f, 2px 0 0 #07040f, 0 -2px 0 #07040f, 0 2px 0 #07040f, -1.4px -1.4px 0 #07040f, 1.4px 1.4px 0 #07040f, -1.4px 1.4px 0 #07040f, 1.4px -1.4px 0 #07040f, 0 0 10px rgba(7, 4, 15, 0.95); }   /* (the review: an orange name over red floors — a full 2 px dark stroke) */
 /* (WATCHING: its two lines stand at the foot — the down-markers step up over them) */
-/* F5C — RIVAL OUT: "MIA IS OUT" in their colour, ~1.5 s, low in the middle — clear of the number, the banners + the ball (two lines at most) */
-.ff-outs { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 118px); display: grid; justify-items: center; gap: 4px; pointer-events: none; }
-.ff-out { font: 900 19px/1.1 var(--font-display); letter-spacing: 0.06em; padding-left: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -1.5px 0 0 #07040f, 1.5px 0 0 #07040f, 0 -1.5px 0 #07040f, 0 1.5px 0 #07040f, 0 0 12px rgba(7, 4, 15, 0.95); animation: ff-out 1.5s ease-out both; }
+/* F5C — RIVAL OUT: "MIA IS OUT" in their colour, ~1.5 s, at 60 % of the screen (the review: lifted off the edge markers) — clear of the number, the banners + the ball (two lines at most) */
+.ff-outs { position: absolute; left: 12px; right: 12px; top: 60%; display: grid; justify-items: center; gap: 4px; pointer-events: none; }
+.ff-out { font: 900 clamp(21px, 6.4vw, 26px)/1.1 var(--font-display); letter-spacing: 0.06em; padding-left: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -2px 0 0 #07040f, 2px 0 0 #07040f, 0 -2px 0 #07040f, 0 2px 0 #07040f, -1.4px -1.4px 0 #07040f, 1.4px 1.4px 0 #07040f, -1.4px 1.4px 0 #07040f, 1.4px -1.4px 0 #07040f, 0 0 14px rgba(7, 4, 15, 0.95); animation: ff-out 1.5s ease-out both; }
 @keyframes ff-out { 0% { opacity: 0; transform: translateY(8px) scale(0.92); } 14% { opacity: 1; transform: none; } 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
 /* F5C — LAST ONE STANDING = JAYWALK's moment card (css/jaywalk.css .jw-last), set under the ball */
 .ff-last { position: absolute; z-index: 0; left: 12px; right: 12px; top: 44%; display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; animation: ff-last 2.6s ease-out both; }

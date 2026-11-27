@@ -407,7 +407,7 @@ RULES.golf = {
 // smashes the next floor, red too) · a ball that stalls: the lights go out above it · a MATCH: one tower for all, the deepest wins (ties:
 // the first there), THE BOTTOM (floor 200) or 3:00 ends it · SOLO: endless, leaving the app PAUSES it — 3 a run (a match never pauses).
 RULES.freefall = {
-  goal: 'Fall down the tower as deep as you can.',
+  goal: 'Fall as deep as you can.',
   sections: [
     ['HOW TO FALL', [
       'DRAG left or right to SPIN the tower.',
@@ -415,14 +415,12 @@ RULES.freefall = {
       'RED = OUT. Never land on red.',
       '3 FLOORS CLEAN in a row = THE BLAZE.',
       'THE BLAZE smashes the next floor, even red.',
-      'KEYBOARD: the left and right arrows spin.',
     ]],
     ['HOW IT ENDS', [
       'DON’T STALL: the LIGHTS GO OUT above you.',
-      'A MATCH: the same tower. The deepest wins.',
-      'It ends at THE BOTTOM (floor 200) or at 3:00.',
-      'SOLO never ends. Leave the app: it PAUSES.',
-      '3 PAUSES a run. A match never pauses.',
+      'A MATCH: one tower. The deepest wins.',
+      'It ends at THE BOTTOM (floor 200) or 3:00.',
+      'SOLO: leave the app and it PAUSES (3 a run).',
     ]],
   ],
 };
@@ -431,12 +429,10 @@ RULES.freefall.pics = [
     svg('<path d="M2 15h7M15 15h7"/><circle cx="12" cy="7" r="3"/><path d="M12 12v6M9.5 16l2.5 3 2.5-3" opacity=".7"/>', '#27e0e6'),    // the ball over the gap, falling through
     svg('<path d="M3 15h18"/><path d="M8 15l2-3 2 3 2-3 2 3" stroke="#ff3b5c"/><circle cx="12" cy="7" r="3"/><path d="M5 4l14 14" opacity=".8"/>', '#ff5a8a'),   // RED = OUT: a red floor, struck
     svg('<path d="M4 6h5M4 12h5M4 18h5"/><path d="M15 20c-2.5-2-2.2-5 0-7.5.4 1.6 1.3 2.3 2.2 1.6-.4-2.4.8-4.5 2.3-6.1.2 3 1.5 4.3 1.5 7 0 3-2 5-3.5 5h-2.5z"/>', '#ffb347'),   // three floors + the flame
-    svg('<path d="M3 16h7M14 16h7"/><path d="M10 16l1.5-2.5M14 16l-1.5-2.5M11 19l-1.5 2M13 19l1.5 2"/><circle cx="12" cy="7" r="3"/>', '#ff7fd6'),   // the smash: the floor bursting under the ball
-    svg('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 12h4M7 12l2-2M7 12l2 2M17 12h-4M17 12l-2-2M17 12l-2 2"/>', '#8ff0ff')],   // the arrow keys
+    svg('<path d="M3 16h7M14 16h7"/><path d="M10 16l1.5-2.5M14 16l-1.5-2.5M11 19l-1.5 2M13 19l1.5 2"/><circle cx="12" cy="7" r="3"/>', '#ff7fd6')],   // the smash: the floor bursting under the ball
   [svg('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/><path d="M4 4l16 16" opacity=".8"/>', '#b8a6ff'),   // the lights out: a bulb, struck
     svg('<rect x="9" y="3" width="6" height="18" rx="1"/><circle cx="5" cy="9" r="2"/><circle cx="19" cy="14" r="2"/><path d="M12 7v3M12 13v3" opacity=".5"/>', '#27e0e6'),   // one tower, two balls
     svg('<path d="M3 17h18"/><path d="M5 20h14" opacity=".6"/><path d="M12 3v10M8 9l4 4 4-4"/>', '#ffd36a'),                         // THE BOTTOM: down to the floor
-    svg('<path d="M9 6v12M15 6v12"/>', '#7dffa0'),                                                                                    // PAUSE
     svg('<path d="M3 8v8M5.5 8v8M10.8 8v8M13.2 8v8M18.5 8v8M21 8v8"/>', '#7dffa0')],                                                       // three pauses
 ];
 

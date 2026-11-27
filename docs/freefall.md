@@ -32,6 +32,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F4B — THE MATCH + THE END SCREEN (THE LOGO) + THE SHARE CARD (+ two fixes) | Nov 26 2026 | `docs/games/passes/freefall-f4b.md` | THE PAUSE GAP · THE SKYLIGHT's FRAME BAR · THE MATCH (the first GO's seed + tick 0, each player's own `ff` node, the ghosts, THE DEPTH RAIL + the edge markers, Call the Winner, WATCH THE LEADER, THE FINISH at THE BOTTOM / the 3:00 cap, the podium, REMATCH; the server's `freefallMatch`) · THE END SCREEN (the logo header, YOUR BEST · AVG, YOUR TABLE, the universal footer) · THE SHARE CARD + SHARE |
 | F5A — THE LOOK POLISH | Nov 27 2026 | `docs/games/passes/freefall-f5a.md` | THE WATER SURFACE rebuilt to the owner's two targets (worked out in its shader — the normal map gone) · THE FINISH (sand, rocks + their shadows, soft dust) + THE DAY CELEBRATION (bubbles, sun rays, the same soft fireworks) · THE ROOF GRAIN · THE SHARE CARD's STAGED hero frame · THE MARK = B · THROUGH THE FLOOR + the tile · THE BILLBOARD = A · THE LOGO + its readability proof — LOOK ONLY |
 | F5B — THE FIXES + THE WATER SWAP + THE SHARED END SCREENS | Nov 27 2026 | `docs/games/passes/freefall-f5b.md` | SHARE = THE PICTURE ONLY (card.js + send.js — the test page + the cartridge) · the banners proven = 120's · THE MARK through the floor · the gold card readable · FLOORS 40 + 120 NO RED (`gen.blind`) · no "0 BLAZES", ONE bottom wording · the crown · the water hitches · the inbox's smudge / lamps / stump · THE WATER SWAP (night under = the day's water in night inks · day above = ocean blue + NIGHT's streaks) · THE END-SCREEN BOARD (ui/end-board.js — shared, opt-in) + FREEFALL's FINAL SHAPE |
+| F5C — F5B's LEFTOVERS + THE MATCH PIECES + HOW TO PLAY + THE MIX + CREDITS | Nov 27 2026 | `docs/games/passes/freefall-f5c.md` | the logo always paints · YOUR BEST n · AVG n · ☐ FRIENDS ONLY (shared) · the name on the card · night under + day above (the last code try) · the day mark's outline · THE TIE-BREAK · the edge markers at the rival's side · RIVAL OUT · LAST ONE STANDING · HOW TO PLAY · THE MIX + the duck · the credits |
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 
 ## THE RULES (the owner's)
@@ -793,6 +794,33 @@ every other floor 0 … 320 is the plain row's bit for bit; F1's digests hold on
 - **Gone:** the WOULD COUNT line (the server's answer stays on the body's `data-would` for the checks), the stats line + YOUR TABLE in the
   cartridge (the board's FRIENDS tick is YOUR TABLE now), the personal-best plaques (the XP line stays). **Nothing scrolls** at 375 × 667 ·
   390 × 844 · 430 × 932: on a short screen the logo (180 pt), the cause + the number come down a size.
+
+## F5C — F5B's LEFTOVERS + THE MATCH PIECES + HOW TO PLAY + THE MIX + CREDITS (Nov 27 — `docs/games/passes/freefall-f5c.md`; the owner's decisions: `docs/games/plan.md` "FREEFALL — F5C")
+FREEFALL stays HIDDEN; THE SWITCH stays OFF. No rules-file change.
+- **THE LOGO ALWAYS PAINTS** (`endscreen.js#warmLogo`): the lettering is fetched + decoded during play (the same srcset + sizes); the end
+  screen's image decodes `sync`. Before: asked for at the end screen, decoded async — its empty box was caught. 180 pt on a short screen.
+- **YOUR BEST n · AVG n** (`endscreen.js#bestWords` · `avgWords` — the AVG always shows, a dash when unknown / under 5 runs) · a NEW BEST
+  = "NEW BEST · n" + the AVG under it. The cartridge's AVG = the profile's stored average off the room's mirror (`profile/public.js#pubOf`).
+- **THE BLOCK's HEADER** (shared — `ui/end-board.js`): the tick "☐ FRIENDS ONLY" alone (unticked = everyone); a match keeps THIS MATCH.
+- **THE NAME** on the test page's card: the signed-in one (`play.js` reads this phone's saved profile, slot 1 — read only).
+- **THE WATER, the last code try** (`break-fx.js WATER_F` day half · `night-fx.js` night under · `night.js#MOTE_NIGHT_SIZE`): day above =
+  a saturated ocean blue by the SCREEN's height (deepest at the bottom), the wall LAMPS' streaks in BRASS (found warm + bright on the day
+  painting's two lamp rows; the heart REPLACES the blue — light added onto blue was the lavender), a few glints riding the swell's moving
+  crests, no foam flecks, the far wall's foam → a soft darker wet edge, foam round the pillar only, the ball's pool small + hot pink. Night
+  under = the cyan lines ×2.7, the violet net ×3, the ground a touch lifted, the bubbles brighter + 1.35× (bubbles only).
+- **THE MARK by day** (`core/marks.js` the ball's `o` · `ui/mark-svg.js#markSvg(game, cls, day)`): an orange-red outline under the ring on a
+  pale ground; the night mark unchanged; the boot 83 B → 188 B left (header comments trimmed). A city DAY sign can read `t.o` at go-live.
+- **THE TIE-BREAK** (`logic.js#rankCompare` — the ONE ranking): floors → the earlier tick that floor was reached → more blazes (`bl`) → a draw.
+- **THE EDGE MARKERS** (`matchhud.js` four edge groups · `ghosts.js#edgeMarks` `side` · `stage.js` sin φ with a ±0.2 flip): one line each,
+  17 px, the rival's own colour, at the left / right edge they really are; below → the lower band, above → the upper band.
+- **RIVAL OUT** (`ghosts.js#outWords` · `matchhud.js#callout` · `stage.js`): a rival OUT → JAYWALK's out-drop + "MIA IS OUT" in their
+  colour, 1.5 s, low in the middle, 2 lines at most (a third waits); none in a run's first 2 s (a rejoin's catch-up).
+- **LAST ONE STANDING** (`ghosts.js#lastStanding` · `lastWords` · `matchhud.js#last`): 3+ players, every rival over, me still falling → once
+  a match, JAYWALK's card + last-standing.mp3: "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD · KEEP FALLING".
+- **HOW TO PLAY** = `ui/help.js#RULES.freefall` (the lazy opener; one drawing a line).
+- **THE MIX** (`sounds.js` gains + `DUCK` / `DUCK_MS` · `stage.js#duckFor` · `view.js` drv.duck): measured against JAYWALK's; the music ducks
+  to 0.5 under the outs, the breakthroughs, the bottom + LAST ONE STANDING. **THE CREDITS**: `ui/credits.js` group FREEFALL (`game` —
+  shown where FREEFALL is playable).
 
 ## THE STUTTERS (F3B — the owner's iPhone, day speakeasy, `?fps=1`: 59 fps · worst 34 ms · HITCH 9 at tier 2)
 Every long frame of a run is now NAMED (`stage.js` THE HITCH LOG: what one-off work landed just before it — `pic` a picture's upload ·

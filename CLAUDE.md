@@ -32,7 +32,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the five playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
 | `docs/highrise.md` | **HIGH RISE** (LIVE since THE GO-LIVE, Nov 20 — the rules, the two looks, the cartridge + THE MATCH, THE SWITCH ON, THE SIGN HOLD (lifted, CITY PART 1), THE POSTER share card; every pass indexed there) |
-| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5B, Nov 27: THE HIDDEN CARTRIDGE (owner-only: solo + THE MATCH), THE PROOF (`ff`), the judge, THE SWITCH OFF, the board + AVG, the cards, the STAGED share frame (SHARE = the picture only), the look polish + THE WATER SWAP, the FINAL SHAPE end screens; the test page /freefall-play; F5C next) |
+| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5C, Nov 27: THE HIDDEN CARTRIDGE (owner-only: solo + THE MATCH), THE PROOF (`ff`), the judge + THE TIE-BREAK, THE SWITCH OFF, the board + AVG, the cards, SHARE = the picture only, the FINAL SHAPE end screens, the match moments, HOW TO PLAY, THE MIX; the test page /freefall-play; the review → the fix pass → go-live next) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | three of the five dailies (+ docs/jaywalk.md · docs/highrise.md "THE DAILY") (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 

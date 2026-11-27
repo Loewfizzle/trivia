@@ -42,8 +42,6 @@
   installEmblems();
   await loadGame('freefall');
   try { localStorage.setItem('ff:best', '160'); } catch { /* fine */ }   // (YOUR BEST as this phone knows it)
-  // (F5C — the server's answer for this match, as profile/queue.js keeps it: &best=1 = a NEW BEST (141, was 120) + AVG 88 · &avg=1 = YOUR BEST 160 · AVG 141)
-  try { const k = 'rc:ABCD_mprev'; sessionStorage.removeItem(k); if (Q.get('best')) sessionStorage.setItem(k, JSON.stringify({ pbs: [{ b: 'freefall-solo', v: 141, prev: 120 }], av: { 'freefall-solo': 88 } })); else if (Q.get('avg')) sessionStorage.setItem(k, JSON.stringify({ bests: { 'freefall-solo': 160 }, av: { 'freefall-solo': 141 } })); } catch { /* fine */ }
   const N = match ? Math.max(2, Math.min(8, Number(Q.get('n')) || 5)) : 1, made = !!Q.get('made');
   const NAMES = [['me', 'BENNY', 'magenta', 'crown'], ['u2', 'DEX', 'cyan', 'bolt'], ['u3', 'LUNA', 'yellow', 'moon'], ['u4', 'MAXIMILIANOS', 'green', 'ghost'], ['u5', 'ZED', 'orange', 'star'], ['u6', 'KIT', 'violet', 'heart'], ['u7', 'OPAL', 'red', 'diamond'], ['u8', 'WREN', 'cyan', 'bolt']];
   const players = Object.fromEntries(NAMES.slice(0, N).map(([u, name, color, avatar]) => [u, { name, color, avatar }]));
@@ -51,6 +49,9 @@
   const order = match ? [...Object.keys(players).filter(u => u !== 'me'), 'me'] : ['me'];
   const results = Object.fromEntries(order.map((u, i) => [u, { f: made && i === 0 ? 200 : Math.max(3, 140 - i * 23), t: 4000 + i * 300, w: made && i === 0 ? 'made' : i % 2 ? 'dark' : 'red', bl: i % 3, b: 9, br: 4, go: 1 }]));
   if (!match && made) results.me = { f: 200, w: 'made', t: 5000, bl: 3 };
+  // (F5C — the server's answer for this match, as profile/queue.js keeps it — consistent with the board fixture (the fresh-eyes review): &best=1
+  //  = a NEW BEST of THIS run's floors (was 120) · &avg=1 = YOUR BEST 160 · both with the stored AVG the board's BENNY row shows)
+  try { const k = 'rc:ABCD_mprev', av = { 'freefall-solo': CASE === 'top' ? 88 : 61 }; sessionStorage.removeItem(k); if (Q.get('best')) sessionStorage.setItem(k, JSON.stringify({ pbs: [{ b: 'freefall-solo', v: results.me.f, prev: Math.min(120, results.me.f - 1) }], av })); else if (Q.get('avg')) sessionStorage.setItem(k, JSON.stringify({ bests: { 'freefall-solo': 160 }, av })); } catch { /* fine */ }
   const game = { id: 'freefall', matchId: 'mprev', mode: match ? 'match' : 'solo', phase: 'final', participants: Object.fromEntries(Object.keys(players).map(u => [u, true])), results };
   setState({ code: 'ABCD', uid: 'me', players, rv: {}, meta: { hostId: 'me', status: 'playing' }, game });
   globalThis.__nsPlayNow = { isSolo: () => !match, again: () => false, leave: () => false };

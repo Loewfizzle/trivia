@@ -353,7 +353,7 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     // (NIGHT's method: the lamp's column, its heart, broken into dashes by the swell — warm + bright gated, never the neon or the brick) ·
     // a FEW small glints that ride the moving swell's crests and blink · the far edge sinks softly into the wall (no pale band)
     float sy = clamp(ndc.y * 0.5 + 0.5, 0.0, 1.0);   // (0 = the bottom of the screen · 1 = its top)
-    col = mix(vec3(0.0, 0.026, 0.16), vec3(0.0, 0.095, 0.37), smoothstep(0.0, 0.5, sy));
+    col = mix(vec3(0.0, 0.012, 0.1), vec3(0.0, 0.095, 0.37), smoothstep(0.0, 0.55, sy));   // (the review: the bottom deeper still)
     col = mix(col, vec3(0.004, 0.16, 0.5), smoothstep(0.45, 0.85, sy));
     col *= 1.0 + 0.16 * g.y + 0.08 * g.x + 0.14 * (vn2(vW.xz * 0.9 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5);
     col += vec3(0.0, 0.03, 0.06) * smoothstep(0.4, 1.2, g.y);   // (the swell's tops catch a little more sky)
@@ -366,8 +366,11 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     float l1 = dot(c1, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c1.r - c1.b) / (c1.r + c1.b + 1e-4));
     float l2 = dot(c2, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c2.r - c2.b) / (c2.r + c2.b + 1e-4));
     float heart = smoothstep(0.16, 0.32, max(l1, l2)); heart *= heart;   // (measured at mip 5: the lamps 0.25 – 0.37 · the brick 0.06 – 0.16)
-    float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
-    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 2.6);
+    // (the review — "evenly spaced, same-length dashes in neat columns": each lamp's column has its OWN length, strength + dash rhythm — a
+    //  dice of the column it reads (its place on the wall, 32 a turn))
+    float hc = h21(vec2(floor(u * 32.0), 7.0)), hk = h21(vec2(floor(u * 32.0), 11.0));
+    float dash = 0.5 + 0.5 * sin(s * (6.2 + 3.0 * hk) + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
+    float streak = mix(1.0, smoothstep(0.18 + 0.06 * s + 0.12 * hc, 0.95, dash), smoothstep(0.1 + 0.3 * hc, 1.1, s)) * exp(-s / (1.7 + 1.8 * hc)) * (0.65 + 0.35 * hk);
     // (light ADDED onto deep blue goes grey-lavender — that was F5B's wash: the streak's heart REPLACES the blue with brass, a hot core in it)
     float k = min(heart * streak * 1.1, 0.88) * uHaveW;
     col = mix(col, vec3(0.95, 0.5, 0.12), k);
@@ -378,8 +381,7 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     vec2 sp = speck(vW.xz * 8.0 + g * 0.18 + vec2(0.0, uTime * 0.12), 0.24, vec2(1.0, max(V.y, 0.25) * 2.2), 0.13);
     float glint = sp.x * crestM * pow(0.5 + 0.5 * sin(uTime * 3.1 + sp.y * 60.0), 8.0) * (1.0 - 0.5 * far);
     col = mix(col, vec3(1.0, 0.95, 0.82), min(glint * 0.9, 0.8));
-    // a few soft ripple lines (the light on the swell) — faint: hairlines read as scratches
-    col = mix(col, vec3(0.2, 0.5, 0.9), lines(vW.xz * 1.9, uTime) * 0.06 * (1.0 - 0.7 * far));
+    // (no ripple LINES by day: the review — thin wandering hairlines read as stray vector strokes; the swell's light + shade carry it)
     // the ball: a small hot-pink pool + a thin pink streak (F5C: a wide pale pink over the blue was a LAVENDER column)
     col = mix(col, vec3(1.0, 0.25, 0.62), pool * pool * 0.3);
     col = mix(col, vec3(1.0, 0.3, 0.66), lane * lane * 0.22 * smoothstep(0.15, 0.9, dash));

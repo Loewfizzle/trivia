@@ -12,6 +12,8 @@ import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS } from './ghosts.js';
 const FOOT = MODES.match.finish || 200;
 /** the markers' rows each way (ghosts.js MARKS_MAX) */
 const ROWS = 3;
+/** F5C — at most this many marker lines on one side (the nearest first) */
+const SIDE_MAX = 2;
 
 export function createMatchHud() {
   const countN = h('div.ff-count-n'), countNames = h('div.ff-count-names');
@@ -77,7 +79,7 @@ export function createMatchHud() {
     marks(M) {
       for (const [list, L, R] of [[M.up, UL, UR], [M.down, DL, DR]]) {
         sideL.length = 0; sideR.length = 0;
-        for (let i = 0; i < list.length; i++) (list[i].side === -1 ? sideL : sideR).push(list[i]);
+        for (let i = 0; i < list.length; i++) { const to = list[i].side === -1 ? sideL : sideR; if (to.length < SIDE_MAX) to.push(list[i]); }   // (the nearest first: at most SIDE_MAX lines a side — the review: three stacked over the tower)
         marksInto(sideL, L.slots); marksInto(sideR, R.slots);
       }
     },

@@ -100,3 +100,14 @@ a later moment only stretches it; always released at a restart + when the stage 
 the Particle Pack (Kenney, eleven sprites), Ground 055 S (ambientCG), the art made for NEON SPEAKEASY with Grok. **Not credited (unused):**
 3DTextures Water 001 (its normal map left the game in F5A), the billboard (not installed), the roof's grain (made in code). The group
 shows only where FREEFALL is playable (`isPlayable` — the owner's phone now, everyone at the go-live): the public sheet never names a hidden game.
+
+## THE FRESH-EYES REVIEW (a separate reviewer, cold, at phone size — Groups 0–2)
+| # | item | verdict | what was done |
+| --- | --- | --- | --- |
+| 1 | the end screens | FAIL — MORE BELOW at 375 × 667 in the NEW BEST cases; NEW BEST ≠ the run; two AVGs disagree | the MORE BELOW shots were `after1` — taken BEFORE the short-screen fix (0 px over after it): re-shot `end\after2\` — nothing scrolls in any case at 375 · 390 · 430. The numbers were the LOOK PREVIEW's fixture (a made-up NEW BEST 141 on a 140 run): the fixture now answers this run's floors + the board row's own AVG. (In the app both AVGs come from the server's stored average; the preview's match rows have no profile mirror → "AVG —" there.) |
+| 2 | day water (119) | PARTIAL — a big step up (amber streaks, few glints, no rim, saturated blue); still "code water": even same-length dashes, hairlines, a lavender blob under the floor, the bottom not deep enough | each lamp's streak its own length / strength / rhythm (a dice of its column) · the ripple hairlines gone by day · the bottom deeper (`water\after4\`). The soft pink-violet glow under the floor is the BALL's own bloom (every area), not the water. **Verdict: better, not premium** → the Grok brief (OPEN FOR BEN 2) |
+| 3 | night under (121 / 125) | PASS (nit: the net a bit dense behind the tower) | kept |
+| 4 | the mark by day | PASS | — (the reviewer: PRISM's + HOLD'EM's marks also wash out on the pale band — not FREEFALL's) |
+| 5 | the edge markers | PARTIAL — orange over red floors weak; three stacked on one side | a full 2 px dark stroke · at most 2 lines a side (the nearest) (`match\after2\`) |
+| 6 | the match moments | PARTIAL — the card PASS; "MIA IS OUT" small + on top of the markers | the callout 21 – 26 px with the 2 px stroke, lifted to 60 % of the screen (`match\after2\`) |
+| 7 | HOW TO PLAY | PARTIAL — 11 rows, scrolls at 375 + 390 | 9 rows (the KEYBOARD row cut, the pause rows one), a one-line goal: whole at 390 × 844; at 375 × 667 the sheet scrolls about a line (the shared sheet does — as JAYWALK's) (`howto\a2\`) |
