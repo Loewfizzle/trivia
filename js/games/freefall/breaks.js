@@ -18,7 +18,9 @@ export const BREAK_FLOORS = Object.freeze({ skylight: 40, splash: 120, bottom: 2
 export const BURSTS = 176, BURST_K = Object.freeze([0.45, 0.7, 1]);
 /** F5B — THE PLUNGE's CROWN: its spray puffs' colour, by look — the water's own aqua (day) / cyan (night), never white: these are the
  *  brightest a puff may be (by night they ADD to the scene: six at most, spread round the ring, so no point gets more than two) */
-export const CROWN = Object.freeze({ day: Object.freeze([0.6, 0.86, 0.93]), night: Object.freeze([0.36, 0.62, 0.7]) });
+/** … and its ring of foam (seven large puffs — by night they ADD: the near-white cloud of the plunge) */
+export const FOAM_RING = Object.freeze({ day: Object.freeze([0.42, 0.64, 0.74]), night: Object.freeze([0.1, 0.28, 0.34]) });
+export const CROWN = Object.freeze({ day: Object.freeze([0.5, 0.76, 0.86]), night: Object.freeze([0.16, 0.4, 0.48]) });   // (night: they ADD + bloom — held well under white)
 /** the skylight: its glass's half size (the ring is 1 wide: it passes inside the frame) · how far above floor 40 the pane lies · its frame's bar */
 export const SKYLIGHT = Object.freeze({ half: 1.25, up: 0.4, bar: 0.07 });
 /** the water: how far above floor 120 the surface lies · THE WATERLINE's sweep up the screen (s after the plunge, for how long) */
@@ -290,7 +292,7 @@ export function createBreaks(X) {
     for (let k = 0; k < (X.reduce ? 6 : share(22)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.007 + rnd() * 0.007, day ? 0.5 : 0.6, day ? 0.64 : 0.54, day ? 0.68 : 0.42); }   // (F5A — the review: fewer, finer, under white — the crown was a clipped white core with hard bars)
     X.sparksDirty();
     for (let k = 0; k < share(6); k++) { const a = k / 6 * 6.2832 + rnd() * 0.6, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.24, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.07, 0.24, 4, -5.5, 0, 0, 2, day ? CROWN.day[0] : CROWN.night[0], day ? CROWN.day[1] : CROWN.night[1], day ? CROWN.day[2] : CROWN.night[2], 0.3); }   // (F5B — THE CROWN CAPPED: six puffs spread round the ring, never piled on one point, in the water's own aqua / cyan at most CROWN's light — it flashed near-white for a frame; F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
-    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
+    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, day ? FOAM_RING.day[0] : FOAM_RING.night[0], day ? FOAM_RING.day[1] : FOAM_RING.night[1], day ? FOAM_RING.day[2] : FOAM_RING.night[2], 0.28); }   // (F5B: the ring of foam in the water's own colour — its seven large puffs piled up into the white cloud)
     X.kick(0.32, 0.5);
   }
   /** SOLO: a place on the bed's own sand — the shelves beside the mouth (two of three) or behind the tower — and the way out from it → sx, sz, svx, svz.

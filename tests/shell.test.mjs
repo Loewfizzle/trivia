@@ -121,7 +121,7 @@ test('THE CARDS: the full card wears the tier gem in its top-right corner; a 1-o
 test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the XP box → the board → ONE button BACK TO THE ROOM (the tube main), STICKY at the foot (B3)', () => {
   const f = read('js/ui/final.js');
   // (HOLD'EM IN THE CITY — B3: the action row is the frame's LAST piece, STICKY at the screen's foot — always on screen; MORE BELOW while it scrolls on)
-  assert.match(f, /body \|\| podium,\n\s+rcSlot,\n\s+extra,\n\s+listRows\.length \? leaderboard\(listRows, players, \{ me, presence, stagger: 60 \}\) : null,\n\s+actions\);/);
+  assert.match(f, /body \|\| podium,\n\s+eb,\n\s+rcSlot,\n\s+extra,\n\s+listRows\.length \? leaderboard\(listRows, players, \{ me, presence, stagger: 60 \}\) : null,\n\s+actions\);/);   // (F5B: `eb` = THE END-SCREEN BOARD — null unless the cartridge names END_BOARD)
   assert.match(read('css/components.css'), /\.final > \.final-actions \{\n\s+position: sticky; bottom: 0;/);
   assert.match(f, /el\.classList\.toggle\('has-more', el\.scrollHeight - el\.clientHeight - el\.scrollTop > 6\)/);
   // (FRIENDS B — B4: the body shows 1st–3rd → the list from 4th; a body with NO podium says so; B2: OWN_VICTORY_SOUND skips the sting;

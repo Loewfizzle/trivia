@@ -75,7 +75,7 @@ const podiumOf = (p, names) => p.evaluate(list => {
   for (let n = tw.nextNode(); n; n = tw.nextNode()) { if (n.parentElement.closest('.winner, .ff-count, .mk-call, .ff-watch')) continue; const t = n.data.toUpperCase(); for (const nm of list) if (t.includes(nm) && !order.includes(nm)) order.push(nm); }
   const txt = s => ((q(s) || {}).textContent || '').replace(/\s+/g, ' ').trim();
   const hd = q('.ff-final .sheet-kicker [role="heading"]');
-  return { kicker: `${hd ? hd.getAttribute('aria-label') : ''} · ${txt('.ff-final .sheet-kicker')}`, logo: !!q('.ff-final .sheet-kicker img') && q('.ff-final .sheet-kicker img').naturalWidth > 0, place: txt('.ff-fin .ff-fin-place'), callLine: txt('.ff-fin .ff-fin-call'), win: txt('.ff-final .winner-name'), order, rows: root.querySelectorAll('.lb-row').length, notes: [...root.querySelectorAll('.lb-note')].map(e => e.textContent), cause: txt('.ff-fin .ff-ec-cause'), n: q('.ff-fin .ff-ec-n') ? q('.ff-fin .ff-ec-n').getAttribute('aria-label') : '', would: txt('.ff-fin-would'), bar: txt('.ff-final .final-bar-t'), text: root.innerText.replace(/\s+/g, ' ').slice(0, 400) };
+  return { kicker: `${hd ? hd.getAttribute('aria-label') : ''} · ${txt('.ff-final .sheet-kicker')}`, logo: !!q('.ff-final .sheet-kicker img') && q('.ff-final .sheet-kicker img').naturalWidth > 0, place: txt('.ff-fin .ff-fin-place'), callLine: txt('.ff-fin .ff-fin-call'), win: txt('.ff-final .winner-name'), order, rows: root.querySelectorAll('.lb-row').length, notes: [...root.querySelectorAll('.lb-note')].map(e => e.textContent), cause: txt('.ff-fin .ff-ec-cause'), n: q('.ff-fin .ff-ec-n') ? q('.ff-fin .ff-ec-n').getAttribute('aria-label') : '', would: (q('.ff-fin') || { dataset: {} }).dataset.would || '', you: txt('.eb-you'), ebK: txt('.eb-k'), ebRows: root.querySelectorAll('.eb-list li').length, scroll: q('.ff-final .final') ? q('.ff-final .final').scrollHeight - q('.ff-final .final').clientHeight : -1, bar: txt('.ff-final .final-bar-t'), text: root.innerText.replace(/\s+/g, ' ').slice(0, 400) };
 }, names);
 const onPodium = (idx, ms = 60000, what = 'the podium') => all(idx, (p, i) => H.waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.ff-final .final'), `${NAMES[i]}: ${what}`, ms));
 
@@ -306,7 +306,8 @@ async function partA() {
   const pod = await all(I, p => podiumOf(p, NAMES.slice(0, 3)));
   ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker) && x.logo && /ALICE FELL THE DEEPEST/.test(x.win)), `the podium on every phone: THE LOGO (its heading: "${pod[0] && pod[0].kicker}"${pod.every(x => x && x.logo) ? ', the picture loaded' : ', THE PICTURE DID NOT LOAD'}) — "${pod[0] && pod[0].win}"`);
   const myPlace = i => J.st.find(r => r.uid === uids[i]).rank, ORD = ['', '1ST', '2ND', '3RD'];
-  ok(pod.every((x, i) => x.place === `${J.fin.results[uids[i]].f} FLOORS · YOU FINISHED ${ORD[myPlace(i)]}`) && pod[0].cause === END_WORDS.made && pod[1].cause === END_WORDS.red && pod[2].cause === END_WORDS.dark, `each player's own body: ${pod.map(x => `"${x.cause} · ${x.place}"`).join(' | ')}`);
+  // (F5B — THE FINAL SHAPE: each body = the cause + THE NUMBER + FLOORS + YOUR BEST; the place shows in THIS MATCH's top 3 — the YOU line only from 4th down)
+  ok(pod.every((x, i) => x.n === String(J.fin.results[uids[i]].f) && !x.place && !x.you && x.ebK === 'THIS MATCH' && x.ebRows === 3 && x.scroll <= 1) && pod[0].cause === END_WORDS.made && pod[1].cause === END_WORDS.red && pod[2].cause === END_WORDS.dark, `each player's own body: ${pod.map((x, i) => `"${x.cause} · ${x.n} FLOORS" (${ORD[myPlace(i)]}; ${x.ebK} ${x.ebRows} rows, ${x.scroll} px over)`).join(' | ')}`);
   ok(pod[1].callLine === `YOUR CALL WAS RIGHT · +${callBonus(2)} POINTS` && !pod[0].callLine && !pod[2].callLine, `BOB's call on his own screen: "${pod[1].callLine}"`);
   const want = J.st.map(r => NAMES[uids.indexOf(r.uid)]).join(' ');
   ok(pod.every(x => x && x.order.join(' ') === want), `the podium LISTS every player, in the ranking's order (${want}) — the phones list: ${pod.map(x => (x ? x.order.join(' ') || 'nobody' : '—')).join(' | ')}`);
@@ -316,8 +317,8 @@ async function partA() {
   const night = await until(async () => { const nr = await dbGet(`rooms/${code}/night/${m}`); return nr && nr.p ? nr : null; }, 8000);
   ok(night && night.g === 'freefall' && night.b && night.b[uids[1]] === callBonus(2) && night.p[uids[0]] > night.p[uids[1]], `the night record: FREEFALL, ALICE first, the call's bonus on it (${JSON.stringify(night && night.p)})`);
   await H.shot(pages[0], 'match-podium-winner'); await H.shot(pages[1], 'match-podium');
-  const would = await until(async () => { const w = await all(I, p => p.evaluate("(document.querySelector('.ff-fin-would') || {}).textContent || ''")); return w.every(t => /^WOULD (NOT )?COUNT/.test(t)) ? w : null; }, 30000);
-  ok(!!would && would.every((t, i) => new RegExp(`^WOULD COUNT · FLOOR ${J.fin.results[uids[i]].f} · \\+\\d+ XP`).test(t)), `THE SWITCH is OFF — the server judged the match from every node: ${would ? would.map(t => `"${t}"`).join(' | ') : (await all(I, p => p.evaluate("(document.querySelector('.ff-fin-would') || {}).textContent || ''"))).map(t => `"${t}"`).join(' | ')}`);
+  const would = await until(async () => { const w = await all(I, p => p.evaluate("(document.querySelector('.ff-fin') || { dataset: {} }).dataset.would || ''")); return w.every(t => t !== '') ? w : null; }, 30000);   // (F5B: the answer kept on the body — no line on the screen)
+  ok(!!would && would.every((t, i) => t === String(J.fin.results[uids[i]].f)), `THE SWITCH is OFF — the server judged the match from every node: ${would ? would.map(t => `"${t}"`).join(' | ') : (await all(I, p => p.evaluate("(document.querySelector('.ff-fin-would') || {}).textContent || ''"))).map(t => `"${t}"`).join(' | ')}`);
   if (!would) note('what /api/report answered:', REPORTS.join(' || ').slice(0, 1200) || '(no report was sent)');
   await sleep(1200);
   const diff = snapDiff(before, await snap(pids, code, m));
@@ -509,8 +510,11 @@ async function partB() {
   await sleep(900);
   const pod = await all(I, p => podiumOf(p, NAMES.slice(0, N)));
   const want = J.st.map(r => NAMES[uids.indexOf(r.uid)]).join(' ');
-  ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker)) && pod.every(x => x.order.length === N), `the podium on all ${N} phones lists ${N} players (${pod.map(x => (x ? x.order.length : 0)).join(' / ')})`);
-  ok(pod.every(x => x && x.order.join(' ') === want), `… in the ranking's order (${want}) — ALICE's phone: ${pod[0] ? pod[0].order.join(' ') : '—'}`);
+  // (F5B — THE FINAL SHAPE: THIS MATCH's TOP 3 on every phone, in the ranking's order; a player 4th or lower reads "YOU · 5TH · 49 FLOORS")
+  const top3 = want.split(' ').slice(0, 3).join(' '), ordN = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;
+  ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker)) && pod.every(x => x.ebRows === 3 && x.order.slice(0, 3).join(' ') === top3), `the podium on all ${N} phones: THIS MATCH's TOP 3 in the ranking's order (${top3}) — ${pod.map(x => (x ? x.order.slice(0, 3).join(' ') : '—')).join(' | ')}`);
+  const yous = pod.map((x, i) => { const r = J.st.find(q => q.uid === uids[i]); return { want: r.rank >= 4 ? `YOU · ${ordN(r.rank)} · ${J.fin.results[uids[i]].f} FLOORS` : '', got: x.you }; });
+  ok(yous.every(y => y.got === y.want) && pod.every(x => x.scroll <= 1), `… the YOU line from 4th down only (${yous.map(y => y.got || '—').join(' | ')}); nothing scrolls`);
   await H.shot(pages[0], 'eight-podium'); await H.shot(pages[3], 'eight-podium-2');
 }
 

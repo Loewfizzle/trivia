@@ -64,6 +64,12 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     body = h('div.final-body', { dataset: { game: g.id } });
     try { mod.finalScene(body, g, state); } catch (e) { console.warn('[final] finalScene', e); body = null; }
   }
+  // (F5B — THE END-SCREEN BOARD, a per-game OPT-IN: a cartridge's END_BOARD = { b, word, avg } → ONE shared block (ui/end-board.js — lazy)
+  //  under its body: solo = the board's top 3 (THE WORLD · a FRIENDS tick), a match = its own top 3. No END_BOARD = nothing here — the frame as it was)
+  const ebSolo = !!(g && Object.keys(g.participants || {}).length === 1);
+  const eb = mod && mod.END_BOARD && g && (!ebSolo || (g.participants || {})[me]) ? h('div.final-eb') : null;
+  let ebH = null;
+  if (eb) lazyImport(import('./end-board.js'), './end-board.js').then(m => { if (!gone) ebH = m.mountEndBoard(eb, mod.END_BOARD, { rows, players, me, solo: ebSolo, pubOf }); }).catch(() => eb.remove());
   const podium = h('div.podium');
   const places = [rows[1], rows[0], rows[2]];
   const delays = { 1: 2400, 2: 1300, 3: 500 };
@@ -194,6 +200,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
       h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : allTied ? 'NOBODY TAKES FIRST' : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     body || podium,
+    eb,
     rcSlot,
     extra,
     listRows.length ? leaderboard(listRows, players, { me, presence, stagger: 60 }) : null,
@@ -238,5 +245,5 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const c = rows[0] && players[rows[0].uid];
     burst(el, [c ? colorHex(c.color) : '#3dff8b', '#f3ff3a', '#ff2bd6', '#00f0ff'], 48);
   }, reducedMotion() ? 0 : 2500);
-  return { el, refresh, destroy() { gone = true; clearTimeout(t); clearTimeout(mt); if (ro) ro.disconnect(); cancelers.forEach(c => c()); if (rc) rc.destroy(); } };
+  return { el, refresh, destroy() { gone = true; clearTimeout(t); clearTimeout(mt); if (ro) ro.disconnect(); cancelers.forEach(c => c()); if (rc) rc.destroy(); if (ebH) ebH.destroy(); } };
 }

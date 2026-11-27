@@ -156,7 +156,9 @@ test('THE SWITCH — OFF (the owner: nothing counts until go-live): /api/report 
   assert.equal(SRV_BEST_KEY, 'ff:best');
   // the end screen's body reads the server's answer; the stage's own page never does
   const fin = read('js/games/freefall/final.js');
-  assert.match(fin, /if \(o\.would\) \{ globalThis\.__ffWould = game\.matchId; overBar\(\); would\.textContent = wouldLine\(o\.would\);/);   // (F4B: the would-line sits just over the bar; the share card then asks no link)
+  // (F5B — THE FINAL SHAPE: no WOULD COUNT line takes room — the answer is kept on the body's data-would; the share asks no link at all)
+  assert.match(fin, /if \(o\.would\) \{ el\.dataset\.would = String\(o\.would\.floor\);/);
+  assert.doesNotMatch(fin, /ff-fin-would|wouldLine|__ffWould/);
   assert.doesNotMatch(read('js/games/freefall/stage.js') + read('js/games/freefall/play.js'), /profile\/queue|wouldLine/);
 });
 

@@ -32,7 +32,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the five playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
 | `docs/highrise.md` | **HIGH RISE** (LIVE since THE GO-LIVE, Nov 20 — the rules, the two looks, the cartridge + THE MATCH, THE SWITCH ON, THE SIGN HOLD (lifted, CITY PART 1), THE POSTER share card; every pass indexed there) |
-| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5A, Nov 27: THE HIDDEN CARTRIDGE (owner-only: solo + THE MATCH), THE PROOF (`ff`), the judge on the server, THE SWITCH OFF, the board + AVG, the cards, the logo end screen, the STAGED share frame, THE LOOK POLISH (the water, the finish, THE MARK, THE BILLBOARD); the test page /freefall-play; F5B = the fixes + UX) |
+| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5B, Nov 27: THE HIDDEN CARTRIDGE (owner-only: solo + THE MATCH), THE PROOF (`ff`), the judge, THE SWITCH OFF, the board + AVG, the cards, the STAGED share frame (SHARE = the picture only), the look polish + THE WATER SWAP, the FINAL SHAPE end screens; the test page /freefall-play; F5C next) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | three of the five dailies (+ docs/jaywalk.md · docs/highrise.md "THE DAILY") (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -110,6 +110,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE TAP WATCH (`ui/tapwatch.js`): EVERY TAP ACTS on its press + lift (`data-press` + `PRESS_IMPLICIT`); a Safari-gesture control = `data-gesture`, acted in the lift; never re-render under a finger; a fling-stop never acts; `:hover` only in `@media (hover: hover)` → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
+- THE END-SCREEN BOARD: ONE shared leaderboard block (`ui/end-board.js`), a per-game OPT-IN (`END_BOARD`) — never a game's own copy → docs/cartridge.md.
 - THE GAMES LIST ORDER (`core/game-order.js`) · THE END NEON (ONE builder: `ui/fin-neon.js`; `metas.js` NEON) · GAME VOTES (`rooms/{CODE}/gv/{uid}` — suggestions, the host picks) → docs/cartridge.md (moved Nov 25).
 
 **Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))

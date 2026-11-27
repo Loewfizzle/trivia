@@ -31,6 +31,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F3B — THE ROOF BELOW + THE COLOUR FIXES + THE BREAKTHROUGHS | Nov 26 2026 | `docs/games/passes/freefall-f3b.md` | THE DARKNESS EASES WITH DEPTH (the rules) · THE ROOF BELOW · the colour fixes + THE COLOUR RULE · the banner under the number · PAUSED's cover · THE STUTTERS · the assets · THE SKYLIGHT (40) · THE SPLASHDOWN (120) · THE BOTTOM (200: solo cracks open · match + daily: the finish's moment + its hook) |
 | F4B — THE MATCH + THE END SCREEN (THE LOGO) + THE SHARE CARD (+ two fixes) | Nov 26 2026 | `docs/games/passes/freefall-f4b.md` | THE PAUSE GAP · THE SKYLIGHT's FRAME BAR · THE MATCH (the first GO's seed + tick 0, each player's own `ff` node, the ghosts, THE DEPTH RAIL + the edge markers, Call the Winner, WATCH THE LEADER, THE FINISH at THE BOTTOM / the 3:00 cap, the podium, REMATCH; the server's `freefallMatch`) · THE END SCREEN (the logo header, YOUR BEST · AVG, YOUR TABLE, the universal footer) · THE SHARE CARD + SHARE |
 | F5A — THE LOOK POLISH | Nov 27 2026 | `docs/games/passes/freefall-f5a.md` | THE WATER SURFACE rebuilt to the owner's two targets (worked out in its shader — the normal map gone) · THE FINISH (sand, rocks + their shadows, soft dust) + THE DAY CELEBRATION (bubbles, sun rays, the same soft fireworks) · THE ROOF GRAIN · THE SHARE CARD's STAGED hero frame · THE MARK = B · THROUGH THE FLOOR + the tile · THE BILLBOARD = A · THE LOGO + its readability proof — LOOK ONLY |
+| F5B — THE FIXES + THE WATER SWAP + THE SHARED END SCREENS | Nov 27 2026 | `docs/games/passes/freefall-f5b.md` | SHARE = THE PICTURE ONLY (card.js + send.js — the test page + the cartridge) · the banners proven = 120's · THE MARK through the floor · the gold card readable · FLOORS 40 + 120 NO RED (`gen.blind`) · no "0 BLAZES", ONE bottom wording · the crown · the water hitches · the inbox's smudge / lamps / stump · THE WATER SWAP (night under = the day's water in night inks · day above = ocean blue + NIGHT's streaks) · THE END-SCREEN BOARD (ui/end-board.js — shared, opt-in) + FREEFALL's FINAL SHAPE |
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 
 ## THE RULES (the owner's)
@@ -734,6 +735,65 @@ A pause is ALLOWED in the daily in FREEFALL, JAYWALK + HIGH RISE, with the full 
 held or in the 3 · 2 · 1, the 2 s server stamp, 3 a run); never in multiplayer. It REPLACES "a daily try never HOLDS" (the daily itself
 is built later — the dailies chat).
 
+## F5B — THE FIXES + THE WATER SWAP + THE SHARED END SCREENS (Nov 27 — `docs/games/passes/freefall-f5b.md`; the owner's decisions: `docs/games/plan.md` "FREEFALL — F5B")
+FREEFALL stays HIDDEN; THE SWITCH stays OFF. No rules-file change.
+
+### SHARE = THE PICTURE ONLY (`card.js` · `send.js` · `share.js` · `final.js#shareNow` · `stage.js#warmPic`)
+The owner's iPhone: SHARE gave Messages a TEXT line ("I fell 10 floors in FREEFALL") + a link card, NO picture. **The cause:** the TEST
+PAGE's SHARE handed the sheet `{ title, text, url }` (it never had a picture), and the cartridge's uploaded the card AT THE TAP (a network
+wait — iOS drops the tap's permission). **Now, on both:** the run's card (`card.js` — the drawing, split out of `share.js`; the test page
+loads it LAZILY at its end card, with `send.js`) is DRAWN + ENCODED when the end screen appears (`prepPicture(…).warm()` — the PNG file kept,
+the canvas freed), and the tap calls `navigator.share(payloadOf(file))` **in its own turn** — the payload is EXACTLY `{ files: [png] }`:
+no text, no title, no url, ever; nothing uploaded (`api/_lib/share-card.js` still knows `freefall` — unused). Files can't be shared (a
+desktop) or the sheet refused → THE PICTURE IS SHOWN to save (press and hold) — never a text fallback. The cartridge's footer calls the
+module the end screen already loaded DIRECTLY (`final.js#shareNow` — no import promise between the tap and the sheet). Proven:
+`tests/freefall-share.test.mjs` (the real `send.js` against a stub sheet: one `image/png`, keys `files`, called synchronously) + the browser
+half (`freefall-share.mjs` — the cartridge's + the test page's SHARE, 1080 × 1350, 0 calls to /api).
+
+### THE BLIND FLOORS (`tuning.js` classic `gen.blind: [40, 120]` · `tower-gen.js#redOf`)
+The floors the skylight (40) + the water (120) hide until their breakthrough carry NO red — the first landing under them is made blind. A
+layout rule of the row (nothing counted yet — no new row); the judge, the replay + the sims read the same function. Proven on 2,400 towers;
+every other floor 0 … 320 is the plain row's bit for bit; F1's digests hold on the row without the rule.
+
+### THE SMALL FIXES
+- **ONE wording for the floor-200 ending: YOU HIT THE BOTTOM** (`logic.js#END_WORDS.made` — the end screen, the share card, the podium, the
+  band). **"0 BLAZES" never shows** (the test page's stats line + the share card: the area takes its line).
+- **THE MARK:** the violet floor at the ball's middle (`M4 75 H29 M71 75 H96` — the caps clear of the ball), the whole mark re-centred (+9),
+  the tile re-centred; the boot's 83 bytes kept.
+- **THE GOLD CARD** (YOU HIT THE BOTTOM — a hazy white blur at 360 px): the staged picture's ring is a thin crisp gold line tight round the
+  ball (`breaks.js#crisp` — the picture alone, `uCrisp`), the ball's halo at `SHOT_HALO` 0.35, `SHOT_BLOOM.made` 0.12.
+- **NO STUMP** (`night.js#STUMP` 0): the core's stump stood behind the ball, its foot hidden — it read as a block floating over the ball.
+- **THE CROWN** (`breaks.js#CROWN`): six puffs spread round the ring in the water's own aqua / cyan — no near-white flash.
+- **THE SMUDGE:** the match HUD's EMPTY names row kept its dark radial ground (a fuzzy spot near the top in every area, over the bands too)
+  → `.ff-count-names:empty { display: none }`.
+- **THE DEEP's DAY LAMPS** (`day-fx.js#wallDay`): a lamp sat up to 0.25 from its grid cell's edge and was drawn in its own cell only —
+  sliced at the border (the "tan slab with a hard slanted edge" at the finish) → each pixel sums the 4 nearest cells' lamps.
+- **THE BANNERS:** every area's band already shares UNDER THE HARBOR's box, class + 1.6 s — `freefall-play.mjs` proves it (40 · 80 · 120
+  · 160 · the trench + its laps).
+- **THE WATER HITCHES** (`freefall-play.mjs --water`): the splashdown has no frame over 33 ms (worst 16.9 – 17.8 ms, both looks, 1× + 4×
+  CPU). Standing on the water, the darkness's first step was a 67 ms frame (`dom`): `.ff-dark` + its veil rest at 0.001 (kept painted).
+
+### THE WATER SWAP (the owner, Nov 27)
+- NIGHT ABOVE kept · DAY UNDER kept.
+- **NIGHT UNDER = DAY UNDER's look in night colours:** UNDER THE HARBOR is "under the water" by night too (`AREA_NIGHT`'s `1` + its motes):
+  the wall shader's night half takes the day's recipe — the water's gradient down the screen in a dark teal, the caustics' swirling light
+  lines in cyan over a slower violet net, faint shafts from the surface; the painting a ghost under it; the slices' faint caustic shimmer in
+  cyan; the rising BUBBLES glow cyan (`MOTE_NIGHT`); the plankton kept.
+- **DAY ABOVE = a deeper OCEAN BLUE, reflections done NIGHT's way** (`break-fx.js WATER_F`): the day painting's brick as soft broken warm
+  columns + its lamps' pale amber hearts (the same column read, mip 5), sun glints that blink, small white foam crests on the swell's tops
+  (no whitecaps), quieter ripple lines, the ball's pink glow smaller, the foam edge round the pillar + the wall kept; capped at 0.86.
+
+### THE END SCREENS — THE FINAL SHAPE (`js/ui/end-board.js` — shared, opt-in · `final.js` · `css/freefall-play.css`)
+- **THE END-SCREEN BOARD** = the console's ONE shared leaderboard block (docs/cartridge.md "THE END-SCREEN BOARD"): a cartridge's
+  `END_BOARD = { b, word, avg }` opts in — FREEFALL's `{ b: 'freefall-solo', word: 'FLOORS', avg: true }` is the only one.
+- **SOLO:** the logo · SOLO · the cause · the number + FLOORS · YOUR BEST n · AVG n (a NEW BEST: the AVG on its own line) · THE WORLD's TOP 3
+  (a FRIENDS tick → YOUR TABLE; no friends yet → "NO FRIENDS YET") · "YOU · 12TH · 88 FLOORS" when not in the top 3 · PLAY AGAIN · HOME | SHARE.
+- **MATCH:** the logo · MATCH · the cause · the number + FLOORS · YOUR BEST · AVG · THIS MATCH's TOP 3 (no per-player cause line) · "YOU · 5TH
+  · 49 FLOORS" from 4th down · REMATCH · ROOM | SHARE. The WINNER line goes (the top 3 say who); a call's result stays (small).
+- **Gone:** the WOULD COUNT line (the server's answer stays on the body's `data-would` for the checks), the stats line + YOUR TABLE in the
+  cartridge (the board's FRIENDS tick is YOUR TABLE now), the personal-best plaques (the XP line stays). **Nothing scrolls** at 375 × 667 ·
+  390 × 844 · 430 × 932: on a short screen the logo (180 pt), the cause + the number come down a size.
+
 ## THE STUTTERS (F3B — the owner's iPhone, day speakeasy, `?fps=1`: 59 fps · worst 34 ms · HITCH 9 at tier 2)
 Every long frame of a run is now NAMED (`stage.js` THE HITCH LOG: what one-off work landed just before it — `pic` a picture's upload ·
 `snd` a sound's decode · `band` a band's bake · `tier` a tier step · `dom` the HUD's own writes · `frame` none of those; the last 24
@@ -1194,9 +1254,9 @@ tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844
 ```
 
 ## COMING
-**F5B (Opus) — the fixes + UX + HOW TO PLAY + the mix** (the owner, Nov 26: the AVG on the end screen · TIES for first = who reached their
-final floor first, then more blazes, then a draw · the MATCH end screen's big number + YOUR BEST · AVG · the rival OUT sound + callout +
-LAST ONE STANDING · the podium SCROLLS). Then the review (Opus, + Grok's review cross-checked), the fix pass, the go-live (`playable:
+**F5C (Opus) — the tie-break, the edge markers, the rival OUT sound + callout, LAST ONE STANDING, HOW TO PLAY, the mix + the credits**
+(the owner, Nov 27 — TIES for first = who reached their final floor first, then more blazes, then a draw; F5B built the fixes, THE WATER
+SWAP + the end screens' FINAL SHAPE). Then the review (Opus, + Grok's review cross-checked), the fix pass, the go-live (`playable:
 true` · `FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the site's Credits group — every source is CC0:
 `assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`; **the CITY chat installs the sign + THE BILLBOARD**). THE DAILY (later, the
 dailies chat): three tries all day, the best counts; **THE PAUSE IS ALLOWED in a daily** (the owner, Nov 26 — "THE PAUSE IN DAILIES",

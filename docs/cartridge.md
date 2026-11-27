@@ -307,6 +307,19 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 - **THE RESULTS PLAQUES** (`profile/callouts.js`): a thin neon frame in the game's accent + an icon with meaning (a rising arrow · a globe · a
   laurel · a calendar); #1 WORLDWIDE alone is gold (a crown, a foil sweep + sparks once).
 
+## THE END-SCREEN BOARD (FREEFALL F5B, Nov 27 — the owner's FINAL SHAPE; `js/ui/end-board.js`, prefix `eb-`)
+ONE shared leaderboard block for the podium, **a per-game OPT-IN**: a cartridge exports `END_BOARD = { b: its board id, word: the score's
+word, avg: true }` (THE CONTRACT's optional table — `games/contract.js`). `ui/final.js` then mounts the block (LAZY) under the game's body;
+**a cartridge without it never loads the module — its end screen is exactly as it was** (FREEFALL is the only game on; JAYWALK, HIGH RISE
+and PRISM DROP shot before + after: `Downloads/NEON/freefall-f5b/others-unchanged/`).
+- **SOLO:** the board's TOP 3 — THE WORLD (the all-time top 100, ONE read a session) by default — with a small **FRIENDS** tick beside the
+  heading (a drawn box + the word, no pill; a 44 pt tap area) that switches the rows to YOUR TABLE (`/api/profile` `table`, read only once
+  ticked, kept). ONE remembered setting for every game (`localStorage ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world
+  stays. Each row: the rank, the SLIM CARD (`ui/strip-board.js` — stills, THE LIVE LANE, THE YOU ROW's glow), BEST + AVG (the row's
+  STORED average — `core/board-avg.js`: a dash under 5 runs). Not in the top 3 → ONE line under them: "YOU · 12TH · 88 FLOORS".
+- **MATCH:** the frame's own rows (rank + score) — the TOP 3 as slim cards with each room-mate's stored AVG off their profile (`av` — the
+  room's mirror: no read), "YOU · 5TH · 49 FLOORS" from 4th down; the body sets `data-podium="all"` so the console's own list stays away.
+
 ## THE PODIUM FRAME's rules for a body (FRIENDS B, Nov 8)
 - **The list from 4th (B4):** the frame's results list starts at 4th — the body (a `finalScene` or the console's own podium) already shows 1st–3rd. A
   body that shows NO podium says so with `el.dataset.podium = 'none'` (OVERCLOCK's NOBODY SCORED) → the whole list; a body that shows EVERY place

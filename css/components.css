@@ -1441,3 +1441,29 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .gm-new { display: block; margin: 0 0 3px; font: 900 9.5px/1 var(--font-display); font-style: normal; letter-spacing: 0.34em;
   background: linear-gradient(100deg, #ff8fe0 0%, #fff4fc 34%, #7ff0ff 58%, #ff8fe0 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 5px rgba(255, 79, 200, 0.45)); }
+
+/* F5B — THE END-SCREEN BOARD (ui/end-board.js — the podium's ONE leaderboard block, a per-game OPT-IN: END_BOARD; FREEFALL the only game on).
+   The heading (THE WORLD · YOUR TABLE · THIS MATCH) with a FRIENDS tick beside it (a drawn box + the word — no pill), three rows (the rank, the
+   SLIM CARD, BEST + AVG at the right), the YOU line under them. Prefix eb-. */
+.eb { justify-self: center; width: min(calc(100% - 20px), 440px); margin: 6px auto 0; display: grid; gap: 6px; }
+.eb-head { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 30px; }
+.eb-k { padding-left: 0.28em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); white-space: nowrap; }
+.eb-tick { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 4px; border: 0; background: none; color: var(--text-dim); font: 700 12px/1 var(--font-ui); letter-spacing: 0.2em; cursor: pointer; }
+.eb-tick::before { content: ''; position: absolute; inset: -7px -8px; }   /* (the tap area: 44 pt tall) */
+.eb-box { position: relative; width: 14px; height: 14px; border: 2px solid currentColor; border-radius: 3px; box-sizing: border-box; }
+.eb-tick.is-on { color: #fff; }
+.eb-tick.is-on .eb-box { background: #ff4fa8; border-color: #ff4fa8; }
+.eb-tick.is-on .eb-box::after { content: ''; position: absolute; left: 3px; top: 0; width: 4px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.eb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --eb-side: max(50px, calc(var(--eb-d, 2) * 0.8rem + 4px)); }
+.eb-list:empty { display: none; }
+.eb-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) var(--eb-side); align-items: center; column-gap: 8px; }
+.eb-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
+.eb-list li.is-me .eb-n { color: #ff8fe0; }
+.eb-card { min-width: 0; text-align: left; }
+.eb-card .vl-strip { height: 52px; }   /* (a compact list under the end screen's numbers — HOLD'EM's lists run them at 50) */
+.eb-v { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; font: 700 19px/1 var(--font-num, var(--font-ui)); color: #fff; }
+.eb-av { font: 700 10px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
+.eb-you, .eb-note { text-align: center; font: 700 11.5px/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.16em; color: #ff8fe0; }
+.eb-note { color: var(--text-dim); }
+.eb-you:empty, .eb-note:empty { display: none; }
+@media (hover: hover) { .eb-tick:hover { color: #fff; } }

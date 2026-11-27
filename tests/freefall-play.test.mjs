@@ -523,7 +523,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.equal(AREAS.length, 7, 'one wall an area');
   assert.equal(TRENCH_PALETTES.length, 4, 'THE TRENCH = THE DEEP\'s, cycled: four laps\' rims'); assert.deepEqual([TRENCH_PALETTES[0].a, TRENCH_PALETTES[0].b, TRENCH_PALETTES[0].rim], [PALETTES[4].a, PALETTES[4].b, PALETTES[4].rim], 'its first lap = the deep\'s own');
   const e = code(`${FF}endscreen.js`), s = code(`${FF}stage.js`);
-  assert.ok(e.includes("const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, line, table);"), 'top to bottom: THE LOGO · the cause · the number · FLOORS · YOUR BEST (· AVG) · the line · the table\'s slot');
+  assert.ok(e.includes("const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, stats ? line : null, stats ? table : null);"), 'top to bottom: THE LOGO · the cause · the number · FLOORS · YOUR BEST (· AVG) · the line · the table\'s slot');
   // F4B — THE HEADER = THE LOGO (the owner's approved mock): title-05's lettering — the opening's own WebP — + the mode in small teal caps; never the words FREE FALL
   assert.ok(e.includes("h('img.ff-ec-logo-img', { alt: '', decoding: 'async', draggable: 'false', width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) })") && e.includes("h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m)"), 'the logo + the mode line');
   assert.ok(!/FREE FALL|'FREE'|'FALL'/.test(e), 'FREEFALL is ONE word — the header is the lettering itself');

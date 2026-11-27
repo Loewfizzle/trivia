@@ -42,11 +42,11 @@ export const avgWords = avg => (avg === undefined ? '' : avg == null || !Number.
  *   best: YOUR BEST's line — 0 = no best yet (no line); isNew = this run beat it (NEW BEST — `was` > 0: NEW BEST · WAS n); `avg` =
  *   THE AVERAGE (avgWords): beside YOUR BEST · n — under a NEW BEST on its own quiet line
  */
-export function endCard({ header = '' } = {}) {
+export function endCard({ header = '', stats = true } = {}) {   // (F5B: `stats: false` = the cartridge's FINAL SHAPE — no stats line, no table slot)
   const cause = h('div.ff-ec-cause.fn-line'), n = h('div.ff-ec-n'), fl = h('div.ff-ec-fl', 'FLOORS'), bestL = h('div.ff-ec-best'), avgL = h('div.ff-ec-avg'), line = h('div.ff-ec-line'), table = h('div.ff-ec-table');
   cause.style.setProperty('--fn', NEON.teal); cause.style.setProperty('--fn-g', NEON.teal);
   const hd = header ? h('div.ff-ec-hd', endLogo(header)) : null;
-  const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, line, table);
+  const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, stats ? line : null, stats ? table : null);
   return {
     el, table,
     header(mode) { if (hd) hd.replaceChildren(endLogo(mode)); },
@@ -58,7 +58,7 @@ export function endCard({ header = '' } = {}) {
       n.replaceChildren(...[...String(f)].map(d => h('span.ff-dg', { 'aria-hidden': 'true' }, d)));
       n.setAttribute('aria-label', String(f)); n.dataset.dg = String(String(f).length);
       fl.textContent = f === 1 ? 'FLOOR' : 'FLOORS';
-      line.textContent = statsLine(bounces, blazes, bestRun);
+      if (stats) line.textContent = statsLine(bounces, blazes, bestRun);
     },
     best(value, isNew, was = 0, avg = undefined) {
       const v = whole(value), nb = !!isNew && v > 0, av = v ? avgWords(avg) : '';

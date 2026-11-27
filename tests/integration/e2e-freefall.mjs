@@ -148,9 +148,16 @@ try {
   ok(hd.w >= 210 && hd.w <= 250 && /lettering-/.test(hd.src) && hd.label === 'Freefall, solo' && hd.links.join('|') === 'SHARE|HOME', `F4B — THE LOGO header (${hd.w.toFixed(0)} pt wide, "${hd.label}") · the universal footer's links: ${hd.links.join(' | ')}`);
 
   // ---- 4. THE SWITCH IS OFF: judged, WOULD COUNT, nothing written
-  ok(await P.waitFor("/^WOULD (NOT )?COUNT/.test(document.querySelector('.ff-fin-would').textContent)", 20000), 'the server\'s answer arrives: the would-be line');
-  const would = await P.ev("document.querySelector('.ff-fin-would').textContent");
-  ok(new RegExp(`^WOULD COUNT · FLOOR ${res1.floor} · \\+\\d+ XP`).test(would), `THE SWITCH is OFF: "${would}" — the server's own floor = the phone's`);
+  // (F5B — THE FINAL SHAPE: no WOULD COUNT line on the screen — the server's answer is kept on the body's data-would)
+  ok(await P.waitFor("!!document.querySelector('.ff-fin[data-would]')", 20000), 'the server\'s answer arrives (kept on the body — no line on the screen)');
+  const would = await P.ev("({ floor: document.querySelector('.ff-fin').dataset.would, line: !!document.querySelector('.ff-fin-would') })");
+  ok(would.floor === String(res1.floor) && !would.line, `THE SWITCH is OFF: WOULD COUNT at floor ${would.floor} — the server's own floor = the phone's; no WOULD COUNT line takes room`);
+  // F5B — THE END-SCREEN BOARD (ui/end-board.js — FREEFALL's END_BOARD): THE WORLD's top 3 + a FRIENDS tick; the screen does not scroll
+  ok(await P.waitFor("!!document.querySelector('.ff-final .final-eb.eb .eb-head .eb-tick[role=checkbox]')", 15000), 'F5B — the shared board block is up: its heading + the FRIENDS tick');
+  const eb = await P.ev("(() => { const f = document.querySelector('.ff-final .final'); return { k: document.querySelector('.eb-k').textContent, rows: document.querySelectorAll('.eb-list li').length, note: document.querySelector('.eb-note').textContent, scroll: f.scrollHeight - f.clientHeight, winner: getComputedStyle(document.querySelector('.ff-final .winner')).display, stats: !!document.querySelector('.ff-fin .ff-ec-line') }; })()");
+  await P.ev("document.querySelector('.eb-tick').click()");
+  ok(await P.waitFor("document.querySelector('.eb-note').textContent === 'NO FRIENDS YET' && document.querySelector('.eb-k').textContent === 'THE WORLD' && document.querySelector('.eb-tick').getAttribute('aria-checked') === 'false'", 15000), `F5B — FRIENDS ticked with no friends yet: "${await P.ev("document.querySelector('.eb-note').textContent")}" — THE WORLD stays (the server's YOUR TABLE asked once)`);
+  ok(eb.k === 'THE WORLD' && eb.rows <= 3 && eb.winner === 'none' && !eb.stats && eb.scroll <= 1, `… "${eb.k}" (${eb.rows} rows${eb.note ? ` — ${eb.note}` : ''}), no winner line, no stats line, NOTHING SCROLLS (${eb.scroll} px over)`);
   await sleep(400);
   await P.shot('f4a-cartridge-end-would-count.png');
   await sleep(1200);
@@ -186,7 +193,7 @@ try {
   nh = await nodeOf(g2.code, g2.m, uid);
   const v6 = verifyRun({ code: g2.code, matchId: g2.m, node: nh });
   ok(v6.ok && v6.holds === 1 && !v6.cut && v6.floor === res6.floor && v6.tick === res6.tick && v6.end === res6.end, `THE JUDGE accepts the held run whole: floor ${v6.floor} (the phone's ${res6.floor}), 1 hold, nothing cut${v6.ok ? '' : ` — refused: ${v6.why}`}`);
-  ok(await P.waitFor(`/^WOULD COUNT · FLOOR ${res6.floor} /.test(document.querySelector('.ff-fin-would').textContent)`, 20000), `… and the server says so: "${await P.ev("document.querySelector('.ff-fin-would').textContent")}"`);
+  ok(await P.waitFor(`!!document.querySelector('.ff-fin[data-would="${res6.floor}"]')`, 20000), `… and the server says so: WOULD COUNT at floor ${await P.ev("(document.querySelector('.ff-fin') || { dataset: {} }).dataset.would")}`);
   ok(await snap(pid) === before, '… still nothing written');
 
   // ---- 6b. A PAUSE WITH NO LINE (F4B — THE PAUSE GAP on the phone; the fresh-eyes review's HIGH): the line drops, THEN the page hides — the
@@ -235,7 +242,7 @@ try {
   ok(stats && stats.b && stats.b['freefall-solo'] && stats.b['freefall-solo'].a === res7.floor, `… the best: floor ${res7.floor} on the board freefall-solo (the server's replay)`);
   ok(stats && stats.av && stats.av['freefall-solo'] && stats.st && stats.st.n >= 1, '… the day row of THE AVERAGE written (pstats.av/freefall-solo — as on JAYWALK) + the streak day');
   await pastMoment(P);
-  ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.ff-fin .ff-ec-best').textContent) && !document.querySelector('.ff-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")} — no WOULD COUNT line`);
+  ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.ff-fin .ff-ec-best').textContent) && !document.querySelector('.ff-fin-would')", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")} — no WOULD COUNT line`);
   await P.shot('f4a-cartridge-end-counted.png');
   await dbPut('testFreefallCounts', null);
   ok(P.errs.length === 0, `no page errors${P.errs.length ? ` (${P.errs.slice(0, 3).join(' · ')})` : ''}`);

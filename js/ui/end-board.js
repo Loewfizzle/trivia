@@ -1,0 +1,111 @@
+// THE END-SCREEN BOARD (F5B — the owner's FINAL SHAPE, Nov 27: docs/cartridge.md "THE END-SCREEN BOARD"): ONE shared leaderboard block for
+// the podium (ui/final.js mounts it under the game's body), PER-GAME OPT-IN — a cartridge's `END_BOARD = { b, word, avg }` (games/contract.js).
+// FREEFALL is the only game on; a cartridge without END_BOARD never loads this module (its end screen is exactly as it was).
+//   SOLO: the board's TOP 3 — THE WORLD by default — with a small FRIENDS tick beside the heading (a drawn box + the word: no pill) that
+//     switches the rows to YOUR TABLE (you + your friends' bests — the server's /api/profile `table`). ONE remembered setting for every game
+//     (localStorage `ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world stays. Each row: the rank, the player's SLIM CARD
+//     (ui/strip-board.js — stills + THE LIVE LANE; THE YOU ROW's glow on yours), BEST + AVG (the row's STORED average — core/board-avg.js:
+//     a dash under 5 runs). Not in the top 3 → ONE small line under them: "YOU · 12TH · 88 FLOORS".
+//     READS: ONE board fetch (the all-time top 100) a session — YOUR TABLE only once FRIENDS is ticked — both kept for the session.
+//   MATCH: the match's own TOP 3 (the frame's own rows: rank, slim card, the score + AVG off each room-mate's profile — `av`, already in
+//     the room's mirror: no read) + "YOU · 5TH · 49 FLOORS" only from 4th down.
+// Prefix `eb-` (css/components.css). DOM + the lazy kits only; nothing here counts or writes anything.
+import { h } from './dom.js';
+import { lazyImport } from './lazy-import.js';
+
+/** the remembered FRIENDS tick — ONE setting for every game */
+export const FRIENDS_KEY = 'ns:endb:fr';
+/** how many rows the block shows */
+export const TOP = 3;
+const readFr = () => { try { return localStorage.getItem(FRIENDS_KEY) === '1'; } catch { return false; } };
+const writeFr = on => { try { localStorage.setItem(FRIENDS_KEY, on ? '1' : '0'); } catch { /* this page only */ } };
+const whole = n => Math.max(0, Math.round(Number(n) || 0));
+const num = n => whole(n).toLocaleString('en-US');
+/** PURE: 1 → 1ST · 2 → 2ND · 3 → 3RD · 12 → 12TH · 22 → 22ND */
+export function ordinal(n) { const v = whole(n), t = v % 100, u = v % 10; return `${v}${t >= 11 && t <= 13 ? 'TH' : u === 1 ? 'ST' : u === 2 ? 'ND' : u === 3 ? 'RD' : 'TH'}`; }
+/** PURE: the YOU line — "YOU · 12TH · 88 FLOORS" (no rank known: "YOU · 88 FLOORS") */
+export const youLine = (rank, v, word) => `YOU · ${rank > 0 ? `${ordinal(rank)} · ` : ''}${num(v)} ${word}`;
+/** PURE: the rows the block shows from a ranked list (each { rank, v, me? }) → { top: the first TOP, you: your row when it is not among them } */
+export function pickRows(rows, n = TOP) {
+  const all = (rows || []).filter(r => r && Number.isFinite(Number(r.v)));
+  const top = all.slice(0, n), me = all.find(r => r.me);
+  return { top, you: me && !top.includes(me) ? me : null };
+}
+
+// ---- the session's reads (ONE each, kept)
+const boards = new Map(), tables = new Map();
+const api = () => lazyImport(import('../profile/api.js'), '../profile/api.js');
+const myBid = () => lazyImport(import('../identity.js'), '../identity.js').then(I => { const m = I.loadMe(); return (m && m.profile && m.profile.bid) || null; }).catch(() => null);
+function worldRows(b) {
+  if (!boards.has(b)) boards.set(b, Promise.all([api().then(A => A.board(b, 'all', { n: 100 })), myBid()]).then(([d, bid]) => ((d && d.rows) || []).map(r => ({ ...r, me: !!(bid && r.id === bid) }))).catch(e => { boards.delete(b); throw e; }));
+  return boards.get(b);
+}
+function tableRows(b) {
+  if (!tables.has(b)) tables.set(b, api().then(A => A.api('profile', { action: 'table', b })).then(d => ((d && d.rows) || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, rank: i + 1 }))).catch(e => { tables.delete(b); throw e; }));
+  return tables.get(b);
+}
+const kits = () => Promise.all([lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))), lazyImport(import('../core/board-avg.js'), '../core/board-avg.js')]);
+
+/** the rows into `list` as slim cards (ui/strip-board.js — THE LIVE LANE) → a destroy() */
+function paintRows(list, rows, cfg, SB, AV, face) {
+  const strips = [];
+  list.replaceChildren(...rows.map(r => {
+    const st = SB.m.stripFor(SB.K, face(r), { friend: false }); strips.push(st);
+    return h('li', { class: r.me ? 'is-me' : null }, h('span.eb-n', String(r.rank)), h('div.eb-card', SB.m.markMine(st.el, !!r.me)),
+      h('b.eb-v', num(r.v), cfg.avg ? h('small.eb-av', AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)) : null));
+  }));
+  list.style.setProperty('--eb-d', String(Math.max(2, ...rows.map(r => num(r.v).length))));
+  const surface = SB.K.liveList(list, { label: 'end-board' });
+  strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
+  return () => { try { surface.destroy(); } catch { /* fine */ } };
+}
+
+/**
+ * mountEndBoard(el, cfg, { rows, players, me, solo, pubOf }) — fills `el` (the podium's slot): solo = the board's top 3 (THE WORLD / YOUR TABLE);
+ * a match = the frame's own rows (rows: [{ uid, rank, score }], best first). → { destroy() }
+ */
+export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo = true, pubOf = () => null } = {}) {
+  const word = String(cfg.word || 'POINTS').toUpperCase(), b = cfg.b;
+  const list = h('ol.eb-list'), you = h('div.eb-you'), note = h('div.eb-note');
+  let off = null, gone = false;
+  el.classList.add('eb', solo ? 'is-solo' : 'is-match');
+  el.dataset.box = '';   // (THE FADE NEVER SLICES A BOX — ui/final.js#unslice)
+  const done = () => { if (off) off(); off = null; };
+  const show = (top, mine, face, still = () => true) => kits().then(([SB, AV]) => {
+    if (gone || !still()) return;   // (a newer choice — the tick turned again — paints instead)
+    done();
+    off = paintRows(list, top, cfg, SB, AV, face);
+    you.textContent = mine ? youLine(mine.rank, mine.v, word) : '';
+    el.classList.toggle('has-rows', top.length > 0);
+  });
+  if (!solo) {
+    // A MATCH: the frame's own rows — the top 3 + YOU from 4th down (the faces + AVG off the room's mirror: no read)
+    const R = (rows || []).filter(r => r && r.uid).map(r => ({ uid: r.uid, rank: r.rank, v: r.score, me: r.uid === me, av: ((pubOf(players[r.uid]) || {}).av || {})[b] }));
+    const { top, you: mine } = pickRows(R);
+    el.append(h('div.eb-head', h('span.eb-k', 'THIS MATCH')), list, you);
+    show(top, mine, r => pubOf(players[r.uid]) || { n: (players[r.uid] || {}).name, a: (players[r.uid] || {}).avatar, c: (players[r.uid] || {}).color }).catch(() => {});
+    return { destroy() { gone = true; done(); } };
+  }
+  // SOLO: THE WORLD · or YOUR TABLE (the FRIENDS tick — remembered)
+  const k = h('span.eb-k', 'THE WORLD');
+  const box = h('i.eb-box', { 'aria-hidden': 'true' });
+  const tick = h('button.eb-tick', { type: 'button', role: 'checkbox', 'aria-checked': 'false', 'data-press': true, onclick: () => setFriends(!friends, true) }, box, h('span', 'FRIENDS'));
+  el.append(h('div.eb-head', k, tick), list, you, note);
+  let friends = false, ask = 0;
+  function setFriends(on, byTap, msg = '') {
+    friends = !!on; const n = ++ask;
+    tick.setAttribute('aria-checked', String(friends)); tick.classList.toggle('is-on', friends);
+    k.textContent = friends ? 'YOUR TABLE' : 'THE WORLD';
+    if (byTap) writeFr(friends);
+    note.textContent = msg;
+    (friends ? tableRows(b) : worldRows(b)).then(R => {
+      if (gone || n !== ask) return;
+      if (friends && !R.some(r => !r.me)) { setFriends(false, false, 'NO FRIENDS YET'); return; }   // (the world stays — the tick unticks itself, the line says why)
+      const { top, you: mine } = pickRows(R);
+      if (!top.length && !msg) note.textContent = 'NO RUNS ON THE BOARD YET';
+      return show(top, mine, r => r, () => n === ask);
+    }).catch(() => { if (!gone && n === ask) { note.textContent = 'THE BOARD IS RESTING'; done(); list.replaceChildren(); } });
+  }
+  setFriends(readFr(), false);
+  return { destroy() { gone = true; done(); } };
+}
