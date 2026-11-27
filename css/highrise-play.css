@@ -391,11 +391,10 @@
    since the go-live: its slot takes no room */
 .hi-final .final.has-eb .hi-fin-would:empty { display: none; }
 .hi-final .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
-.hi-final .final.has-eb .hi-fin { gap: 6px; padding-top: 2px; }
-.hi-final .final.has-eb .hi-ec { gap: 6px; }
-.hi-final .final.has-eb .hi-ec-n { margin-top: 0; font-size: clamp(64px, calc(var(--hi-w, 390px) * 0.2), 84px); }
 @media (max-height: 760px) {
   .hi-final .final.has-eb { gap: 9px; }
+  .hi-final .final.has-eb .hi-fin { gap: 6px; padding-top: 2px; }
+  .hi-final .final.has-eb .hi-ec-n { margin-top: 0; }
   .hi-final .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
   .hi-final .final.has-eb .hi-ec { gap: 5px; }
   .hi-final .final.has-eb .hi-ec-cause { font-size: 28px; line-height: 1.04; }

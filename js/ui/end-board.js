@@ -51,6 +51,8 @@ function tableRows(b) {
   if (!tables.has(b)) tables.set(b, api().then(A => A.api('profile', { action: 'table', b })).then(d => ((d && d.rows) || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, rank: i + 1 }))).catch(e => { tables.delete(b); throw e; }));
   return tables.get(b);
 }
+/** E2E only — the session's reads forgotten (a fixture re-seeded the board / YOUR TABLE: the next mount asks again) */
+export const forgetReads = () => { boards.clear(); tables.clear(); };
 const kits = () => Promise.all([lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))), lazyImport(import('../core/board-avg.js'), '../core/board-avg.js')]);
 
 /** the rows into `list` as slim cards (ui/strip-board.js — THE LIVE LANE) → a destroy() */

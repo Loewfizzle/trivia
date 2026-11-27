@@ -532,27 +532,19 @@
 
 /* ---------------------------------------------------------------- THE END-BOARD SWITCH-ON (Nov 27 — docs/games/passes/endboard.md): the end
    screen + THE END-SCREEN BOARD (ui/end-board.js — the console's shared block: .eb-*) on ONE screen, nothing scrolls from 375 × 667 — the
-   hero, the cause + the splits give the room (FREEFALL F5C's numbers); the block's rows never shrink below readable */
+   hero + the cause give the room (FREEFALL F5C's numbers; YOUR SPLITS left the end screen — the owner's add-on); the block's rows never
+   shrink below readable */
 .jw-final .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
-.jw-final .final.has-eb .jw-fin { gap: 6px; padding-top: 2px; }
-.jw-final .final.has-eb .jw-fin-n { margin-top: 0; }
-.jw-final .final.has-eb .jw-fin-n b { font-size: clamp(64px, 20vw, 84px); }
-.jw-final .final.has-eb .jw-sp-k { margin-bottom: 3px; }
 @media (max-height: 760px) {
-  .jw-final .final.has-eb { gap: 6px; }
+  .jw-final .final.has-eb { gap: 12px; }
+  .jw-final .final.has-eb .jw-fin { padding-top: 2px; }
+  .jw-final .final.has-eb .jw-fin-n { margin-top: 0; }
   .jw-final .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
-  .jw-final .final.has-eb .jw-fin-cause { line-height: 1; }
-  .jw-final .final.has-eb .jw-fin-n { gap: 0; }
-  .jw-final .final.has-eb .jw-fin { gap: 3px; }
-  .jw-final .final.has-eb .jw-fin-cause { font-size: 22px; }
-  .jw-final .final.has-eb .jw-fin-n b { font-size: 48px; }
-  .jw-final .final.has-eb .jw-fin-n > span { font-size: 12px; }
-  .jw-final .final.has-eb .jw-sp-k { margin-bottom: 1px; font-size: 10.5px; }
-  .jw-final .final.has-eb .jw-sp-row { padding-top: 2px; padding-bottom: 2px; }
-  .jw-final .final.has-eb .jw-sp-box { min-width: 64px; padding: 4px 6px 3px; gap: 1px; }
-  .jw-final .final.has-eb .jw-sp-t { font-size: 19px; }
+  .jw-final .final.has-eb .jw-fin { gap: 5px; }
+  .jw-final .final.has-eb .jw-fin-cause { font-size: 28px; line-height: 1.04; }
+  .jw-final .final.has-eb .jw-fin-n b { font-size: 72px; }
+  .jw-final .final.has-eb .jw-fin-n > span { font-size: 13px; }
   /* (a NEW BEST's own line + the AVG under it: FREEFALL F5C's) */
-  .jw-final .final.has-eb .jw-fin-best { min-height: 0; }
-  .jw-final .final.has-eb .jw-fin[data-mode='solo'] .jw-fin-best.is-new { font-size: 18px; line-height: 1; }
-  .jw-final .final.has-eb .jw-fin-avg { margin-top: -1px; font-size: 12.5px; }
+  .jw-final .final.has-eb .jw-fin[data-mode='solo'] .jw-fin-best.is-new { font-size: 20px; }
+  .jw-final .final.has-eb .jw-fin-avg { margin-top: 0; font-size: 12.5px; }
 }

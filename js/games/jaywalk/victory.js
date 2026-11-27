@@ -8,7 +8,7 @@ import { causeLine, runLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { setNum, prepNums } from './numerals.js';
 import { finLine } from '../../ui/fin-neon.js';
-import { splitsCard, ownSplits, rememberBests } from './splits-card.js';
+import { rememberBests } from './splits-card.js';   // (the splits' BESTS are still kept — only their card left the end screen)
 import { avgLabel } from '../../core/board-avg.js';
 
 const BOARD = 'jaywalk-solo';
@@ -69,12 +69,9 @@ export function finalRows(game, code) {
   return standings(game).map(r => ({ ...r, ...(solo ? {} : { note: endOf(game, r.uid, code, courses).line }) }));
 }
 
-/** J1 — YOUR SPLITS under the numbers (splits-card.js): this phone's own engine first, else the run's row (the host's replay — THE JUDGE) */
-function addSplits(el, game, uid) {
-  const r = ((game && game.results) || {})[uid] || {}, SC = splitsCard(ownSplits(game && game.matchId) || r.sp);
-  if (SC.el) el.append(SC.el);
-  return SC;
-}
+// (J1's YOUR SPLITS card is OFF the end screen — THE END-BOARD SWITCH-ON's add-on, the owner Nov 27 9:46 am: room for THE END-SCREEN BOARD.
+//  The run's splits, keepOwnSplits, the server's replay + the player's best splits (rememberBests, pstats.jsp) are untouched; the DAILY's end
+//  card + the lab still draw splits-card.js)
 
 /** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own); SHARE + the list under it are the console's */
 function matchScene(el, game, state) {
@@ -87,12 +84,11 @@ function matchScene(el, game, state) {
   buildEnd(el, { gold: E.ship, line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${E.ship ? '' : `${lanesTxt} · `}YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
   // H6A — THE MOTHERSHIP = A FINISH LINE: gold words, the lanes big, a crown + a gold burst (the css — transform + opacity only)
   if (E.ship) { el.classList.add('is-ship'); el.prepend(h('div.jw-fin-crown', { 'aria-hidden': 'true' }, h('i'), h('b'))); }
-  const SC = addSplits(el, game, uid);
   // H6A — YOUR BEST ANYWHERE: a counted match run past your best = NEW BEST here too (the server's own answer for this match)
   if (code && E.lanes > 0 && !game.unproven) lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
     watchBest(Q);
     const k = Q.matchKey(code, game.matchId), nb = h('div.jw-fin-best');
-    const show = o => { if (o && o.sp) SC.server(o.sp); const pb = o && (o.pbs || []).find(x => x.b === BOARD); if (!pb || nb.isConnected || !el.isConnected) return; setPref('best', pb.v); nb.textContent = pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST'; nb.classList.add('is-new'); el.querySelector('.jw-fin-best').after(nb); lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {}); };
+    const show = o => { const pb = o && (o.pbs || []).find(x => x.b === BOARD); if (!pb || nb.isConnected || !el.isConnected) return; setPref('best', pb.v); nb.textContent = pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST'; nb.classList.add('is-new'); el.querySelector('.jw-fin-best').after(nb); lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {}); };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); }), iv = setInterval(() => { if (!el.isConnected) { clearInterval(iv); off(); } }, 3000);
   }).catch(() => {});
@@ -122,7 +118,6 @@ export function finalScene(el, game, state) {
     mirrorAv = av;
     if (known > 0 && el.isConnected && !answered) B.best(bestWords(known), false, avgLabel(av));
   }).catch(() => {});
-  const SC = addSplits(el, game, uid);
   // (YOUR TABLE is gone from the body: THE END-SCREEN BOARD — the console's shared block, index.js#END_BOARD — shows the board's top 3 under
   //  the ☐ FRIENDS ONLY tick: everyone, or you + your friends)
   if (!code || !(E.lanes > 0)) return;
@@ -132,7 +127,6 @@ export function finalScene(el, game, state) {
     watchBest(Q);
     const show = o => {
       if (!o || !el.isConnected) return;
-      if (o.sp) SC.server(o.sp);
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       // (JT2 — THE BOARD's AVERAGE beside your best: the server's, after this run — from 5 counted solo runs; a dash under that — else the mirror's)
       const av = avgLabel(o.av && BOARD in o.av ? o.av[BOARD] : mirrorAv);

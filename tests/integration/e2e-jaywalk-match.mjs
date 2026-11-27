@@ -450,12 +450,12 @@ try {
   const SV = jaywalkMatch({ code, matchId: m, uids: uids.slice(0, N), nodes });
   ok(!!SV.game && uids.slice(0, N).every(u => SV.game.results[u].l === fin.results[u].l && SV.game.results[u].t === fin.results[u].t && !SV.game.results[u].bad && !SV.game.results[u].cut), 'THE SERVER\'s OWN replay of the proof nodes = the host\'s results, lane for lane (nothing the host wrote is read)');
   const pod = await pages[1].evaluate(() => ({ word: (document.querySelector('.jw-final .winner-title') || {}).textContent, shown: !!document.querySelector('.jw-final .winner') && getComputedStyle(document.querySelector('.jw-final .winner')).display !== 'none', name: (document.querySelector('.jw-final .winner-name') || {}).textContent,
-    cause: (document.querySelector('.jw-final .jw-fin-cause') || {}).textContent, n: (document.querySelector('.jw-final .jw-fin-best') || {}).textContent, rows: [...document.querySelectorAll('.jw-final .leaderboard > li, .jw-final .lb-row')].length, notes: [...document.querySelectorAll('.jw-final .lb-note')].map(e => e.textContent),
+    cause: (document.querySelector('.jw-final .jw-fin-cause') || {}).textContent, n: (document.querySelector('.jw-final .jw-fin-best') || {}).textContent, rows: [...document.querySelectorAll('.jw-final .leaderboard > li, .jw-final .lb-row')].length, notes: [...document.querySelectorAll('.jw-final .lb-note')].map(e => e.textContent), eb: document.querySelectorAll('.jw-final .eb-list li').length, ebK: (document.querySelector('.jw-final .eb-k') || {}).textContent || '',
     foot: [...document.querySelectorAll('.jw-final .final-actions button')].map(b => (b.querySelector('.final-bar-t') || b).textContent.trim()), share: !!document.querySelector('.jw-final .final-share'), radius: getComputedStyle(document.querySelector('.jw-final .final-bar')).borderRadius, callLine: (document.querySelector('.jw-fin-call') || {}).textContent || '' }));
   const tie = fin.results[rank[0]].l === fin.results[rank[1]].l && fin.results[rank[0]].t === fin.results[rank[1]].t;
   ok(pod.shown && (tie || (pod.word === 'WINNER' && /WENT THE FARTHEST/.test(pod.name))), `THE PODIUM: ${pod.word} — ${pod.name}`);
   ok(isCause(pod.cause) && new RegExp(`^${fin.results[uids[1]].l} LANES? · YOU FINISHED [0-9](ST|ND|RD|TH)$`).test(pod.n), `… BOB's own end on his podium: "${pod.cause}" · ${pod.n}`);
-  ok(pod.notes.length === N && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
+  ok(pod.notes.length === 0 && pod.eb === Math.min(3, N) && pod.ebK === 'THIS MATCH', `… THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON): THIS MATCH's top ${pod.eb} as slim cards — no per-player cause line (${pod.notes.length})`);
   ok(JSON.stringify(pod.foot) === JSON.stringify(['REMATCH', 'ROOM', 'SHARE']) && pod.share && parseFloat(pod.radius) >= 10 && parseFloat(pod.radius) <= 14, `END-SCREEN STANDARD A (CITY F) — the foot: ${pod.foot.join(' · ')} (THE BAR = REMATCH, then the quiet links); a rounded rect, never a pill (radius ${pod.radius})`);
   // (a right call = the player called finished first — alone or level for first: logic.js#scoreCalls)
   const right = fin.results[uids[0]].l === fin.results[rank[0]].l && fin.results[uids[0]].t === fin.results[rank[0]].t;
@@ -645,7 +645,7 @@ try {
     // (the guest's own end-of-round moment — a level-up, an unlock — is tapped away: the shot is their podium)
     for (let i = 0; i < 6 && await pages[1].$('.pg-moment'); i++) { await pages[1].evaluate(() => { const m = document.querySelector('.pg-moment'), b = m && m.querySelector('.pg-btn'); if (b && m.classList.contains('is-end')) b.click(); else if (m) m.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }); await sleep(900); }
     const guest = await pages[1].evaluate(() => ({ notes: [...document.querySelectorAll('.jw-final .lb-note, .jw-final .leaderboard .note')].map(e => e.textContent), text: document.querySelector('.jw-final').innerText, ship: !!document.querySelector('.jw-final .jw-fin.is-ship') }));
-    ok(/MADE IT TO THE MOTHERSHIP/.test(guest.text) && !guest.ship && !/TAKEN/.test(guest.text), 'a guest who went out earlier keeps their own cause line; the list reads MADE IT TO THE MOTHERSHIP beside the owner');
+    ok(!guest.ship && !/TAKEN/.test(guest.text) && guest.notes.length === 0, 'a guest who went out earlier keeps their own cause line (no gold, no TAKEN); THE END-SCREEN BOARD shows the top 3 of the match — no per-player cause lines');
     await H.shot(pages[1], 'h6a-ship-podium-guest');
     await H.backToLobby(host);
     await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room (after the scripted match)', 30000);

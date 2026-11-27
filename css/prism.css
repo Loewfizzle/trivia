@@ -736,7 +736,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
    ≥ 4.5 : 1 on #fbf7ea) — the rank, the scores, the tick, the YOU line in a deep pink; the slim cards are the cards themselves) */
 .pd[data-look='crayon'] .pd-final .eb :is(.eb-tick, .eb-k, .eb-n, .eb-v, .eb-note) { color: var(--pd-ink); }
 .pd[data-look='crayon'] .pd-final .eb-tick.is-on { color: var(--pd-ink); }
-.pd[data-look='crayon'] .pd-final :is(.eb-you, .eb-list li.is-me .eb-n) { color: #b0136f; }
+.pd[data-look='crayon'] .pd-final .eb { --eb-acc: #1d5aa6; --eb-you: #1d5aa6; --eb-tick: #fff; }   /* (PRISM DROP's own day ink — metas.js NEON.day: its sky-blue accent on the paper) */
 .pd[data-look='crayon'] .pd-final .pd-fs-best { color: #8a5a00; text-shadow: none; }
 /* the results rows: the slim cards lie straight on the paper (no dark row behind them); the place, the note + the score in ink */
 .pd[data-look='crayon'] .pd-final .lb-row { background: color-mix(in srgb, var(--pd-paper) 70%, transparent); border: 1.5px solid var(--pd-pencil-2); border-left: 4px solid var(--c); }

@@ -39,7 +39,7 @@ import { createCues, cuesAt } from './cues.js';
 import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
-import { splitsCard, keepOwnSplits } from './splits-card.js';
+import { keepOwnSplits } from './splits-card.js';
 import { createMomentsView } from './moments-view.js';
 import { keepShot, shotMs } from './shot.js';
 import { setNum, prepNums } from './numerals.js';
@@ -843,7 +843,7 @@ export function createView() {
   function showLocalEnd(waiting) {
     const body = h('div.final-body.jw-fin-local');
     buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
-    { const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }
+    // (J1's YOUR SPLITS card is off the end screen — THE END-BOARD SWITCH-ON's add-on, Nov 27: the run's splits are still kept)
     // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', 'data-pad': 'a', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());

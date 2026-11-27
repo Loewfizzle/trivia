@@ -79,3 +79,15 @@ test('HIGH RISE\'s STORED AVERAGE (server-side — JAYWALK\'s path): a counted S
   assert.equal(s.b[B].a, towerScore(100, 3, 5000), 'the ranking value stays the BEST tower');
   assert.ok(read('js/core/match-report.js').includes("if (solo) out.av = { 'highrise-solo': Math.max(0, Math.floor(num(r.f))) };"));
 });
+
+test('THE ADD-ONS (the owner, Nov 27): EACH END SCREEN STAYS ITS GAME\'S OWN — the block\'s accents = the game\'s (--fin / --fin-ink), FREEFALL\'s F5C pink kept; JAYWALK\'s YOUR SPLITS off the end screen (the data kept)', () => {
+  const css = read('css/components.css');
+  assert.ok(css.includes('.final.has-accent .eb { --eb-acc: var(--fin); --eb-you: var(--fin); --eb-tick: var(--fin-ink, #fff); }'), 'the game\'s accent, the ✓ in the ink that reads on it');
+  for (const r of ['.eb-tick.is-on .eb-box { background: var(--eb-acc); border-color: var(--eb-acc); }', 'border: solid var(--eb-tick);', '.eb-list li.is-me .eb-n { color: var(--eb-you); }', 'color: var(--eb-you); }']) assert.ok(css.includes(r), r);
+  assert.doesNotMatch(css.slice(css.indexOf('.eb-head'), css.indexOf('.eb-you:empty')), /#ff4fa8|#ff8fe0/, 'no hard-coded pink left in the block\'s rules (the defaults sit on .eb)');
+  assert.ok(read('css/freefall-play.css').includes('.ff-final .final.has-eb .eb { --eb-acc: #ff4fa8; --eb-you: #ff8fe0; --eb-tick: #fff; }'), 'FREEFALL: F5C\'s pink, pixel for pixel');
+  assert.ok(read('css/prism.css').includes(".pd[data-look='crayon'] .pd-final .eb { --eb-acc: #1d5aa6; --eb-you: #1d5aa6; --eb-tick: #fff; }"), 'PRISM DROP by day: its own day ink on the paper');
+  const v = read('js/games/jaywalk/victory.js'), vw = read('js/games/jaywalk/view.js');
+  assert.doesNotMatch(v, /splitsCard|addSplits/); assert.doesNotMatch(vw, /splitsCard\(/);
+  assert.match(vw, /keepOwnSplits\(matchId, run\.sp\)/); assert.match(read('js/games/jaywalk/daily-run.js'), /splitsCard\(sp\)/, 'the DAILY\'s end card keeps its splits');
+});

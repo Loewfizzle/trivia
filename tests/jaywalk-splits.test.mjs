@@ -168,11 +168,12 @@ test('THE DAILY KEEPS THEM (jaywalk-credit.js#creditTry): the try\'s splits → 
   assert.match(daily, /return res && res\.next \? res\.next : undefined/, 'the transaction never commits a null (it would delete pstats)');
 });
 
-test('THE END CARD\'s words: m:ss from the ticks · the gain −0:04 · the card wired on every end (solo, match, the local end, the daily)', () => {
+test('THE END CARD\'s words: m:ss from the ticks · the gain −0:04 · the card wired on the DAILY\'s end only — OFF the game\'s end screens (THE END-BOARD SWITCH-ON\'s add-on, the owner Nov 27); the data kept', () => {
   assert.equal(splitClock(0), '0:00'); assert.equal(splitClock(59), '0:00'); assert.equal(splitClock(60 * 61), '1:01'); assert.equal(splitClock(21600), '6:00');
   assert.equal(splitGain(1700, 1940), '−0:04'); assert.equal(splitGain(1700, 1710), '−0:01', 'a faster split always shows a gain');
   const v = readFileSync(new URL('../js/games/jaywalk/victory.js', import.meta.url), 'utf8'), vw = readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8'), dr = readFileSync(new URL('../js/games/jaywalk/daily-run.js', import.meta.url), 'utf8');
-  assert.equal((v.match(/const SC = addSplits\(el, game, uid\)/g) || []).length, 2, 'solo + match');
-  assert.match(vw, /keepOwnSplits\(matchId, run\.sp\)/); assert.match(vw, /splitsCard\(run\.sp\)/); assert.match(vw, /D\.end\(isOver\(run\), lineOf\(run, course\), run\.sp\.slice\(\)\)/);
+  assert.doesNotMatch(v, /splitsCard|addSplits|SC\.server/, 'the podium (solo + match): no YOUR SPLITS card');
+  assert.match(v, /rememberBests\(o\.sp\.b\)/, 'the best splits still remembered from the server\'s answer');
+  assert.match(vw, /keepOwnSplits\(matchId, run\.sp\)/); assert.doesNotMatch(vw, /splitsCard\(/, 'the local end: none either'); assert.match(vw, /D\.end\(isOver\(run\), lineOf\(run, course\), run\.sp\.slice\(\)\)/);
   assert.match(dr, /splitsCard\(sp\)/); assert.match(dr, /splits\.server\(/);
 });

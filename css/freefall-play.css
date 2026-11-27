@@ -294,6 +294,7 @@
    on a short screen the logo, the cause + the number come down a size (the logo never under 180 pt — the script reads there) */
 .ff-final .final .winner, .ff-final .final .rc-plaque { display: none; }
 .ff-final .final .eb { margin-top: 4px; }
+.ff-final .final.has-eb .eb { --eb-acc: #ff4fa8; --eb-you: #ff8fe0; --eb-tick: #fff; }   /* (THE END-BOARD SWITCH-ON: the block's accents = the game's — FREEFALL's = F5C's FREE pink, unchanged) */
 .ff-final .ff-fin .ff-ec { gap: 4px; }
 .ff-final .ff-fin .ff-ec-n { margin-top: 0; font-size: clamp(64px, calc(var(--ff-w) * 0.2), 84px); }
 @media (max-height: 760px) {

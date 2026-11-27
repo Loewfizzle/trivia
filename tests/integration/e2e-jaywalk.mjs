@@ -284,10 +284,11 @@ try {
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
-  // J1 — YOUR SPLITS on the real solo end card: one box per 50 lanes REACHED (the phone's own engine), the server's splits = its own replay
-  { const sp = await P.ev(`({ boxes: [...document.querySelectorAll('.jw-sp-box .jw-sp-t')].map(e => e.textContent), at: [...document.querySelectorAll('.jw-sp-box .jw-sp-at')].map(e => e.textContent) })`);
-    const want = Math.floor(v1.result.lanes / 50), srv = v1.result.splits || [];
-    ok(sp.boxes.length === want && srv.length === want && sp.at.every((t, i) => t === `TO ${(i + 1) * 50}`), `J1 — YOUR SPLITS: ${sp.boxes.length} box(es) for ${v1.result.lanes} lanes (${sp.boxes.join(' · ') || 'none — under 50'}) = the server's replay (${srv.length})`); }
+  // J1 — YOUR SPLITS: OFF the end screen (THE END-BOARD SWITCH-ON's add-on, the owner Nov 27 9:46 am — room for THE END-SCREEN BOARD); the
+  // run's splits are still the server's own replay (kept for the player's best splits) + the shared block is on the end screen
+  { const sp = await P.ev(`({ boxes: document.querySelectorAll('.jw-final .jw-sp-box').length, eb: !!document.querySelector('.jw-final .final.has-eb .eb') })`);
+    const srv = v1.result.splits || [];
+    ok(sp.boxes === 0 && srv.length === Math.floor(v1.result.lanes / 50) && sp.eb, `J1 — no YOUR SPLITS card on the end screen (the server's replay still made ${srv.length} split(s)); THE END-SCREEN BOARD is on it`); }
   // CITY H1 — THE FADE NEVER SLICES A BOX (the polish reviewer: PERSONAL BEST SET cut in half by MORE BELOW's fade at 390): with the cue up, no
   // callout plaque crosses the fade's top line — one that would is moved down whole under the foot (ui/final.js#unslice)
   await P.ev("(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = 0; return 1; })()"); await sleep(1500);
@@ -296,47 +297,35 @@ try {
     return { more: f.classList.contains('has-more') && !f.classList.contains('is-scrolled'), cut, n: rs.length, gap: !!f.querySelector('.final-gap'), at: rs.map(r => Math.round(r.top) + '-' + Math.round(r.bottom)).join(' '), foot: Math.round(foot) }; })()`);
   ok(sl && sl.cut === 0, `THE FADE NEVER SLICES A BOX: MORE BELOW ${sl && sl.more ? 'up' : 'not needed'} · ${sl && sl.n} plaque(s), ${sl && sl.cut} cut by the foot / its fade (a gap moved one down whole: ${sl && sl.gap}; boxes ${sl && sl.at}, the foot at ${sl && sl.foot})`);
   await P.shot('end-fade-390.png');
-  // THE POLISH PASS — YOUR TABLE = ONE centred grid (RANK | CARD | SCORE): equal side margins, every card the same box, the label on the
-  // block's left edge, the ranks' centres in one column, the scores' right edges in one column — at 360 / 390 / 430 / 1440
-  if (!await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000)) console.log('   (table now:', JSON.stringify(await P.ev("import('/js/profile/api.js').then(A => A.api('profile', { action: 'table', b: 'jaywalk-solo' })).then(d => d.rows.map(r => r.n + ' ' + r.v))")), ')');
-  ok(await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000), 'YOUR TABLE: 4 rows (you + 3 friends — 12 · 10 · 8-letter names; a 3-digit and 2-digit bests)');
+  // THE END-BOARD SWITCH-ON (Nov 27) — YOUR TABLE is THE END-SCREEN BOARD's ☐ FRIENDS ONLY (ui/end-board.js — the console's ONE shared block,
+  // index.js#END_BOARD): ticked = the top 3 of you + your friends + "YOU · 4TH · n LANES" (you are 4th of 4); unticked = the world's top 3 —
+  // here YOUR card leads it and wears THE YOU ROW's glow, your rank in JAYWALK's own colour. Nothing scrolls at 360 / 390 / 430 / 1440.
+  const ebTick = async on => { if (await P.ev("(() => { const t = document.querySelector('.jw-final .eb-tick'); return t ? t.getAttribute('aria-checked') : ''; })()") !== String(on)) await P.p.click('.jw-final .eb-tick'); };
+  ok(await P.waitFor("!!document.querySelector('.jw-final .eb-tick')", 10000), 'THE END-SCREEN BOARD on the solo end screen (☐ FRIENDS ONLY)');
+  await ebTick(true);
+  ok(await P.waitFor("document.querySelectorAll('.jw-final .eb-list li').length === 3 && /^YOU · 4TH · \\d+ LANES$/.test(document.querySelector('.jw-final .eb-you').textContent)", 12000), `FRIENDS ONLY: your 3 friends + "${await P.ev("(document.querySelector('.jw-final .eb-you') || {}).textContent")}" (12 · 10 · 8-letter names; 3-digit + 2-digit bests)`);
   for (const [w, hgt] of [[360, 780], [390, 844], [430, 932], [1440, 900]]) {
     await P.p.setViewport({ width: w, height: hgt, deviceScaleFactor: w > 500 ? 1 : 2, isMobile: true, hasTouch: true });   // (isMobile kept: changing it reloads the page)
     await sleep(500);
-    await P.ev("import('/js/ui/fit.js').then(m => document.querySelectorAll('.jw-table-card .vl-name').forEach(m.refit))");   // (a phone of this width fits its names ONCE, at its own width — the resize alone never re-fits a hugging plate)
-    await sleep(200);
-    const t = await P.ev(`(() => { const q = s => [...document.querySelectorAll(s)].map(x => x.getBoundingClientRect()), L = document.querySelector('.jw-table').getBoundingClientRect(), k = document.querySelector('.jw-table-k').getBoundingClientRect(), lab = document.createRange(); lab.selectNodeContents(document.querySelector('.jw-table-k')); const lr = lab.getBoundingClientRect(), fin = document.querySelector('.jw-final .final').getBoundingClientRect(), num = [...document.querySelectorAll('.jw-table-list li > b')].map(b => { const r = document.createRange(); r.selectNodeContents(b); return r.getBoundingClientRect(); }), n = [...document.querySelectorAll('.jw-table-n')].map(x => { const r = document.createRange(); r.selectNodeContents(x); const q = r.getBoundingClientRect(); return q.left + q.width / 2; }), c = q('.jw-table-card > *'), li = q('.jw-table-list li'), bar = document.querySelector('.jw-final .final-again').getBoundingClientRect(), fit = [...document.querySelectorAll('.jw-table-list li > b')].every(x => x.scrollWidth <= x.clientWidth + 0.5); nm = [...document.querySelectorAll('.jw-table-card .vl-name')].map(x => ({ t: x.textContent, two: x.classList.contains('fit-2') || x.getClientRects().length > 1 || x.querySelector('br') !== null, cut: x.classList.contains('fit-cut') || x.scrollWidth > x.clientWidth + 1, px: parseFloat(getComputedStyle(x).fontSize) })); return { nm, kc: lr.left + lr.width / 2, vw: innerWidth, bl: bar.left, br: bar.right, fit, fl: fin.left, fr: fin.right, l: L.left, r: L.right, lab: lr.left, li: li.map(x => x.left), cl: c.map(x => x.left), cw: c.map(x => x.width), ch: c.map(x => x.height), cr: c.map(x => x.right), n, s: num.map(x => x.right), sl: num.map(x => x.left), w: L.width }; })()`);
-    const same = a => Math.max(...a) - Math.min(...a) <= 1, ml = t.l - t.fl, mr = t.fr - t.r;
-    const gaps = t.sl.map((x, i) => x - t.cr[i]);
-    ok(Math.abs(ml - mr) <= 1 && same(t.cl) && same(t.cw) && same(t.ch) && same(t.cr) && same(t.n) && same(t.s) && Math.abs(t.kc - (t.fl + t.fr) / 2) <= 3 && t.nm.every(x => !x.two && !x.cut && x.px >= 12) && Math.min(...gaps) >= 8 && t.fit && Math.abs((t.cl[0] + t.cr[0]) / 2 - (t.fl + t.fr) / 2) <= 1 && (w > 500 ? t.w <= 440.5 : Math.abs(t.l - t.bl) <= 1 && Math.abs(t.r - t.br) <= 1),
-      `YOUR TABLE at ${w}: centred (margins ${ml.toFixed(1)} | ${mr.toFixed(1)}, ${Math.round(t.w)} wide; the bar's edges ${Math.round(t.bl)} | ${Math.round(t.br)}; the cards' centre ${((t.cl[0] + t.cr[0]) / 2).toFixed(1)} of ${((t.fl + t.fr) / 2).toFixed(1)}; every score fits: ${t.fit}) · the cards one box (left ${t.cl.map(Math.round).join('/')}, ${t.cw.map(Math.round).join('/')} × ${t.ch.map(Math.round).join('/')}) · the label centred (${t.kc.toFixed(1)}) · every name ONE line, whole (${t.nm.map(x => `${x.t} ${x.two ? '2 LINES' : x.cut ? 'CUT' : Math.round(x.px) + 'px'}`).join(' · ')}) · the ranks' centres ${t.n.map(Math.round).join('/')} · the scores' right edges ${t.s.map(Math.round).join('/')} (≥ ${Math.round(Math.min(...gaps))} px from the card)`);
-    await P.shot(`table-${w}.png`);
+    await P.ev("import('/js/ui/fit.js').then(m => document.querySelectorAll('.jw-final .eb-card .vl-name').forEach(m.refit))");
+    await sleep(250);
+    const t = await P.ev(`(() => { const f = document.querySelector('.jw-final .final'), nm = [...document.querySelectorAll('.jw-final .eb-card .vl-name')].map(x => ({ t: x.textContent, cut: x.classList.contains('fit-cut') || x.scrollWidth > x.clientWidth + 1, px: parseFloat(getComputedStyle(x).fontSize) })); return { over: f.scrollHeight - f.clientHeight, nm }; })()`);
+    ok(t.over <= 6 && t.nm.length === 3 && t.nm.every(x => !x.cut && x.px >= 12), `THE END SCREEN + THE BLOCK at ${w} × ${hgt}: nothing scrolls (${t.over} px over), every name whole (${t.nm.map(x => x.t + ' ' + x.px + 'px').join(' · ')})`);
+    await P.shot(`endboard-${w}.png`);
   }
   await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
-  // CITY H2 — THE YOU ROW (was THE TOUCH-UP PASS's ring in your colour): the SHARED glow — YOUR strip .sb-me, its ::after a pink glow whose
-  // opacity breathes (never a box round the row, never a tint) + your rank pink — your row in 4th / 1st / 3rd place (the friends' bests re-seeded, the table asked again), each by night + by day
-  for (const [place, bests] of [[4, null], [1, [8, 5, 3]], [3, [212, 98, 3]]]) {
-    if (bests) {
-      for (let i = 0; i < TBL.length; i++) await dbPut(`pstats/${TBL[i][0]}/b/jaywalk-solo`, { a: bests[i] });
-      await P.ev(`(() => { const t = document.querySelector('.jw-table'), el = t.parentElement; t.remove(); return import('/js/games/jaywalk/victory.js').then(V => V.yourTable(el)); })()`);
-      await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000);
-    }
-    const g = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-table-list li')], me = li.findIndex(x => x.classList.contains('is-me')), st = li[me] && li[me].querySelector('.vl-strip'), b = st ? getComputedStyle(st, '::after') : null, box = getComputedStyle(li[me], '::before'), r = li.map(x => x.getBoundingClientRect()), c = li.map(x => x.querySelector('.jw-table-card').getBoundingClientRect());
-      return { me: me + 1, sb: !!(st && st.classList.contains('sb-me')), sbN: document.querySelectorAll('.jw-table-list .sb-me').length, sh: b ? b.boxShadow : '', anim: b ? b.animationName : '', pos: b ? b.position : '', box: box.content, rank: getComputedStyle(li[me].querySelector('.jw-table-n')).color, h: [...new Set(r.map(x => Math.round(x.height)))], cl: [...new Set(c.map(x => Math.round(x.left)))] }; })()`);
-    ok(g.me === place && g.sb && g.sbN === 1 && /255, 79, 200|255, 128, 214/.test(g.sh) && g.anim === 'sb-breathe' && g.pos === 'absolute' && (g.box === 'none' || g.box === 'normal') && g.rank === 'rgb(255, 143, 224)' && g.h.length === 1 && g.cl.length === 1,
-      `THE YOU ROW in ${place === 1 ? '1st' : place === 3 ? '3rd' : '4th'}: the shared breathing pink glow on YOUR card only (${g.sbN} marked, ${g.anim}), no box round the row (${g.box}), your rank pink (${g.rank}); every row one height (${g.h.join('/')}), every card one left edge (${g.cl.join('/')})`);
-    for (const look of ['night', 'day']) {
-      await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${look}'))`);
-      await P.waitFor(`document.querySelector('.jw-game').dataset.look === '${look}'`, 6000); await sleep(400);
-      await P.ev("document.querySelector('.jw-table').scrollIntoView({ block: 'center', behavior: 'instant' })"); await sleep(150);
-      await P.shot(`touchup-table-${place}-${look}-390.png`);
-      await P.ev("document.querySelector('.jw-final .final').scrollTo({ top: 0, behavior: 'instant' })"); await sleep(150);
-      if (place === 4) {
-        const top = await P.ev("(() => { const f = getComputedStyle(document.querySelector('.jw-final')).backgroundImage; return f; })()");
-        ok(look === 'night' || /rgba\(7, 6, 11, 0\.84\)/.test(top), `THE END SCREEN's TOP by ${look}: ${look === 'day' ? 'a soft dark fade under the title (0.84 at the top)' : 'the night veil, unchanged'}`);
-        await P.shot(`touchup-end-${look}-390.png`);
-      }
-    }
+  await ebTick(false);
+  ok(await P.waitFor("[...document.querySelectorAll('.jw-final .eb-list li')].some(li => li.classList.contains('is-me'))", 12000), 'unticked: the world\'s top 3 — your run among them');
+  const gy = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-final .eb-list li')], me = li.find(x => x.classList.contains('is-me')), st = me && me.querySelector('.vl-strip'), b = st ? getComputedStyle(st, '::after') : null;
+    return { sb: !!(st && st.classList.contains('sb-me')), sbN: document.querySelectorAll('.jw-final .eb-list .sb-me').length, anim: b ? b.animationName : '', rank: getComputedStyle(me.querySelector('.eb-n')).color, h: [...new Set(li.map(x => Math.round(x.getBoundingClientRect().height)))] }; })()`);
+  ok(gy.sb && gy.sbN === 1 && gy.anim === 'sb-breathe' && gy.rank === 'rgb(255, 79, 196)' && gy.h.length === 1, `THE YOU ROW: the shared breathing glow on YOUR card only (${gy.sbN}, ${gy.anim}); your rank in JAYWALK's own colour (${gy.rank} = #ff4fc4 — the owner's add-on: the block wears the game's look); every row one height`);
+  for (const look of ['night', 'day']) {
+    await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${look}'))`);
+    await P.waitFor(`document.querySelector('.jw-game').dataset.look === '${look}'`, 6000); await sleep(400);
+    const over = await P.ev("(() => { const f = document.querySelector('.jw-final .final'); return f.scrollHeight - f.clientHeight; })()");
+    ok(over <= 6, `by ${look}: the end screen + the block on one screen (${over} px over)`);
+    if (look === 'day') { const top = await P.ev("getComputedStyle(document.querySelector('.jw-final')).backgroundImage"); ok(/rgba\(7, 6, 11, 0\.84\)/.test(top), 'THE END SCREEN\'s TOP by day: a soft dark fade under the title (0.84 at the top)'); }
+    await P.shot(`endboard-${look}-390.png`);
   }
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   for (const [fp] of TBL) { await dbPut(`pfr/${pid}/f/${fp}`, null); await dbPut(`pstats/${fp}`, null); await dbPut(`profiles/${fp}`, null); }

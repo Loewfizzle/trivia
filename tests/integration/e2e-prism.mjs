@@ -411,6 +411,10 @@ async function survivalAndSolo() {
   const g2 = await game(h);
   ok(!g2.winner && (g2.results[uids[hi]].sc || 0) > 0, `SOLO SCORE RUSH: played to the song's end — a score, never a win (${g2.results[uids[hi]].sc})`);
   await sleep(4500);
+  // THE END-BOARD SWITCH-ON (Nov 27): a SCORE RUSH end carries THE END-SCREEN BOARD (prism-rush's top 3 under ☐ FRIENDS ONLY) — the body's own
+  // top 3 + the frame's SOLO RUN line step aside; nothing scrolls
+  { const eb = await h.evaluate(() => { const f = document.querySelector('.final'), sc = f.closest('.pd-final') || f; return { on: !!document.querySelector('.final.has-eb .eb .eb-tick'), win: getComputedStyle(document.querySelector('.final .winner')).display, top: !!document.querySelector('.final .pd-fs-top'), over: Math.max(f.scrollHeight - f.clientHeight, sc.scrollHeight - sc.clientHeight) }; });
+    ok(eb.on && eb.win === 'none' && !eb.top && eb.over <= 6, `THE END-SCREEN BOARD on the SCORE RUSH solo end (${JSON.stringify(eb)})`); }
   await shotBoth(h, 'pd-23-solo-rush-final');
 }
 

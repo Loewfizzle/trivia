@@ -1445,27 +1445,31 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 /* F5B — THE END-SCREEN BOARD (ui/end-board.js — the podium's ONE leaderboard block, a per-game OPT-IN: END_BOARD; FREEFALL the only game on).
    The heading (THE WORLD · YOUR TABLE · THIS MATCH) with a FRIENDS tick beside it (a drawn box + the word — no pill), three rows (the rank, the
    SLIM CARD, BEST + AVG at the right), the YOU line under them. Prefix eb-. */
-.eb { justify-self: center; width: min(calc(100% - 20px), 440px); margin: 6px auto 0; display: grid; gap: 6px; }
+.eb { justify-self: center; width: min(calc(100% - 20px), 440px); margin: 6px auto 0; display: grid; gap: 6px; --eb-acc: #ff4fa8; --eb-you: #ff8fe0; --eb-tick: #fff; }
+/* (THE END-BOARD SWITCH-ON — the owner's add-on, Nov 27 9:23 am: EACH END SCREEN STAYS ITS GAME'S OWN — the block's accents = the GAME's colour,
+   the same token its foot's bar wears (--fin = the cartridge's ACCENT, --fin-ink = the ink that reads on it — ui/final.js); the ✓ in that ink.
+   FREEFALL keeps F5C's pink (its own FREE pink — css/freefall-play.css), pixel for pixel. THE YOU ROW's glow on your card stays the site's pink) */
+.final.has-accent .eb { --eb-acc: var(--fin); --eb-you: var(--fin); --eb-tick: var(--fin-ink, #fff); }
 .eb-head { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 30px; }
 .eb-k { padding-left: 0.28em; font: 700 12.5px/1 var(--font-ui); letter-spacing: 0.28em; color: #d2ccef; white-space: nowrap; }
 .eb-tick { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 4px; border: 0; background: none; color: #d2ccef; font: 700 12.5px/1 var(--font-ui); letter-spacing: 0.2em; cursor: pointer; }
 .eb-tick::before { content: ''; position: absolute; inset: -7px -8px; }   /* (the tap area: 44 pt tall) */
 .eb-box { position: relative; width: 16px; height: 16px; border: 2px solid currentColor; border-radius: 3px; box-sizing: border-box; }
 .eb-tick.is-on { color: #fff; }
-.eb-tick.is-on .eb-box { background: #ff4fa8; border-color: #ff4fa8; }
-.eb-tick.is-on .eb-box::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.eb-tick.is-on .eb-box { background: var(--eb-acc); border-color: var(--eb-acc); }
+.eb-tick.is-on .eb-box::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 7px; border: solid var(--eb-tick); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .eb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --eb-side: max(50px, calc(var(--eb-d, 2) * 0.8rem + 4px)); }
 .eb-list:empty { display: none; }
 .eb-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) var(--eb-side); align-items: center; column-gap: 8px; }
 .eb-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
-.eb-list li.is-me .eb-n { color: #ff8fe0; }
+.eb-list li.is-me .eb-n { color: var(--eb-you); }
 .eb-card { min-width: 0; text-align: left; }
 .eb-card .vl-strip { height: 52px; }   /* (a compact list under the end screen's numbers — HOLD'EM's lists run them at 50) */
 .eb-v { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; font: 700 19px/1 var(--font-num, var(--font-ui)); color: #fff; }
 .eb-list.is-wide { --eb-side: max(50px, calc(var(--eb-d, 6) * 0.6rem + 2px)); margin: 0 -8px; }   /* (THE END-BOARD SWITCH-ON: 98,450 — the column narrower, the numeral 16 px, the list into the block's side margins: a 12-letter name still fits its card) */
 .eb-list.is-wide .eb-v { font-size: 16px; }
 .eb-av { font: 700 11px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
-.eb-you, .eb-note { text-align: center; font: 700 12.5px/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.16em; color: #ff8fe0; }
+.eb-you, .eb-note { text-align: center; font: 700 12.5px/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.16em; color: var(--eb-you); }
 .eb-note { color: #d2ccef; }
 .eb-you:empty, .eb-note:empty { display: none; }
 @media (hover: hover) { .eb-tick:hover { color: #fff; } }

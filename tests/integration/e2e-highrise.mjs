@@ -205,7 +205,7 @@ try {
   ok(best1 && floorOf(best1.a) === V.floor, `… the best on the board highrise-solo = THE JUDGE's floor (${best1 && floorOf(best1.a)})`);
   ok(res1 && res1.o && res1.o[pid] && res1.o[pid].xp && res1.o[pid].xp.gain >= 0, `… paid by THE SOLO LANE (+${res1 && res1.o && res1.o[pid] && res1.o[pid].xp ? res1.o[pid].xp.gain : '?'} XP)`);
   await pastMoment(P);
-  ok(await P.waitFor(`document.querySelector('.hi-fin .hi-ec-best').textContent === 'YOUR BEST · ${V.floor}'`, 15000), `the end screen: YOUR BEST · ${V.floor} from the server's record (a first counted run — never NEW BEST)`);
+  ok(await P.waitFor(`document.querySelector('.hi-fin .hi-ec-best').textContent === 'YOUR BEST ${V.floor} · AVG —'`, 15000), `the end screen: YOUR BEST ${V.floor} · AVG — from the server's record (a first counted run — never NEW BEST; THE END-BOARD SWITCH-ON's stored average: a dash under 5 runs)`);
   const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(fin.w === '', 'no WOULD COUNT line (counting is ON)');
@@ -234,7 +234,7 @@ try {
   }
   ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `no YOUR TABLE with no friends (a table of one is nothing); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
   if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-tooslow.png`) });
-  // YOUR TABLE — its layout proven with FIXTURES (0 · 1 · 3 · 8 friends — a fresh phone has none of its own): the
+  // YOUR TABLE (THE END-SCREEN BOARD's FRIENDS ONLY since THE END-BOARD SWITCH-ON) — proven with FIXTURES (0 · 1 · 3 · 8 friends — a fresh phone has none of its own): the
   // friends' profiles + their HIGH RISE bests + YOUR list are written straight into the emulator, the table re-asked through the real
   // /api/profile + the real slim cards (JAYWALK's check: e2e-jaywalk.mjs "YOUR TABLE at <w>")
   {
@@ -246,27 +246,24 @@ try {
     let seeded = 0;
     for (const k of [0, 1, 3, 8]) {
       for (; seeded < k; seeded++) { const [nm, f, pf] = FR[seeded]; await dbPut(`profiles/${fpid(seeded)}`, { n: nm, x: 4200 + seeded * 900, a: 'bolt', c: ['pink', 'cyan'][seeded % 2], m: 9 }); await dbPut(`pstats/${fpid(seeded)}/b/highrise-solo`, { a: towerScore(f, pf, 7000 + seeded) }); await dbPut(`pfr/${pid}/f/${fpid(seeded)}`, Date.now()); }
-      await P.ev("(() => { const t = document.querySelector('.hi-table'), el = document.querySelector('.hi-fin'); if (t) t.remove(); return import('/js/games/highrise/final.js').then(V => { V.yourTable(el); }); })()");
-      const want = k ? Math.min(k + 1, 4) : 0;
-      if (want) ok(await P.waitFor(`document.querySelectorAll('.hi-table-list li').length === ${want} && [...document.querySelectorAll('.hi-table-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `YOUR TABLE with ${k} friend${k === 1 ? '' : 's'}: ${want} rows (you always among them)`);
-      else { await sleep(1800); ok(await P.ev("!document.querySelector('.hi-table')"), 'YOUR TABLE with 0 friends: no table at all (a table of one is nothing)'); }
+      // (THE END-BOARD SWITCH-ON, Nov 27: YOUR TABLE = THE END-SCREEN BOARD's ☐ FRIENDS ONLY — the shared block (ui/end-board.js) mounted again
+      //  with the tick on + its reads forgotten, so the re-seeded table is asked again through the real /api/profile)
+      await P.ev(`(async () => { const EB = await import('/js/ui/end-board.js'), C = await import('/js/games/highrise/index.js'); EB.forgetReads(); localStorage.setItem(EB.FRIENDS_KEY, '1'); const el = document.querySelector('.hi-final .final-eb'); el.replaceChildren(); el.className = 'final-eb'; EB.mountEndBoard(el, C.END_BOARD, { solo: true }); return 1; })()`);
+      // k friends + you: 0 → NO FRIENDS YET (the world stays) · 1 → you + 1 · 3 → the top 3 (you 3rd, 119) · 8 → the top 3 + "YOU · 5TH · 119 FLOORS"
+      const want = { 0: [0, ''], 1: [2, ''], 3: [3, ''], 8: [3, 'YOU · 5TH · 119 FLOORS'] }[k];
+      if (k) ok(await P.waitFor(`document.querySelectorAll('.hi-final .eb-list li').length === ${want[0]} && document.querySelector('.hi-final .eb-you').textContent === '${want[1]}' && [...document.querySelectorAll('.hi-final .eb-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `FRIENDS ONLY with ${k} friend${k === 1 ? '' : 's'}: ${want[0]} rows${want[1] ? ` + "${want[1]}"` : ' (you among them)'}`);
+      else ok(await P.waitFor("document.querySelector('.hi-final .eb-note').textContent === 'NO FRIENDS YET' && document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked') === 'false'", 12000), 'FRIENDS ONLY with 0 friends: "NO FRIENDS YET" — the tick unticks itself, the world stays');
       await sleep(700);
-      const T = await P.ev(`(() => { ${box} const tb = q('.hi-table'), fr = q('.hi-final .final'); if (!tb) return { none: true, bar: bx(q('.hi-final .final-bar')), line: bx(q('.hi-fin .hi-ec-line')), more: fr.classList.contains('has-more') };
-        const li = [...tb.querySelectorAll('li')], cards = li.map(x => bx(x.querySelector('.hi-table-card'))), fin = bx(q('.hi-fin'));
-        return { tb: bx(tb), k: bx(q('.hi-table-k')), kT: q('.hi-table-k').textContent, line: bx(q('.hi-fin .hi-ec-line')), bar: bx(q('.hi-final .final-bar')), city: bx(q('.hi-final .final-link')), cards, places: li.map(x => x.querySelector('.hi-table-n').textContent), floors: li.map(x => x.querySelector('b:last-child').textContent), sc: li.map(x => bx(x.querySelector(':scope > b'))),
-          me: li.map(x => x.classList.contains('is-me')), names: li.map(x => (x.querySelector('.vl-name') || x.querySelector('.hi-table-card')).textContent.trim().slice(0, 14)), more: fr.classList.contains('has-more'), moreOn: getComputedStyle(q('.hi-final .final-more')).opacity, foot: bx(q('.hi-final .final-actions')), scroll: document.documentElement.scrollWidth, w: innerWidth, between: [...q('.hi-fin').children].map(c => c.classList[0]) }; })()`);
-      if (!T.none) {
-        const ml = T.tb.x, mr = 390 - T.tb.r, cw = T.cards.map(c => Math.round(c.w)), cx = T.cards.map(c => Math.round(c.x));
-        ok(T.kT === 'YOUR TABLE' && T.tb.y >= T.line.b && T.tb.y - T.line.b <= 28 && JSON.stringify(T.between) === JSON.stringify(['hi-ec', 'hi-table']), `${k}: YOUR TABLE sits RIGHT UNDER the personal numbers (${(T.tb.y - T.line.b).toFixed(0)} px under the stats line — nothing between them)`);
-        ok(Math.abs(ml - mr) <= 1.5 && new Set(cw).size === 1 && new Set(cx).size === 1 && Math.abs((T.k.x + T.k.r) / 2 - 195) <= 2 && T.sc.every(b => b.r <= T.tb.r + 0.5) && T.scroll <= T.w, `${k}: one centred grid — margins ${ml.toFixed(1)} | ${mr.toFixed(1)}, every card the same box (${cw[0]} wide from ${cx[0]}), the label centred, the floors right-aligned inside it`);
-        ok(T.me.filter(Boolean).length === 1 && T.places.every((x, i) => !i || Number(x) > Number(T.places[i - 1])) && T.floors[T.me.indexOf(true)] === '119', `${k}: best first (places ${T.places.join(' · ')} — floors ${T.floors.join(' · ')}), YOUR row marked, your 119`);
-        ok(T.bar.b <= 844 && T.city.b <= 844 + 1 && (T.cards[T.cards.length - 1].b <= T.foot.y + 1 || (T.more && Number(T.moreOn) > 0.5)), `${k}: the footer stays on screen (the bar to ${T.bar.b.toFixed(0)}); the last card ${T.cards[T.cards.length - 1].b <= T.foot.y + 1 ? `ends above it (${T.cards[T.cards.length - 1].b.toFixed(0)} ≤ ${T.foot.y.toFixed(0)})` : 'runs under it — MORE BELOW says so'}`);
-      }
+      const T = await P.ev(`(() => { const fr = document.querySelector('.hi-final .final'), li = [...document.querySelectorAll('.hi-final .eb-list li')];
+        return { over: fr.scrollHeight - fr.clientHeight, floors: li.map(x => x.querySelector('.eb-v').firstChild.textContent), me: li.map(x => x.classList.contains('is-me')), av: li.map(x => (x.querySelector('.eb-av') || {}).textContent || ''),
+          names: [...document.querySelectorAll('.hi-final .eb-card .vl-name')].map(x => ({ t: x.textContent, cut: x.classList.contains('fit-cut') || x.scrollWidth > x.clientWidth + 1 })) }; })()`);
+      ok(T.over <= 6 && T.names.every(x => !x.cut) && T.floors.every(f => /^\d{1,3}$/.test(f)) && T.av.every(a => /^AVG (—|\d+)$/.test(a)), `${k}: nothing scrolls (${T.over} px over) · the floors as floors (${T.floors.join(' · ') || 'the world'} — never the tower's sort number) · ${T.av.join(' / ') || 'no rows'} · every name whole`);
+      if (k === 3) ok(T.me.indexOf(true) === 2 && T.floors[2] === '119', `3: YOUR row 3rd with your 119 (floors ${T.floors.join(' · ')})`);
       if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-table-${k}.png`) });
     }
     for (let i = 0; i < seeded; i++) { await dbPut(`pfr/${pid}/f/${fpid(i)}`, null); await dbPut(`pstats/${fpid(i)}`, null); await dbPut(`profiles/${fpid(i)}`, null); }
     await dbPut(`pstats/${pid}/b/highrise-solo`, mineWas == null ? null : mineWas);
-    await P.ev("(() => { const t = document.querySelector('.hi-table'); if (t) t.remove(); })()");
+    await P.ev("import('/js/ui/end-board.js').then(EB => { EB.forgetReads(); localStorage.setItem(EB.FRIENDS_KEY, '0'); })");
   }
   if (process.env.HI_UNTIL === 'table') { await b.close(); console.log(`\n${n - fails.length}/${n} checks (HI_UNTIL=table) — ${fails.length ? `FAILED:\n  ${fails.join('\n  ')}` : 'all green'}`); process.exit(fails.length ? 1 : 0); }
 
@@ -344,7 +341,7 @@ try {
     ok(ps.pa && ps.pa.gf && ps.pa.gf['highrise-clouds'] === 1 && !ps.pa.gf['highrise-top'], '… the feat flag `clouds` from the server\'s replay (never `top`)');
     ok(ps.it && !!ps.it['card-abovetheclouds'] && (o.ach || []).includes('above-the-clouds') && !ps.it['card-topoftheworld'], `… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not (items ${Object.keys(ps.it || {}).filter(k => /^card-/.test(k)).join(' ')} · ach ${(o.ach || []).join(' ')})`);
     await pastMoment(P);
-    ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
+    ok(await P.waitFor("/^(NEW BEST|YOUR BEST \\d+ · AVG)/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');
   }
   await dropRunCards(pid);
