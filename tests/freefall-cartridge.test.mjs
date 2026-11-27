@@ -221,7 +221,7 @@ test('THE BOARD + THE AVERAGE (the owner: "like JAYWALK, in all the same spots")
   // a floor-0 solo run (an empty log) never counts — not into the average either
   assert.equal(matchStep(s, { key: 'k9', gid: 'freefall', row: row(0), n: 1, now: GO + 90_000_000, at: GO + 90_000_000, gap: 0 }).skip, 'empty');
   // the end card's line, wired for F4B
-  assert.equal(bestAvgLine(141, 62), 'YOUR BEST · 141 · AVG 62'); assert.equal(bestAvgLine(141, null), 'YOUR BEST · 141 · AVG —'); assert.equal(bestAvgLine(0, 5), '');
+  assert.equal(bestAvgLine(141, 62), 'YOUR BEST 141 · AVG 62'); assert.equal(bestAvgLine(141, null), 'YOUR BEST 141 · AVG —'); assert.equal(bestAvgLine(0, 5), '');
   // THE BOARD's tab: wired, hidden (the owner's phone only), never in TABS before the go-live
   const bv = read('js/board/view.js');
   assert.match(bv, /export const HIDDEN_TABS = Object\.freeze\(\['freefall'\]\);/);

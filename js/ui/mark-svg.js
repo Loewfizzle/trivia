@@ -1,11 +1,10 @@
-// A game's neon mark as a small inline SVG string — its own tubes, its own colours. ONE builder (FIXES R2): THE PLAY sheet's rows
-// (screens/title-taps.js) + the room's PICK A GAME (screens/room-city.js). Its own file: a lazy chunk never imports a boot-graph module for a
-// NEW export (THE STALE-MODULE RULE) — this module is new to both.
+// A game's neon mark as a small inline SVG string. ONE builder (FIXES R2): THE PLAY sheet + PICK A GAME. A tube's `w` = its own width;
+// `day` (a pale ground): a tube's `o` = an outline under it (F5C: FREEFALL's ball).
 import { markFor } from '../core/marks.js';
 
-export function markSvg(game, cls = 'nd-shelf-mark') {
-  const m = markFor(game);
-  const w = (m && m.w) || 7;   // (a fine mark names its own tube width — core/marks.js: HIGH RISE's tower)
-  const tubes = ((m && m.tubes) || []).map(t => `<path d="${t.d}" style="stroke:${t.col};fill:none;stroke-width:${t.w || w};stroke-linecap:round;stroke-linejoin:round"/>`).join('');
+export function markSvg(game, cls = 'nd-shelf-mark', day = false) {
+  const m = markFor(game), w = (m && m.w) || 7;
+  const p = (t, c, sw) => `<path d="${t.d}" style="stroke:${c};fill:none;stroke-width:${sw};stroke-linecap:round;stroke-linejoin:round"/>`;
+  const tubes = ((m && m.tubes) || []).map(t => (day && t.o ? p(t, t.o, (t.w || w) + 3) : '') + p(t, t.col, t.w || w)).join('');
   return `<svg viewBox="0 0 100 100" aria-hidden="true" class="${cls}">${tubes}</svg>`;
 }

@@ -77,13 +77,13 @@ export const MARKS = {
     { d: 'M26 68 L46 78 L66 68 M26 77 L46 87 L66 77', col: '#35e3ff' },
     { d: 'M36 26 L56 16 L76 26 L56 36 Z M36 26 V34 L56 44 L76 34 V26 M56 36 V44', col: '#ff4fd8' },
   ] },
-  // FREEFALL (F5B): THROUGH THE FLOOR — the ball ablaze IN a floor's gap
+  // FREEFALL: the ball ablaze IN a floor's gap (`o`: its day outline)
   freefall: { blade: 'FREEFALL', w: 6, tubes: [
     { d: 'M4 75 H29 M71 75 H96', col: '#c35bff' },
     { d: 'M38 69 C30 58 32 47 39 37 C41 45 43 48 47 44 C45 32 51 22 59 13 C58 26 66 33 66 45 C69 42 70 37 70 33 C77 45 75 60 62 69', col: '#ff3fb0' },
     { d: 'M43 63 C41 56 44 50 48 44 C50 49 52 51 55 48 C57 53 58 59 57 63', col: '#ff8c1a' },
     { d: 'M50 62 C49 59 50 56 51 54', col: '#fffad0', w: 4 },
-    { d: 'M38 75 A12 12 0 1 1 62 75 A12 12 0 1 1 38 75', col: '#fff0e0' },
+    { d: 'M38 75 A12 12 0 1 1 62 75 A12 12 0 1 1 38 75', col: '#fff0e0', o: '#f0453c' },
   ] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [

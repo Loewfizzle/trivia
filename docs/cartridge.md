@@ -312,8 +312,8 @@ ONE shared leaderboard block for the podium, **a per-game OPT-IN**: a cartridge 
 word, avg: true }` (THE CONTRACT's optional table — `games/contract.js`). `ui/final.js` then mounts the block (LAZY) under the game's body;
 **a cartridge without it never loads the module — its end screen is exactly as it was** (FREEFALL is the only game on; JAYWALK, HIGH RISE
 and PRISM DROP shot before + after: `Downloads/NEON/freefall-f5b/others-unchanged/`).
-- **SOLO:** the board's TOP 3 — THE WORLD (the all-time top 100, ONE read a session) by default — with a small **FRIENDS** tick beside the
-  heading (a drawn box + the word, no pill; a 44 pt tap area) that switches the rows to YOUR TABLE (`/api/profile` `table`, read only once
+- **SOLO:** the board's TOP 3 — everyone (the all-time top 100, ONE read a session) by default — under ONE header: the tick **☐ FRIENDS
+  ONLY** (F5C — the owner, Nov 27: no "THE WORLD" heading; a drawn box + the words, no pill; a 44 pt tap area; unticked = everyone) that switches the rows to YOUR TABLE (`/api/profile` `table`, read only once
   ticked, kept). ONE remembered setting for every game (`localStorage ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world
   stays. Each row: the rank, the SLIM CARD (`ui/strip-board.js` — stills, THE LIVE LANE, THE YOU ROW's glow), BEST + AVG (the row's
   STORED average — `core/board-avg.js`: a dash under 5 runs). Not in the top 3 → ONE line under them: "YOU · 12TH · 88 FLOORS".

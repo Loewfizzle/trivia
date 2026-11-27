@@ -57,8 +57,13 @@ export function finalScene(el, game, state) {
   el.replaceChildren(EC.el);
   const c = !solo && (game.calls || {})[uid];
   if (c) el.append(h('div.ff-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
-  // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own); the server's answer puts it right
-  EC.best(cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), false, 0);
+  // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own); the server's answer puts it right.
+  // F5C — "YOUR BEST n · AVG n": the AVG = your profile's STORED average (the room's mirror — profile/public.js, no read; a dash under 5 runs)
+  EC.best(cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), false, 0, null);
+  lazyImport(import('../../profile/public.js'), '../../profile/public.js').then(P => {
+    const av = ((P.pubOf(state.players && state.players[uid]) || {}).av || {})[BOARD];
+    if (av != null && el.isConnected && !EC.el.classList.contains('is-new')) EC.best(cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), false, 0, av);
+  }).catch(() => {});
   if (!solo) {
     // (the winner's moment: the console's own sting is off for this game — a match plays it here, once the crown lands; a draw: none)
     const first = gameStandings(game).filter(x => x.rank === 1);

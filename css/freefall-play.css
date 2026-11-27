@@ -301,6 +301,11 @@
   .ff-final .ff-fin .ff-ec-cause { font-size: min(24px, calc(var(--ff-w) * 0.064)); }
   .ff-final .ff-fin .ff-ec-n { font-size: 56px; }
   .ff-final .ff-fin .ff-ec-fl { font-size: 12px; }
+  /* (F5C — a NEW BEST's own line + the AVG under it: still no scroll at 375 × 667, the XP line in too) */
+  .ff-final .ff-fin .ff-ec { gap: 2px; }
+  .ff-final .ff-fin .ff-ec-best.is-new { font-size: 18px; }
+  .ff-final .ff-fin .ff-ec-avg { margin-top: -2px; line-height: 1.05; }
+  .ff-final .final .eb { margin-top: 0; }
   .ff-final .final .eb { gap: 4px; }
   .ff-final .final .eb-list { gap: 4px; }
   .ff-final .final .eb-card .vl-strip { height: 46px; }

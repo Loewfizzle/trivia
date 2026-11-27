@@ -123,6 +123,8 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   const p = code(`${FF}play.js`);
   assert.deepEqual([...p.matchAll(/localStorage\.(\w+)\(([A-Z_]+)/g)].map(m => `${m[1]} ${m[2]}`), ['getItem BEST_KEY', 'setItem BEST_KEY']);
   assert.equal(BEST_KEY, 'ff:play:best');
+  // F5C — the share card's NAME: the console's saved profile on this phone, READ only (never a setItem / removeItem of another key)
+  assert.ok(p.includes("const NAME_KEYS = Object.freeze(['na:1:me', 'na:1:profile']);") && (p.match(/localStorage\.(setItem|removeItem)/g) || []).length === 1, 'the name is read, never written');
   // every lazy chunk goes through the skew wrapper (never a bare dynamic import)
   for (const f of own) for (const m of code(`${FF}${f}`).matchAll(/(\w+)?\(?\s*import\(\s*'([^']+)'\s*\)/g)) assert.equal(m[1], 'lazyImport', `${f}: the lazy chunk ${m[2]} goes through lazyImport`);
 });
@@ -525,7 +527,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   const e = code(`${FF}endscreen.js`), s = code(`${FF}stage.js`);
   assert.ok(e.includes("const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, stats ? line : null, stats ? table : null);"), 'top to bottom: THE LOGO · the cause · the number · FLOORS · YOUR BEST (· AVG) · the line · the table\'s slot');
   // F4B — THE HEADER = THE LOGO (the owner's approved mock): title-05's lettering — the opening's own WebP — + the mode in small teal caps; never the words FREE FALL
-  assert.ok(e.includes("h('img.ff-ec-logo-img', { alt: '', decoding: 'async', draggable: 'false', width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) })") && e.includes("h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m)"), 'the logo + the mode line');
+  assert.ok(e.includes("const LOGO_ATTRS = { width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) };") && e.includes("h('img.ff-ec-logo-img', { alt: '', decoding: 'sync', fetchpriority: 'high', draggable: 'false', ...LOGO_ATTRS })") && s.includes('  warmLogo();') && e.includes("h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m)"), 'the logo + the mode line');
   assert.ok(!/FREE FALL|'FREE'|'FALL'/.test(e), 'FREEFALL is ONE word — the header is the lettering itself');
   assert.equal(Number(/export const LOGO_REV = (\d+);/.exec(e)[1]), Number(/export const FF_ART_REV = (\d+);/.exec(code(`${FF}night.js`))[1]), 'the lettering\'s cache key = the scene\'s');
   assert.match(read('css/freefall-play.css'), /\.ff-ec-logo-img \{ display: block; width: clamp\(210px, calc\(var\(--ff-w\) \* 0\.58\), 320px\);/, '~58 % of the card — never under 210 pt: the script must read');

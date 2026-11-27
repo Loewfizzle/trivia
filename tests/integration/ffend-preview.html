@@ -15,7 +15,7 @@
 <script>
   // F5B — THE END SCREENS' LOOK PREVIEW (no server: the board's read + YOUR TABLE answered here from a fixture; NEVER the live site):
   //   ?mode=solo|match · &case=top|out|empty (solo: you in the top 3 · 12th · no rows) · &fr=1 (the FRIENDS tick on) · &n=5 (a match's
-  //   players; you are the n-th) · &look=night|day · &made=1 (YOU HIT THE BOTTOM) · &best=1 (a NEW BEST)
+  //   players; you are the n-th) · &look=night|day · &made=1 (YOU HIT THE BOTTOM) · &best=1 (a NEW BEST) · &avg=1 (an AVG known)
   const Q = new URLSearchParams(location.search), CASE = Q.get('case') || 'out';
   const face = (id, n, c, a, v, av, rank) => ({ id, n, a, c, l: 12 + rank, rank, v, ...(av === undefined ? {} : { av }) });
   const WORLD = CASE === 'empty' ? [] : [face('b1', 'MAXIMILIANOS', 'green', 'ghost', 212, 141, 1), face('b2', 'DEX', 'cyan', 'bolt', 188, 120, 2),
@@ -42,6 +42,8 @@
   installEmblems();
   await loadGame('freefall');
   try { localStorage.setItem('ff:best', '160'); } catch { /* fine */ }   // (YOUR BEST as this phone knows it)
+  // (F5C — the server's answer for this match, as profile/queue.js keeps it: &best=1 = a NEW BEST (141, was 120) + AVG 88 · &avg=1 = YOUR BEST 160 · AVG 141)
+  try { const k = 'rc:ABCD_mprev'; sessionStorage.removeItem(k); if (Q.get('best')) sessionStorage.setItem(k, JSON.stringify({ pbs: [{ b: 'freefall-solo', v: 141, prev: 120 }], av: { 'freefall-solo': 88 } })); else if (Q.get('avg')) sessionStorage.setItem(k, JSON.stringify({ bests: { 'freefall-solo': 160 }, av: { 'freefall-solo': 141 } })); } catch { /* fine */ }
   const N = match ? Math.max(2, Math.min(8, Number(Q.get('n')) || 5)) : 1, made = !!Q.get('made');
   const NAMES = [['me', 'BENNY', 'magenta', 'crown'], ['u2', 'DEX', 'cyan', 'bolt'], ['u3', 'LUNA', 'yellow', 'moon'], ['u4', 'MAXIMILIANOS', 'green', 'ghost'], ['u5', 'ZED', 'orange', 'star'], ['u6', 'KIT', 'violet', 'heart'], ['u7', 'OPAL', 'red', 'diamond'], ['u8', 'WREN', 'cyan', 'bolt']];
   const players = Object.fromEntries(NAMES.slice(0, N).map(([u, name, color, avatar]) => [u, { name, color, avatar }]));
@@ -58,8 +60,10 @@
   if (kick) { kick.classList.add('ff-kick'); kick.replaceChildren(endLogo(match ? 'match' : 'solo')); }
   stage.append(h('div.ff-final', final.el));
   const logoIn = () => { const im = stage.querySelector('.ff-ec-logo-img'); return !im || (im.complete && im.naturalWidth > 0); };
-  setTimeout(function wait() { if (logoIn()) document.body.dataset.ready = '1'; else setTimeout(wait, 200); }, 3200);   // (shots.mjs --page: the strips, the fonts + the logo are in)
-  window.__ffEnd = () => { const f = stage.querySelector('.final'); return { scroll: f.scrollHeight - f.clientHeight, rows: stage.querySelectorAll('.eb-list li').length, you: (stage.querySelector('.eb-you') || {}).textContent || '', k: (stage.querySelector('.eb-k') || {}).textContent || '' }; };
+  // (F5C — THE LOGO ALWAYS SHOWS: ready = the logo DECODED + two frames painted after it — F5B's shots caught its empty box at 2×)
+  const painted = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  setTimeout(function wait() { const im = stage.querySelector('.ff-ec-logo-img'); if (logoIn()) Promise.resolve(im && im.decode ? im.decode().catch(() => {}) : null).then(painted).then(() => { document.body.dataset.ready = '1'; }); else setTimeout(wait, 200); }, 3200);   // (shots.mjs --page: the strips, the fonts + the logo are in)
+  window.__ffEnd = () => { const f = stage.querySelector('.final'); return { scroll: f.scrollHeight - f.clientHeight, rows: stage.querySelectorAll('.eb-list li').length, you: (stage.querySelector('.eb-you') || {}).textContent || '', k: (stage.querySelector('.eb-k') || {}).textContent || '', head: (stage.querySelector('.eb-head') || {}).textContent || '', best: (stage.querySelector('.ff-ec-best') || {}).textContent || '', avg: (stage.querySelector('.ff-ec-avg') || {}).textContent || '', logo: (() => { const im = stage.querySelector('.ff-ec-logo-img'); if (!im) return null; const r = im.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top), ok: im.complete && im.naturalWidth > 0 }; })() }; };
 </script>
 </body>
 </html>

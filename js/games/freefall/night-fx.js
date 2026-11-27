@@ -78,16 +78,17 @@ void main() {
       float wetN = mix(uWetA, uWetB, k);
       if (wetN > 0.01) {
         float sy = vS.y * 0.5 + 0.5;
-        vec3 g = mix(vec3(0.0006, 0.007, 0.014), vec3(0.0016, 0.026, 0.04), smoothstep(0.0, 0.36, sy));
-        g = mix(g, vec3(0.003, 0.06, 0.08), smoothstep(0.32, 0.72, sy));
-        g = mix(g, vec3(0.012, 0.13, 0.16), smoothstep(0.68, 1.0, sy));
+        vec3 g = mix(vec3(0.0008, 0.01, 0.02), vec3(0.002, 0.036, 0.055), smoothstep(0.0, 0.36, sy));   // (F5C: a touch lifted — the lines need a ground to read on)
+        g = mix(g, vec3(0.004, 0.075, 0.1), smoothstep(0.32, 0.72, sy));
+        g = mix(g, vec3(0.014, 0.15, 0.18), smoothstep(0.68, 1.0, sy));
         vec3 wcol = mix(g, col * vec3(0.5, 0.9, 1.0), 0.18);   // (the painting only a ghost under the night water)
         float shallow = exp(-max(0.0, uSurfY - hit.y) / 30.0);
         float ru = atan(hit.x, -hit.z) * 3.2 + hit.y * 0.16;
         float rays = pow(vnoise(vec2(ru * 2.2 + uTime * 0.07, 1.3)) * 0.6 + vnoise(vec2(ru * 5.1 - uTime * 0.11, 7.7)) * 0.4, 2.2);
         wcol += vec3(0.1, 0.3, 0.55) * rays * (0.25 + 0.75 * sy) * 0.3 * shallow * uShafts;
-        wcol += vec3(0.03, 0.62, 0.72) * caust(uv * 20.0, uTime) * 0.11 * shallow;                       // the swirling light lines: cyan …
-        wcol += vec3(0.36, 0.1, 0.8) * caust(uv * 13.0 + 2.3, uTime * 0.8 + 5.0) * 0.035 * shallow;     // … and a slower violet net under them
+        // (F5C — the owner: F5B's lines were barely visible; now as clear as DAY UNDER's — the same net, a glow on the dark teal)
+        wcol += vec3(0.08, 0.72, 0.92) * caust(uv * 20.0, uTime) * 0.3 * shallow;                        // the swirling light lines: cyan …
+        wcol += vec3(0.42, 0.14, 1.0) * caust(uv * 13.0 + 2.3, uTime * 0.8 + 5.0) * 0.1 * shallow;      // … and a slower violet net under them
         col = mix(col, wcol, wetN);
       }
     } else {

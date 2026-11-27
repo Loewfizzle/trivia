@@ -540,7 +540,7 @@ async function checks1() {
   ok(e.mode === 'SOLO' && e.modeCol === 'rgb(39, 224, 230)' && e.modeFs >= 12, `… the mode under it: "${e.mode}" in small teal caps (${e.modeFs} px)`);
   ok(e.cause === 'HIT THE RED' && e.causeCol === 'rgb(39, 224, 230)', `the cause "${e.cause}" in teal neon (${e.causeCol}) — never red`);
   ok(e.n === String(s.floor) && e.nFs >= 84 && e.fl === 'FLOORS', `the big number ${e.n} (${e.nFs.toFixed(0)} px) · ${e.fl}`);
-  ok(e.best === 'YOUR BEST · 88' && /^\d+ BOUNCES? · \d+ BLAZES? · BEST RUN \d+$/.test(e.line), `"${e.best}" in gold · "${e.line}"`);
+  ok(e.best === 'YOUR BEST 88 · AVG —' && /^\d+ BOUNCES? · \d+ BLAZES? · BEST RUN \d+$/.test(e.line), `"${e.best}" in gold · "${e.line}"`);
   ok(e.again.h >= 58 && e.again.x >= 15 && e.again.r <= 375 && e.again.bg === 'rgb(39, 224, 230)' && e.again.rad === '12px' && e.lineB < e.againT, `PLAY AGAIN: one solid teal bar, ${e.again.h.toFixed(0)} pt tall, a rounded rectangle (${e.again.rad}), under the card`);
   ok(!e.share.dis && e.share.text === 'SHARE' && e.share.ico && e.city.text === 'HOME' && e.city.ico && e.city.href === '/' && e.share.x < e.city.x && e.share.h >= 44 && e.city.h >= 44, `F4B — THE UNIVERSAL FOOTER: PLAY AGAIN, then ${e.share.text} | ${e.city.text} (→ ${e.city.href}) with their drawn icons, both ≥ 44 pt — SHARE works (no "SOON")`);
   ok(e.hudOp === 0, 'the HUD leaves at once when the card comes');
@@ -569,7 +569,7 @@ async function checks1() {
 }
 
 async function checks2() {
-  // ---- NEW BEST: the crossing (gold), the end's NEW BEST · WAS n, this phone's best written
+  // ---- NEW BEST: the crossing (gold), the end's NEW BEST · n (F5C) + the AVG under it, this phone's best written
   let t = await open(390, 844, 2, '?seed=chk2', { best: 3 });
   await start(t); await auto(t.p, 'play');
   ok(await waitFor(t.p, 'window.__ffPlay.state().newBest'), 'the fall past YOUR BEST = the crossing');
@@ -580,9 +580,9 @@ async function checks2() {
   await auto(t.p, 'red');
   await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
   await sleep(300);
-  const bl = await box(t.p, '.ff-ec-best'), stored = await t.p.evaluate(() => localStorage.getItem('ff:play:best'));
+  const bl = await box(t.p, '.ff-ec-best'), avl = await box(t.p, '.ff-ec-avg'), stored = await t.p.evaluate(() => localStorage.getItem('ff:play:best'));
   s = await st(t.p);
-  ok(bl.text === 'NEW BEST · WAS 3' && stored === String(s.floor) && s.best === s.floor, `the end: "${bl.text}" · this phone's best is now ${stored}`);
+  ok(bl.text === `NEW BEST · ${s.floor}` && avl.text === 'AVG —' && stored === String(s.floor) && s.best === s.floor, `the end: "${bl.text}" · this phone's best is now ${stored}`);
   await shot(t.p, 'chk-05-new-best.png');
   await t.close();
 
@@ -607,7 +607,7 @@ async function checks2() {
   ok(s.floor >= 130 && s.area === 'UNDER THE HARBOR' && /harbor:1/.test(s.info.walls) && s.info.area === 3, `?floor=128: live from floor ${s.floor}, ${s.area}, its wall on the shaft (${s.info.walls})`);
   await auto(t.p, 'red'); await waitFor(t.p, 'window.__ffPlay.state().shown', 40000); await sleep(200);
   const e = await t.p.evaluate(() => { const l = window.__ffPlay.ends[0]; return [l.same, l.isNew, l.best, localStorage.getItem('ff:play:best'), document.querySelector('.ff-ec-best').textContent]; });
-  ok(e[0] && !e[1] && e[2] === 88 && e[3] === '88' && e[4] === 'YOUR BEST · 88', `… REPLAY = LIVE holds; not a run: YOUR BEST stays ${e[3]} ("${e[4]}")`);
+  ok(e[0] && !e[1] && e[2] === 88 && e[3] === '88' && e[4] === 'YOUR BEST 88 · AVG —', `… REPLAY = LIVE holds; not a run: YOUR BEST stays ${e[3]} ("${e[4]}")`);
   await t.close();
 
   // ---- THE TRENCH: the red moves (the view follows the rules' own slice)

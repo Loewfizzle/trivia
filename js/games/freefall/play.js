@@ -36,9 +36,18 @@ const LOOK = Q.get('look') === 'day' || Q.get('look') === 'night' ? Q.get('look'
 // (`?pano=0.5` — THE LOOK CHECK: the rooftop's panorama turned half a picture round, so its join (u = 0 / 1) is in the middle of the screen)
 const readBest = () => { try { return cleanBest(localStorage.getItem(BEST_KEY)); } catch { return 0; } };
 const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catch { /* a private window forgets: fine */ } };
+// F5C — THE NAME on the share card = the SIGNED-IN player's: the console's own saved profile on this phone (a phone is slot 1 — its `me`
+// = the global profile's name, else the room name it last used). READ only, never written; the page's graph stays free of the console.
+const NAME_KEYS = Object.freeze(['na:1:me', 'na:1:profile']);
+const myName = () => {
+  for (const k of NAME_KEYS) {
+    try { const v = JSON.parse(localStorage.getItem(k) || 'null') || {}, n = String((v.profile && v.profile.n) || v.name || '').trim(); if (n) return n; } catch { /* the next */ }
+  }
+  return '';
+};
 
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds) with the page's own pieces on (`page`): the SOUNDS
 // list, the note; YOUR BEST = this phone's (`ff:play:best`)
 try {
-  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest } });
+  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest }, name: myName });
 } catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); }

@@ -24,7 +24,7 @@ import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S } from
 import { createTiers } from '../kit/tiers.js';
 import { resolveLook, sunUpNow } from '../kit/look.js';
 import { createNight, FF_ART_REV, SHAPE } from './night.js';
-import { endCard } from './endscreen.js';
+import { endCard, warmLogo } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
@@ -128,6 +128,7 @@ export function createStage(app0, o = {}) {
   const holdN = h('div.ff-hold-n'), holdL = h('div.ff-hold-l');
   const holdEl = h('div.ff-hold', { hidden: true, role: 'status' }, h('div.ff-hold-t', 'PAUSED'), holdN, holdL);
   const EC = endCard({ header: MODE === 'solo' ? 'solo' : MODE });
+  warmLogo();   // (F5C — THE LOGO ALWAYS SHOWS: fetched + decoded during play, painted in the end screen's first frame — the cartridge's podium too)
   const again = h('button.ff-again', { type: 'button' }, h('span.ff-again-i'), h('span.ff-again-t', 'PLAY AGAIN'));
   again.firstChild.innerHTML = ICON_AGAIN;
   // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
@@ -628,7 +629,9 @@ export function createStage(app0, o = {}) {
     pic = null;
     if (o.onLeave) return;   // (the cartridge's own card has no SHARE: the console's footer shares its podium's run)
     const res = resultOf(run), n = startN, shot = lastShot();
-    const card = { floor: res.floor, blazes: res.blazes, cause: res.cause, made: res.made, mode: MODE === 'solo' ? 'solo' : MODE, name: '' };
+    // (F5C — the card always shows the player's name: the page hands in the signed-in one — `o.name`; '' = truly none: A PLAYER)
+    let name = ''; try { name = String((o.name && o.name()) || '').slice(0, 24); } catch { /* none */ }
+    const card = { floor: res.floor, blazes: res.blazes, cause: res.cause, made: res.made, mode: MODE === 'solo' ? 'solo' : MODE, name };
     picKit().then(([S, C]) => { if (n !== startN) return; pic = S.prepPicture(() => (n === startN ? C.cardFor(card, shot) : null)); pic.warm(); }, () => {});
   }
   const sharePage = () => {
@@ -659,7 +662,7 @@ export function createStage(app0, o = {}) {
     // (the fresh-eyes review: the run was handed on AT THE `made` EVENT — handOn; the card only adds the page's own two checks to it)
     if (res.made) { handOn(); finished.same = same; finished.judged = verdict.ok === true; }
     EC.set({ words: endWords(res), made: res.made, floor: res.floor, bounces: res.bounces, blazes: res.blazes, bestRun: res.bestRun });
-    EC.best(fromRun ? was : best, isNew, was);
+    EC.best(fromRun ? was : best, isNew, was, null);   // (F5C: the test page counts nothing — its AVG is a dash)
     warmPic();   // (F5B: the share picture is ready by the time a thumb reaches SHARE)
     // F4A — THE CARTRIDGE: a PROVEN run ends on the console's podium (view.js — `own: false`: this card stays away); an UNPROVEN one on
     // this card, with its reason (`note`)

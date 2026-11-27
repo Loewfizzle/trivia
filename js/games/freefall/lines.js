@@ -18,5 +18,5 @@ export function wouldLine(w) {
   return `WOULD COUNT · ${parts.join(' · ')}`;
 }
 /** F4B's end-card line, its data wired now (JAYWALK's JT2 — core/board-avg.js: shown from 5 counted SOLO runs; a dash under 5):
- *  "YOUR BEST · 141 · AVG 62" · "YOUR BEST · 141 · AVG —" · '' = no best yet */
-export const bestAvgLine = (best, avg) => (best > 0 ? `YOUR BEST · ${num(best)} · AVG ${avg != null && avg >= 0 ? num(avg) : '—'}` : '');
+ *  "YOUR BEST 141 · AVG 62" · "YOUR BEST 141 · AVG —" · '' = no best yet (F5C — the owner's wording: no dot between YOUR BEST + its number) */
+export const bestAvgLine = (best, avg) => (best > 0 ? `YOUR BEST ${num(best)} · AVG ${avg != null && avg >= 0 ? num(avg) : '—'}` : '');

@@ -1,8 +1,8 @@
 // THE END-SCREEN BOARD (F5B — the owner's FINAL SHAPE, Nov 27: docs/cartridge.md "THE END-SCREEN BOARD"): ONE shared leaderboard block for
 // the podium (ui/final.js mounts it under the game's body), PER-GAME OPT-IN — a cartridge's `END_BOARD = { b, word, avg }` (games/contract.js).
 // FREEFALL is the only game on; a cartridge without END_BOARD never loads this module (its end screen is exactly as it was).
-//   SOLO: the board's TOP 3 — THE WORLD by default — with a small FRIENDS tick beside the heading (a drawn box + the word: no pill) that
-//     switches the rows to YOUR TABLE (you + your friends' bests — the server's /api/profile `table`). ONE remembered setting for every game
+//   SOLO: the board's TOP 3 — everyone by default — under ONE header: the tick "☐ FRIENDS ONLY" (F5C — the owner, Nov 27: no "THE WORLD"
+//     heading; a drawn box + the words: no pill; unticked = everyone) that switches the rows to YOUR TABLE (you + your friends' bests — the server's /api/profile `table`). ONE remembered setting for every game
 //     (localStorage `ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world stays. Each row: the rank, the player's SLIM CARD
 //     (ui/strip-board.js — stills + THE LIVE LANE; THE YOU ROW's glow on yours), BEST + AVG (the row's STORED average — core/board-avg.js:
 //     a dash under 5 runs). Not in the top 3 → ONE small line under them: "YOU · 12TH · 88 FLOORS".
@@ -61,7 +61,7 @@ function paintRows(list, rows, cfg, SB, AV, face) {
 }
 
 /**
- * mountEndBoard(el, cfg, { rows, players, me, solo, pubOf }) — fills `el` (the podium's slot): solo = the board's top 3 (THE WORLD / YOUR TABLE);
+ * mountEndBoard(el, cfg, { rows, players, me, solo, pubOf }) — fills `el` (the podium's slot): solo = the board's top 3 (everyone / YOUR TABLE — the FRIENDS ONLY tick);
  * a match = the frame's own rows (rows: [{ uid, rank, score }], best first). → { destroy() }
  */
 export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo = true, pubOf = () => null } = {}) {
@@ -86,16 +86,14 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
     show(top, mine, r => pubOf(players[r.uid]) || { n: (players[r.uid] || {}).name, a: (players[r.uid] || {}).avatar, c: (players[r.uid] || {}).color }).catch(() => {});
     return { destroy() { gone = true; done(); } };
   }
-  // SOLO: THE WORLD · or YOUR TABLE (the FRIENDS tick — remembered)
-  const k = h('span.eb-k', 'THE WORLD');
+  // SOLO: everyone · or YOUR TABLE (F5C: the header = the tick "☐ FRIENDS ONLY" alone — remembered; no heading word)
   const box = h('i.eb-box', { 'aria-hidden': 'true' });
-  const tick = h('button.eb-tick', { type: 'button', role: 'checkbox', 'aria-checked': 'false', 'data-press': true, onclick: () => setFriends(!friends, true) }, box, h('span', 'FRIENDS'));
-  el.append(h('div.eb-head', k, tick), list, you, note);
+  const tick = h('button.eb-tick', { type: 'button', role: 'checkbox', 'aria-checked': 'false', 'data-press': true, onclick: () => setFriends(!friends, true) }, box, h('span', 'FRIENDS ONLY'));
+  el.append(h('div.eb-head', tick), list, you, note);
   let friends = false, ask = 0;
   function setFriends(on, byTap, msg = '') {
     friends = !!on; const n = ++ask;
     tick.setAttribute('aria-checked', String(friends)); tick.classList.toggle('is-on', friends);
-    k.textContent = friends ? 'YOUR TABLE' : 'THE WORLD';
     if (byTap) writeFr(friends);
     note.textContent = msg;
     (friends ? tableRows(b) : worldRows(b)).then(R => {

@@ -80,8 +80,10 @@ export const ROOF = Object.freeze({ cx: 0.505, cy: 0.472, sky: 0.130, s0: 0.92, 
 export const ROOF_WIDE = (SKYLIGHT.half + SKYLIGHT.bar) / ROOF.sky, ROOF_Y = -BREAK_FLOORS.skylight * SHAPE.H + SKYLIGHT.up;
 /** THE MOTES by kind: [the shader's kind (1 a bubble · 2 a soft dot), its speed in floors a second (+ = rising), its size, its strength, its colour] */
 export const MOTE_KINDS = Object.freeze([null, [1, 0.55, 0.05, 0.9, 0.85, 1, 1], [2, -0.07, 0.024, 0.7, 0.75, 0.9, 1], [2, 0.04, 0.015, 0.5, 1, 0.98, 0.9]]);
-/** F5B — THE WATER SWAP: the night's bubbles glow CYAN on the dark teal (the day's are white-aqua) */
-export const MOTE_NIGHT = Object.freeze([0.4, 0.9, 1.0]);
+/** F5B — THE WATER SWAP: the night's bubbles glow CYAN on the dark teal (the day's are white-aqua) · F5C: brighter + MOTE_NIGHT_SIZE bigger —
+ *  as clearly seen as DAY UNDER's */
+export const MOTE_NIGHT = Object.freeze([0.55, 1.0, 1.0]);
+export const MOTE_NIGHT_SIZE = 1.35;
 /** the motes' FIXED pool — the tiers trim how many are drawn (tier 0 · 1 · 2) */
 /** THE ROOFTOP's PANORAMA (the add-on, Nov 26 — FREEFALL's own, 3072 × 1024, a 360° picture): shown across `az` radians of the compass (it
  *  repeats round it — a texel is never stretched past ~1.3 screen pixels on a 390 / 430-wide phone at 3×), `el` radians tall, its top at
@@ -766,7 +768,7 @@ export function createNight(host, o = {}) {
       moteA -= sec * 3;
       if (moteA <= 0) {
         moteA = 0; moteKind = mk;
-        if (mk) { const M = MOTE_KINDS[mk]; moteU.uKind.value = M[0]; moteU.uSpeed.value = M[1] * SHAPE.H; moteU.uSize.value = M[2]; if (day) moteU.uCol.value.set(M[4], M[5], M[6]); else moteU.uCol.value.set(MOTE_NIGHT[0], MOTE_NIGHT[1], MOTE_NIGHT[2]); }
+        if (mk) { const M = MOTE_KINDS[mk]; moteU.uKind.value = M[0]; moteU.uSpeed.value = M[1] * SHAPE.H; moteU.uSize.value = M[2] * (day || M[0] !== 1 ? 1 : MOTE_NIGHT_SIZE); if (day) moteU.uCol.value.set(M[4], M[5], M[6]); else moteU.uCol.value.set(MOTE_NIGHT[0], MOTE_NIGHT[1], MOTE_NIGHT[2]); }
       }
     } else if (moteA < 1) moteA = Math.min(1, moteA + sec * 1.6);
     motes.visible = moteKind > 0 && moteA > 0;

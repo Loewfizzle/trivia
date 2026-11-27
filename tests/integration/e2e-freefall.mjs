@@ -18,6 +18,8 @@ import { join } from 'node:path';
 import { verifyRun } from '../../api/_lib/freefall.js';
 import { logFromChunks, chunkTimes, stampsOf, START_LEAD_MS, RESUME_LEAD_MS } from '../../js/games/freefall/proof.js';
 import { seedOf } from '../../js/games/freefall/logic.js';
+import { createRun } from '../../js/games/freefall/engine.js';
+import { floorInto } from '../../js/games/freefall/tower-gen.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -71,11 +73,21 @@ const pastMoment = async P => {
     await sleep(700);
   }
 };
-/** play to `floor` with the checks' own hand, then onto the red (the run ends) → the page's own result */
+/** F5C — THE CAUSE IS CERTAIN: does the run's OWN tower (its seed — the proof's: hash(code + matchId + GO), never a test's) carry red on
+ *  floor i? (a floor without red — the blind floors 40 + 120, a red-free layout — left the 'red' hand bouncing there until the darkness took it:
+ *  F5B's one red run "caught by the darkness at floor 12") */
+const redOn = (seed, i) => { const r = createRun({ seed: String(seed), mode: 'solo' }), f = floorInto(r.h, i, r.R, { i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 }); return !!(f.red || f.m1); };
+/** play to `floor` with the checks' own hand, then onto the red ON THE FIRST FLOOR FROM THERE THAT HAS RED (the run ends) → the page's own result */
 async function playTo(P, floor) {
   await P.ev(`${ST}.auto = 'play'`);
   await P.waitFor(`${ST}.state().floor >= ${floor} || ${ST}.state().over`, 90000);
-  await P.ev(`${ST}.auto = 'red'`);
+  for (let k = 0; k < 60; k++) {
+    const s = await P.ev(`(() => { const s = ${ST}.state(); return { over: !!s.over, floor: s.floor, seed: s.seed }; })()`);
+    if (s.over) break;
+    const red = redOn(s.seed, s.floor);
+    await P.ev(`${ST}.auto = '${red ? 'red' : 'play'}'`);
+    await P.waitFor(`${ST}.state().over || ${ST}.state().floor !== ${s.floor}`, red ? 20000 : 30000);
+  }
   await P.waitFor(`${ST}.state().over`, 20000);
   return P.ev(`${ST}.result()`);
 }
@@ -152,12 +164,12 @@ try {
   ok(await P.waitFor("!!document.querySelector('.ff-fin[data-would]')", 20000), 'the server\'s answer arrives (kept on the body — no line on the screen)');
   const would = await P.ev("({ floor: document.querySelector('.ff-fin').dataset.would, line: !!document.querySelector('.ff-fin-would') })");
   ok(would.floor === String(res1.floor) && !would.line, `THE SWITCH is OFF: WOULD COUNT at floor ${would.floor} — the server's own floor = the phone's; no WOULD COUNT line takes room`);
-  // F5B — THE END-SCREEN BOARD (ui/end-board.js — FREEFALL's END_BOARD): THE WORLD's top 3 + a FRIENDS tick; the screen does not scroll
+  // F5B — THE END-SCREEN BOARD (ui/end-board.js — FREEFALL's END_BOARD): the board's top 3 under ONE header — F5C: the tick FRIENDS ONLY alone; the screen does not scroll
   ok(await P.waitFor("!!document.querySelector('.ff-final .final-eb.eb .eb-head .eb-tick[role=checkbox]')", 15000), 'F5B — the shared board block is up: its heading + the FRIENDS tick');
-  const eb = await P.ev("(() => { const f = document.querySelector('.ff-final .final'); return { k: document.querySelector('.eb-k').textContent, rows: document.querySelectorAll('.eb-list li').length, note: document.querySelector('.eb-note').textContent, scroll: f.scrollHeight - f.clientHeight, winner: getComputedStyle(document.querySelector('.ff-final .winner')).display, stats: !!document.querySelector('.ff-fin .ff-ec-line') }; })()");
+  const eb = await P.ev("(() => { const f = document.querySelector('.ff-final .final'); return { k: document.querySelector('.eb-head').textContent + (document.querySelector('.eb-k') ? ' + a heading' : ''), rows: document.querySelectorAll('.eb-list li').length, note: document.querySelector('.eb-note').textContent, scroll: f.scrollHeight - f.clientHeight, winner: getComputedStyle(document.querySelector('.ff-final .winner')).display, stats: !!document.querySelector('.ff-fin .ff-ec-line') }; })()");
   await P.ev("document.querySelector('.eb-tick').click()");
-  ok(await P.waitFor("document.querySelector('.eb-note').textContent === 'NO FRIENDS YET' && document.querySelector('.eb-k').textContent === 'THE WORLD' && document.querySelector('.eb-tick').getAttribute('aria-checked') === 'false'", 15000), `F5B — FRIENDS ticked with no friends yet: "${await P.ev("document.querySelector('.eb-note').textContent")}" — THE WORLD stays (the server's YOUR TABLE asked once)`);
-  ok(eb.k === 'THE WORLD' && eb.rows <= 3 && eb.winner === 'none' && !eb.stats && eb.scroll <= 1, `… "${eb.k}" (${eb.rows} rows${eb.note ? ` — ${eb.note}` : ''}), no winner line, no stats line, NOTHING SCROLLS (${eb.scroll} px over)`);
+  ok(await P.waitFor("document.querySelector('.eb-note').textContent === 'NO FRIENDS YET' && !document.querySelector('.eb-k') && document.querySelector('.eb-tick').getAttribute('aria-checked') === 'false'", 15000), `F5B — FRIENDS ticked with no friends yet: "${await P.ev("document.querySelector('.eb-note').textContent")}" — everyone stays (the server's YOUR TABLE asked once)`);
+  ok(eb.k === 'FRIENDS ONLY' && eb.rows <= 3 && eb.winner === 'none' && !eb.stats && eb.scroll <= 1, `… "${eb.k}" (${eb.rows} rows${eb.note ? ` — ${eb.note}` : ''}), no winner line, no stats line, NOTHING SCROLLS (${eb.scroll} px over)`);
   await sleep(400);
   await P.shot('f4a-cartridge-end-would-count.png');
   await sleep(1200);
@@ -242,7 +254,7 @@ try {
   ok(stats && stats.b && stats.b['freefall-solo'] && stats.b['freefall-solo'].a === res7.floor, `… the best: floor ${res7.floor} on the board freefall-solo (the server's replay)`);
   ok(stats && stats.av && stats.av['freefall-solo'] && stats.st && stats.st.n >= 1, '… the day row of THE AVERAGE written (pstats.av/freefall-solo — as on JAYWALK) + the streak day');
   await pastMoment(P);
-  ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.ff-fin .ff-ec-best').textContent) && !document.querySelector('.ff-fin-would')", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")} — no WOULD COUNT line`);
+  ok(await P.waitFor("/^(NEW BEST · \\d+|YOUR BEST \\d+ · AVG (\\d+|—))$/.test(document.querySelector('.ff-fin .ff-ec-best').textContent) && !document.querySelector('.ff-fin-would')", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")} — no WOULD COUNT line`);
   await P.shot('f4a-cartridge-end-counted.png');
   await dbPut('testFreefallCounts', null);
   ok(P.errs.length === 0, `no page errors${P.errs.length ? ` (${P.errs.slice(0, 3).join(' · ')})` : ''}`);
