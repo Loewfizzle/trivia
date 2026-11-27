@@ -365,6 +365,9 @@ export function createNight(host, o = {}) {
   let shardN = 0, sparkN = 0, punchN = 0, flameN = 0, flameOwed = 0, emberOwed = 0, fxHave = 0, wK = -1, wA = 0, wB = 0, wS = 0, wR = 0, wC = 0, areaA = 0, moteKind = 0, moteA = 0, fogSnap = true;
   /** a FINISH's floor (match + daily: THE BOTTOM — no floor is drawn from there down: the seabed is the floor) · −1 = endless */
   let fin = -1, tauNow = 0;
+  // (F5A — THE SHARE CARD's STAGED frame, shot() below: the camera's step back · the glow's share · no punch light, no sparks)
+  let staged = false, shotZoom = 1, shotBloom = 1, shotGlow = 0;
+  const SV = new Float64Array(24);
   const punchAt = new Float64Array(PUNCHES).fill(-10);
   const rnd = (() => { let x = 0x2545f491; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; })();
 
@@ -639,7 +642,7 @@ export function createNight(host, o = {}) {
     S[CAMY] += (want - S[CAMY]) * k;
     S[KICK] *= Math.exp(-sec * 9); S[SHAKE] *= Math.exp(-sec * 11);
     const shake = S[SHAKE] > 0.01 ? Math.sin(time * 71) * 0.035 * S[SHAKE] : 0;
-    const lookY = place(cam, S[PITCH], S[BACK], S[BALLY], S[CAMY], -S[KICK] + shake);
+    const lookY = place(cam, S[PITCH], S[BACK] * shotZoom, S[BALLY], S[CAMY], -S[KICK] + shake);
     // (a FINISH: over the last floor's fall the core stays behind as a STUMP in the sand — it stops going down with the ball a little short of the bed)
     const stump = fin >= 0 && S[CAMY] > fin - 1 ? STUMP * (S[CAMY] - fin + 1 > 1 ? 1 : S[CAMY] - fin + 1) : 0;
     pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22 + stump; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it goes down with the BALL's own glide: never a stub over the floor it lands on)
@@ -700,7 +703,8 @@ export function createNight(host, o = {}) {
     P[8] = 0; P[9] = my; P[10] = SHAPE.RB; P[11] = SHAPE.R_BALL * 1.35;
     Q[8] = 2; Q[9] = ms * alive * (1 - 0.5 * Math.min(1, lift / SHAPE.HOP)); Q[10] = 0; Q[11] = 0;
     LC[6] = day ? 0.92 : 1; LC[7] = day ? 0.05 : 0.82; LC[8] = day ? 0.36 : 0.95;   // (by day THE MARK is a pink ring on the ice — white light is lost on it)
-    for (let p = 0; p < PUNCHES; p++) { const age = (time - punchAt[p]) / 0.5, q = (PUNCH0 + p) * 4; Q[q] = 3; Q[q + 1] = age >= 0 && age < 1 ? 1.2 : 0; Q[q + 2] = Math.min(1, Math.max(0, age)); Q[q + 3] = 0; }
+    if (staged && shotGlow > 0 && solid) { P[11] = SHAPE.R_BALL * 3.4; Q[9] = shotGlow; LC[6] = 1; LC[7] = 0.1; LC[8] = 0.16; }   // (F5A — the staged frame: the slice it is about to land on GLOWS RED)
+    for (let p = 0; p < PUNCHES; p++) { const age = (time - punchAt[p]) / 0.5, q = (PUNCH0 + p) * 4; Q[q] = 3; Q[q + 1] = !staged && age >= 0 && age < 1 ? 1.2 : 0; Q[q + 2] = Math.min(1, Math.max(0, age)); Q[q + 3] = 0; }
     lP.needsUpdate = lQ.needsUpdate = lC.needsUpdate = true;
 
     // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames shed where it has just been (it falls away from them: a billowing
@@ -767,9 +771,10 @@ export function createNight(host, o = {}) {
     const BO = breaks.out;
     skyU.uOpen.value = BO[0]; wallU.uLitT.value = BO[2]; wallU.uShafts.value = BO[3];
     S[ROOFA] += (BO[1] - S[ROOFA]) * Math.min(1, sec * 6); skyU.uGA.value = S[ROOFA];
+    if (staged) sparks.visible = false;
     renderer.setRenderTarget(wallRT); renderer.render(wallScene, wallCam); renderer.setRenderTarget(null);
     renderer.render(scene, cam);
-    if (bloom && tier === 2) bloom.render(scene, cam, TWINS, day ? 0.4 : 1);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
+    if (bloom && tier === 2) bloom.render(scene, cam, TWINS, (day ? 0.4 : 1) * shotBloom);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
     // F4B — THE GHOSTS: over the finished picture, on its own depth (seen · x-ray where the tower hides them · the name tags on top)
     if (ghostN > 0) {
       V.copy(ball.position).project(cam);
@@ -853,6 +858,38 @@ export function createNight(host, o = {}) {
       c.imageSmoothingQuality = 'high'; c.drawImage(el, q.x, q.y, q.w, q.h, 0, 0, bw, bh);
       cv.ballX = (b[0] * el.width - q.x) / q.w; cv.ballY = (b[1] * el.height - q.y) / q.h;
       return cv;
+    },
+    /** F5A — THE SHARE CARD's STAGED FRAME (shot.js: the hero frame tells the story): the scene drawn ONCE MORE for the card alone — the
+     *  run `runX` at its clock `tauX` (stage.js: the moment a beat before the end, replayed; THE BOTTOM: the run itself at the impact),
+     *  the camera a step back (o.zoom), the ball alive (o.alive), the slice under it glowing (o.glow), the glow's share (o.bloom), no
+     *  punch light + no sparks — then copied off the canvas as snap() does. Nothing of it stays: the view's own eased numbers, the
+     *  slice's flash + the sparks are put back; the stage draws the screen's own frame again right after (the same animation frame — the
+     *  staged picture is never shown). Once a run, after its end: never in play. */
+    shot(runX, tauX, bw, bh, rect, o) {
+      if (!w || !el.width || !el.height) return null;
+      SV.set(S);
+      const st0 = state, sv0 = sparks.visible;
+      let fi = -1, f0 = 0;
+      try {
+        staged = true; shotZoom = o.zoom > 0 ? o.zoom : 1; shotBloom = o.bloom >= 0 ? o.bloom : 1;
+        S[KICK] = 0; S[SHAKE] = 0; S[SQUASH] = 0;
+        if (o.alive) {
+          state = 'live'; S[OUTK] = 0;
+          // (the camera stands where it stood THEN: on the ball's floor — in a fall, gliding down with it)
+          const span = runX.nl - runX.pl, u = runX.fl === 'fall' && span > 0 ? Math.min(1, Math.max(0, (tauX - runX.pl) / span)) : 1;
+          S[CAMY] = runX.floor - (1 - u);
+        }
+        if (!o.alive) breaks.quiet(true);   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it)
+        shotGlow = o.glow > 0 ? o.glow : 0;
+        // (the slice under the ball wears no leftover flash in the picture: it reads RED — its glow is THE MARK's, red-hot, in draw())
+        if (shotGlow > 0) { const fr = floorRec(runX.floor), su = sliceUnder(runX.a, fr.twist); fi = (runX.floor % RING) * SLICES + su; f0 = flash[fi]; flash[fi] = 0; }
+        draw(runX, tauX, 0);
+        return this.snap(bw, bh, rect);
+      } finally {
+        if (fi >= 0) flash[fi] = f0;
+        breaks.quiet(false);
+        S.set(SV); state = st0; sparks.visible = sv0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;
+      }
     },
     /** where things are on the screen — the page's own check: the ball (its centre + its size in px), its floor's line, the floors in sight under it */
     frame(run) {

@@ -452,17 +452,19 @@ export function createBreaks(X) {
     }
 
     // the sprites: drawn only while one is alive
-    bursts.visible = now < burstUntil;
+    bursts.visible = now < burstUntil && !quiet;
     if (forced) for (let i = 0; i < meshes.length; i++) meshes[i].visible = true;
     if (burstDirty) { burstDirty = false; bO.needsUpdate = bV.needsUpdate = bT.needsUpdate = bK.needsUpdate = bC.needsUpdate = bM.needsUpdate = true; }
   }
-  let spWakeOwed = 0, forced = false, raysUntil = -1;
+  let spWakeOwed = 0, forced = false, raysUntil = -1, quiet = false;
 
   /** THE WARM FRAME's share: every piece drawn once (their programs — the picture's + the bloom pass's — are built behind the opening) */
   function force(on) { forced = !!on; for (let i = 0; i < meshes.length; i++) meshes[i].visible = forced; }
   reset({ R: { modes: { solo: { finish: null } } }, mode: 'solo' });
   return {
     reset, feed, update, setLook, out, meshes, force,
+    /** (F5A — THE SHARE CARD's staged frame of THE BOTTOM: the sprites — the dust over the ball — are left out of that one picture) */
+    quiet(on) { quiet = !!on; },
     /** the seabed's height (a finish: the ball comes to rest on it) */
     bedY: () => bedY,
     info: () => ({ skylight: skSt, splash: spSt, bottom: boSt, played, mouth: bedHole.value, rocks: rGeo.instanceCount, line: waterU.uLine.value, sprites: bursts.visible ? BURSTS : 0, deck: deck.visible, frame: frame.visible, glass: glass.visible, water: water.visible, bed: bed.visible || chunks.visible, pieces: [glass.geometry.instanceCount, chunks.geometry.instanceCount] }),

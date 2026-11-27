@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { SHOT_AT, shotMs, BALL_AT, ballAt, SHOT_BOX, shotCrop, keepShot, shotFor, lastShot } from '../js/games/freefall/shot.js';
+import * as SHOTS from '../js/games/freefall/shot.js';
 import { END_WORDS, seedOf } from '../js/games/freefall/logic.js';
 import { AREAS } from '../js/games/freefall/tuning.js';
 
@@ -48,11 +49,28 @@ test('THE FRAME (shot.js): taken a beat after the end, per cause — always BEFO
 
 test('THE STAGE + THE SCENE: ONE small hook each — the frame JUST DRAWN is copied in that frame (no preserveDrawingBuffer), once a run, never in play', () => {
   const st = read(`${FF}stage.js`), n = read(`${FF}night.js`);
-  assert.ok(st.includes("import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX } from './shot.js';"));
+  assert.ok(st.includes("import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';"));
+  // F5A — THE HERO FRAME TELLS THE STORY: the frame is STAGED — the moment a beat BEFORE the end, replayed from the run's own log and drawn
+  // once more for the card alone (zoomed out, the ball alive over the red slice, no hit flash, no sparks); the screen's own frame is drawn
+  // again right after it, in the same animation frame
+  assert.match(st, /const G = stagingOf\(cause\), rb = runBefore\(G\.before\);\n {8}cv = view\.shot\(rb \|\| run, rb \? rb\.t : tauD, SHOT_BOX\.w, SHOT_BOX\.h, rect, G\);\n {8}view\.draw\(run, tauD, 0, lead\);/, 'the staged frame, then the screen\'s own again');
+  assert.match(st, /function runBefore\(ticks\) \{\n {4}const until = run\.end - ticks;/, 'the moment before the end: the engine played again from the run\'s own log');
+  assert.match(st, /rb\.a = run\.a;/, 'the tower at the angle the run ENDED on: the ball is over the slice it is about to land on');
+  {
+    const S = SHOTS;
+    assert.deepEqual(S.stagingOf('red'), { before: 9, zoom: S.SHOT_ZOOM.red, bloom: S.SHOT_BLOOM.red, glow: S.SHOT_GLOW, alive: true }, 'the red: 150 ms before the hit, the slice glowing');
+    assert.ok(S.SHOT_BEFORE.red >= 9 && S.SHOT_BEFORE.red <= 15, 'a beat BEFORE the end: 150 – 250 ms'); assert.equal(S.SHOT_BEFORE.dark, S.SHOT_BEFORE.red);
+    assert.deepEqual([S.stagingOf('made').before, S.stagingOf('made').zoom, S.stagingOf('made').alive, S.stagingOf('made').glow], [0, 1, false, 0], 'THE BOTTOM: the impact itself, the finish\'s own pose');
+    assert.ok(S.SHOT_BLOOM.made <= 0.35, 'THE BOTTOM\'s bloom is kept LOW (the night gold card was a white blob)');
+    assert.ok(S.SHOT_ZOOM.red > 1.2 && S.SHOT_ZOOM.red < 1.6, 'zoomed out a little: 2 – 3 floors of context');
+    assert.deepEqual(S.stagingOf('constructor'), S.stagingOf('cap'), 'an unknown cause: the bell\'s');
+  }
+  const nj = readFileSync(new URL('../js/games/freefall/night.js', import.meta.url), 'utf8');
+  assert.match(nj, /shot\(runX, tauX, bw, bh, rect, o\) \{/, 'night.js#shot: the staged draw'); assert.match(nj, /S\.set\(SV\); state = st0; sparks\.visible = sv0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;/, '… nothing of it stays');
   // (right after the frame's own draw — the drawing buffer is still that frame's)
-  assert.match(st, /view\.draw\(R0, tauD, dt, lead\);\n    if \(over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs\(run\.st === 'out' \? run\.cause : run\.st\)\) takeShot\(\);/, 'the capture: the line right after view.draw, a beat after the end, once a run — this phone\'s OWN run on screen (never a WATCHED player\'s, never a watcher\'s)');
+  assert.match(st, /view\.draw\(R0, tauD, dt, lead\);\n    if \(over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs\(run\.st === 'out' \? run\.cause : run\.st\)\) takeShot\(tauD, lead\);/, 'the capture: the line right after view.draw, a beat after the end, once a run — this phone\'s OWN run on screen (never a WATCHED player\'s, never a watcher\'s)');
   assert.ok(st.includes('const shotKey = () => { try { return String((o.shotKey && o.shotKey()) || seed); } catch { return seed; } };'), 'the key: the driver\'s (the cartridge: its match id) — else the run\'s seed');
-  assert.match(st, /function takeShot\(\) \{\n    shotRun = startN;\n    if \(!view\.snap\) return;\n    try \{/, 'ONE try a run — whatever goes wrong never reaches the frame, and it is not tried again');
+  assert.match(st, /function takeShot\(tauD, lead\) \{\n    shotRun = startN;\n    if \(!view\.snap\) return;\n    try \{/, 'ONE try a run — whatever goes wrong never reaches the frame, and it is not tried again');
   assert.ok(st.includes('if (cv) keepShot({ key: shotKey(), canvas: cv, cause, made: !!res.made, floor: res.floor, blazes: res.blazes, look: lookT, ballX: cv.ballX, ballY: cv.ballY });'));
   assert.ok(st.includes('shot: () => shotFor(shotKey()),') && st.includes('shot: () => lastShot(),'), 'the stage\'s accessor + the checks\' hook');
   assert.doesNotMatch(n, /preserveDrawingBuffer:\s*true/, 'the canvas keeps no drawing buffer');

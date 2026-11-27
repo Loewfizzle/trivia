@@ -42,7 +42,9 @@ export const SHOT_LIFT = 0.3;
  *  (css/freefall-play.css `.ff-dark` — the frame itself holds none of it), so the card lays the same dark round the ball: a pool of the
  *  last light (clear to `clear` of the radius), closed in from every side — rx / ry of the box, its middle `down` of the box's height
  *  under the ball, the look's own dark (the stylesheet's --ff-dk: night · day) */
-export const DARK = Object.freeze({ rx: 0.6, ry: 0.78, clear: 0.26, down: 0.08, a: 0.95, night: '3,0,10', day: '12,14,26' });
+// (F5A — THE LIGHTS WENT OUT = the ball with the dark edge CLOSING ABOVE IT: the dark comes down from the frame's top to `edge` of the
+//  frame's height over the ball — a soft violet line of light along its foot, as the game's own edge — and the sides close in round it)
+export const DARK = Object.freeze({ rx: 0.72, ry: 0.95, clear: 0.34, down: 0.2, a: 0.9, edge: 0.15, night: '3,0,10', day: '12,14,26' });
 /** the area's line is wrapped only when it is over its room by more than this (a line a few px too long is drawn a little narrower) */
 export const SIDE_FIT = 1.08;
 const NUMS = '"Chakra Petch", system-ui, sans-serif';
@@ -125,7 +127,8 @@ export function drawFfMiddle(c, box, card, shot) {
     const src = shot.canvas, k = Math.max(w / src.width, h / src.height), dw = src.width * k, dh = src.height * k, dx = x + (w - dw) / 2, dy = y + (h - dh) / 2;
     c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(src, dx, dy, dw, dh);
     // BRIGHTER by night (the picture screened over itself — no canvas filter: an old Safari has none); a day frame is bright already
-    if (shot.look !== 'day') { c.globalCompositeOperation = 'screen'; c.globalAlpha = SHOT_LIFT; c.drawImage(src, dx, dy, dw, dh); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
+    // (F5A: THE BOTTOM's gold frame is NOT lifted — the night gold card was a white blob)
+    if (shot.look !== 'day' && !gold) { c.globalCompositeOperation = 'screen'; c.globalAlpha = SHOT_LIFT; c.drawImage(src, dx, dy, dw, dh); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
   } else { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#14102c'); g.addColorStop(1, '#090716'); c.fillStyle = g; c.fillRect(x, y, w, h); }
   // THE LIGHTS WENT OUT: the darkness itself (DARK) — the ball in the last pool of light
   if (card.cause === 'dark') {
@@ -133,6 +136,12 @@ export function drawFfMiddle(c, box, card, shot) {
     c.save(); c.translate(x + w * (shot && shot.ballX != null ? shot.ballX : 0.5), y + h * ((shot && shot.ballY != null ? shot.ballY : 0.4) + DARK.down)); c.scale(1, h * DARK.ry / rx);
     const d = c.createRadialGradient(0, 0, rx * DARK.clear, 0, 0, rx); d.addColorStop(0, `rgba(${col},0)`); d.addColorStop(1, `rgba(${col},${DARK.a})`);
     c.fillStyle = d; c.fillRect(-2 * w, -4 * h, 4 * w, 8 * h); c.restore();
+    // … the edge itself: the dark down from the top to just above the ball, a soft line of light along its foot
+    const by = (shot && shot.ballY != null ? shot.ballY : 0.4), ey = y + h * Math.max(0.12, by - DARK.edge), soft = h * 0.11;
+    const e = c.createLinearGradient(0, ey - soft, 0, ey); e.addColorStop(0, `rgba(${col},0.93)`); e.addColorStop(1, `rgba(${col},0)`);
+    c.fillStyle = `rgba(${col},0.93)`; c.fillRect(x, y, w, Math.max(0, ey - soft - y)); c.fillStyle = e; c.fillRect(x, ey - soft, w, soft);
+    const l = c.createLinearGradient(0, ey - 26, 0, ey + 10); l.addColorStop(0, 'rgba(150,110,255,0)'); l.addColorStop(0.6, day ? 'rgba(170,190,255,0.3)' : 'rgba(150,110,255,0.42)'); l.addColorStop(1, 'rgba(150,110,255,0)');
+    c.fillStyle = l; c.fillRect(x, ey - 26, w, 36);
   }
   // the words read on any frame: a soft dark at the head, a DARKER fade behind the foot's numbers
   let g = c.createLinearGradient(0, y, 0, y + 220); g.addColorStop(0, 'rgba(7,6,11,0.72)'); g.addColorStop(1, 'rgba(7,6,11,0)'); c.fillStyle = g; c.fillRect(x, y, w, 220);

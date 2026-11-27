@@ -17,7 +17,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
 import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
 import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff, floorInto } from './tower-gen.js';
-import { replay, judgeRun } from './replay.js';
+import { replay, judgeRun, isHold } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
 import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S } from './sounds.js';
@@ -30,7 +30,7 @@ import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
-import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX } from './shot.js';
+import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';
 
 /** the wall behind the top of the screen is the area's of this many floors up (night.js#walls keeps a seam in sight that long) */
 const INK_LAG = 5;
@@ -670,12 +670,31 @@ export function createStage(app0, o = {}) {
   // (`o.shotKey()` — the cartridge: its match id; else the run's seed) until the next run. Once a run; nothing is made in play.
   let shotRun = -1;
   const shotKey = () => { try { return String((o.shotKey && o.shotKey()) || seed); } catch { return seed; } };
-  function takeShot() {
+  /** F5A — the run as it stood `ticks` before its last tick (the engine played again from its own log — after the end: nothing here runs in
+   *  play), the tower at the angle the run ENDED on (the ball is over the slice it is about to land on) → null = it can't be had */
+  function runBefore(ticks) {
+    const until = run.end - ticks;
+    if (!(ticks > 0) || !(until > 0)) return null;
+    const rb = createRun({ seed, mode: MODE }), log = logOf(run);
+    for (let i = 0; i < log.length; i++) { const e = log[i]; if (e.t > until) break; if (isHold(e)) hold(rb, e.t); else turn(rb, e.t, angDiff(e.a, rb.a)); }
+    stepTo(rb, until);
+    if (isOver(rb) || rb.floor > run.floor || rb.floor < run.floor - 1) return null;
+    rb.a = run.a;
+    return rb;
+  }
+  function takeShot(tauD, lead) {
     shotRun = startN;
     if (!view.snap) return;
     try {   // (a picture is polish: whatever goes wrong here never reaches the frame)
-      const res = resultOf(run), cause = res.cause, at = ballAt(cause);
-      const cv = view.snap(SHOT_BOX.w, SHOT_BOX.h, (sw, sh, bx, by, col) => shotCrop(sw, sh, bx, by, at, col));
+      const res = resultOf(run), cause = res.cause, at = ballAt(cause), rect = (sw, sh, bx, by, col) => shotCrop(sw, sh, bx, by, at, col);
+      let cv = null;
+      if (view.shot) {
+        // F5A — THE HERO FRAME TELLS THE STORY: the moment a beat BEFORE the end, drawn once more for the card alone (shot.js) — then the
+        // screen's own frame again, in this same animation frame: the staged picture is never shown
+        const G = stagingOf(cause), rb = runBefore(G.before);
+        cv = view.shot(rb || run, rb ? rb.t : tauD, SHOT_BOX.w, SHOT_BOX.h, rect, G);
+        view.draw(run, tauD, 0, lead);
+      } else cv = view.snap(SHOT_BOX.w, SHOT_BOX.h, rect);
       if (cv) keepShot({ key: shotKey(), canvas: cv, cause, made: !!res.made, floor: res.floor, blazes: res.blazes, look: lookT, ballX: cv.ballX, ballY: cv.ballY });
     } catch { /* no frame: the card draws on the night's dark */ }
   }
@@ -752,7 +771,7 @@ export function createStage(app0, o = {}) {
       ghostsFrame(now, tauW, R0, tauD, lead);
     }
     view.draw(R0, tauD, dt, lead);
-    if (over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs(run.st === 'out' ? run.cause : run.st)) takeShot();   // (F4B — THE SHARE CARD's frame: this very frame, a beat after the end — this phone's OWN run on screen, never a watched one)
+    if (over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs(run.st === 'out' ? run.cause : run.st)) takeShot(tauD, lead);   // (F4B — THE SHARE CARD's frame: this very frame, a beat after the end — this phone's OWN run on screen, never a watched one)
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
     if (R0.floor !== hudFloor) hudFloorNow(R0);
     const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);

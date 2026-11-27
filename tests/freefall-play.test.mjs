@@ -239,7 +239,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.2, HOP: 0\.42, RISE: 0\.1, RW: 2\.7 \}\);/);
   assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/, 'the play camera = F1\'s graybox camera (the drag\'s 1 : 1 scale is the owner\'s phone check)');
   assert.match(read(`${FF}graybox.js`), /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/);
-  assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, day \? 0\.4 : 1\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass');
+  assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, \(day \? 0\.4 : 1\) \* shotBloom\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass (F5A: × the share card\'s staged frame\'s share — 1 in play)');
   assert.match(n, /dpr = Math\.min\(devDpr, dprMax, tier === 2 \? 3 : tier === 1 \? 2 : 1\.5\);/, 'the tiers: full 3× · 2× no bloom · 1.5×');
   assert.match(n, /wallRT\.setSize\(Math\.max\(2, bw >> 1\), Math\.max\(2, bh >> 1\)\);/, 'the shaft\'s wall is drawn at HALF resolution, then copied up');
   assert.match(n, /createImageBitmap\(bl\)/); assert.match(n, /try \{ renderer\.initTexture\(tex\); \}/, 'a picture is decoded off the frame + uploaded at once (LAG RULES 1)');
