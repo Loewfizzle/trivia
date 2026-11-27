@@ -126,8 +126,8 @@ for (const [name, query, play, extra, want, looks = LOOKS, endMs = 60000] of RUN
         cause: { cap: T.causePx * 0.72 * sc, ratio: ratio(B.x + 30, B.y + 88 - T.causePx * 0.8, 440, T.causePx * 0.86) },
         number: { cap: R.px * 0.7 * sc, ratio: ratio(R.x0, foot - T.bigUp - R.px * 0.7, R.bw, R.px * 0.72) },
         floors: { cap: T.unitPx * 0.72 * sc, ratio: ratio(R.x0, foot - T.unitUp - T.unitPx * 0.8, 250, T.unitPx * 0.86) },
-        area: { cap: T.sidePx * 0.72 * sc, ratio: ratio(rx - Math.min(R.room, 380), foot - T.sideUp - T.sideLh - T.sidePx * 0.8, Math.min(R.room, 380), T.sidePx * 0.86) },
-        blazes: { cap: T.sidePx * 0.72 * sc, ratio: ratio(rx - 300, foot - T.sideUp - T.sidePx * 0.8, 300, T.sidePx * 0.86) },
+        area: { cap: T.sidePx * 0.72 * sc, ratio: ratio(rx - Math.min(R.room, 380), foot - T.sideUp - (k.blazes ? T.sideLh : 0) - T.sidePx * 0.8, Math.min(R.room, 380), T.sidePx * 0.86) },   // (F5B: no blazes → the area on their line)
+        blazes: { cap: T.sidePx * 0.72 * sc, ratio: k.blazes ? ratio(rx - 300, foot - T.sideUp - T.sidePx * 0.8, 300, T.sidePx * 0.86) : 99 },   // (F5B: "0 BLAZES" is never drawn — nothing to read)
         name: { cap: H.FF_CARD.namePx * 0.72 * sc, ratio: ratio(W / 2 - 280, H.FF_CARD.nameY - H.FF_CARD.namePx * 0.8, 560, H.FF_CARD.namePx * 0.86) },
         site: { cap: 52 * 0.7 * sc, ratio: ratio(W / 2 - 330, 1284 - 24, 660, 48) },
       };

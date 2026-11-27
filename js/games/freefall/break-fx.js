@@ -361,9 +361,9 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
     float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 2.8);
     // … the BRICK: the painting's own warm colour as a soft broken column (darker than the wall) · the LAMPS: a pale amber heart
-    vec3 brick = min(wallC * vec3(1.15, 0.85, 0.7), vec3(0.5)) * uHaveW;
+    vec3 brick = min(wallC * vec3(1.3, 0.78, 0.5), vec3(0.55, 0.32, 0.2)) * uHaveW;   // (the review: it read lavender-white — brick is WARM)
     col = mix(col, brick, 0.42 * streak * smoothstep(0.05, 0.7, dash + 0.3 * (1.0 - smoothstep(0.2, 1.0, s))));
-    col += vec3(1.0, 0.74, 0.4) * min(heart * 0.5, 0.42) * streak * uHaveW;
+    col += vec3(1.0, 0.66, 0.3) * min(heart * 0.6, 0.45) * streak * uHaveW;
     // SUN GLINTS: small hard points of light that blink on the ripples (round on the screen: drawn longer toward the viewer)
     vec2 sp = speck(vW.xz * 7.0 + g * 0.1, 0.42, vec2(1.0, max(V.y, 0.25) * 2.2), 0.2);
     col += vec3(1.0, 0.97, 0.88) * sp.x * pow(0.5 + 0.5 * sin(uTime * 2.6 + sp.y * 60.0), 6.0) * (0.35 + 0.65 * smoothstep(0.25, 0.7, graze)) * 0.6;
@@ -374,8 +374,8 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     // a few thin moving ripple lines, quieter than before (the light on the swell)
     col = mix(col, vec3(0.55, 0.85, 1.0), lines(vW.xz * 1.9, uTime) * 0.16 * (1.0 - 0.7 * far));
     // the ball: its soft pink glow + a pale pink streak of light
-    col = mix(col, vec3(1.0, 0.5, 0.8), pool * 0.26);
-    col = mix(col, vec3(1.0, 0.72, 0.9), lane * 0.24);
+    col = mix(col, vec3(1.0, 0.5, 0.8), pool * 0.2);
+    col = mix(col, vec3(1.0, 0.72, 0.9), lane * 0.13);   // (the review: the column under the ball read as a white light — shorter, fainter)
     col = min(col, vec3(0.86));                 // (never a clipped white area: the brightest a glint or a crest may be)
   }
   // THE FOAM: a soft line where the water meets the wall + round the pillar (by night only a faint pale edge)

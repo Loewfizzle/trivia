@@ -19,8 +19,8 @@ export const BURSTS = 176, BURST_K = Object.freeze([0.45, 0.7, 1]);
 /** F5B — THE PLUNGE's CROWN: its spray puffs' colour, by look — the water's own aqua (day) / cyan (night), never white: these are the
  *  brightest a puff may be (by night they ADD to the scene: six at most, spread round the ring, so no point gets more than two) */
 /** … and its ring of foam (seven large puffs — by night they ADD: the near-white cloud of the plunge) */
-export const FOAM_RING = Object.freeze({ day: Object.freeze([0.42, 0.64, 0.74]), night: Object.freeze([0.1, 0.28, 0.34]) });
-export const CROWN = Object.freeze({ day: Object.freeze([0.5, 0.76, 0.86]), night: Object.freeze([0.16, 0.4, 0.48]) });   // (night: they ADD + bloom — held well under white)
+export const FOAM_RING = Object.freeze({ day: Object.freeze([0.26, 0.5, 0.62]), night: Object.freeze([0.1, 0.28, 0.34]) });
+export const CROWN = Object.freeze({ day: Object.freeze([0.34, 0.62, 0.74]), night: Object.freeze([0.16, 0.4, 0.48]) });   // (night: they ADD + bloom — held well under white)
 /** the skylight: its glass's half size (the ring is 1 wide: it passes inside the frame) · how far above floor 40 the pane lies · its frame's bar */
 export const SKYLIGHT = Object.freeze({ half: 1.25, up: 0.4, bar: 0.07 });
 /** the water: how far above floor 120 the surface lies · THE WATERLINE's sweep up the screen (s after the plunge, for how long) */

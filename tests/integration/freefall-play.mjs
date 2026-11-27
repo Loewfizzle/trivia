@@ -433,7 +433,9 @@ async function look() {
 // =============================================================================================================== THE CHECKS
 const box = (p, sel) => p.evaluate(s => { const n = document.querySelector(s); if (!n) return null; const r = n.getBoundingClientRect(), cs = getComputedStyle(n); return { x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height, text: n.textContent, col: cs.color, op: +cs.opacity, fs: parseFloat(cs.fontSize), hidden: !!n.hidden || cs.display === 'none' }; }, sel);
 const OUTSIDE = /^https:\/\/(cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three\.module\.js|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
-const COUNTS = /\/api\/|firebase|gstatic\.com\/firebasejs|\/js\/(profile|progress|board|daily|vault|chat|admin|screens)\/|\/js\/(firebase|store|room|host|identity|seat|app|config)\.js|sw\.js/i;
+// (F5B — SHARE = THE PICTURE ONLY: the end card's SHARE draws the run's card on the site's share kit — js/daily/share.js's DRAWING helpers +
+//  js/config.js's data come with it, lazily; tests/freefall-play.test.mjs proves neither asks a server. Every other path that counts stays out)
+const COUNTS = /\/api\/|firebase|gstatic\.com\/firebasejs|\/js\/(profile|progress|board|daily\/(?!share\.js)|vault|chat|admin|screens)\/?|\/js\/(firebase|store|room|host|identity|seat|app)\.js|sw\.js/i;
 
 async function checks1() {
   // ---- THE OPENING (390 × 844 @3)
@@ -763,8 +765,10 @@ async function checks3() {
   s = await st(t.p);
   ok(trimmed, `tier 0 trims it: ${s.info.motes} bubbles, the caustics on the wall only (${s.info.caust.toFixed(2)} on the slices)`);
   await t.p.evaluate(() => { window.__ffPlay.setTier(2); window.__ffPlay.setLook('night'); });
-  const dry = await waitFor(t.p, 'window.__ffPlay.state().info.motes === 0 && window.__ffPlay.state().info.caust < 0.05', 6000);
-  ok(dry && !t.errs.length, 'by night: no motes, no caustics (the night look is F2\'s)');
+  const wetN = await waitFor(t.p, 'window.__ffPlay.state().info.motes > 0 && window.__ffPlay.state().info.caust > 0.5', 6000);
+  // (F5B — THE WATER SWAP: by night UNDER THE HARBOR wears the day's water too — its bubbles (cyan) + the caustics' shimmer on the slices)
+  s = await st(t.p);
+  ok(wetN && !t.errs.length, `by night too (F5B — THE WATER SWAP): ${s.info.motes} bubbles, the caustics on the slices (${s.info.caust.toFixed(2)})`);
   await t.close();
   // ---- the other areas' motes by day: dust in the two rooms, drifting particles in THE DEEP, none on the rooftop
   for (const [floor, kind, area] of [[2, 0, 'rooftop'], [44, 3, 'offices'], [164, 2, 'deep']]) {
