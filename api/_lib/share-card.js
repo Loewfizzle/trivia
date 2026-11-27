@@ -33,7 +33,7 @@ export const CARD_W = 540, CARD_H = 675, MAX_BYTES = 400 * 1024, KEEP_DAYS = 3;
 // names (results/{ROOM}_{m} — st 'done', its game, o[pid]) on that result's own day (today / yesterday). ONE run card per player per game
 // per day, its own slot (shrp/{pid}:{game}/{day} — the day's DAILIES card keeps its own: a run never replaces a scorecard already sent),
 // replaced in place like the day's; stored with k: 'run' + s (the slot's owner). Its page opens the site's home.
-export const RUN_GAMES = Object.freeze(['jaywalk', 'highrise']), RUN_UPLOADS_A_DAY = 12;   // (HIGH RISE S5: its run card — taken only with the server's own COUNTED result: none while HIGHRISE_COUNTS is off)
+export const RUN_GAMES = Object.freeze(['jaywalk', 'highrise', 'freefall']), RUN_UPLOADS_A_DAY = 12;   // (HIGH RISE S5: its run card — taken only with the server's own COUNTED result: none while HIGHRISE_COUNTS is off · FREEFALL F4B: the same — none while FREEFALL_COUNTS is off)
 const ROOM_RE = /^[A-Z]{4}$/, MATCH_RE = /^[A-Za-z0-9_-]{4,24}$/;
 export const SHARE_UPLOADS_A_DAY = 6;   // (FIXES R1 A2 — a phone uploads only when its card changed: the day's finishes + a look turn ≈ 2–4)
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
