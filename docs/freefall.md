@@ -30,6 +30,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F3 — THE DAY LOOK + THE AREA COLOURS + THE NEW OPENING | Nov 26 2026 | `docs/games/passes/freefall-f3.md` | F2's open calls (THE HOLD = EXACT RESUME · the ball's rim + dot · the fire twice as long · the accent = title-05's pink + teal), THE AREA PALETTES (depth-relative), the day walls + the title, THE OPENING (title-05) + THE GLINT, THE DAY LOOK, THE ARRIVAL BANNERS |
 | F3B — THE ROOF BELOW + THE COLOUR FIXES + THE BREAKTHROUGHS | Nov 26 2026 | `docs/games/passes/freefall-f3b.md` | THE DARKNESS EASES WITH DEPTH (the rules) · THE ROOF BELOW · the colour fixes + THE COLOUR RULE · the banner under the number · PAUSED's cover · THE STUTTERS · the assets · THE SKYLIGHT (40) · THE SPLASHDOWN (120) · THE BOTTOM (200: solo cracks open · match + daily: the finish's moment + its hook) |
 | F4B — THE MATCH + THE END SCREEN (THE LOGO) + THE SHARE CARD (+ two fixes) | Nov 26 2026 | `docs/games/passes/freefall-f4b.md` | THE PAUSE GAP · THE SKYLIGHT's FRAME BAR · THE MATCH (the first GO's seed + tick 0, each player's own `ff` node, the ghosts, THE DEPTH RAIL + the edge markers, Call the Winner, WATCH THE LEADER, THE FINISH at THE BOTTOM / the 3:00 cap, the podium, REMATCH; the server's `freefallMatch`) · THE END SCREEN (the logo header, YOUR BEST · AVG, YOUR TABLE, the universal footer) · THE SHARE CARD + SHARE |
+| F5A — THE LOOK POLISH | Nov 27 2026 | `docs/games/passes/freefall-f5a.md` | THE WATER SURFACE rebuilt to the owner's two targets (worked out in its shader — the normal map gone) · THE FINISH (sand, rocks + their shadows, soft dust) + THE DAY CELEBRATION (bubbles, sun rays, the same soft fireworks) · THE ROOF GRAIN · THE SHARE CARD's STAGED hero frame · THE MARK = B · THROUGH THE FLOOR + the tile · THE BILLBOARD = A · THE LOGO + its readability proof — LOOK ONLY |
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 
 ## THE RULES (the owner's)
@@ -595,10 +596,9 @@ happened — nothing is played. The pieces are REAL 3D in the ONE scene, each dr
   flicker (the wall shader: `uLitT`). **NIGHT: the frame is outlined in eight NEON TUBES** (cyan · magenta · violet) whose light lies on
   the deck; **the hit SHORTS them** — a shower of sparks (white-blue + orange) from all round the frame, the tubes flickering out one
   after the other round it; the shards catch the pink / violet neon. Sound: `skylight.mp3` at the hit.
-- **THE SPLASHDOWN (floor 120 — the speakeasy → under the harbor):** the last speakeasy floors stand over **a real, NORMAL-MAPPED WATER
-  PLANE** across the shaft (Water 001, two layers scrolling against each other) that MIRRORS what is over it: the area's own wall (the
-  mirrored ray meets the shaft's cylinder — the speakeasy's lamps), the tower's lit rings + the ball (rippling streaks: by night the
-  neon). **The ball plunges in:** a crown of drops (lit from above by night), spray + a ring of mist (sprites), **a ring wave** running
+- **THE SPLASHDOWN (floor 120 — the speakeasy → under the harbor):** the last speakeasy floors stand over **a real WATER PLANE** across the shaft — **its SURFACE is F5A's ("THE WATER", below:
+  worked out in its shader — the speakeasy's lights as long broken streaks by night, turquoise + thin lines + foam by day; F3B's
+  normal-mapped mirror of the wall + the tower's rings is gone).** **The ball plunges in:** a crown of drops (lit from above by night), spray + a ring of mist (sprites), **a ring wave** running
   out from the impact (in the water's own shader), a burst of bubbles; **THE WATERLINE** — a wavy line in screen space with a bright
   meniscus — sweeps up the screen in 0.5 s (the camera dips under): below it the plane is gone and the world under the surface shows;
   **the mix goes muffled** for 1.5 s (`sfx.js#muffle`: a low-pass after the limiter); **then the light shafts fade in** (by day the sun
@@ -623,7 +623,7 @@ happened — nothing is played. The pieces are REAL 3D in the ONE scene, each dr
   five more rocks in front of the ball) —, the tower's core ends as a STUMP in the sand beside the ball (`STUMP` 0.36), the camera
   eases to THE FINISH's own pose (`POSE.finish`: the ball lower on the screen, the bed + what bursts over it in the picture's
   middle), the ball's last drop onto the bed is the view's own (the run is over: `night.js` carries its clock on), the same impact;
-  **by night a FIREWORK-STYLE burst** of gold + cyan glowing stars (three, 0.3 s apart, ROUND THE BALL — each a ball of stars about
+  **by night a FIREWORK-STYLE burst (by day THE DAY CELEBRATION — F5A, below: bubbles + sun rays)** of gold + cyan glowing stars (three, 0.3 s apart, ROUND THE BALL — each a ball of stars about
   1 across with a glint at its heart) + `fireworks.mp3` softly, 0.9 s after `bottom.mp3` (reduced motion: neither); the run is
   handed on at the `made` event, the end card waits 2.6 s (THE FINISH's HOOK, above). Sound: `bottom.mp3` at the hit — in solo too now.
 - **THE SPRITES = a FIXED pool of 176 GPU particles** (`BURSTS`; Kenney's Particle Pack: soft clouds · a soft dot · a ring · specks · a
@@ -633,6 +633,106 @@ happened — nothing is played. The pieces are REAL 3D in the ONE scene, each dr
 - **ZERO GARBAGE** (the static scan covers `roofPlane`, `breaks.js#update` + every moment's emitter): typed arrays written into.
   **THE WARM FRAME** draws every piece once in the picture AND the bloom pass (no program is built at floor 30). A ghost passing a
   breakthrough (F4: the match's rivals) = a small echo only — not built here (there are no ghosts yet).
+
+## F5A — THE LOOK POLISH (Nov 27 — the water · the finish · the day celebration · the roof grain · the share card's picture · THE MARK · THE BILLBOARD; `docs/games/passes/freefall-f5a.md`)
+LOOK ONLY: no rule, no proof, no score changed. FREEFALL stays HIDDEN; the counting SWITCH stays OFF.
+
+### THE WATER (the surface above THE SPLASHDOWN — `break-fx.js WATER_F`; the owner's targets `Downloads\NEON\freefall\ff-water-target-night.png` · `-day.png`, floor 119)
+The owner: night "needs a lot of work", day "a little off"; under the water = good (untouched). F3B's surface — Water 001's normal map in
+two layers, mirroring the wall + the tower's rings — read as crinkled foil / an oil slick, and the gold floors mirrored in dark water were
+a BROWN blob. **The surface is now worked out in its shader; the normal map is gone** (the asset, its build job + its credit removed).
+- **THE SWELL** (`swell()`): four long, slow waves on a warped ground → their slopes; flatter with distance. Large, smooth, slow.
+- **NIGHT:** deep TEAL-NAVY lifting toward the far edge (the swell's own soft light + a slow mottle). **THE STREAKS:** where the mirrored
+  ray (off the surface at rest) meets the shaft's wall, the wall's painting is read soft down the whole COLUMN over that point (two rows,
+  ONE softness on every phone — mip 5: the bias takes the screen's own step back out); a lamp + a neon strip are each a soft bell, the
+  bell's 4th power is its heart = a thin streak; **two clean inks** — a warm column = a lamp's pale amber, a cool one = neon leaning to
+  violet. Whole at the wall's foot, broken into dashes by the swell, fading with the distance from the wall — long BROKEN VERTICAL
+  STREAKS. **The tower's floors are NEVER mirrored**; the ball alone: a soft pink streak. Small pink / cyan glints (short dashes that
+  come + go), glowing cyan PLANKTON specks (round on the screen), LINEAR light capped at 0.62: never a white blotch.
+- **DAY:** bright TURQUOISE to the near edge, paler toward the far edge (a soft lift — no clipped rim); few, moving ripple LINES (the
+  zero lines of a slow field as soft strokes two or three pixels wide, broken into arcs that come + go — thinner + fewer than the
+  target's contour map; the review: hairline closed loops read as scratches on glass); sun sparkles near the far edge; a soft FOAM line
+  at the wall + round the pillar; the ball's soft PINK glow + a pale pink streak of light.
+- The surface is OPAQUE (at 0.97 the floors below showed through as ghost rings). The plunge (the ring wave, THE WATERLINE, the
+  meniscus) is F3B's; the day crown's spray is a touch aqua + born clear of the surface.
+- If a phone needs it cheaper: the streaks' two texture reads are the only pictures it touches (the wall's own, mip 5).
+
+### THE FINISH + THE DAY CELEBRATION (THE BOTTOM, floor 200 — `break-fx.js SAND · ROCK_F · RSHADOW_F · RAYS_F`, `breaks.js`)
+- **THE SAND READS AS SAND:** its own warm colour kept (it was washed to one grey-teal by day, one flat violet by night), SOFT LIGHT across
+  it (low dunes — a slow swell of light + shade), a fine grain + round grains of light near the ball and the tower's foot, the caustics by
+  day; **the bed thins out toward the shaft's far wall** (`farFade` — what is behind it shows through: it ended in a ruler-straight line;
+  the rocks stand inside it). The shockwave's ring is no clipped white band — and **a FINISH's
+  ring is GOLD** (the bed is whole: `uHole` 0 — the gold band's own colour, the share card's gold ring).
+- **THE ROCKS READ AS ROCKS:** a finer ball (`IcosahedronGeometry(1, 3)`) pushed about by a SLOW noise of its direction — broad shoulders +
+  hollows (it was a coarse ball with every corner knocked its own way: a spiky lump) —, its normals the pushed surface's own; mottled
+  stone, sand lying on its top, darker where it sits in the bed, a soft edge light; **each on its own soft SHADOW** (the rocks' instances
+  on a flat card, thrown a little away from the light).
+- **THE DUST IS SOFT:** many thin veils in the sand's own lit colour — a sprite with a cover UNDER 0 is a SOFT CLOUD: it keeps its own
+  thin cover in both looks, and a veil's light = its colour × its cover, so piled up they come to the dust's colour, never to white.
+  **A puff's depth is its NEAR side's** (`BURST_V`: a card at its middle's depth was cut off along a straight line wherever the ground
+  under it ran in front — the dust clouds' flat edges, the fireworks' half-discs). **The ball's halo fades out softly over the sand**
+  (`LIGHT_F uOnBed` — a finish only: the sand sliced it flat). The fireworks' stars are small hot points (they were flat cream discs).
+- **THE DAY CELEBRATION** (a finish by day — the night keeps its fireworks): three shimmering bursts of BUBBLES (bright rings thrown
+  out round a point, then rising, glints of sun among them — `breaks.js#bubbles`, the same three places + beat as the fireworks) + **SUN
+  RAYS from above** (`RAYS_F`: one upright card behind the ball turned to the camera in its vertex shader — many thin moving shafts on a
+  faint veil, pure added light, in with the first burst, gone 3.4 s later) + **the same soft `fireworks.mp3`** (the cue plays in BOTH
+  looks now — `stage.js`; reduced motion: neither). GPU sprites: the pool stays 176, the tiers shed a share.
+
+### THE ROOF GRAIN (floors 36 – 39 — `night-fx.js SKY_F` · `break-fx.js DECK_F`; `assets/freefall/roof/grain.webp`)
+The roof painting was made at 1024 + enlarged: ≈ 4 screen pixels a texel over the landing — soft by day. A fine concrete-grain DETAIL
+tile (256², 30 KB, **MADE IN CODE** by `scripts/build-freefall-assets.py --only=grain`: band-limited noise built in the frequency domain —
+it tiles exactly —, a fine grain + a mottle + a few pits, mean 0.5; no source, no credit) is laid over the roof as it comes close
+(`uGrain` — the deck's own measure: the plane's scale 0.3 → 0.8; nothing on the title screen or the first floors): two readings of it (a
+fine one + a coarser one turned, half each — no tile shows; the fine one alone did not survive a phone's scale) as light + shade about the painting's own colour; its mipmaps let it go with distance.
+ONE reading for the roof below + the deck round the skylight (no edge where the deck ends). Both looks (by night at under half strength).
+
+### THE SHARE CARD's HERO FRAME TELLS THE STORY (`shot.js` · `night.js#shot` · `stage.js#takeShot` + `runBefore`)
+The owner's real SHARE read as noise (the frame was the one drawn AFTER the crash: no ball, a white hit-flash slice, random spark
+streaks). **The frame is now STAGED:** a beat after the end the stage plays the run again from its own log to `SHOT_BEFORE` ticks (9 =
+150 ms) before its last tick, the tower at the angle the run ENDED on, and the scene draws that moment ONCE MORE for the card alone —
+the camera a step back (`SHOT_ZOOM` 1.32: 2 – 3 floors of context), the BALL alive + in the air, just above the RED slice it is about to
+land on, that slice glowing red-hot under THE MARK's own light (`SHOT_GLOW` — a white flash would whiten the slice), no hit flash, no
+punch light, no sparks — copies it off the canvas, puts every eased number back and draws the screen's own frame again **in the same
+animation frame: the staged picture is never shown.** Once a run, after its end — never in play. **THE LIGHTS WENT OUT** = the ball still
+lit, the card's dark edge closing down from the top to just above it (a soft violet line of light along its foot — `share.js DARK`) +
+the sides (the review: to within half a ball of the ball — a lit room said nothing at 360 px). **YOU HIT THE BOTTOM** = the impact itself
+(`SHOT_AT.made` 355 ms: the ball on the seabed, its GOLD ring tight round it), the dust + the last floor's red shards left out of that
+one picture (red is the death colour — never the subject of the WIN card), the bloom kept LOW (`SHOT_BLOOM.made` 0.3) and the night gold frame no longer lifted (it was a white blob).
+Match cards the same. The run can't be played again (a log that does not end where the run did) → the run's own last frame, staged alike.
+
+### THE MARK = B · THROUGH THE FLOOR (`js/core/marks.js` · the tile `js/ui/game-art.js`)
+The owner's pick: the white-hot ball ablaze — a pink outer flame, an orange inner flame with a thin yellow-white core — dropping through
+the gap in a violet floor; the owner's sketch drawn ~15 % bigger in its box (the floor keeps the box's width, its gap the ball's), `w` 6,
+ONE tube with a width of its own (the thin core flame: `w` on the tube — `ui/mark-svg.js`). It replaces the stand-in in the game list;
+FREEFALL has its TILE (the mark lit in the night shaft). **THE BOOT BUDGET WAS NOT RAISED** (a JAYWALK test pins it at 6500 KB; the boot
+stood 836 B under its line — the mark + the tile were slimmed to fit). THE CITY's sign for FREEFALL = the city chat's, at go-live (a
+city sign reads a mark's tubes at ONE width: the thin core flame needs the tube's own `w` there too).
+
+### THE BILLBOARD = A · THE LOGO (`billboard.js` · `scripts/build-freefall-billboard.mjs` → `assets/city/freefall/billboard.webp`; NOT installed in the city)
+HIGH RISE's B1 formula, 848 : 448: title-05's lettering big on the LEFT over the NIGHT rooftop city (FREEFALL's own panorama — the bridge
++ the skyline), THE BURNING TOWER on the right fading into the city (a STAGED frame of the finished game: the seed `poster1`, the bot
+dropping through the gaps until THE BLAZE is lit on the rooftop — cut out as a soft oval round the tower's own column: it melts into the
+city, never a pasted screenshot on a bounded roof), a dark FOOT BAND (a quarter of the height)
+with a pink neon line along its top + OPEN NOW in big white heavy letters (Bowlby One's path data — HIGH RISE's own
+`billboard-glyphs.js`, handed to the painter by the builder: no font load, nothing fetched). The painter is pure canvas, imports nothing,
+is in no game's graph. **Build:** `node scripts/build-freefall-billboard.mjs "<chromium>"` (serve.mjs — `E2E_BASE`). **THE READABILITY
+PROOF** (`tests/integration/freefall-billboard.mjs` — in the city at 390 × 844, local only: the roof board's JAYWALK OPEN NOW face
+forced, its picture's request answered with FREEFALL's in the test): the lettering 15.5 pt vs JAYWALK's word 9.0 pt · OPEN NOW 6.1 pt vs
+NOW OPEN 3.7 pt. **The CITY chat installs it at go-live.**
+
+### THE DAY OFFICES FOG (the add-on, Nov 26 — `night.js AREA_DAY · FOG_START`; the slices' + the pillar's haze)
+The owner's iPhone + F3B's shots: by DAY in THE OFFICES the floors washed into pale blue from about the 3rd floor under the ball (~40 % down
+the screen) — the day speakeasy + harbor fade from 60 – 70 %, the night offices are fine. Every area's haze ran from the ball's own floor
+(7 floors deep); a DARK haze only shows 4 – 5 floors down, but the offices' was the floors' own pale periwinkle on a pale blue wall — it
+showed at once. **The day offices' haze is a DEEPER blue and STARTS further down** (`FOG_START` 0.36 of its 7 floors — THE OFFICES alone;
+every other area 0: unchanged): its floors keep their colour + contrast as far down the screen as the other areas'. The check:
+`?look=day&floor=48` beside `&floor=90` + `&floor=130` at 390 × 844 @3 (`lookog-beside-48-90-130.png` — the fade begins at the same
+height in all three; the runner's scene `dayfog`).
+
+### THE PAUSE IN DAILIES (the owner, Nov 26 — a DECISION, nothing built here)
+A pause is ALLOWED in the daily in FREEFALL, JAYWALK + HIGH RISE, with the full safeguards (exact resume, the dark cover, no input while
+held or in the 3 · 2 · 1, the 2 s server stamp, 3 a run); never in multiplayer. It REPLACES "a daily try never HOLDS" (the daily itself
+is built later — the dailies chat).
 
 ## THE STUTTERS (F3B — the owner's iPhone, day speakeasy, `?fps=1`: 59 fps · worst 34 ms · HITCH 9 at tier 2)
 Every long frame of a run is now NAMED (`stage.js` THE HITCH LOG: what one-off work landed just before it — `pic` a picture's upload ·
@@ -731,7 +831,8 @@ context's state; the MP3's lead-in skipped. Muted / locked / a missing file = no
 - **F3B: `assets/freefall/roof/below-night.webp` · `below-day.webp`** — THE ROOF BELOW (Grok-made: no credit needed; 2048² made at 1024,
   kept 1536², q 82: 211 + 289 KB) + **`roof/city-night.webp` · `city-day.webp`** — the city round it: each painting's own four borders
   stacked into one 768² tile, the joins cross-faded (49 + 57 KB). The skylight's place is measured in both (`ROOF_SKY`); no red pixel.
-  **`fx/water-normal.webp`** (3DTextures.me Water 001, CC0 — the 1 K JPG; 512², 24 KB) · **`fx/sand.webp` + `sand-normal.webp`**
+  (F5A: `fx/water-normal.webp` is no longer shipped — the water is worked out in its shader; **`roof/grain.webp`** = THE ROOF GRAIN, made
+  in code: 256², 30 KB) · **`fx/sand.webp` + `sand-normal.webp`**
   (ambientCG Ground 055 S, CC0; 1024², 13 + 157 KB — the roughness map is not used) · **`fx/burst.webp`** (Kenney's Particle Pack, CC0:
   ONLY the seven sprites used, one grey atlas 1024 × 512, 19 KB) · **`audio/freefall/skylight.mp3` · `splashdown.mp3` · `fireworks.mp3`**
   (Freesound 453499 by kyles · 585744 by Nox_Sound · 179987 by JelleGeus — all CC0; byte copies, 131 KB). NOT shipped: the -backup
@@ -873,8 +974,9 @@ to two lines) **+ the BLAZES count in fire orange**, a darker fade behind them; 
 at the foot** — big (52 px), bold, white in a pink neon glow, plain text (no pill). Everything reads at 360 px wide (nothing under 46 px
 of the card's 1080).
 - **THE FRAME** (`shot.js` + `night.js#snap(bw, bh, rect)` — the frame JUST drawn copied off the canvas in that frame: no
-  preserveDrawingBuffer): taken a beat after THIS phone's OWN run ends — `SHOT_AT` red 90 ms (the burst still bright) · dark 240 · cap
-  60 · made 390 (the seabed's impact) — never of a WATCHED player's run, never a watcher's; kept on this phone under the run's key
+  preserveDrawingBuffer): **F5A: the frame is STAGED — the moment a beat BEFORE the end, drawn once more for the card alone ("THE SHARE CARD's HERO FRAME TELLS
+  THE STORY", above).** It is taken a beat after THIS phone's OWN run ends — `SHOT_AT` red 200 ms · dark 240 · cap
+  60 · made 410 (the seabed's impact) — never of a WATCHED player's run, never a watcher's; kept on this phone under the run's key
   (`o.shotKey()` — the cartridge: its match id; else the run's seed) until the next run. THE LIGHTS WENT OUT: the game's darkness is a DOM
   layer over the canvas — the card lays the same dark round the ball itself.
 - **SHARE** (`index.js#shareRun` — the console's universal footer shows SHARE for a cartridge with it: solo + match): the card is DRAWN
@@ -1063,6 +1165,9 @@ js/games/freefall/breaks.js break-fx.js             THE BREAKTHROUGHS (F3B): the
 js/games/freefall/best.js endscreen.js              YOUR BEST (pure) · the end card (JAYWALK's standard)
 js/games/freefall/meta.js index.js director.js      THE CARTRIDGE (F4A — hidden): its meta row's re-export · the contract · the pure host step
 js/games/freefall/view.js final.js lines.js         … its screen (the stage + what a run WRITES) · the podium's body · the board's lines (pure)
+js/games/freefall/billboard.js                      THE BILLBOARD's painter (F5A — pure canvas; in no game's graph)      scripts/build-freefall-billboard.mjs → assets/city/freefall/billboard.webp
+tests/integration/freefall-billboard.mjs            … its READABILITY PROOF in the city (local) · tests/freefall-billboard.test.mjs (static)
+assets/freefall/roof/grain.webp                     THE ROOF GRAIN's detail tile (F5A — made in code: scripts/build-freefall-assets.py --only=grain)
 js/games/freefall/proof.js                          THE PROOF (F4A — pure: the phone, the host, the server): the chunks, the clock, the holds' clock, the judge of a node
 js/games/freefall/match.js                          THE MATCH's RULES (F4B — pure): the start (THE FIRST GO), the end, the live runs, Call the Winner
 js/games/freefall/ghosts.js ghost-fx.js             THE GHOSTS (F4B): stepped conf → run, the catch-up, WATCH's playback, the rail's + the markers' maths (pure) · their layer (the balls, the x-ray, the baked tags)
@@ -1089,9 +1194,10 @@ tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844
 ```
 
 ## COMING
-**F5 (polish) — its FIRST item: THE WATER SURFACE above the splashdown** (the owner, Nov 26: night "needs a lot of work", day "a little
-off"); then the soft roof at floors 36–39 by day, a DAY finish celebration, THE MARK, the seabed dust's square edges 1–2 s after the impact
-(seen in the share card's beats — headless, dpr 3: check on a phone). Then the review, the fix pass, the go-live (`playable: true` ·
-`FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the tile · the site's Credits group — every source is CC0:
-`assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`). THE DAILY (later, the dailies chat): three tries all day, the best counts; a
-daily try never holds. Open questions for the owner: `docs/games/passes/freefall-f4b.md` "OPEN FOR BEN".
+**F5B (Opus) — the fixes + UX + HOW TO PLAY + the mix** (the owner, Nov 26: the AVG on the end screen · TIES for first = who reached their
+final floor first, then more blazes, then a draw · the MATCH end screen's big number + YOUR BEST · AVG · the rival OUT sound + callout +
+LAST ONE STANDING · the podium SCROLLS). Then the review (Opus, + Grok's review cross-checked), the fix pass, the go-live (`playable:
+true` · `FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the site's Credits group — every source is CC0:
+`assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`; **the CITY chat installs the sign + THE BILLBOARD**). THE DAILY (later, the
+dailies chat): three tries all day, the best counts; **THE PAUSE IS ALLOWED in a daily** (the owner, Nov 26 — "THE PAUSE IN DAILIES",
+above). Open questions for the owner: `docs/games/passes/freefall-f5a.md` "OPEN FOR BEN".

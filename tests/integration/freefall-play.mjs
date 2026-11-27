@@ -895,7 +895,8 @@ async function checks4() {
     ok(!midShown && midBand.key === 'YOU HIT THE BOTTOM|FLOOR 200' && midBand.gold && s.info.breaks.bottom === 1 && cardMs >= 2200 && words === 'MADE IT TO THE BOTTOM', `${lk} — THE FINISH: the ball drops onto the seabed, the gold band, the card waits for the moment (${cardMs} ms) — "${words}"`);
     ok(midFin && midFin.floor === 200 && midFin.same === null && s.finished && s.finished.floor === 200 && s.finished.mode === 'match' && s.finished.same === true && s.finished.judged === true && s.finished.look === lk, `${lk}: THE FINISH's HOOK — the run handed on once, AT THE made EVENT (there before the card): floor ${s.finished && s.finished.floor}; with the card: REPLAY = LIVE, the judge's own verdict`);
     ok(s.info.breaks.mouth === 0 && s.info.breaks.rocks === 14, `${lk}: a finish's bed is whole (no mouth) — rocks in front of the ball too (${s.info.breaks.rocks})`);
-    ok(w.includes('bottom+0.3') && (lk === 'night' ? w.includes('fireworks+1.2') && s.info.breaks.played >= 3 : !w.some(x => x.startsWith('fireworks')) && s.info.breaks.played === 1) && !t.errs.length, `${lk}: bottom.mp3 at the hit${lk === 'night' ? ', then the FIREWORK (its sound softly, 0.9 s on; the bursts played)' : ' — no firework by day'}`);
+    // (F5A — THE DAY CELEBRATION: a finish celebrates in BOTH looks — by night the firework, by day the bubbles + the sun rays — with the same soft fireworks.mp3)
+    ok(w.includes('bottom+0.3') && w.includes('fireworks+1.2') && s.info.breaks.played >= 3 && !t.errs.length, `${lk}: bottom.mp3 at the hit, then ${lk === 'night' ? 'the FIREWORK' : 'THE DAY CELEBRATION (the bubbles + the sun rays)'} (the fireworks' sound softly, 0.9 s on; the bursts played: ${s.info.breaks.played})`);
     await t.close();
   }
   // ---- PAUSED: a dark, BLURRED cover over the tower while held
@@ -1098,7 +1099,7 @@ async function perf() {
     await d.close();
   }
   // F3B — EACH BREAKTHROUGH PLAYING (both looks, tiers 2 + 0, 1× + 4× CPU): the frames from four floors above it to four floors past it
-  for (const [lk, floor, where, mode] of [['night', 36, 'THE SKYLIGHT', ''], ['day', 36, 'THE SKYLIGHT', ''], ['night', 116, 'THE SPLASHDOWN', ''], ['day', 116, 'THE SPLASHDOWN', ''], ['night', 196, 'THE BOTTOM (solo: the crack)', ''], ['day', 196, 'THE BOTTOM (solo: the crack)', ''], ['night', 196, 'THE BOTTOM (a finish + the firework)', '&mode=match']]) for (const tier of [2, 0]) for (const rate of [1, 4]) {
+  for (const [lk, floor, where, mode] of [['night', 36, 'THE SKYLIGHT', ''], ['day', 36, 'THE SKYLIGHT', ''], ['night', 116, 'THE SPLASHDOWN', ''], ['day', 116, 'THE SPLASHDOWN', ''], ['night', 196, 'THE BOTTOM (solo: the crack)', ''], ['day', 196, 'THE BOTTOM (solo: the crack)', ''], ['night', 196, 'THE BOTTOM (a finish + the firework)', '&mode=match'], ['day', 196, 'THE BOTTOM (a finish + THE DAY CELEBRATION)', '&mode=match']]) for (const tier of [2, 0]) for (const rate of [1, 4]) {
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
     const d = await open(390, 844, 3, `?seed=perfb&tier=${tier}&floor=${floor}&look=${lk}${mode}`);
     await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
