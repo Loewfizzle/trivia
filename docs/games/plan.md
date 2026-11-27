@@ -969,3 +969,14 @@
   - **(1) THE WATER — both looks rebuilt from Grok's soft ripple map** `Downloads\grok\freefall\water\water-normal.png`: DAY = `water-mock-day-119-b.png` (saturated ocean blue, real swells, a ring of ripples round the tower, the amber lamp column breaking up on the waves) · NIGHT = `water-mock-night-119-claude.png` (the same in dark teal, the amber column, a few pink / violet / cyan glints, the plankton kept); `water-surface.png` NOT used.
   - **(2) "MIA IS OUT" + LAST ONE STANDING move up to the top area under the number** (today they sit over the floors below the ball).
 - The pass: `docs/games/passes/freefall-review.md`.
+
+## FREEFALL — THE FIX PASS (approved Nov 27)
+- **THE FIX PASS is split:** PART A = the look + the feel (`docs/games/passes/freefall-fixa.md`); PART B = the match, stability, scoring +
+  the test page; then the go-live.
+- **Ben's answers to THE REVIEW's OPEN FOR BEN (Nov 27):** (1) anti-cheat ships WITH FREEFALL in PART B (S3's plausibility hold + S2's
+  copycat check, server-only); JAYWALK + HIGH RISE get theirs later, in their own passes · (2) THE LOOK LOCK = the HOST's look for the whole
+  match, the same on every phone (the project rule); solo locks the look for the run · (3) a silent phone in a match: keep 18 s; the host
+  re-scores when that player's end lands before the cap (PART B) · (4) the budgets: TRIM, never raise.
+- **Decided looks:** THE WATER = Grok's mock B (day) + Claude's night recolour (both looks, one ripple path) · THE EDGE MARKERS removed →
+  the rivals' names on THE DEPTH RAIL · THE MARK = D (a ring floor: its back edge behind the ball, its front edge in front) · the callouts
+  ("MIA IS OUT", LAST ONE STANDING) up under the number.
