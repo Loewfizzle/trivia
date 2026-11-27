@@ -365,10 +365,27 @@
 .ff-rail-dot.is-me.is-out { background: rgba(9, 6, 20, 0.92); box-shadow: 0 0 0 2px #ff4fa8; }
 /* THE EDGE MARKERS — "MIA ↓12" at the foot · "MIA ↑3" up by the rail's head */
 .ff-marks { position: absolute; display: grid; gap: 2px; }
-.ff-marks.is-dn { left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 54px); justify-items: center; }
-.ff-marks.is-up { right: calc(max(7px, env(safe-area-inset-right, 0px)) + 28px); top: calc(var(--ff-band-top) + 52px); justify-items: end; }   /* (beside the rail's head — never on its line or a dot) */
-.ff-mark { font: 800 13.5px/1.2 var(--font-ui); letter-spacing: 0.07em; white-space: nowrap; color: color-mix(in srgb, var(--c, #fff) 86%, #fff); text-shadow: -1px 0 0 #07040f, 1px 0 0 #07040f, 0 -1px 0 #07040f, 0 1px 0 #07040f, 0 0 7px rgba(7, 4, 15, 0.95); }
+/* F5C — THE EDGE MARKERS (the owner): ONE line each, bigger, in the player's own colour, at the EDGE on the side the rival really is — the left
+   edge, or the right one beside the rail (never on its line or a dot); below → the lower band, above → the upper band */
+.ff-marks { position: absolute; display: grid; gap: 4px; }
+.ff-marks.is-l { left: max(10px, env(safe-area-inset-left, 0px)); justify-items: start; }
+.ff-marks.is-r { right: calc(max(7px, env(safe-area-inset-right, 0px)) + 28px); justify-items: end; }
+.ff-marks.is-dn { bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); }
+.ff-marks.is-up { top: calc(var(--ff-band-top) + 52px); }
+.ff-mark { font: 800 17px/1.15 var(--font-ui); letter-spacing: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -1.5px 0 0 #07040f, 1.5px 0 0 #07040f, 0 -1.5px 0 #07040f, 0 1.5px 0 #07040f, 0 0 8px rgba(7, 4, 15, 0.95); }
 /* (WATCHING: its two lines stand at the foot — the down-markers step up over them) */
+/* F5C — RIVAL OUT: "MIA IS OUT" in their colour, ~1.5 s, low in the middle — clear of the number, the banners + the ball (two lines at most) */
+.ff-outs { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 118px); display: grid; justify-items: center; gap: 4px; pointer-events: none; }
+.ff-out { font: 900 19px/1.1 var(--font-display); letter-spacing: 0.06em; padding-left: 0.06em; white-space: nowrap; color: var(--c, #fff); text-shadow: -1.5px 0 0 #07040f, 1.5px 0 0 #07040f, 0 -1.5px 0 #07040f, 0 1.5px 0 #07040f, 0 0 12px rgba(7, 4, 15, 0.95); animation: ff-out 1.5s ease-out both; }
+@keyframes ff-out { 0% { opacity: 0; transform: translateY(8px) scale(0.92); } 14% { opacity: 1; transform: none; } 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
+/* F5C — LAST ONE STANDING = JAYWALK's moment card (css/jaywalk.css .jw-last), set under the ball */
+.ff-last { position: absolute; z-index: 0; left: 12px; right: 12px; top: 44%; display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; animation: ff-last 2.6s ease-out both; }
+.ff-last b { font: 900 clamp(24px, 7.6vw, 30px)/1.05 var(--font-display); letter-spacing: 0.05em; color: #fff8e6; text-shadow: 0 0 4px #fff, 0 0 16px #ffc83c, 0 0 34px rgba(255, 190, 40, 0.75), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.ff-last span { font: 800 clamp(11.5px, 3.4vw, 14px)/1.2 var(--font-ui); letter-spacing: 0.1em; padding-left: 0.1em; white-space: nowrap; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
+/* (over the busy floors: a soft dark ground under the card — a static gradient, faded with the card) */
+.ff-last::before { content: ''; position: absolute; left: -12px; right: -12px; top: -18px; bottom: -16px; z-index: -1; background: radial-gradient(ellipse at 50% 50%, rgba(7, 4, 15, 0.82) 0%, rgba(7, 4, 15, 0.6) 48%, rgba(7, 4, 15, 0) 74%); }
+@keyframes ff-last { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ff-out, .ff-last { animation: none; } }
 .ff-stage.is-watch .ff-marks.is-dn, .ff-stage.is-match.is-over .ff-marks.is-dn { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); }
 .ff-clock { position: absolute; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 56px); font: 700 16px/1 var(--font-num); letter-spacing: 0.06em; color: #eaffff; text-shadow: 0 0 2px #fff, 0 0 10px rgba(39, 224, 230, 0.9), 0 1px 0 #07040f; }
 /* OUT · THE BOTTOM · TIME'S UP — the cause's words for a moment, then Call the Winner / WATCH */

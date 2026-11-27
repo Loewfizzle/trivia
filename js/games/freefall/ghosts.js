@@ -164,12 +164,28 @@ export const ghostPhi = (theirA, myA) => wrap(BALL - theirA + myA);
 
 /** your place = 1 + the players strictly deeper (a level player shares it) */
 export function placeOf(rows, floor) { let p = 1; for (let i = 0; i < rows.length; i++) if (!rows[i].me && rows[i].floor > floor) p++; return p; }
+// ---- F5C — THE MATCH MOMENTS (the owner, Nov 27 — JAYWALK's are the pattern: docs/jaywalk.md "THE MATCH MOMENTS")
+/** RIVAL OUT: the callout's words — "MIA IS OUT" (never for my own out: I have the crash) */
+export const outWords = name => `${name} IS OUT`;
+/** RIVAL OUT: how long a callout stays (ms) · at most this many lines at once (a third waits for a line to leave) */
+export const OUT_CALL_MS = 1500, OUT_CALL_MAX = 2;
+/** LAST ONE STANDING: a match of at least this many players (me included) · the card's time (JAYWALK's LAST_MS) */
+export const LAST_MIN_PLAYERS = 3, LAST_CARD_MS = 2600;
+/** LAST ONE STANDING's line (lead = my floors − the deepest rival's): "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD · KEEP FALLING" */
+export const lastWords = lead => (lead > 0 ? `+${lead} ${lead === 1 ? 'FLOOR' : 'FLOORS'} AHEAD · KEEP FALLING` : lead === 0 ? 'LEVEL WITH THE LEAD · KEEP FALLING' : `${-lead} ${lead === -1 ? 'FLOOR' : 'FLOORS'} TO THE LEAD · KEEP FALLING`);
+/** LAST ONE STANDING (PURE): rows { me, over, floor } → my lead over the deepest rival when I'm the LAST still falling in a match of
+ *  LAST_MIN_PLAYERS or more · null = not (yet) */
+export function lastStanding(rows) {
+  let me = null, n = 0, deep = -Infinity;
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over) return null; if (r.floor > deep) deep = r.floor; }
+  return me && !me.over && n >= LAST_MIN_PLAYERS ? me.floor - deep : null;
+}
 /** an edge marker's words: "MIA ↓12" (deeper than me) · "MIA ↑3" (above me) */
 export const markText = (name, df) => `${name} ${df > 0 ? '↓' : '↑'}${Math.abs(df)}`;
 const nearFirst = (a, b) => a.d - b.d || (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0);
 /**
  * THE EDGE MARKERS: the ghosts still falling that are MARK_FLOORS or more away from `floor` → `into` { up: [], down: [] } filled IN PLACE
- * with kept records { uid, name, hex, df, d, text } — nearest first, at most MARKS_MAX each way (a marker's words are built only when
+ * with kept records { uid, name, hex, df, d, side (F5C: −1 left · 1 right — the side of the tower the rival is on), text } — nearest first, at most MARKS_MAX each way (a marker's words are built only when
  * its name / its distance changed).
  */
 export function edgeMarks(rows, floor, into) {
@@ -181,8 +197,8 @@ export function edgeMarks(rows, floor, into) {
     if (r.me || r.over || r.lost) continue;
     const df = r.floor - floor;
     if (df < MARK_FLOORS && df > -MARK_UP) continue;
-    let m = pool[k]; if (!m) { m = { uid: '', name: '', hex: '', df: 0, d: 0, text: '', tn: null, td: 0 }; pool.push(m); } k++;
-    m.uid = r.uid; m.name = r.name; m.hex = r.hex; m.df = df; m.d = df < 0 ? -df : df;
+    let m = pool[k]; if (!m) { m = { uid: '', name: '', hex: '', df: 0, d: 0, side: 1, text: '', tn: null, td: 0 }; pool.push(m); } k++;
+    m.uid = r.uid; m.name = r.name; m.hex = r.hex; m.df = df; m.d = df < 0 ? -df : df; m.side = r.side === -1 ? -1 : 1;
     (df > 0 ? down : up).push(m);
   }
   up.sort(nearFirst); down.sort(nearFirst);

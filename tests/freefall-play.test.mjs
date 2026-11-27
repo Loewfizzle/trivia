@@ -175,9 +175,9 @@ test('YOUR BEST (best.js — PURE): this phone\'s; no best = no line; the fall t
 });
 
 test('THE SOUNDS\' TABLE (sounds.js — PURE): twelve sounds (F3B: + the breakthroughs\' three), every file ships (ten of FREEFALL\'s + JAYWALK\'s two), THE NOTE up a major-pentatonic scale holding after 8; the triggers on REAL runs', () => {
-  assert.deepEqual(SOUND_IDS, ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom', 'area-arrive', 'new-best', 'skylight', 'splashdown', 'fireworks']);
+  assert.deepEqual(SOUND_IDS, ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom', 'area-arrive', 'new-best', 'skylight', 'splashdown', 'fireworks', 'out-drop', 'last-standing']);
   for (const [dir, file] of SOUND_FILES) { const u = new URL(`../audio/${dir}/${file}.mp3`, import.meta.url); assert.ok(existsSync(u), `audio/${dir}/${file}.mp3 ships`); assert.ok(statSync(u).size > 2000); }
-  assert.deepEqual(SOUNDS.filter(s => s.dir === 'jaywalk').map(s => s.id), ['area-arrive', 'new-best'], 'area arrival + NEW BEST are JAYWALK\'s files (reused, no copy)');
+  assert.deepEqual(SOUNDS.filter(s => s.dir === 'jaywalk').map(s => s.id), ['area-arrive', 'new-best', 'out-drop', 'last-standing'], 'area arrival + NEW BEST + F5C\'s RIVAL OUT + LAST ONE STANDING are JAYWALK\'s files (reused, no copy)');
   assert.deepEqual(readdirSync(new URL('../audio/freefall/', import.meta.url)).sort(), ['CREDITS.md', 'blaze.mp3', 'bottom.mp3', 'bounce.mp3', 'crash.mp3', 'fireworks.mp3', 'lights-out.mp3', 'shatter.mp3', 'skylight.mp3', 'splashdown.mp3', 'whoosh.mp3'], 'the seven picks (take A) + the breakthroughs\' three + their credits: no B take, no -backup ships');
   const credits = read('audio/freefall/CREDITS.md');
   for (const id of ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom', 'skylight', 'splashdown', 'fireworks']) assert.match(credits, new RegExp(`\\| \`${id}\\.mp3\` \\| ".+CC0 1\\.0`), `${id}: its source is credited (CC0)`);

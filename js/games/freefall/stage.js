@@ -27,7 +27,7 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard, warmLogo } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
-import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, outWords, lastWords, lastStanding, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
 import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';
@@ -277,6 +277,9 @@ export function createStage(app0, o = {}) {
   let finished = null, handed = false;
   // F4B — THE MATCH (docs/freefall.md "THE MATCH" · "THE GHOSTS"): the rivals' ghosts (ghosts.js steps them — records made once, the scene
   // reads `gData`), THE DEPTH RAIL's rows, the markers, WATCH's playback, the test page's bot room (`o.rivals`)
+  // (F5C — THE MATCH MOMENTS: none in the first MOMENTS_QUIET_MS of a run — a rejoin's catch-up replays old outs; LAST ONE STANDING once)
+  const MOMENTS_QUIET_MS = 2000;
+  let momentsAt = Infinity, lastSaid = false;
   let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
   const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [], marks = { up: [], down: [] };
   const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, me: true };
@@ -303,7 +306,7 @@ export function createStage(app0, o = {}) {
     stage.dataset.dark = '';
     // (F4B: a new run has no rivals yet — the bot room / the match's view sets them again)
     sim = null; spect = false; ghosts.length = 0; rows.length = 0; view.ghosts(0, null); watchUid = ''; WA = null; playing = -1; clockSec = -1; rowsDirty = true;
-    MH.reset(); stage.classList.remove('is-watch');
+    MH.reset(); stage.classList.remove('is-watch'); momentsAt = Infinity; lastSaid = false;
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
   function dive(n) {
@@ -328,7 +331,7 @@ export function createStage(app0, o = {}) {
     t0 = ts;
     if (FROM) { dive(FROM); fromRun = true; t0 = ts - run.t * TICK_MS; prepBanner(run.floor); }
     owed = Math.max(-OWED_MAX, Math.min(OWED_MAX, pre)); pre = 0;
-    awakeAt = performance.now(); awake(true);
+    awakeAt = performance.now(); awake(true); momentsAt = awakeAt + MOMENTS_QUIET_MS;
     if (o.rivals && !o.go) startSim();   // (the test page's bot room: `?mode=match&rivals=N`)
     if (document.visibilityState === 'hidden') hide();   // (it went live behind a hidden page — the start waited for the sounds: held at once, never lost to the dark unseen)
   }
@@ -452,7 +455,7 @@ export function createStage(app0, o = {}) {
     for (let i = 0; i < L.length; i++) {
       const p = L[i], hex = hexOk(p.hex), name = String(p.name || 'GHOST').toUpperCase().slice(0, 12);
       let g = ghosts[i];
-      if (!g || g.uid !== p.uid) { g = { uid: p.uid, name: '', hex: '', r: 0, g: 0, b: 0, G: createGhost(seed, 'match'), row: { uid: p.uid, name: '', hex: '', floor: 0, over: false, end: '', lost: false, me: false } }; ghosts[i] = g; changed = true; }
+      if (!g || g.uid !== p.uid) { g = { uid: p.uid, name: '', hex: '', r: 0, g: 0, b: 0, G: createGhost(seed, 'match'), row: { uid: p.uid, name: '', hex: '', floor: 0, over: false, end: '', lost: false, me: false, side: 1 } }; ghosts[i] = g; changed = true; }
       if (g.name !== name || g.hex !== hex) { g.name = name; g.hex = hex; g.r = lin(parseInt(hex.slice(1, 3), 16)); g.g = lin(parseInt(hex.slice(3, 5), 16)); g.b = lin(parseInt(hex.slice(5, 7), 16)); g.row.name = name; g.row.hex = hex; changed = true; }
     }
     ghosts.length = L.length;
@@ -481,7 +484,7 @@ export function createStage(app0, o = {}) {
     stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting', 'is-gold'); stage.classList.add('is-live');
     view.pose('play'); prepBanner(0);
     starting = false; soundsBtn.hidden = true; note.hidden = !runNote;
-    t0 = Number(A.t0) || performance.now();
+    t0 = Number(A.t0) || performance.now(); momentsAt = performance.now() + MOMENTS_QUIET_MS; lastSaid = false;
     awakeAt = performance.now(); awake(true);
     if (!spect && A.log && A.log.length) {   // (a rejoin mid-run: this player's own moves so far, then on from now — unseen + unheard)
       for (let i = 0; i < A.log.length; i++) setAngle(run, A.log[i].t, A.log[i].a, ev);
@@ -510,6 +513,8 @@ export function createStage(app0, o = {}) {
     if (!spect) { meRow.floor = run.floor; meRow.over = isOver(run); meRow.end = !meRow.over ? '' : run.st === 'made' ? 'made' : run.st === 'cap' ? 'cap' : 'out'; }
     MH.rail(rows);
     MH.marks(edgeMarks(rows, R0.floor, marks));
+    // F5C — LAST ONE STANDING (3+ players, every rival over, me still falling): once a match — JAYWALK's card + its sound
+    if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) snd.play('last-standing'); } }
     let n = 0;
     for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
     if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)} · ` : ''}${n} PLAYING`; }
@@ -525,7 +530,11 @@ export function createStage(app0, o = {}) {
       if (nodes) feedGhost(G, nodes[g.uid]);
       stepGhost(G, tauG, now);
       const up = G.y > myY, d = up ? G.y - myY : myY - G.y, off = G.lost || G.over || g.uid === watchUid, far = up ? MARK_UP : MARK_FLOORS;
-      gData[o8] = ghostPhi(G.a, myA) * UNIT; gData[o8 + 1] = G.y; gData[o8 + 2] = g.r; gData[o8 + 3] = g.g; gData[o8 + 4] = g.b;
+      gData[o8] = ghostPhi(G.a, myA) * UNIT; gData[o8 + 1] = G.y;
+      // (F5C — THE EDGE MARKERS sit on the SIDE the rival really is round the tower: x = RB · sin φ — a flip only past ±0.2, so a rival in
+      //  front never flickers between the two edges; the DOM is touched only at a flip)
+      const sx = Math.sin(gData[o8]);
+      if (sx > 0.2 ? g.row.side !== 1 : sx < -0.2 ? g.row.side !== -1 : false) { g.row.side = sx > 0 ? 1 : -1; rowsDirty = true; } gData[o8 + 2] = g.r; gData[o8 + 3] = g.g; gData[o8 + 4] = g.b;
       gData[o8 + 5] = off || d >= far ? 0 : d > far - 0.5 ? (far - d) * 2 : 1;   // (it fades out where its edge marker takes over)
       gData[o8 + 6] = alone || d >= NEAR_FLOORS ? 0 : d <= NEAR_FLOORS - 0.4 ? 1 : (NEAR_FLOORS - d) * 2.5;
       gData[o8 + 7] = i;
@@ -536,7 +545,11 @@ export function createStage(app0, o = {}) {
       // (a rival at a BREAKTHROUGH: a small echo only)
       if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
       const row = g.row;
-      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end) { row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.end = G.end; rowsDirty = true; }
+      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end) {
+        // F5C — RIVAL OUT: a rival's run ended OUT (red / the dark — never a finish, never time's up): the drop + "MIA IS OUT" in their colour
+        if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }
+        row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.end = G.end; rowsDirty = true;
+      }
     }
     if (rowsDirty) matchHudNow(R0);
     // the last half minute's clock (one write a second)

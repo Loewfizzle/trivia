@@ -1,10 +1,12 @@
 // FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE DEPTH RAIL" · "THE MATCH"): the DOM over the scene in a match — 3 · 2 · 1 + the
 // names · THE DEPTH RAIL (a thin glowing rail at the right edge: everyone's dot by depth, mine larger, out = a crossed dot, THE BOTTOM
-// marked at its foot — HIGH RISE's altimeter turned upside down) · THE EDGE MARKERS (a rival more than five floors away: "MIA ↓12" at the
-// foot, "↑3" at the top) · the last half minute's clock · the OUT card · the WATCHING line. WRITTEN ONLY WHEN SOMETHING CHANGES (a dot
+// marked at its foot — HIGH RISE's altimeter turned upside down) · THE EDGE MARKERS (F5C — the owner: a rival five floors below / two above:
+// "MIA ↓12" ONE line each, bigger, in the player's own colour, at the screen's EDGE on the side of the tower they really are — left or
+// right; below → the lower band, above → the upper band; never stacked small text at the bottom centre) · the last half minute's clock · the OUT card · the WATCHING line. WRITTEN ONLY WHEN SOMETHING CHANGES (a dot
 // moves by ONE transform; a marker's words are set only when they differ) — never in a frame that changed nothing; no pills.
 import { h } from '../../ui/dom.js';
 import { MODES } from './tuning.js';
+import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS } from './ghosts.js';
 
 /** THE BOTTOM — the rail's foot (a match's finish) */
 const FOOT = MODES.match.finish || 200;
@@ -16,12 +18,24 @@ export function createMatchHud() {
   const count = h('div.ff-count', { hidden: true, 'aria-live': 'assertive' }, countN, countNames);
   const railIn = h('div.ff-rail-in'), rail = h('div.ff-rail', { hidden: true, 'aria-hidden': 'true' }, h('i.ff-rail-line'), h('i.ff-rail-foot'), railIn);
   const mk = () => { const t = document.createTextNode(''); return { el: h('div.ff-mark', { hidden: true }, t), t, text: '', hex: '' }; };
-  const ups = Array.from({ length: ROWS }, mk), dns = Array.from({ length: ROWS }, mk);
-  const up = h('div.ff-marks.is-up', { 'aria-hidden': 'true' }, ...ups.map(m => m.el)), dn = h('div.ff-marks.is-dn', { 'aria-hidden': 'true' }, ...dns.map(m => m.el));
+  // (four edge groups — above · below × left · right — ROWS slots each: a marker's slot is set only when its words / colour change)
+  const group = cls => { const slots = Array.from({ length: ROWS }, mk); return { slots, el: h(`div.ff-marks.${cls}`, { 'aria-hidden': 'true' }, ...slots.map(m => m.el)) }; };
+  const UL = group('is-up.is-l'), UR = group('is-up.is-r'), DL = group('is-dn.is-l'), DR = group('is-dn.is-r');
+  const ups = [...UL.slots, ...UR.slots], dns = [...DL.slots, ...DR.slots], sideL = [], sideR = [];
   const clockT = document.createTextNode(''), clock = h('div.ff-clock', { hidden: true }, clockT);
   const over = h('div.ff-over');
   const watchT = document.createTextNode(''), watch = h('div.ff-watch', { hidden: true, role: 'status' }, watchT);
-  const el = h('div.ff-match', rail, up, dn, clock, count, over, watch);
+  // F5C — RIVAL OUT's callouts (≤ OUT_CALL_MAX lines, a third waits) + LAST ONE STANDING's card (JAYWALK's look)
+  const outs = h('div.ff-outs', { 'aria-live': 'polite' }), outQ = [];
+  let outN = 0, lastCard = null, outTotal = 0, lastTotal = 0;
+  const el = h('div.ff-match', rail, UL.el, UR.el, DL.el, DR.el, clock, count, outs, over, watch);
+  function nextOut() {
+    while (outN < OUT_CALL_MAX && outQ.length) {
+      const o = outQ.shift(), line = h('div.ff-out', { style: { '--c': o.hex } }, o.text);
+      outs.append(line); outN++; outTotal++;
+      setTimeout(() => { line.remove(); outN--; nextOut(); }, OUT_CALL_MS);
+    }
+  }
   const dots = new Map();   // uid → { el, y, cls, hex }
   let railH = 0, countKey = null, namesKey = null, clockKey = '', watchKey = '', outCard = null;
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { railH = railIn.clientHeight; for (const d of dots.values()) d.y = -1; }) : null;
@@ -59,8 +73,23 @@ export function createMatchHud() {
       }
       if (dots.size > rows.length) for (const [uid, d] of dots) if (!rows.some(r => r.uid === uid)) { d.el.remove(); dots.delete(uid); }
     },
-    /** THE EDGE MARKERS: ghosts.js#edgeMarks's answer { up: [], down: [] } */
-    marks(M) { marksInto(M.up, ups); marksInto(M.down, dns); },
+    /** THE EDGE MARKERS: ghosts.js#edgeMarks's answer { up: [], down: [] } — each to its side's group (nearest first in each) */
+    marks(M) {
+      for (const [list, L, R] of [[M.up, UL, UR], [M.down, DL, DR]]) {
+        sideL.length = 0; sideR.length = 0;
+        for (let i = 0; i < list.length; i++) (list[i].side === -1 ? sideL : sideR).push(list[i]);
+        marksInto(sideL, L.slots); marksInto(sideR, R.slots);
+      }
+    },
+    /** F5C — RIVAL OUT: "MIA IS OUT" in their colour for OUT_CALL_MS (two at once; a third waits) */
+    callout(text, hex) { outQ.push({ text, hex }); nextOut(); },
+    /** F5C — LAST ONE STANDING: JAYWALK's moment card, once a match (the stage decides when) */
+    last(words) {
+      if (lastCard) lastCard.remove();
+      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), h('span', words));
+      el.append(c); lastTotal++;   // (never in .ff-over: that layer hides the rail — Call the Winner's sheet)
+      setTimeout(() => { c.remove(); if (lastCard === c) lastCard = null; }, LAST_CARD_MS);
+    },
     /** the last half minute: "0:27" ('' = hidden) */
     clock(text) { if (text !== clockKey) { clockKey = text; clockT.data = text; clock.hidden = !text; } },
     /** OUT / THE BOTTOM / TIME'S UP — the cause's words over the scene for a moment: { kicker, words, floors, made, ms } */
@@ -80,10 +109,11 @@ export function createMatchHud() {
       dots.clear(); rail.hidden = true;
       for (const s of [...ups, ...dns]) { s.text = ''; s.hex = ''; s.el.hidden = true; }
       clockKey = ''; clock.hidden = true; watchKey = ''; watch.hidden = true;
+      outQ.length = 0; outs.replaceChildren(); outN = 0; outTotal = 0; lastTotal = 0; if (lastCard) { lastCard.remove(); lastCard = null; }
       if (outCard) { outCard.remove(); outCard = null; }
       over.replaceChildren();
     },
-    info: () => ({ count: countKey || '', names: countNames.childElementCount, rail: !rail.hidden, dots: [...dots].map(([uid, d]) => ({ uid, y: d.y, cls: d.cls })), up: ups.filter(s => s.text).map(s => s.text), down: dns.filter(s => s.text).map(s => s.text), clock: clockKey, watching: watchKey, outCard: !!outCard, railH }),
+    info: () => ({ count: countKey || '', names: countNames.childElementCount, rail: !rail.hidden, dots: [...dots].map(([uid, d]) => ({ uid, y: d.y, cls: d.cls })), up: ups.filter(s => s.text).map(s => s.text), down: dns.filter(s => s.text).map(s => s.text), clock: clockKey, watching: watchKey, outCard: !!outCard, railH, outs: [...outs.children].map(e => e.textContent), outTotal, last: lastCard ? lastCard.textContent : '', lastTotal }),
     destroy() { if (ro) ro.disconnect(); },
   };
 }

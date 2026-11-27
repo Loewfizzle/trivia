@@ -29,6 +29,9 @@ export const SOUNDS = Object.freeze([
   snd('skylight', 'THE SKYLIGHT (FLOOR 40)', 'freefall', 2.0, 4),
   snd('splashdown', 'THE SPLASHDOWN (FLOOR 120)', 'freefall', 2.05, 4),
   snd('fireworks', 'FIREWORKS (A FINISH)', 'freefall', 0.5, 3),
+  // F5C — THE MATCH MOMENTS: JAYWALK's own two files (referenced, never copied — audio/jaywalk/); a match only. Gains = THE MIX's (Group 3)
+  snd('out-drop', 'A RIVAL OUT (A MATCH)', 'jaywalk', 0.6, 3),
+  snd('last-standing', 'LAST ONE STANDING', 'jaywalk', 0.9, 4),
 ]);
 export const SOUND_IDS = Object.freeze(SOUNDS.map(s => s.id));
 /** every file the table names: [dir, file] (the fetch list + the test that each exists) */

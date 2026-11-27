@@ -276,3 +276,21 @@ test('THE FRESH-EYES REVIEW — THE SORE LOSER: a loser who appends ONE bad chun
   // (the cap's grace is longer than the judge's own lateness: a capped run on a slow line is scored whole by the host's step too)
   assert.ok(M.END_GRACE_MS > CLOCK.behind * MS);
 });
+
+test('F5C — THE MATCH MOMENTS (PURE — ghosts.js): RIVAL OUT\'s words + its queue\'s numbers; LAST ONE STANDING: 3+ players, every rival over, me still falling → my lead over the deepest rival, the words ahead / level / behind', () => {
+  assert.equal(G.outWords('MIA'), 'MIA IS OUT');
+  assert.deepEqual([G.OUT_CALL_MS, G.OUT_CALL_MAX, G.LAST_MIN_PLAYERS, G.LAST_CARD_MS], [1500, 2, 3, 2600]);
+  const me = (floor, over = false) => ({ me: true, floor, over }), riv = (floor, over = true) => ({ me: false, floor, over });
+  assert.equal(G.lastStanding([me(80), riv(57), riv(40)]), 23);
+  assert.equal(G.lastStanding([me(50), riv(62), riv(40)]), -12, 'behind the deepest out');
+  assert.equal(G.lastStanding([me(50), riv(62)]), null, 'two players: never');
+  assert.equal(G.lastStanding([me(50), riv(62), riv(40, false)]), null, 'a rival still falling');
+  assert.equal(G.lastStanding([me(50, true), riv(62), riv(40)]), null, 'me out too');
+  assert.equal(G.lastStanding([riv(62), riv(40), riv(30)]), null, 'a watcher (no row of mine)');
+  assert.equal(G.lastWords(23), '+23 FLOORS AHEAD · KEEP FALLING'); assert.equal(G.lastWords(1), '+1 FLOOR AHEAD · KEEP FALLING');
+  assert.equal(G.lastWords(-12), '12 FLOORS TO THE LEAD · KEEP FALLING'); assert.equal(G.lastWords(0), 'LEVEL WITH THE LEAD · KEEP FALLING');
+  // the stage: a rival's run that ended OUT (never a finish / time's up), past the quiet start; LAST ONE STANDING once a match
+  const st = readFileSync(new URL('../js/games/freefall/stage.js', import.meta.url), 'utf8');
+  assert.ok(st.includes("if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }"));
+  assert.ok(st.includes("if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) snd.play('last-standing'); } }"));
+});

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { TICK_HZ, TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MAX_SPIN, FIRST, BOUNCE, FALL, BLAZE, DARK, HUMAN, MODES, MODE_IDS, AREAS, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, MAX_LOG, SEED_MAX, RULE_SETS, RULES_DEFAULT, ruleSet, makeRuleSet, isRuleRow, darkPaceAt } from '../js/games/freefall/tuning.js';
 import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, floorNow, sliceNow, darkGap, modeRow, seedHash } from '../js/games/freefall/engine.js';
 import { sliceStart, sliceUnder, kindAt, kindAtTick, moversAt, wrap, angDiff, floorAt } from '../js/games/freefall/tower-gen.js';
-import { END_WORDS, endWords, seedOf, tickOf, areaOf, areaIndex, featsOf, FEAT_NAMES, rankCompare, standings } from '../js/games/freefall/logic.js';
+import { END_WORDS, endWords, seedOf, tickOf, areaOf, areaIndex, featsOf, FEAT_NAMES, rankCompare, standings, gameStandings } from '../js/games/freefall/logic.js';
 import { replay, judgeRun, logProblem, packLog, packRun, unpackLog, isHold, maxEntries } from '../js/games/freefall/replay.js';
 import { BOTS, BOT_IDS, makeBot, playBot, planFlight as planFlightOf } from '../js/games/freefall/bot.js';
 import { hashString } from '../js/core/rng.js';
@@ -569,12 +569,17 @@ test('THE RESULT + THE FEATS + THE AREAS + THE RANKING + THE WORDS + THE SEED', 
   assert.deepEqual([areaOf(201).lap, areaOf(240).lap, areaOf(241).lap, areaOf(281).lap, areaOf(199).lap], [1, 1, 2, 3, 0]);
   assert.deepEqual(areaOf(130), { id: 'harbor', name: 'UNDER THE HARBOR', from: 120, index: 3, lap: 0 });
   assert.equal(areaIndex(-5), 0);
-  // THE RANKING: floors, then the earlier tick that floor was reached
+  // THE RANKING (F5C — THE TIE-BREAK): floors → the earlier tick that floor was reached → more blazes → a draw (a shared place)
   assert.ok(rankCompare({ floor: 50, tick: 900 }, { floor: 49, tick: 100 }) < 0);
   assert.ok(rankCompare({ floor: 50, tick: 900 }, { floor: 50, tick: 901 }) < 0);
+  assert.ok(rankCompare({ floor: 50, tick: 900, blazes: 0 }, { floor: 50, tick: 901, blazes: 9 }) < 0, 'the earlier tick beats more blazes');
+  assert.ok(rankCompare({ floor: 50, tick: 900, blazes: 3 }, { floor: 50, tick: 900, blazes: 2 }) < 0, 'the same tick: more blazes');
   assert.equal(rankCompare({ floor: 50, tick: 900 }, { floor: 50, tick: 900 }), 0);
+  assert.equal(rankCompare({ floor: 50, tick: 900, blazes: 2 }, { floor: 50, tick: 900, blazes: 2 }), 0);
   assert.deepEqual(standings([{ uid: 'c', floor: 200, tick: 9100 }, { uid: 'a', floor: 200, tick: 9000 }, { uid: 'b', floor: 120, tick: 4000 }, { uid: 'd', floor: 120, tick: 4000 }, { uid: 'e' }]),
-    [{ uid: 'a', rank: 1, floor: 200, tick: 9000 }, { uid: 'c', rank: 2, floor: 200, tick: 9100 }, { uid: 'b', rank: 3, floor: 120, tick: 4000 }, { uid: 'd', rank: 3, floor: 120, tick: 4000 }, { uid: 'e', rank: 5, floor: 0, tick: 0 }]);
+    [{ uid: 'a', rank: 1, floor: 200, tick: 9000, blazes: 0 }, { uid: 'c', rank: 2, floor: 200, tick: 9100, blazes: 0 }, { uid: 'b', rank: 3, floor: 120, tick: 4000, blazes: 0 }, { uid: 'd', rank: 3, floor: 120, tick: 4000, blazes: 0 }, { uid: 'e', rank: 5, floor: 0, tick: 0, blazes: 0 }]);
+  assert.deepEqual(standings([{ uid: 'b', floor: 120, tick: 4000, blazes: 1 }, { uid: 'd', floor: 120, tick: 4000, blazes: 4 }, { uid: 'f', floor: 120, tick: 4000, blazes: 1 }]).map(r => `${r.uid}${r.rank}`), ['d1', 'b2', 'f2'], 'more blazes takes the place; still equal = a draw');
+  assert.deepEqual(gameStandings({ participants: { u1: true, u2: true }, results: { u1: { f: 30, t: 700, bl: 1 }, u2: { f: 30, t: 700, bl: 2 } } }).map(r => `${r.uid}${r.rank}`), ['u21', 'u12'], 'the game rows carry their blazes (bl)');
   assert.deepEqual(standings(null), []);
   // THE SEED: picked after GO — a pure hash of (code, match, the server's GO time)
   const s = seedOf('HUSH', 'm1', 1763000000000);

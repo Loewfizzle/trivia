@@ -43,3 +43,26 @@ crests and blink; (c) the RIM = the far wall's white foam → by day the water s
 pillar only; (d) the BLUE = by the SCREEN's height: deepest at the bottom (#00306e-ish) → ocean blue → a brighter blue at the far edge
 (never pale); (e) the ball's wide pale-pink column → a small hot-pink pool + a thin streak. `water\before\` · `water\after3\` ·
 `water\beside-f5b.png`.
+
+## GROUP 1 — THE MATCH PIECES
+1. **THE TIE-BREAK** (`logic.js#rankCompare` + `standings` — the ONE ranking the podium (`index.js#finalRanks`), the server's report
+   (`core/match-report.js` → `api/_lib/freefall.js`'s rows), the calls (`match.js#scoreCalls`) + the night all read): floors → the earlier tick
+   that final floor was reached → MORE BLAZES (the rows' `bl`, the judge's own count — host + server alike) → a DRAW (a shared place). Nothing
+   new is written: every row already carried `bl`. **The sims** (2,000 rooms of bots each — a scratch script over `matchsim.js#botRun`):
+
+   | players | pairs on the same floor | settled by the tick | by the blazes | a draw | first place shared on floors → by the tick / blazes / draw |
+   | --- | --- | --- | --- | --- | --- |
+   | 2 | 29 of 2,000 (1.5 %) | 29 | 0 | 0 | 29 → 29 / 0 / 0 |
+   | 4 | 214 of 12,000 (1.8 %) | 212 | 2 | 0 | 58 → 58 / 0 / 0 |
+   | 8 | 2,400 of 56,000 (4.3 %) | 2,293 | 80 | 27 | 1,184 → 1,125 / 48 / 11 |
+
+   (8 bots: most of the floor ties are the runs that reach THE BOTTOM — 200 each, the tick splits them.)
+2. **THE EDGE MARKERS** — each "MIA ↓12" is ONE line, 17 px, in the player's OWN colour (a dark outline), at the screen's EDGE on the side of
+   the tower the rival really is (the stage reads the ghost's x = RB · sin φ; a flip only past ±0.2 so a rival in front never flickers; the
+   DOM is touched only at a flip): below → the lower band, above → the upper band, left edge or right (beside the rail). `match\markers1\`.
+3. **RIVAL OUT** — a rival's run ends OUT (red / the dark — never a finish, never time's up, never mine) → JAYWALK's `out-drop.mp3`
+   (referenced: `sounds.js` dir `jaywalk`) + "MIA IS OUT" in their colour for 1.5 s, low in the middle (clear of the number, the banners, the
+   ball), two lines at most (a third waits). None in the first 2 s of a run (a rejoin's catch-up replays old outs). `match\moments2\`.
+4. **LAST ONE STANDING** — 3+ players, every rival over, me still falling → once a match: JAYWALK's card (its type + gold glow, a soft dark
+   ground under it over the busy floors) + `last-standing.mp3` (referenced): "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD ·
+   KEEP FALLING" · level: "LEVEL WITH THE LEAD · KEEP FALLING" (`ghosts.js#lastStanding` + `lastWords`, PURE).

@@ -53,25 +53,26 @@ export const FEAT_NAMES = Object.freeze({ reachedHarbor: 'SPLASHDOWN', terminal:
 /** a result's feats as a row carries them: 'reachedHarbor terminal' ('' = none) */
 export const featsOf = r => Object.keys((r && r.feats) || {}).filter(k => r.feats[k]).join(' ');
 
-/** THE RANKING: THE FLOORS first; at the same floor → the EARLIER tick that floor was reached. Match + daily alike. (a < 0 = a is ahead) */
-export const rankCompare = (a, b) => (b.floor - a.floor) || (a.tick - b.tick);
-/** rows { uid, floor, tick } → [{ uid, rank, floor, tick }] — the same floor at the same tick shares the place */
+/** THE RANKING (F5C — THE TIE-BREAK, the owner, Nov 27): THE FLOORS first; equal floors → who reached that final floor FIRST (the earlier
+ *  tick); then → MORE BLAZES; still equal = a DRAW (a shared place). Match + daily alike. (a < 0 = a is ahead) */
+export const rankCompare = (a, b) => (b.floor - a.floor) || (a.tick - b.tick) || ((b.blazes || 0) - (a.blazes || 0));
+/** rows { uid, floor, tick, blazes } → [{ uid, rank, floor, tick, blazes }] — the same floor at the same tick with as many blazes shares the place */
 export function standings(rows) {
   const n = v => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
-  const list = (rows || []).map(r => ({ uid: r.uid, floor: n(r.floor), tick: n(r.tick) }));
+  const list = (rows || []).map(r => ({ uid: r.uid, floor: n(r.floor), tick: n(r.tick), blazes: n(r.blazes) }));
   list.sort((a, b) => rankCompare(a, b) || (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0));
   let rank = 0;
   return list.map((r, i) => {
     if (!i || rankCompare(list[i - 1], r) !== 0) rank = i + 1;
-    return { uid: r.uid, rank, floor: r.floor, tick: r.tick };
+    return { uid: r.uid, rank, floor: r.floor, tick: r.tick, blazes: r.blazes };
   });
 }
 
-/** F4A — a GAME's standings (the console's podium + the server's report: core/match-report.js): its results { uid: { f: floors, t: tick } }
+/** F4A — a GAME's standings (the console's podium + the server's report: core/match-report.js): its results { uid: { f: floors, t: tick, bl: blazes } }
  *  → [{ uid, rank, score (= the floors), floor, tick }] for every participant (no row = no run) */
 export function gameStandings(game) {
   const res = (game && game.results) || {};
-  return standings(Object.keys((game && game.participants) || {}).map(uid => { const r = res[uid] || {}; return { uid, floor: r.f, tick: r.t }; })).map(r => ({ ...r, score: r.floor }));
+  return standings(Object.keys((game && game.participants) || {}).map(uid => { const r = res[uid] || {}; return { uid, floor: r.f, tick: r.t, blazes: r.bl }; })).map(r => ({ ...r, score: r.floor }));
 }
 /** one player = SOLO (endless) · a room = THE MATCH (F4B) */
 export const modeOf = participants => (Object.keys(participants || {}).length === 1 ? 'solo' : 'match');

@@ -281,6 +281,23 @@ async function look() {
         await t.close();
       }
     }
+    if (want('moments')) {
+      // F5C — THE MATCH MOMENTS on the bot room (3 rivals: the sloppy ones go out first): RIVAL OUT's callout in their colour, then LAST ONE
+      // STANDING's card once every rival is down and my hand still falls — at 390 × 844 @3 + 375 × 667
+      const M = 'window.__ffPlay.matchState()';
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2]]) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look4&mode=match&rivals=3${q}`, { best: 88 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `${M}.hud.outTotal >= 1`, 120000); await sleep(250);
+        await shot(t.p, f(`52-moment-out-${tag}`));
+        console.log(lk, tag, 'out', JSON.stringify(await t.p.evaluate(`${M}.hud.outs`)));
+        const got = await waitFor(t.p, `${M}.hud.lastTotal >= 1 || window.__ffPlay.state().over`, 170000).catch(() => false);
+        if (got && await t.p.evaluate(`${M}.hud.lastTotal >= 1`)) { await sleep(450); await shot(t.p, f(`53-moment-last-${tag}`)); console.log(lk, tag, 'last', JSON.stringify(await t.p.evaluate(`${M}.hud.last`))); }
+        else console.log(lk, tag, 'last: not reached (my run ended first)');
+        await t.close();
+      }
+    }
     if (want('crown')) {
       // F5B — THE PLUNGE's CROWN frame by frame (the review: a near-white flash for a frame or two): the page's clock at 0.08 × the real one
       // from the splash on — 14 frames 8 ms of game time apart, 390 × 844 @3
