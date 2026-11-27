@@ -962,3 +962,10 @@
 - **THE MIX + CREDITS:** every FREEFALL sound balanced to JAYWALK's mix (the music ducked under the big moments; the bounce soft); every FREEFALL asset in the site's credits (nothing unused).
 - **THE ROADMAP:** after F5C → the city chat switches the block on for the other games → the review (Opus + Grok, report only) → the fix pass → go-live.
 - The pass: `docs/games/passes/freefall-f5c.md`.
+
+## FREEFALL — THE REVIEW (approved Nov 27)
+- **THE REVIEW = REPORT ONLY (Fable),** with Grok reviewing in parallel; Claude merges both into ONE fix list for THE FIX PASS (Opus). No game code changes in the review; its only commits are this note + the report (`docs/games/passes/freefall-review.md`, a copy at `Downloads\NEON\freefall-review\REPORT.md`). FREEFALL stays HIDDEN; THE SWITCH stays OFF.
+- **ALREADY DECIDED FOR THE FIX PASS** (the review only confirms the problem is real, it does not re-report them):
+  - **(1) THE WATER — both looks rebuilt from Grok's soft ripple map** `Downloads\grok\freefall\water\water-normal.png`: DAY = `water-mock-day-119-b.png` (saturated ocean blue, real swells, a ring of ripples round the tower, the amber lamp column breaking up on the waves) · NIGHT = `water-mock-night-119-claude.png` (the same in dark teal, the amber column, a few pink / violet / cyan glints, the plankton kept); `water-surface.png` NOT used.
+  - **(2) "MIA IS OUT" + LAST ONE STANDING move up to the top area under the number** (today they sit over the floors below the ball).
+- The pass: `docs/games/passes/freefall-review.md`.
