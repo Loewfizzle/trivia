@@ -139,7 +139,7 @@ async function look() {
     }
     if (want('banner')) {
       // THE ARRIVAL BANNERS: the ball falls into an area — the band at its fullest
-      for (const [name, floor] of [['speakeasy', 78], ['harbor', 118]]) {
+      for (const [name, floor] of [['offices', 38], ['speakeasy', 78], ['harbor', 118], ['deep', 158], ['lap2', 239]]) {   // (F5B: every area's band — they copy floor 120's)
         t = await open(w, h, dpr, `?seed=look2${q}&floor=${floor}`, { best: 141 });
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2}`, 30000);
@@ -271,6 +271,17 @@ async function look() {
         await shot(t.p, f(`60-end-made-${tag}`));
         await t.close();
       }
+    }
+    if (want('crown')) {
+      // F5B — THE PLUNGE's CROWN frame by frame (the review: a near-white flash for a frame or two): the page's clock at 0.08 × the real one
+      // from the splash on — 14 frames 8 ms of game time apart, 390 × 844 @3
+      t = await open(390, 844, 3, `?seed=look2${q}&floor=116`, { best: 141 });
+      await toFloor(t, 118); await auto(t.p, 'play');
+      await waitFor(t.p, 'window.__ffPlay.state().floor >= 119', 30000);
+      await t.p.evaluate(() => window.__slowmo(0.08));
+      await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash >= 1', 60000);
+      for (let i = 0; i < 14; i++) { await shot(t.p, f(`45-crown-${String(i + 1).padStart(2, '0')}`)); await sleep(100); }
+      await t.close();
     }
     if (want('breaks')) {
       // each breakthrough: the floor before it (the piece in sight), then a burst of frames through the moment
@@ -777,6 +788,11 @@ async function checks3() {
     const after = await box(t.p, sel);
     s = await st(t.p);
     ok(after.op < 0.05 && s.banner.bakes === ahead.bakes && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${after.op.toFixed(2)}); the next ones were ready all along (${s.banner.bakes} bakes)`);
+    // F5B — EVERY AREA's BAND IS UNDER THE HARBOR's (the owner: floor 120's is "perfect, out of the way, up long enough to read"): the same
+    // box, the same class (no area of its own — only THE BOTTOM's gold), the same canvas — 40 · 80 · 120 · 160 · the trench + its laps
+    const boxes = await t.p.evaluate(() => [...document.querySelectorAll('.ff-banners > .ff-banner')].map(b => { const r = b.getBoundingClientRect(); return { k: b.querySelector('.ff-banner-n').textContent, cls: b.className.replace(/\s*is-baked/, ''), y: r.top, h: r.height, x: r.left, w: r.width, cw: b.querySelector('canvas').width, ch: b.querySelector('canvas').height }; }));
+    const ref = boxes.find(b => b.k === 'UNDER THE HARBOR'), rest = boxes.filter(b => !/is-gold/.test(b.cls));
+    ok(!!ref && rest.length >= 5 && rest.every(b => b.cls === 'ff-banner' && b.y === ref.y && b.h === ref.h && b.x === ref.x && b.w === ref.w && b.cw === ref.cw && b.ch === ref.ch), `${lk}: every area's band = UNDER THE HARBOR's (${rest.map(b => b.k).join(' · ')}): ${ref ? `${ref.y.toFixed(0)} … ${(ref.y + ref.h).toFixed(0)} of 844, ${ref.w.toFixed(0)} wide` : 'no 120 band'} — one box, one class, one 1.6 s (banner.js#BANNER_MS)`);
     await t.close();
   }
   // THE BOTTOM (200) = the GOLD band "YOU HIT THE BOTTOM" (with the impact); THE TRENCH (201) crosses after it; a later LAP names itself
@@ -892,7 +908,7 @@ async function checks4() {
     s = await st(t.p);
     w = await wanted(t.p);
     const words = await t.p.evaluate(() => document.querySelector('.ff-ec-cause').textContent);
-    ok(!midShown && midBand.key === 'YOU HIT THE BOTTOM|FLOOR 200' && midBand.gold && s.info.breaks.bottom === 1 && cardMs >= 2200 && words === 'MADE IT TO THE BOTTOM', `${lk} — THE FINISH: the ball drops onto the seabed, the gold band, the card waits for the moment (${cardMs} ms) — "${words}"`);
+    ok(!midShown && midBand.key === 'YOU HIT THE BOTTOM|FLOOR 200' && midBand.gold && s.info.breaks.bottom === 1 && cardMs >= 2200 && words === 'YOU HIT THE BOTTOM', `${lk} — THE FINISH: the ball drops onto the seabed, the gold band, the card waits for the moment (${cardMs} ms) — "${words}"`);
     ok(midFin && midFin.floor === 200 && midFin.same === null && s.finished && s.finished.floor === 200 && s.finished.mode === 'match' && s.finished.same === true && s.finished.judged === true && s.finished.look === lk, `${lk}: THE FINISH's HOOK — the run handed on once, AT THE made EVENT (there before the card): floor ${s.finished && s.finished.floor}; with the card: REPLAY = LIVE, the judge's own verdict`);
     ok(s.info.breaks.mouth === 0 && s.info.breaks.rocks === 14, `${lk}: a finish's bed is whole (no mouth) — rocks in front of the ball too (${s.info.breaks.rocks})`);
     // (F5A — THE DAY CELEBRATION: a finish celebrates in BOTH looks — by night the firework, by day the bubbles + the sun rays — with the same soft fireworks.mp3)
@@ -1118,6 +1134,29 @@ async function perf() {
   for (const r of rows) console.log(`| ${r.lk} | ${r.where} | ${r.tier} | ${r.rate}× | ${r.fps.toFixed(1)} | ${r.p50.toFixed(1)} · ${r.p95.toFixed(1)} · ${r.worst.toFixed(1)} | 390×844 @${r.dpr} | ${r.motes} |`);
 }
 
+// F5B — THE WATER HITCHES (`--water`): F5A saw ONE 83 – 100 ms frame in most standing-water rows. Here: the ball standing on floor 119 for
+// 8 s (the water's surface filling the lower screen) + THE SPLASHDOWN played through (116 → 124), both looks, tier 2, 1× + 4× CPU —
+// the worst frame + every frame over 33 ms NAMED (the stage's hitch log). The target: no frame over 33 ms at the splashdown.
+async function water() {
+  const name = h => `${h.ms.toFixed(0)} ms ${h.why} @${h.floor}`;
+  for (const lk of ['night', 'day']) for (const rate of [1, 4]) {
+    for (const what of ['stand', 'splash']) {
+      const d = await open(390, 844, 3, `?seed=look2&tier=2&floor=${what === 'stand' ? 117 : 116}&look=${lk}`);
+      await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+      await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
+      await start(d); await auto(d.p, 'play');
+      if (what === 'stand') { await waitFor(d.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(d.p, 'safe'); }
+      await sleep(what === 'stand' ? 600 : 300);
+      await d.p.evaluate(() => { window.__f0 = performance.now(); window.__n0 = window.__ffPlay.state().info.frames; window.__h0 = window.__ffPlay.state().hitches; });
+      if (what === 'stand') await sleep(8000); else await waitFor(d.p, 'window.__ffPlay.state().floor >= 124 || window.__ffPlay.state().over', 40000);
+      const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s = P.state(), n = s.info.frames - window.__n0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / (performance.now() - window.__f0), worst: a[a.length - 1], p95: a[Math.floor(a.length * 0.95)], log: s.hitchLog.slice(0, Math.max(0, s.hitches - window.__h0)), floor: s.floor, splash: s.info.breaks.splash }; });
+      await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      ok(r.fps >= 58 && (what === 'stand' || r.worst <= 33), `${lk} · THE WATER (${what === 'stand' ? 'standing on 119, 8 s' : `the splashdown, 116 → ${r.floor}`}) · ${rate}× CPU: ${r.fps.toFixed(1)} fps · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms${r.log.length ? ` — long: ${r.log.map(name).join(' · ')}` : ''}`);
+      await d.close();
+    }
+  }
+}
+
 // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run at tier 2): a WHOLE run, the roof to the trench, at 4× CPU in both looks — every frame
 // over 25 ms counted BY AREA and every one over 33 ms NAMED (what landed before it). The target here: worst ≤ 25 ms, HITCH ≤ 2 a run.
 async function stutters() {
@@ -1234,6 +1273,7 @@ async function perf8() {
 if (LOOK) await look();
 else if (argv.includes('--stutters')) await stutters();
 else if (argv.includes('--perf8')) await perf8();
+else if (argv.includes('--water')) await water();
 else if (PERF) await perf();
 else if (argv.includes('--f3b')) await checks4();
 else if (argv.includes('--haze')) await haze(true);

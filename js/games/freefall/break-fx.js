@@ -382,7 +382,7 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
 const SAND = /* glsl */`
 ${HASH}
 uniform sampler2D tSand, tSandN;
-uniform float uHaveS, uFlipS, uHaveSN, uFlipSN, uTime, uDay, uBloom, uImpT, uRW, uHole;
+uniform float uHaveS, uFlipS, uHaveSN, uFlipSN, uTime, uDay, uBloom, uImpT, uRW, uHole, uCrisp;
 uniform vec3 uRimC, uBall;
 uniform vec2 uImpact;
 /** THE TRENCH's MOUTH (SOLO — the tower goes on down; the fresh-eyes review: the floor under the ball is ALWAYS in sight): the bed is open
@@ -429,10 +429,13 @@ vec4 sand(vec2 xz, float under, float lit) {
   float age = uTime - uImpT, emit = 0.0;
   if (age > 0.0 && age < 1.8) {
     float dI = length(xz - uImpact), rr = 0.25 + 4.6 * (1.0 - exp(-2.3 * age)), band = exp(-pow((dI - rr) / (0.16 + 0.2 * age), 2.0)) * (1.0 - smoothstep(0.7, 1.7, age));
+    // (F5B — THE BOTTOM's SHARE PICTURE alone, uCrisp: the ring stands TIGHT round the ball, a thin crisp gold line at its full strength —
+    //  in the card it was a wide pale band + a white pool: "a hazy white blur at 360 px")
+    if (uCrisp > 0.5) { rr = 0.3; band = exp(-pow((dI - rr) / 0.035, 2.0)); }   // (≈ 2.4 balls out — the ball is 0.125 wide a side)
     // (F5A: a FINISH's ring is GOLD — uHole 0: the bed is whole, the run MADE IT; the gold band's own colour, the share card's gold ring)
     col += c * mix(0.5, 0.15, step(uHole, 0.0)) * band + mix(mix(mix(uRimC, vec3(1.0), 0.35) * 1.5, vec3(0.75, 1.0, 1.0), uDay), vec3(1.0, 0.56, 0.09), step(uHole, 0.0)) * band * mix(0.5, 0.8, step(uHole, 0.0));   // (F5A: a ring of lifted sand + light — never a clipped white band where it meets the far edge)
     emit = band * 0.5;
-    col += mix(vec3(1.0, 0.9, 0.7) * 1.2, vec3(1.0, 0.72, 0.3) * 0.7, step(uHole, 0.0)) * exp(-dI * dI / 0.35) * exp(-age * 5.0);   // (a finish: a gold flash, held down — never a white pool)
+    col += mix(vec3(1.0, 0.9, 0.7) * 1.2, vec3(1.0, 0.72, 0.3) * 0.7, step(uHole, 0.0)) * exp(-dI * dI / 0.35) * exp(-age * 5.0) * (1.0 - 0.85 * uCrisp);   // (a finish: a gold flash, held down — never a white pool; the share picture: all but none)
   }
   // (a piece seen from below: bare wet rock — dark, but a solid thing, never see-through)
   col = mix(col, mix(vec3(0.05, 0.04, 0.09), vec3(0.1, 0.13, 0.15), uDay) * (0.6 + 0.8 * dif), under);

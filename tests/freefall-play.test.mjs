@@ -19,6 +19,11 @@ const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
 const posix = p => normalize(p).split('\\').join('/');
 /** every module the page can load: its script + every static AND dynamic import, followed to the end ('three' = the import map's CDN) */
+// (F5B — SHARE = THE PICTURE ONLY: the page draws the run's card on the site's share kit — kit/share-run.js → daily/share.js, for their
+//  DRAWING (the ground, the foot, the letter spacing). daily/share.js's own LAZY imports are its showCard sheet (+ a SHARE tube from
+//  ui/components.js, which reaches the console): the page never calls showCard / sendReady / sendShare / prepShare / shareRunCard —
+//  send.js shows its own picture (the test below proves both) — so that one module's lazy imports are not followed)
+export const SHEET_ONLY = Object.freeze({ 'js/daily/share.js': ['../ui/sheet.js', '../ui/dom.js', '../ui/components.js'] });
 function graph(entry) {
   const seen = new Set(), bare = new Set(), todo = [entry];
   while (todo.length) {
@@ -26,7 +31,9 @@ function graph(entry) {
     if (seen.has(f)) continue;
     seen.add(f);
     const s = code(f);
-    const specs = [...s.matchAll(/(?:^|\n)\s*(?:import|export)\s[^'"\n]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g)].map(m => m[1] || m[2]).concat([...s.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map(m => m[1]));
+    const lazy = [...s.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map(m => m[1]);
+    if (SHEET_ONLY[f]) assert.deepEqual(lazy, SHEET_ONLY[f], `${f}: its lazy imports are its showCard sheet alone`);
+    const specs = [...s.matchAll(/(?:^|\n)\s*(?:import|export)\s[^'"\n]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g)].map(m => m[1] || m[2]).concat(SHEET_ONLY[f] ? [] : lazy);
     for (const spec of specs) { if (spec.startsWith('.')) todo.push(posix(join(dirname(f), spec))); else bare.add(spec); }
   }
   return { files: [...seen].sort(), bare: [...bare].sort() };
@@ -74,13 +81,24 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
   // (F4B — THE MATCH on the page: the ghosts + the match's HUD are the stage's own; THE BOT ROOM — matchsim.js + the sims' bots + the proof's
   //  pure chunk maths — is LAZY: loaded only with `?mode=match&rivals=N`; nothing of it writes or counts)
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room)');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
+  // F5B — the page's SHARE: the picture kit is lazy, and nothing on the page sends through the share kit's own senders (send.js does)
+  const fromDaily = g.files.filter(f => /from '[^']*daily\/share\.js'/.test(code(f)));
+  assert.deepEqual(fromDaily, [`${FF}card.js`, 'js/games/kit/share-run.js'], 'the drawing reaches daily/share.js through card.js + the kit alone');
+  assert.match(code(`${FF}card.js`), /import \{ spacedText, spacedWidth, shareFonts \} from '\.\.\/\.\.\/daily\/share\.js';/, 'card.js takes its DRAWING helpers only');
+  assert.match(code(`${FF}card.js`), /import \{ runCard, drawRunCard, RUN_W \} from '\.\.\/kit\/share-run\.js';/, '… and the kit\'s card — never its sender (shareRunCard)');
+  for (const f of g.files) if (!['js/games/kit/share-run.js', 'js/daily/share.js'].includes(f)) assert.doesNotMatch(code(f), /\bshareRunCard\b|\bsendShare\b|\bsendReady\b|\bprepShare\b/, `${f}: never the share kit's own senders`);
   assert.match(read(`${FF}stage.js`), /lazyImport\(import\('\.\/matchsim\.js'\), '\.\/matchsim\.js'\)/, 'the bot room is lazy'); assert.doesNotMatch(read(`${FF}stage.js`), /^import .*matchsim/m);
-  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/proof.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
+  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/config.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/proof.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/daily/share.js', 'js/errlog.js', 'js/games/jaywalk/numerals.js', 'js/games/kit/look.js', 'js/games/kit/share-run.js', 'js/games/kit/tiers.js', 'js/ui/canvas-safe.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
   // (HIGH RISE's page carries the same five: they are PURE — the sun's place is worked out on the phone, nothing is asked of a server)
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
-  for (const f of g.files) assert.ok(!/\/(profile|progress|board|daily|vault|chat|admin|screens)\/|js\/(firebase|store|room|host|identity|seat|app|config)\.js|^api\//.test(f), `${f}: nothing that counts is in the graph`);
+  // (F5B: the share picture's drawing — the kit's share-run.js + daily/share.js's drawing helpers + config.js's DATA (the games' rows: no
+  //  import, no request) — is the one exception, named; none of the three asks a server)
+  const DRAW = ['js/config.js', 'js/daily/share.js'];
+  for (const f of DRAW) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase\.js|\/api\//, `${f}: draws / holds data — asks no server`);
+  assert.doesNotMatch(code('js/config.js'), /^\s*import\b/m, 'config.js imports nothing');
+  for (const f of g.files) assert.ok(DRAW.includes(f) || !/\/(profile|progress|board|daily|vault|chat|admin|screens)\/|js\/(firebase|store|room|host|identity|seat|app|config)\.js|^api\//.test(f), `${f}: nothing that counts is in the graph`);
   // THE DOOR (HIGH RISE's): the shared audio engine COUNTS a leave once (errlog.js#countQuiet → /api/log) and the skew wrapper may ask
   // /api/time — on THIS page every request to /api/ is stopped before it leaves the phone
   const door = code(`${FF}play.js`);
@@ -628,7 +646,7 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(bfx2, /float mouth\(vec2 xz\) \{\n  float d = length\(vec2\(xz\.x, min\(xz\.y, 0\.0\)\)\);/); assert.equal((bfx2.match(/if \(uHole > 0\.0 && m < 0\.0\) discard;/g) || []).length, 2, 'the plane + the pieces');
   assert.match(brk2, /bedHole\.value = fin === BREAK_FLOORS\.bottom \? 0 : SEABED\.mouth;/); assert.match(brk2, /export const SEABED = Object\.freeze\(\{ down: 0\.26, half: 3\.3, mouth: 1\.14 \}\);/);
   assert.match(brk2, /if \(solo\) shelf\(k\); else/, 'SOLO: the dust rises off the shelves — never over the floors below');
-  assert.match(n, /if \(poseTo !== POSE\.finish\) pose\('finish'\);/, 'THE FINISH has its own camera'); assert.match(n, /export const STUMP = 0\.36;/);
+  assert.match(n, /if \(poseTo !== POSE\.finish\) pose\('finish'\);/, 'THE FINISH has its own camera'); assert.match(n, /export const STUMP = 0;/, 'F5B: no stump floating over the ball — the core ends in the sand');
   assert.match(n, /if \(run\.st === 'made'\) return SHAPE\.H \* \(1 - u\) \* \(1 - 0\.45 \* u\);/, 'the last drop onto the seabed is the view\'s own');
   assert.match(st, /if \(e\.e === 'area' && e\.floor === BREAK_AT\.splash && snd && snd\.muffle\) snd\.muffle\(MUFFLE_S, BREAK_HIT_S \+ MUFFLE_AFTER_S\);/, 'THE SPLASHDOWN muffles the mix');
   assert.match(st, /if \(e\.e === 'made' && snd && !reduceM\) snd\.playCues\(FIREWORK_CUES\);/, 'the celebration\'s sound: a finish in both looks (F5A) — and never without its celebration (reduced motion)');

@@ -14,7 +14,7 @@ import { ENTRY_CHARS_MAX } from '../../js/games/freefall/tuning.js';
  * judgeRun({ seed, mode, log, rules?, until? }) → { ok: true, rules, floor, tick, end, cause, made, bounces, shatters, blazes, bestRun, moves,
  *                                           feats: { reachedHarbor, terminal, reachedBottom } } | { ok: false, why }
  *   floor = the floors passed · tick = when that floor was reached (THE RANKING: floors, then the earlier tick) · end = the tick the run
- *   ended · cause = 'red' (HIT THE RED) | 'dark' (THE LIGHTS WENT OUT) | 'made' (floor 200: MADE IT TO THE BOTTOM) | 'cap' (TIME'S UP).
+ *   ended · cause = 'red' (HIT THE RED) | 'dark' (THE LIGHTS WENT OUT) | 'made' (floor 200: YOU HIT THE BOTTOM) | 'cap' (TIME'S UP).
  *   log = [{ t, a }]: the tower's angle (0 … 4095) at the ticks it changed, the ticks rising.
  * The result is the server's OWN replay — a phone's claimed floor is never read (there is no field for one). NOTHING THROWS.
  * REFUSED (`why`): 'rules' (a rule set THE TABLE does not hold) · 'mode' (REQUIRED — a missing one is never judged as solo) · 'seed' (not

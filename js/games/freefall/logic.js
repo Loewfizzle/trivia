@@ -8,7 +8,7 @@ import { TICK_HZ, AREAS, GEN } from './tuning.js';
 export const END_WORDS = Object.freeze({
   red: 'HIT THE RED',
   dark: 'THE LIGHTS WENT OUT',
-  made: 'MADE IT TO THE BOTTOM',
+  made: 'YOU HIT THE BOTTOM',   // (F5B — ONE wording for the floor-200 ending everywhere: the end screen, the share card, the band)
   cap: 'TIME’S UP',
 });
 /** a result → its words ('' = the run is still going) */

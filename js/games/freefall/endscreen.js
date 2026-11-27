@@ -4,7 +4,7 @@
 //   THE HEADER = THE LOGO — title-05's lettering (the opening's own WebP, its alpha) centred, ~58 % of the card's width (≈ 226 pt at 390 —
 //     never under 210: the script must read) + the mode under it in small teal caps (SOLO · MATCH; DAILY later). In the cartridge the logo
 //     sits in the console frame's own header slot (view.js puts `endLogo` there); the test page's card wears it itself.
-//   the CAUSE — big neon words, up to two lines, in FREEFALL's TEAL (the colour IS the letter); MADE IT TO THE BOTTOM = GOLD.
+//   the CAUSE — big neon words, up to two lines, in FREEFALL's TEAL (the colour IS the letter); YOU HIT THE BOTTOM = GOLD.
 //     NEVER RED: red is danger on the tower and nothing else, anywhere.
 //   THE FLOOR NUMBER, huge — the one WHITE hero, a hot-pink glow — and FLOORS under it
 //   YOUR BEST · 88 · AVG 62 in gold (a NEW BEST: NEW BEST · WAS 88 — the AVG then on its own quiet line) + ONE small line:
@@ -31,8 +31,8 @@ export function endLogo(mode = 'solo') {
     h('img.ff-ec-logo-img', { alt: '', decoding: 'async', draggable: 'false', width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) }),
     h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m));
 }
-/** "12 BOUNCES · 3 BLAZES · BEST RUN 9" (1 BOUNCE · 1 BLAZE) */
-export const statsLine = (bounces, blazes, bestRun) => `${many(bounces, 'BOUNCE')} · ${many(blazes, 'BLAZE')} · BEST RUN ${say(bestRun)}`;
+/** "12 BOUNCES · 3 BLAZES · BEST RUN 9" (1 BOUNCE · 1 BLAZE) — F5B: "0 BLAZES" never shows (no blaze lit = the part is left out) */
+export const statsLine = (bounces, blazes, bestRun) => [many(bounces, 'BOUNCE'), whole(blazes) > 0 ? many(blazes, 'BLAZE') : '', `BEST RUN ${say(bestRun)}`].filter(Boolean).join(' · ');
 /** THE AVERAGE's words beside YOUR BEST (JAYWALK's JT2 — core/board-avg.js): a number = "AVG 62" · null = fewer than 5 counted runs: "AVG —" · undefined = not known here (the test page; counting OFF): nothing */
 export const avgWords = avg => (avg === undefined ? '' : avg == null || !Number.isFinite(Number(avg)) ? 'AVG —' : `AVG ${say(avg)}`);
 
@@ -52,7 +52,7 @@ export function endCard({ header = '' } = {}) {
     header(mode) { if (hd) hd.replaceChildren(endLogo(mode)); },
     set({ words, made, floor, bounces, blazes, bestRun }) {
       const f = whole(floor);
-      el.classList.toggle('is-made', !!made); cause.classList.toggle('is-gold', !!made);   // (MADE IT TO THE BOTTOM = the gold line)
+      el.classList.toggle('is-made', !!made); cause.classList.toggle('is-gold', !!made);   // (YOU HIT THE BOTTOM = the gold line)
       cause.textContent = words || '';
       // (each digit its own box — a little room between two: a 1 never runs into its neighbour)
       n.replaceChildren(...[...String(f)].map(d => h('span.ff-dg', { 'aria-hidden': 'true' }, d)));

@@ -36,7 +36,7 @@ export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 355 }
  *  · SHOT_BLOOM: the glow's share (THE BOTTOM's kept LOW — the night gold card was a white blob) · SHOT_GLOW: the red slice's own glow */
 export const SHOT_BEFORE = Object.freeze({ red: 9, dark: 9, cap: 0, made: 0 });
 export const SHOT_ZOOM = Object.freeze({ red: 1.32, dark: 1.28, cap: 1.28, made: 1 });
-export const SHOT_BLOOM = Object.freeze({ red: 0.75, dark: 0.75, cap: 0.75, made: 0.3 });
+export const SHOT_BLOOM = Object.freeze({ red: 0.75, dark: 0.75, cap: 0.75, made: 0.12 });   // (F5B: THE BOTTOM 0.3 → 0.12 — still a hazy white blur at 360 px)
 export const SHOT_GLOW = 1.15;   // (THE MARK's own light under the ball, wide + red-hot — a white flash would whiten the slice: it must read RED)
 const own = (T, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(T, k);   // (the table's own rows only: never 'constructor')
 export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.cap);

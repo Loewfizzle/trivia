@@ -29,7 +29,9 @@ export const POSE = Object.freeze({ play: Object.freeze({ pitch: 33, back: 1, ba
   // (F3B — the fresh-eyes review: THE FINISH's own camera — the ball lower on the screen, the bed + what bursts over it in the picture's middle)
   finish: Object.freeze({ pitch: 29, back: 0.9, ballY: 0.55 }) });
 /** a FINISH: the tower's core ends as a broken stump in the sand beside the ball — this tall (never a ball on an empty beach) */
-export const STUMP = 0.36;
+/** F5B — THE BOTTOM's share picture: the ball's round halo at this share of its own (the gold card's white pool round the ball) */
+export const SHOT_HALO = 0.35;
+export const STUMP = 0;   // (F5B — the fresh-eyes review: the stump stood BEHIND the ball, its foot hidden by it — it read as a block FLOATING over the ball in the hero moment + on the gold card: the core now ends in the sand)
 export const POSE_MS = 950;
 /** the floors drawn under the ball's (only the nearest ~10 are ever in sight) */
 export const BELOW = 9;
@@ -293,7 +295,7 @@ export function createNight(host, o = {}) {
   sparks.frustumCulled = false; scene.add(sparks); twin(sparks, sparkMat);
   const lGeo = quadGeo(), lP = inst(lGeo, 'aP', LIGHTS, 4), lQ = inst(lGeo, 'aQ', LIGHTS, 4), lC = inst(lGeo, 'aC', LIGHTS, 3);
   lGeo.instanceCount = LIGHTS;
-  const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uTime: G.uTime, uBloom: G.uBloom, uAspect: G.uAspect, uCover: G.uCover, uOnBed: { value: 0 } }, side: THREE.DoubleSide, ...addOpt });
+  const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uTime: G.uTime, uBloom: G.uBloom, uAspect: G.uAspect, uCover: G.uCover, uHalo: { value: 1 }, uOnBed: { value: 0 } }, side: THREE.DoubleSide, ...addOpt });
   // THE BLAZE = NEON FIRE: the flame sprites (a fixed pool, flown in their shader) + the ribbon behind the ball
   const fGeo = quadGeo(), fO = inst(fGeo, 'aO', FLAMES, 3), fV = inst(fGeo, 'aV', FLAMES, 3), fT = inst(fGeo, 'aT', FLAMES, 4);
   for (let i = 0; i < FLAMES; i++) { fT.array[i * 4] = -100; fT.array[i * 4 + 1] = 1; }
@@ -886,7 +888,7 @@ export function createNight(host, o = {}) {
           const span = runX.nl - runX.pl, u = runX.fl === 'fall' && span > 0 ? Math.min(1, Math.max(0, (tauX - runX.pl) / span)) : 1;
           S[CAMY] = runX.floor - (1 - u);
         }
-        if (!o.alive) breaks.quiet(true);   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it)
+        if (!o.alive) { breaks.quiet(true); breaks.crisp(true); lightMat.uniforms.uHalo.value = SHOT_HALO; }   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it; F5B: the ring crisp, the ball's halo small)
         shotGlow = o.glow > 0 ? o.glow : 0;
         // (the slice under the ball wears no leftover flash in the picture: it reads RED — its glow is THE MARK's, red-hot, in draw())
         if (shotGlow > 0) { const fr = floorRec(runX.floor), su = sliceUnder(runX.a, fr.twist); fi = (runX.floor % RING) * SLICES + su; f0 = flash[fi]; flash[fi] = 0; }
@@ -894,7 +896,7 @@ export function createNight(host, o = {}) {
         return this.snap(bw, bh, rect);
       } finally {
         if (fi >= 0) flash[fi] = f0;
-        breaks.quiet(false);
+        breaks.quiet(false); breaks.crisp(false); lightMat.uniforms.uHalo.value = 1;
         S.set(SV); state = st0; sparks.visible = sv0; shards.visible = sh0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;
       }
     },

@@ -149,11 +149,10 @@ for (const [name, query, play, extra, want, looks = LOOKS, endMs = 60000] of RUN
     ok(res.row.room >= 300 && res.row.lines <= 2 && res.row.tab >= 1 && res.row.tab <= 2,`${id}: the number (${Math.round(res.row.bw)} px at ${res.row.px}) leaves the area + the blazes their room (${Math.round(res.row.room)} px, the area on ${res.row.lines} line${res.row.lines === 1 ? '' : 's'})`);
     const MIN = { mode: 9.5, cause: 14, number: 45, floors: 11, area: 11, blazes: 11, name: 13, site: 11.5 };
     for (const k of Object.keys(MIN)) ok(res.read[k].cap >= MIN[k] && res.read[k].ratio >= 3, `${id}: at 360 px wide the ${k} reads — ${res.read[k].cap.toFixed(1)} px caps, ${res.read[k].ratio.toFixed(1)} : 1 on its ground`);
-    ok(res.fitKb > 0 && res.fitKb <= 390, `${id}: the link's 540 × 675 picture fits the server's cap (${res.halfType} ${res.halfKb.toFixed(0)} KB → ${res.fitKb.toFixed(0)} KB ≤ 390)`);
     ok(!t.reqs.some(u => new URL(u).pathname.startsWith('/api/')), `${id}: the page asked the server nothing — the run, the frame + the card drawn (${t.reqs.length - before} requests for the card's modules, 0 to /api/)`);
-    // SHARE ITSELF, BEHIND THE SWITCH (once — the night's red run): the cartridge's own calls (warmShare while the end screen is read, then
-    // shareRun at the tap) on a game made of this run's numbers, the server having said WOULD COUNT → THE PICTURE ALONE goes out (the
-    // share sheet stubbed: what it was handed), no link, no text, the server asked NOTHING
+    // F5B — SHARE = THE PICTURE ONLY (once — the night's red run): (1) the cartridge's own calls (warmShare while the end screen is read,
+    // then shareRun at the tap) on a game made of this run's numbers; (2) THE TEST PAGE's own SHARE button, tapped. The share sheet is
+    // stubbed (what it was handed): EXACTLY ONE PNG, no text / title / url, called IN THE TAP's OWN TURN; the server asked NOTHING
     if (name === 'red' && look === 'night') {
       const sh = await t.p.evaluate(async () => {
         const H = await import('/js/games/freefall/share.js'), St = await import('/js/store.js');
@@ -161,19 +160,28 @@ for (const [name, query, play, extra, want, looks = LOOKS, endMs = 60000] of RUN
         const game = { id: 'freefall', matchId: shot.key, mode: 'solo', phase: 'final', participants: { [uid]: true }, results: { [uid]: { f: shot.floor, bl: shot.blazes, w: shot.cause, go: 0 } } };
         const state = { uid, code: 'FALL', players: { [uid]: { name: 'Ben' } } };
         St.state.game = game;
-        globalThis.__ffWould = game.matchId;
         const got = [], door = window.fetch;
         let asked = 0;
         window.fetch = (u, o) => { if (String((u && u.url) || u).includes('/api/')) asked++; return door(u, o); };
-        navigator.share = async d => { got.push(d); }; navigator.canShare = () => true;
+        navigator.share = async d => { got.push(d); }; navigator.canShare = d => !!(d && d.files);
         H.warmShare(game, state);
-        const a = await H.shareRun(game, state), b2 = a === 'shared' ? a : await H.shareRun(game, state);
+        await new Promise(r => setTimeout(r, 2500));   // (the end screen is read: the picture is drawn + encoded)
+        const p = H.shareRun(game, state), sync = got.length, a = await p;
         const d = got[0] || {}, f = d.files && d.files[0];
         let w = 0, h = 0;
         if (f) { const bm = await createImageBitmap(f); w = bm.width; h = bm.height; }
-        return { a, b: b2, n: got.length, keys: Object.keys(d).sort().join(), text: d.text, file: f ? f.name : '', type: f ? f.type : '', w, h, kb: f ? f.size / 1024 : 0, asked };
+        // (2) the test page's own SHARE (a real press + lift on its button)
+        got.length = 0;
+        const b = document.querySelector('.ff-share'), at = (type, id) => b.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: id, isPrimary: true }));
+        at('pointerdown', 7); at('pointerup', 7);
+        const pageSync = got.length;
+        await new Promise(r => setTimeout(r, 50));
+        const pd = got[0] || {}, pf = pd.files && pd.files[0];
+        let pw = 0; if (pf) { const bm = await createImageBitmap(pf); pw = bm.width; }
+        return { a, sync, n: got.length, keys: Object.keys(d).sort().join(), file: f ? f.name : '', type: f ? f.type : '', w, h, kb: f ? f.size / 1024 : 0, asked, pageSync, pageKeys: Object.keys(pd).join(), pageType: pf ? pf.type : '', pageFiles: pd.files ? pd.files.length : 0, pw };
       });
-      ok(sh.b === 'shared' && sh.n === 1 && sh.keys === 'files,text' && sh.text === '' && sh.file === 'neon-speakeasy-freefall.png' && sh.type === 'image/png' && sh.w === 1080 && sh.h === 1350, `${id}: SHARE behind THE SWITCH (WOULD COUNT) → THE PICTURE ALONE (${sh.file}, ${sh.w} × ${sh.h}, ${sh.kb.toFixed(0)} KB) — no link, no text (the first tap: ${sh.a}${sh.a === 'shared' ? '' : ' — its activation spent; the next: shared'})`);
+      ok(sh.a === 'shared' && sh.sync === 1 && sh.keys === 'files' && sh.file === 'neon-speakeasy-freefall.png' && sh.type === 'image/png' && sh.w === 1080 && sh.h === 1350, `${id}: THE CARTRIDGE's SHARE → THE PICTURE ALONE (${sh.file}, ${sh.w} × ${sh.h}, ${sh.kb.toFixed(0)} KB) — the payload's keys "${sh.keys}" (no text, no title, no url), the share sheet asked in the tap's own turn (${sh.sync})`);
+      ok(sh.pageSync === 1 && sh.pageKeys === 'files' && sh.pageFiles === 1 && sh.pageType === 'image/png' && sh.pw === 1080, `${id}: THE TEST PAGE's SHARE → the same: ONE ${sh.pageType} (${sh.pw} wide), keys "${sh.pageKeys}", in the tap's own turn (${sh.pageSync}) — it used to hand over a line + the page's link`);
       ok(sh.asked === 0 && !t.reqs.some(u => new URL(u).pathname.startsWith('/api/')), `${id}: … and the server was asked nothing (${sh.asked} calls to /api/)`);
     }
     ok(t.errs.length === 0, `${id}: no page error (${t.errs.join(' | ')})`);

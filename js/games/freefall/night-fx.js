@@ -426,7 +426,7 @@ void main() {
   vQ = position.xy * 2.0; vK = aQ; vC = aC;
 }`;
 export const LIGHT_F = /* glsl */`
-uniform float uTime, uBloom, uCover, uOnBed;
+uniform float uTime, uBloom, uCover, uOnBed, uHalo;
 varying vec2 vQ; varying vec4 vK; varying vec3 vC;
 ${FIRE_RAMP}
 void main() {
@@ -437,6 +437,7 @@ void main() {
     // (F5A — the review: a FINISH — the ball rests on the seabed, and the sand under it sliced its halo flat along a straight line: there
     //  its lower part fades out softly before the sand does; the sand wears the ball's own pool of light. uOnBed: only there)
     a *= mix(1.0, smoothstep(-0.46, -0.1, vQ.y), uOnBed);
+    a *= uHalo; heart *= uHalo;   // (F5B: 1 — THE BOTTOM's share picture alone holds it down: night.js#SHOT_HALO)
   }
   else if (kind < 1.5) {
     // THE TRAIL: t = 0 at the ball … 1 at its tip

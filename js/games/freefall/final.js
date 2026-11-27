@@ -19,7 +19,13 @@ import { BOARD, SRV_BEST_KEY, wouldLine } from './lines.js';
 
 const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
 const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
-const warmShare = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => (typeof m.warmShare === 'function' ? m.warmShare(game, state) : null)).catch(() => {});
+// (F5B — SHARE = THE PICTURE ONLY: the card is drawn + encoded at the end screen; the TAP must reach the share sheet in its own turn — so
+//  the share module, once the end screen has loaded it, is called DIRECTLY: no import's promise between the tap and navigator.share)
+let SH = null;
+const shareMod = () => lazyImport(import('./share.js'), './share.js').then(m => (SH = m));
+const warmShare = (game, state) => shareMod().then(m => (typeof m.warmShare === 'function' ? m.warmShare(game, state) : null)).catch(() => {});
+/** SHARE (index.js#shareRun — the console's universal footer): the picture alone, in the tap's own turn */
+export const shareNow = (game, state) => (SH ? SH.shareRun(game, state) : shareMod().then(m => m.shareRun(game, state)));
 
 /**
  * YOUR TABLE (JAYWALK's — victory.js#yourTable): you + the friends YOUR list names with a FREEFALL best (the server's read: /api/profile

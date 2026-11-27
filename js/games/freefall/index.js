@@ -53,6 +53,6 @@ export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, no
 export { finalScene } from './final.js';
 /** SHARE (F4B): THE SHARE CARD (share.js — the run's real end frame, the floors, the cause, the area + the blazes) on the site's share kit; the
  *  console's universal footer shows SHARE for a cartridge with it (ui/final.js) — solo + match */
-export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
+export { shareNow as shareRun } from './final.js';   // (F5B — the picture alone, the share sheet in the tap's own turn: final.js holds the loaded module)
 
 export const finalRanks = game => gameStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));

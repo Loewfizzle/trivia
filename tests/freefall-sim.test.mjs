@@ -151,7 +151,8 @@ function digest(mode, rules, maxFloor) {
   return g.digest('hex').slice(0, 16);
 }
 test('F2 — THE PROOF, floors 0–199 did not move: on a row WITHOUT the shatter rule every bot run of F1 replays TICK FOR TICK (match · daily · solo down to floor 200 — F1\'s digests); the rule itself is the only thing that moves a run above THE TRENCH; MOVING RED never touches a match', () => {
-  const f1 = makeRuleSet({ ...plainRow(), id: 'f1', shatterSafe: false });
+  // (F5B — THE BLIND FLOORS: F1's row had red on floors 40 + 120 — the row without the shatter rule is F1's without that rule too)
+  const f1 = makeRuleSet({ ...plainRow(), id: 'f1', shatterSafe: false, gen: { ...plainRow().gen, blind: [] } });
   assert.equal(digest('match', f1), '4ec096827cfbf061', 'MATCH: F1, tick for tick (240 bot runs)');
   assert.equal(digest('daily', f1), '4ec096827cfbf061', 'DAILY: F1, tick for tick');
   assert.equal(digest('solo', f1, 200), '4ea09f57d0694530', 'SOLO down to floor 200: F1, tick for tick');

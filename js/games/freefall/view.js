@@ -332,7 +332,7 @@ export function createView() {
     if (r && !outShown && mine(g) && since < 60000) {
       outShown = true;
       const made = r.cause === 'made';
-      S.outCard({ kicker: made ? 'THE BOTTOM' : r.cause === 'cap' ? 'THE BELL' : 'OUT', words: g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : made ? 'YOU HIT THE BOTTOM' : END_WORDS[r.cause] || 'THE END', floors: r.floor, made, ms: made ? MADE_SHOW_MS : OUT_SHOW_MS });
+      S.outCard({ kicker: made ? 'THE BOTTOM' : r.cause === 'cap' ? 'THE BELL' : 'OUT', words: g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : made ? END_WORDS.made : END_WORDS[r.cause] || 'THE END', floors: r.floor, made, ms: made ? MADE_SHOW_MS : OUT_SHOW_MS });
     }
     if (!callDone && r && mine(g) && (r.cause === 'red' || r.cause === 'dark') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE) {
       callDone = true;
@@ -443,7 +443,7 @@ ${sub}`;
     S.outCard(null); S.watchLine('');
     // (a MATCH's rows: everyone in order with their floors + how their run ended — the console lists them as slim cards)
     const res = g.results || {}, solo = g.mode === 'solo';
-    final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: g.unproven ? 'NOT COUNTED' : (res[r.uid] || {}).w === 'made' ? 'HIT THE BOTTOM' : END_WORDS[(res[r.uid] || {}).w] || 'NO RUN' }) })), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'FREEFALL · SOLO' : 'FREEFALL · MATCH', mode: solo ? 'SOLO' : 'MATCH', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} FELL THE DEEPEST` });
+    final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: g.unproven ? 'NOT COUNTED' : (res[r.uid] || {}).w === 'made' ? END_WORDS.made : END_WORDS[(res[r.uid] || {}).w] || 'NO RUN' }) })), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'FREEFALL · SOLO' : 'FREEFALL · MATCH', mode: solo ? 'SOLO' : 'MATCH', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} FELL THE DEEPEST` });
     // F4B — THE END SCREEN's HEADER = THE LOGO (the owner's approved mock): title-05's lettering + the mode in small teal caps, in the
     // console frame's own header slot (the frame's kicker words stay for a reader: the logo is the heading)
     const kick = final.el.querySelector('.sheet-kicker');

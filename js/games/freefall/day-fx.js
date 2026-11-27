@@ -25,10 +25,16 @@ vec3 wallDay(sampler2D t, float have, float flip, vec3 tint, vec2 uv, float area
   vec3 w = pow(texture2D(t, vec2(uv.x, mix(uv.y, 1.0 - uv.y, flip))).rgb, vec3(2.2));
   vec3 c = mix(tint * 0.3, w * tint, have);
   if (area > 3.5) {
-    vec2 g = uv * 3.0, cell = floor(g), f = fract(g) - 0.5;
-    float h = hash(cell + 11.0);
-    vec2 o = (vec2(hash(cell + 3.7), hash(cell + 9.1)) - 0.5) * 0.5;
-    c += vec3(1.0, 0.5, 0.14) * step(0.7, h) * exp(-dot(f - o, f - o) * 24.0) * (0.75 + 0.25 * sin(uTime * (0.7 + h) + h * 40.0)) * 1.5;
+    // (F5B — the fresh-eyes review's "tan slab with a hard slanted edge" top-right at the finish: a lamp sits up to 0.25 from its cell's
+    //  edge, and its glow was drawn in ITS cell only — sliced flat at the border. Now the 4 nearest cells each add their lamp: the same
+    //  lamps, never cut; a lamp two cells away is under 1e-5)
+    vec2 g = uv * 3.0, base = floor(g - 0.5);
+    for (int j = 0; j < 2; j++) for (int i = 0; i < 2; i++) {
+      vec2 cell = base + vec2(float(i), float(j)), f = g - cell - 0.5;
+      float h = hash(cell + 11.0);
+      vec2 o = (vec2(hash(cell + 3.7), hash(cell + 9.1)) - 0.5) * 0.5;
+      c += vec3(1.0, 0.5, 0.14) * step(0.7, h) * exp(-dot(f - o, f - o) * 24.0) * (0.75 + 0.25 * sin(uTime * (0.7 + h) + h * 40.0)) * 1.5;
+    }
   }
   return c;
 }`;

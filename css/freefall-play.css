@@ -22,12 +22,14 @@
    the screen, 1 = it is on the floor above — the edge down to the ball's bounce + the screen's sides closing in round a clear window
    where the ball is. NEVER over the ball or its floor; the HUD lies on top of it (the number stays read). One transform + one opacity,
    each written at a step — never in a frame. --ff-dk = its colour (the night's black-violet; by day the storm cloud's slate, the murk). */
-.ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.45s linear; --ff-dk: 3, 0, 10; --ff-dk-edge: 150, 100, 255; }
+.ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0.001; transition: opacity 0.45s linear; --ff-dk: 3, 0, 10; --ff-dk-edge: 150, 100, 255; }
 .ff-stage:is([data-dark='3'], [data-dark='2'], [data-dark='1']) .ff-dark { opacity: 1; }
+/* (F5B — THE WATER HITCHES: at rest the layer + its veil are ALL BUT CLEAR (0.001 — never 0: a clear layer is dropped and painted again
+   when the dark first comes — a 67 ms frame standing on the water, named `dom` by the hitch log); kept painted, its first step costs nothing) */
 .ff-dark::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 24%; transform: translate3d(0, -100%, 0); transition: transform 0.55s cubic-bezier(0.3, 0, 0.2, 1); will-change: transform;
   /* (its LIVE EDGE: a soft line of light along its foot — the step is seen on a dark night screen too: violet by night, the cloud's pale lining / the murk's green by day) */
   background: linear-gradient(to bottom, rgba(var(--ff-dk-edge), 0) 86%, rgba(var(--ff-dk-edge), 0.7) 92%, rgba(var(--ff-dk-edge), 0) 98%), linear-gradient(to bottom, rgba(var(--ff-dk), 0.97) 0%, rgba(var(--ff-dk), 0.84) 55%, rgba(var(--ff-dk), 0.5) 84%, rgba(var(--ff-dk), 0) 100%); }
-.ff-dark::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.55s linear; will-change: opacity; background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(var(--ff-dk), 0) 44%, rgba(var(--ff-dk), 0.97) 100%); }
+.ff-dark::after { content: ''; position: absolute; inset: 0; opacity: 0.001; transition: opacity 0.55s linear; will-change: opacity; background: radial-gradient(ellipse 66% 46% at 50% 45%, rgba(var(--ff-dk), 0) 44%, rgba(var(--ff-dk), 0.97) 100%); }
 .ff-stage[data-dark='3'] .ff-dark::before { transform: translate3d(0, -80%, 0); }
 .ff-stage[data-dark='2'] .ff-dark::before { transform: translate3d(0, -36%, 0); }
 .ff-stage[data-dark='2'] .ff-dark::after { opacity: 0.38; }
@@ -325,6 +327,7 @@
 .ff-count-names { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; max-width: min(92%, 420px); padding: 8px 12px; background: radial-gradient(closest-side, rgba(5, 3, 13, 0.72), rgba(5, 3, 13, 0)); }
 .ff-count-name { font: 800 14px/1.2 var(--font-ui); letter-spacing: 0.1em; color: color-mix(in srgb, var(--c, #fff) 76%, #fff); text-shadow: 0 1px 0 #07040f, 0 0 6px #07040f, 0 0 10px rgba(7, 4, 15, 0.9); white-space: nowrap; }
 .ff-count-name.is-me { color: #fff; }
+.ff-count-names:empty { display: none; }   /* (F5B — the fresh-eyes review: the EMPTY names row kept its dark radial ground — a fuzzy smudge at a fixed spot near the top in every area, over the arrival bands too) */
 /* THE DEPTH RAIL */
 .ff-rail { position: absolute; right: max(7px, env(safe-area-inset-right, 0px)); top: 24%; bottom: 13%; width: 20px; }
 .ff-rail-line { position: absolute; left: 50%; top: -4px; bottom: -2px; width: 2px; margin-left: -1px; border-radius: 1px; background: linear-gradient(to bottom, #ff4fa8 0%, #b45bff 45%, #4d7dff 100%); box-shadow: 0 0 0 1px rgba(5, 3, 13, 0.6), 0 0 7px rgba(190, 110, 255, 0.75); }

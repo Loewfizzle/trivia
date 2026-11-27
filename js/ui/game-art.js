@@ -346,7 +346,7 @@ ${glow('hr-glow', 2.4)}</defs>
 
 // FREEFALL (F5A): its mark
 const FREEFALL = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>${glow('ff-glow', 2.5)}</defs><rect width="120" height="120" fill="#140b33"/>
-<g transform="translate(10 7)" fill="none" stroke-linecap="round" stroke-linejoin="round">${MARKS.freefall.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="${(t.w || 6) + 4}" opacity="0.5" filter="url(#ff-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="${t.w || 6}"/>`).join('')}</g></svg>`;
+<g transform="translate(10 10)" fill="none" stroke-linecap="round" stroke-linejoin="round">${MARKS.freefall.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="${(t.w || 6) + 4}" opacity="0.5" filter="url(#ff-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="${t.w || 6}"/>`).join('')}</g></svg>`;
 
 const ART = { freefall: () => FREEFALL, highrise: () => HIGHRISE, jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 

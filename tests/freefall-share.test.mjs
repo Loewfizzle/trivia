@@ -94,7 +94,7 @@ test('THE CARD\'s WORDS — from the run\'s PUBLIC numbers only: the cause (the 
   for (const k of ['red', 'dark', 'cap']) assert.equal(H.CARD_WORDS[k], END_WORDS[k]);
   for (const bad of ['', 'left', 'constructor', '__proto__', 'toString', undefined, null, 7]) assert.equal(H.ffRunCard({ cause: bad }).line, 'THE RUN IS OVER', `an unknown cause (${String(bad)}): a plain line, never a property of the table\'s prototype`);
   // the floors + the singular · the deepest area by floor (logic.js#areaOf — every area's first floor)
-  assert.equal(H.ffRunCard({ floor: 1 }).bigUnit, 'FLOOR'); assert.equal(H.ffRunCard({ floor: 0 }).big, '0'); assert.equal(H.ffRunCard({ floor: 0 }).blazes, '0 BLAZES'); assert.equal(H.ffRunCard({ floor: -4.2, blazes: 'x' }).big, '0');
+  assert.equal(H.ffRunCard({ floor: 1 }).bigUnit, 'FLOOR'); assert.equal(H.ffRunCard({ floor: 0 }).big, '0'); assert.equal(H.ffRunCard({ floor: 0 }).blazes, '', 'F5B: 0 BLAZES never shows'); assert.equal(H.ffRunCard({ floor: 9, blazes: 1 }).blazes, '1 BLAZE'); assert.equal(H.ffRunCard({ floor: -4.2, blazes: 'x' }).big, '0');
   for (const A of AREAS) assert.equal(H.ffRunCard({ floor: A.from }).area, A.name, `floor ${A.from} → ${A.name}`);
   assert.equal(H.ffRunCard({ floor: 39 }).area, 'THE ROOFTOP'); assert.equal(H.ffRunCard({ floor: 159 }).area, 'UNDER THE HARBOR'); assert.equal(H.ffRunCard({ floor: 612 }).area, 'THE TRENCH');
   // THE MODE LINE
@@ -114,12 +114,12 @@ test('THE RUN\'s NUMBERS = THE JUDGE\'s rows (the host\'s results) + the MATCH l
   assert.deepEqual(H.runOf(null, 'u'), { floor: 0, blazes: 0, cause: '', made: false, mode: 'solo', place: 0, of: 0, go: 0 }, 'no game: an empty run, never a throw');
   // the frame is found by the match's id (the cartridge's key) — else by the run's seed (logic.js#seedOf of its GO)
   const s = read(`${FF}share.js`);
-  assert.ok(s.includes('const run = runOf(game, uid), shot = shotFor(m) || (run.go ? shotFor(seedOf(code, m, run.go)) : null), logo = await loadLogo();'));
+  assert.ok(s.includes('const run = runOf(game, uid), shot = shotFor(m) || (run.go ? shotFor(seedOf(code, m, run.go)) : null);') && s.includes('return cardFor({ ...run, name: me.name }, shot);'));
   assert.equal(typeof seedOf('FALL', 'm1', 1764200000000), 'string');
 });
 
 test('THE CARD\'s LAYOUT (the owner\'s spec): 1080 × 1350 on the kit\'s drawRunCard — the logo ≈ 580 wide, the mode line teal, THE HERO FRAME 984 × 792 at 48, 348 with ONE neon edge, the dark tab, the number + FLOORS, the area lavender, the blazes fire orange, the name, the kit\'s foot; everything ≥ 46 px (reads at 360 px wide); NO pill', async () => {
-  const H = await share(), s = read(`${FF}share.js`), K = read('js/games/kit/share-run.js'), D = read('js/daily/share.js');
+  const H = await share(), s = read(`${FF}card.js`), K = read('js/games/kit/share-run.js'), D = read('js/daily/share.js');   // (F5B: the drawing lives in card.js — share.js re-exports it)
   const { RUN_W, RUN_H } = await import(new URL('../js/games/kit/share-run.js', import.meta.url));
   assert.deepEqual([RUN_W, RUN_H], [1080, 1350]);
   assert.deepEqual({ ...H.FF_CARD.box }, { x: 48, y: 348, w: 984, h: 792 }, 'THE HERO FRAME: HIGH RISE S5\'s box'); assert.deepEqual([H.FF_CARD.box.w, H.FF_CARD.box.h], [SHOT_BOX.w, SHOT_BOX.h], '= the frame shot.js takes');
@@ -156,33 +156,67 @@ test('THE CARD\'s LAYOUT (the owner\'s spec): 1080 × 1350 on the kit\'s drawRun
   assert.ok(s.includes("if (card.cause === 'dark') {"));
 });
 
-test('SHARE: lazy on the universal footer, the card DRAWN while the end screen is read, uploaded only at the first SHARE tap — and BEHIND THE SWITCH the picture alone goes out', async () => {
-  const s = read(`${FF}share.js`), idx = read(`${FF}index.js`);
-  assert.ok(idx.includes("export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));"), 'index.js#shareRun — exactly HIGH RISE\'s');
-  assert.equal(read('js/games/highrise/index.js').match(/export const shareRun = [^\n]+/)[0], idx.match(/export const shareRun = [^\n]+/)[0]);
+test('F5B — SHARE = THE PICTURE ONLY (the owner): the card DRAWN + ENCODED while the end screen is read, the tap calls the share sheet in its own turn with EXACTLY ONE PNG — no text, no title, no url, nothing uploaded; solo + match the same', async () => {
+  const s = read(`${FF}share.js`), idx = read(`${FF}index.js`), fin = read(`${FF}final.js`), snd = read(`${FF}send.js`);
+  assert.ok(idx.includes("export { shareNow as shareRun } from './final.js';"), 'index.js#shareRun = final.js#shareNow');
   assert.doesNotMatch(idx, /import [^\n]*from '\.\/share\.js'/, 'never a static import (the cartridge\'s start bundle)');
+  assert.ok(fin.includes("const shareMod = () => lazyImport(import('./share.js'), './share.js').then(m => (SH = m));") && fin.includes('export const shareNow = (game, state) => (SH ? SH.shareRun(game, state) : shareMod().then(m => m.shareRun(game, state)));'), 'the module the end screen loaded is called DIRECTLY at the tap — no import promise between the tap and the share sheet');
   assert.match(s, /export function warmShare\(game, state\) \{ try \{ prepRun\(game, state\)\.prep\.warm\(\); \} catch \{ \/\* the tap builds it \*\/ \} \}/);
   assert.match(s, /export function shareRun\(game, state\) \{ return prepRun\(game, state\)\.prep\.send\(\); \}/, 'the tap: nothing left to draw');
-  assert.ok(s.includes("name: 'neon-speakeasy-freefall.png', line: '', upload, onTap: true"), 'the link alone (no text), uploaded at the tap');
-  assert.ok(s.includes("const r = await api('daily', { action: 'shareCard', games: ['freefall'], run: { room: code, m }, png: b64 });"));
-  // BEHIND THE SWITCH: WOULD COUNT (the end screen's flag — or the report's own answer) = no upload; a refused run is not asked again
-  assert.ok(s.includes('if (globalThis.__ffWould === m) return true;') && s.includes('try { const o = Q && Q.outcomeFor(Q.matchKey(code, m)); return !!(o && o.would); } catch { return false; }'));
-  assert.ok(s.indexOf("if (would()) return '';") > 0 && s.indexOf("if (would()) return '';") < s.indexOf('const png = await fitPng(half);'), 'asked BEFORE anything is fitted or sent');
-  assert.ok(s.includes("if (!e || e.code !== 'no_run' || i === LINK_TRIES - 1 || !here() || would()) return '';"));
+  // nothing uploaded, no link, no words: share.js asks no server at all
+  assert.doesNotMatch(s.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /profile\/|api\(|upload|LINK_|fitPng|navigator\.share|\btext:|\burl:/, 'share.js: no upload, no link, no text');
+  assert.deepEqual([...s.matchAll(/^import [^\n]* from '([^']+)';/gm)].map(m => m[1]), ['../../store.js', './logic.js', './shot.js', './card.js', './send.js']);
+  // send.js: the ONE share call — the payload is payloadOf(file) = { files: [file] }
+  const sndCode = snd.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.deepEqual([...sndCode.matchAll(/navigator\.share\(([^;]*?)\);/g)].map(m => m[1]), ['payloadOf(r.file)'], 'ONE share call: payloadOf(file)');
+  assert.ok(snd.includes('export const payloadOf = file => ({ files: [file] });'));
+  assert.doesNotMatch(snd.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /\btext\s*:|\burl\s*:|clipboard|fetch\(|\bapi\b/, 'send.js: no text, no url, no clipboard, no request (the payload: payloadOf alone — files only)');
   assert.match(read('api/_lib/freefall.js'), /export const FREEFALL_COUNTS = false;/, 'THE SWITCH is OFF');
-  const srv = read('api/_lib/share-card.js');
-  assert.match(srv, /export const RUN_GAMES = Object\.freeze\(\['jaywalk', 'highrise', 'freefall'\]\)/, 'the server knows FREEFALL\'s run card …');
-  assert.ok(srv.includes("if (!res || res.st !== 'done' || res.g !== g || !res.o || res.o[pid] == null) throw new ApiError(403, 'no_run'"), '… and takes it only with its own COUNTED result of that match, naming this player');
   assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: false, preview: true \}/, 'the game stays HIDDEN');
-  // lazy pieces only: the store's live state (is this match still on screen), the api + the report's answer at the tap
-  assert.deepEqual([...s.matchAll(/lazyImport\(import\('([^']+)'\)/g)].map(m => m[1]).sort(), ['../../profile/api.js', '../../profile/queue.js']);
-  assert.deepEqual([...s.matchAll(/^import [^\n]* from '([^']+)';/gm)].map(m => m[1]), ['../kit/share-run.js', '../../daily/share.js', '../../ui/lazy-import.js', '../../store.js', '../jaywalk/numerals.js', './logic.js', './shot.js']);
 });
 
-test('THE TEST PAGE never loads the share kit: its graph gains shot.js alone (pure) — nothing of share / api / profile / the store', () => {
+test('F5B — THE SHARE PAYLOAD (the real send.js, a stub share sheet): exactly ONE image/png file, no text / title / url; navigator.share is called IN THE TAP\'s OWN TURN once the picture is ready; no file sharing → the picture is shown, never a text', async () => {
+  const S = await import(new URL(`../${FF}send.js`, import.meta.url));
+  const calls = [], was = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const set = nav => Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+  try {
+    set({ canShare: d => !!(d && d.files && d.files.length), share: d => { calls.push(d); return Promise.resolve(); } });
+    // a canvas stand-in: toBlob → a real PNG-typed Blob
+    let freed = false;
+    const cv = { get width() { return 9; }, set width(v) { if (v === 0) freed = true; }, height: 9, toBlob: (cb, type) => cb(new Blob([new Uint8Array([137, 80, 78, 71])], { type })) };
+    const r = await S.pngOf(cv);
+    assert.ok(r && r.blob && r.file && freed, 'a PNG blob + its File; the canvas freed');
+    assert.equal(r.file.type, 'image/png'); assert.equal(r.file.name, 'neon-speakeasy-freefall.png');
+    // the tap: navigator.share is called SYNCHRONOUSLY (before the caller's next await)
+    const p = S.sendPicture(r);
+    assert.equal(calls.length, 1, 'the share sheet was asked in the tap\'s own turn');
+    assert.equal(await p, 'shared');
+    assert.deepEqual(Object.keys(calls[0]), ['files'], 'the payload holds files ONLY — no text, no title, no url');
+    assert.equal(calls[0].files.length, 1); assert.equal(calls[0].files[0], r.file); assert.equal(calls[0].files[0].type, 'image/png');
+    // prepPicture: warm → ready → the send is in the same turn
+    calls.length = 0;
+    const P = S.prepPicture(() => ({ width: 9, height: 9, toBlob: (cb, type) => cb(new Blob([new Uint8Array([1])], { type })) }));
+    assert.equal(P.ready(), false); P.warm(); for (let i = 0; i < 20 && !P.ready(); i++) await new Promise(res => setTimeout(res, 5));
+    assert.equal(P.ready(), true, 'ready while the end screen is read');
+    const q = P.send(); assert.equal(calls.length, 1, 'a ready picture: the share sheet in the tap\'s own turn'); assert.equal(await q, 'shared');
+    assert.deepEqual(Object.keys(calls[0]), ['files']);
+    // a closed sheet = 'none' (nothing else happens)
+    set({ canShare: () => true, share: () => Promise.reject(Object.assign(new Error('x'), { name: 'AbortError' })) });
+    assert.equal(await S.sendPicture(r), 'none');
+    // no file sharing (a desktop) → the picture is SHOWN (THE SHEET — here: no DOM, 'failed' — never a text share); share was never asked
+    let asked = 0; set({ share: () => { asked++; return Promise.resolve(); } });
+    const how = await S.sendPicture(r);
+    assert.equal(asked, 0, 'no canShare(files) → never a share without the file'); assert.ok(how === 'shown' || how === 'failed');
+  } finally { if (was) Object.defineProperty(globalThis, 'navigator', was); else delete globalThis.navigator; }
+});
+
+test('F5B — THE TEST PAGE shares THE PICTURE too (card.js + send.js, LAZY — loaded at its end card): nothing of the cartridge\'s share.js, the api, the profile or the store', () => {
   const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
-  for (const f of ['play.js', 'stage.js', 'night.js', 'shot.js', 'endscreen.js']) assert.doesNotMatch(code(`${FF}${f}`), /(from\s*|import\(\s*)'[^']*(share\.js|share-run|\/daily\/|profile\/|store\.js|firebase)[^']*'/, `${f}: imports nothing of the share kit`);
-  assert.ok(existsSync(new URL(`../${FF}shot.js`, import.meta.url)) && existsSync(new URL(`../${FF}share.js`, import.meta.url)));
-  assert.ok(read('tests/freefall-play.test.mjs').includes("'replay.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js'"), 'tests/freefall-play.test.mjs pins the page\'s whole graph — with shot.js in it');
+  for (const f of ['play.js', 'stage.js', 'night.js', 'shot.js', 'endscreen.js', 'card.js', 'send.js']) assert.doesNotMatch(code(`${FF}${f}`), /(from\s*|import\(\s*)'(\.\/share\.js|[^']*(profile\/|store\.js|firebase)[^']*)'/, `${f}: nothing of the cartridge's share.js, the profile, the store`);
+  const st = code(`${FF}stage.js`);
+  assert.ok(st.includes("Promise.all([lazyImport(import('./send.js'), './send.js'), lazyImport(import('./card.js'), './card.js')])"), 'the page\'s picture kit is LAZY');
+  assert.doesNotMatch(st, /^import [^\n]*(card|send)\.js/m);
+  assert.doesNotMatch(st, /navigator\.share|clipboard/, 'the stage shares through send.js alone — no line, no link');
+  assert.ok(st.includes('if (pic) { pic.send(); return; }'), 'a ready picture: the share sheet in the tap\'s own turn');
   assert.ok(existsSync(new URL('../tests/integration/freefall-share.mjs', import.meta.url)), 'the browser half');
 });

@@ -53,7 +53,7 @@ export const makeRuleSet = r => {
     ...r,
     dark: Object.freeze({ ...r.dark }),
     human: Object.freeze({ ...r.human }),
-    gen: Object.freeze({ ...r.gen, gaps: freezeKnots(r.gen.gaps), wide: freezeKnots(r.gen.wide), red: freezeKnots(r.gen.red), hug: freezeKnots(r.gen.hug), lap: Object.freeze({ ...r.gen.lap }), move: r.gen.move ? Object.freeze({ ...r.gen.move }) : null }),
+    gen: Object.freeze({ ...r.gen, gaps: freezeKnots(r.gen.gaps), wide: freezeKnots(r.gen.wide), red: freezeKnots(r.gen.red), hug: freezeKnots(r.gen.hug), lap: Object.freeze({ ...r.gen.lap }), move: r.gen.move ? Object.freeze({ ...r.gen.move }) : null, blind: Object.freeze([...(r.gen.blind || [])]) }),
     modes: Object.freeze(Object.fromEntries(Object.entries(r.modes).map(([k, v]) => [k, Object.freeze({ ...v })]))),
     reach, hop: hop < 1 ? 1 : hop,
   });
@@ -76,7 +76,7 @@ export const makeRuleSet = r => {
  *   gen         THE LAYOUT (tower-gen.js) — difficulty comes from here only. Curves by floor (rampOf), each value in 256ths:
  *                 gaps  the gaps a floor has (512 = 2; the fraction = the chance of one more) · wide  the chance a gap is 2 slices wide (else 1)
  *                 red   the red slices a floor aims for · hug  the chance a slice BESIDE a gap turns red
- *               redFrom (no red above it) · hugFrom (red never beside a gap above it) · belowUntil (above it the slices straight below a gap are never red)
+ *               blind (F5B: the floors that carry NO red — hidden until their breakthrough) · redFrom (no red above it) · hugFrom (red never beside a gap above it) · belowUntil (above it the slices straight below a gap are never red)
  *               windowRamp (THE FALL WINDOW comes in over this many floors from `belowUntil`: the escape a floor may ask for grows from 0 to the human reach)
  *               redMax · safeMin · gapSlicesMax (the hard bounds) · lap { from, every, red, hug } (THE TRENCH: past `from`, every `every` floors
  *               the red aim grows by `red` 256ths and the hug chance by `hug`)
@@ -106,6 +106,9 @@ export const RULE_SETS = Object.freeze({
       red: [[10, 384], [40, 768], [80, 960], [120, 1152], [160, 1408], [200, 1664]],
       hug: [[40, 56], [80, 88], [120, 128], [160, 200], [200, 240]],
       redFrom: 10, hugFrom: 40, belowUntil: 120, windowRamp: 40,
+      // (F5B — THE BLIND FLOORS, the owner: the floors the skylight (40) + the water (120) hide until their breakthrough carry NO red — the
+      //  first landing under them is made blind. A layout rule of the row: nothing counted yet (THE SWITCH is off) — no new rule-set row)
+      blind: [40, 120],
       redMax: 8, safeMin: 3, gapSlicesMax: 6,
       lap: { from: 200, every: 40, red: 128, hug: 8 },
       move: { from: 201, pace: 45, max: 4, chance: 154, lap: 51, two: 3 },

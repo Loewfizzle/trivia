@@ -3,7 +3,7 @@
 // order, on the phone or the server, is the same floor. Difficulty lives HERE and nowhere else (the bounce + the fall never change).
 // FAIR BY CONSTRUCTION — every rule below is checked while a floor is BUILT (a red slice that would break one is simply not laid), and
 // proved again from the outside by tests/freefall-tower.test.mjs over 2,000+ seeds:
-//   · ≥ 1 gap · ≥ 3 safe slices · red ≤ 8 of 12 · floors 0–9 have NO red · red sits beside a gap only from floor 40
+//   · ≥ 1 gap · ≥ 3 safe slices · red ≤ 8 of 12 · floors 0–9 have NO red · F5B: floors 40 + 120 (gen.blind — under the skylight + the water) have NO red · red sits beside a gap only from floor 40
 //   · in the early areas (floors < 120 — `belowUntil`) every slice straight below a gap (twists counted) is never red
 //   · THE FALL WINDOW: from any point of any gap, a human-paced spin (the reaction, then ≤ 1 turn a second) reaches a SAFE or GAP point of
 //     the floor below before the landing — and below the early areas the escape a floor asks for RAMPS in over 40 floors (reachAt)
@@ -149,7 +149,7 @@ export function reachAt(i, R = CLASSIC) {
 /** a floor's RED slices (a 12-bit mask): laid one at a time, in the seed's order — and only where every fairness rule still holds */
 function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   const G = R.gen;
-  if (i < G.redFrom) return 0;
+  if (i < G.redFrom || G.blind.includes(i)) return 0;   // (F5B — THE BLIND FLOORS: hidden under the skylight + the water)
   const lap = lapOf(i, G), gaps = bits(gap);
   let want = count256(rampOf(G.red, i) + lap * G.lap.red, pick(h, i, 0x4d3b01));
   const room = SLICES - gaps - G.safeMin;

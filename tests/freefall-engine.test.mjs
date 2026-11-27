@@ -333,7 +333,7 @@ test('THE DARKNESS + A LANDING AT THE SAME TICK: the landing first — a ball th
   assert.equal(go.rules, 'tight'); assert.equal(resultOf(go).rules, 'tight');
 });
 
-test('THE FINISH + THE CAP, per mode: MATCH + DAILY end ON floor 200 ("made" — MADE IT TO THE BOTTOM) or at 3:00 ("cap"), whichever first · SOLO goes on past THE BOTTOM into THE TRENCH (its safety cap: 30:00)', () => {
+test('THE FINISH + THE CAP, per mode: MATCH + DAILY end ON floor 200 ("made" — YOU HIT THE BOTTOM) or at 3:00 ("cap"), whichever first · SOLO goes on past THE BOTTOM into THE TRENCH (its safety cap: 30:00)', () => {
   for (const mode of ['match', 'daily']) {
     const run = createRun({ seed: 'fin', mode }), ev = [];
     dive(run, 199, ev);
@@ -343,7 +343,7 @@ test('THE FINISH + THE CAP, per mode: MATCH + DAILY end ON floor 200 ("made" —
     const r = resultOf(run);
     assert.deepEqual([r.floor, r.tick, r.end, r.cause, r.made, r.over], [200, L, L, 'made', true, true]);
     assert.deepEqual(r.feats, { reachedHarbor: true, terminal: true, reachedBottom: true });
-    assert.equal(endWords(r), 'MADE IT TO THE BOTTOM');
+    assert.equal(endWords(r), 'YOU HIT THE BOTTOM');
     assert.deepEqual(ev.slice(-3).map(e => e.e).filter(e => e !== 'dark'), ['fall', 'area', 'made'].filter(e => ev.slice(-3).some(x => x.e === e)));
     assert.deepEqual(ev[ev.length - 1], { e: 'made', t: L });
     assert.deepEqual(ev.filter(e => e.e === 'area').map(e => [e.id, e.floor]), [['offices', 40], ['speakeasy', 80], ['harbor', 120], ['deep', 160], ['bottom', 200]]);
@@ -563,7 +563,7 @@ test('THE RESULT + THE FEATS + THE AREAS + THE RANKING + THE WORDS + THE SEED', 
   dive(run, 1); assert.deepEqual(resultOf(run).feats, { reachedHarbor: true, terminal: true, reachedBottom: false });
   assert.equal(featsOf(resultOf(run)), 'reachedHarbor terminal'); assert.equal(featsOf({}), ''); assert.equal(featsOf(null), '');
   assert.deepEqual(FEAT_NAMES, { reachedHarbor: 'SPLASHDOWN', terminal: 'TERMINAL VELOCITY', reachedBottom: 'ROCK BOTTOM' });
-  assert.deepEqual(END_WORDS, { red: 'HIT THE RED', dark: 'THE LIGHTS WENT OUT', made: 'MADE IT TO THE BOTTOM', cap: 'TIME’S UP' });
+  assert.deepEqual(END_WORDS, { red: 'HIT THE RED', dark: 'THE LIGHTS WENT OUT', made: 'YOU HIT THE BOTTOM', cap: 'TIME’S UP' });
   // THE AREAS
   assert.deepEqual([0, 39, 40, 79, 80, 119, 120, 159, 160, 199, 200, 201, 240, 241, 281].map(f => areaOf(f).id), ['rooftop', 'rooftop', 'offices', 'offices', 'speakeasy', 'speakeasy', 'harbor', 'harbor', 'deep', 'deep', 'bottom', 'trench', 'trench', 'trench', 'trench']);
   assert.deepEqual([areaOf(201).lap, areaOf(240).lap, areaOf(241).lap, areaOf(281).lap, areaOf(199).lap], [1, 1, 2, 3, 0]);

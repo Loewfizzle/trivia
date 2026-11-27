@@ -133,7 +133,7 @@ export function createStage(app0, o = {}) {
   // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
   // F4B — THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — ui/final.js's, copied here: this page loads no
   // console): the PLAY AGAIN bar, then the quiet links SHARE | HOME with the SAME drawn icons. The page's SHARE hands the phone's own share
-  // sheet a line + this page's link (no card, no server: NOTHING COUNTS here — the run card is the cartridge's: share.js)
+  // sheet THE PICTURE ALONE (F5B — card.js + send.js, the cartridge's own: no line, no link, no server — NOTHING COUNTS here)
   const linkIco = id => { const i = h('i.ff-link-i', { 'aria-hidden': 'true' }); i.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${id === 'share' ? '<path d="M12 15V3.8"/><path d="M7.6 8 12 3.6 16.4 8"/><path d="M5 12.5v6.5h14v-6.5"/>' : '<path d="M3.8 11.2 12 4l8.2 7.2"/><path d="M6.3 9.4V20h11.4V9.4"/><path d="M10 20v-5.2h4V20"/>'}</svg>`; return i; };
   const shareT = h('span', 'SHARE'), share = h('button.ff-link.ff-share', { type: 'button' }, linkIco('share'), shareT);
   const city = o.onLeave ? h('button.ff-link.ff-city', { type: 'button' }, linkIco('home'), h('span', o.leaveWords || 'BACK')) : h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'));
@@ -619,17 +619,24 @@ export function createStage(app0, o = {}) {
   }
   function playAgain() { if (!shown || end.hidden) return;   /* (F4B: only from the stage's OWN card — never while WATCHING) */ if (o.onAgain) { again.classList.add('is-busy'); Promise.resolve(o.onAgain()).then(ok => { again.classList.remove('is-busy'); if (ok === false) restart(); }, () => again.classList.remove('is-busy')); } else restart(); }
   press(again, playAgain);
-  /** the page's SHARE: the phone's own share sheet — a line + this page's link; no sheet → the link is copied (said on the button for a moment) */
-  function sharePage() {
-    if (!shown) return;
-    const f = run.floor, text = `I fell ${f} floor${f === 1 ? '' : 's'} in FREEFALL`, url = `${location.origin}/freefall-play`;
-    const said = t => { shareT.textContent = t; setTimeout(() => { shareT.textContent = 'SHARE'; }, 1600); };
-    try {
-      if (navigator.share) { navigator.share({ title: 'FREEFALL', text, url }).catch(() => {}); return; }
-      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(`${text} — ${url}`).then(() => said('LINK COPIED'), () => said('COULD NOT SHARE')); return; }
-    } catch { /* an old browser */ }
-    said('COULD NOT SHARE');
+  /** the page's SHARE (F5B — SHARE = THE PICTURE ONLY, the cartridge's own: card.js + send.js): the run's card is DRAWN + ENCODED when the end
+   *  card shows (warmPic — the staged frame is in by then: END_HOLD_MS > every SHOT_AT), and the tap hands the phone's share sheet EXACTLY ONE
+   *  PNG — no line, no link, nothing asked of a server; a phone that can't share a file is SHOWN the picture to save */
+  let pic = null, picMods = null;
+  const picKit = () => (picMods ||= Promise.all([lazyImport(import('./send.js'), './send.js'), lazyImport(import('./card.js'), './card.js')]).catch(e => { picMods = null; throw e; }));
+  function warmPic() {
+    pic = null;
+    if (o.onLeave) return;   // (the cartridge's own card has no SHARE: the console's footer shares its podium's run)
+    const res = resultOf(run), n = startN, shot = lastShot();
+    const card = { floor: res.floor, blazes: res.blazes, cause: res.cause, made: res.made, mode: MODE === 'solo' ? 'solo' : MODE, name: '' };
+    picKit().then(([S, C]) => { if (n !== startN) return; pic = S.prepPicture(() => (n === startN ? C.cardFor(card, shot) : null)); pic.warm(); }, () => {});
   }
+  const sharePage = () => {
+    if (!shown || end.hidden) return;
+    if (pic) { pic.send(); return; }   // (ready: the share sheet in this very turn)
+    const n = startN;
+    picKit().then(() => { if (n === startN && pic) pic.send(); }, () => {});
+  };
   press(share, sharePage);
   if (o.onLeave) press(city, () => { city.classList.add('is-busy'); Promise.resolve(o.onLeave()).then(null, () => city.classList.remove('is-busy')); });
   function showEnd(now) {
@@ -653,6 +660,7 @@ export function createStage(app0, o = {}) {
     if (res.made) { handOn(); finished.same = same; finished.judged = verdict.ok === true; }
     EC.set({ words: endWords(res), made: res.made, floor: res.floor, bounces: res.bounces, blazes: res.blazes, bestRun: res.bestRun });
     EC.best(fromRun ? was : best, isNew, was);
+    warmPic();   // (F5B: the share picture is ready by the time a thumb reaches SHARE)
     // F4A — THE CARTRIDGE: a PROVEN run ends on the console's podium (view.js — `own: false`: this card stays away); an UNPROVEN one on
     // this card, with its reason (`note`)
     const E = o.onEnd ? o.onEnd(res) || { own: true } : { own: true };

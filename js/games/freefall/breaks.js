@@ -16,6 +16,9 @@ import { HIT_TICKS, CRACK, BURST_V, BURST_F, FRACT_V, GLASS_F, FRAME_V, FRAME_F,
 export const BREAK_FLOORS = Object.freeze({ skylight: 40, splash: 120, bottom: 200 });
 /** the sprites' FIXED pool · how much of a burst each tier sheds (tier 0 · 1 · 2) */
 export const BURSTS = 176, BURST_K = Object.freeze([0.45, 0.7, 1]);
+/** F5B — THE PLUNGE's CROWN: its spray puffs' colour, by look — the water's own aqua (day) / cyan (night), never white: these are the
+ *  brightest a puff may be (by night they ADD to the scene: six at most, spread round the ring, so no point gets more than two) */
+export const CROWN = Object.freeze({ day: Object.freeze([0.6, 0.86, 0.93]), night: Object.freeze([0.36, 0.62, 0.7]) });
 /** the skylight: its glass's half size (the ring is 1 wide: it passes inside the frame) · how far above floor 40 the pane lies · its frame's bar */
 export const SKYLIGHT = Object.freeze({ half: 1.25, up: 0.4, bar: 0.07 });
 /** the water: how far above floor 120 the surface lies · THE WATERLINE's sweep up the screen (s after the plunge, for how long) */
@@ -167,8 +170,8 @@ export function createBreaks(X) {
 
   // ---- THE SEABED: the plane (outside the square that cracks) · the pieces (the square) · a few rocks
   const bedOrigin = { value: new THREE.Vector3(0, 0, 0) }, bedBreak = { value: 1e9 }, bedM = { value: new THREE.Matrix4() };
-  const sandU = () => ({ tSand: { value: null }, tSandN: { value: null }, uHaveS: { value: 0 }, uFlipS: { value: 0 }, uHaveSN: { value: 0 }, uFlipSN: { value: 0 }, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uImpT: bedImp, uRW: { value: SHAPE.RW }, uRimC: bedRim, uBall: waterU.uBall, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) }, uHole: bedHole });
-  const bedImp = { value: 1e9 }, bedRim = { value: new THREE.Vector3() }, bedHole = { value: 0 };
+  const sandU = () => ({ tSand: { value: null }, tSandN: { value: null }, uHaveS: { value: 0 }, uFlipS: { value: 0 }, uHaveSN: { value: 0 }, uFlipSN: { value: 0 }, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uImpT: bedImp, uRW: { value: SHAPE.RW }, uRimC: bedRim, uBall: waterU.uBall, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) }, uHole: bedHole, uCrisp: bedCrisp });
+  const bedImp = { value: 1e9 }, bedRim = { value: new THREE.Vector3() }, bedHole = { value: 0 }, bedCrisp = { value: 0 };   // (F5B — bedCrisp: THE BOTTOM's share picture alone)
   const bedU = { ...sandU(), uHalf: { value: SEABED.half }, uOuter: { value: 1 } };
   const bedMat = new THREE.ShaderMaterial({ vertexShader: SEABED_V, fragmentShader: SEABED_F, uniforms: bedU, ...blend });
   const bed = add(new THREE.Mesh(plane(22), bedMat), 1.5, bedMat);
@@ -286,7 +289,7 @@ export function createBreaks(X) {
     // the crown: drops thrown up + out in a cone (lit from above by night), spray, a ring of foam
     for (let k = 0; k < (X.reduce ? 6 : share(22)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.007 + rnd() * 0.007, day ? 0.5 : 0.6, day ? 0.64 : 0.54, day ? 0.68 : 0.42); }   // (F5A — the review: fewer, finer, under white — the crown was a clipped white core with hard bars)
     X.sparksDirty();
-    for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.34 + rnd() * 0.14, 0.07, 0.26, 4, -5.5, 0, 0, 2, day ? 0.72 : 0.9, day ? 0.92 : 0.98, 1, 0.3); }   // (F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
+    for (let k = 0; k < share(6); k++) { const a = k / 6 * 6.2832 + rnd() * 0.6, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.24, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.07, 0.24, 4, -5.5, 0, 0, 2, day ? CROWN.day[0] : CROWN.night[0], day ? CROWN.day[1] : CROWN.night[1], day ? CROWN.day[2] : CROWN.night[2], 0.3); }   // (F5B — THE CROWN CAPPED: six puffs spread round the ring, never piled on one point, in the water's own aqua / cyan at most CROWN's light — it flashed near-white for a frame; F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
     for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
     X.kick(0.32, 0.5);
   }
@@ -465,6 +468,8 @@ export function createBreaks(X) {
     reset, feed, update, setLook, out, meshes, force,
     /** (F5A — THE SHARE CARD's staged frame of THE BOTTOM: the sprites — the dust over the ball — are left out of that one picture) */
     quiet(on) { quiet = !!on; },
+    /** F5B — THE BOTTOM's SHARE PICTURE (night.js#shot): the gold ring CRISP + tight round the ball, the flash under it held down (the gold card read as a hazy white blur at 360 px) — never in play */
+    crisp(on) { bedCrisp.value = on ? 1 : 0; },
     /** the seabed's height (a finish: the ball comes to rest on it) */
     bedY: () => bedY,
     info: () => ({ skylight: skSt, splash: spSt, bottom: boSt, played, mouth: bedHole.value, rocks: rGeo.instanceCount, line: waterU.uLine.value, sprites: bursts.visible ? BURSTS : 0, deck: deck.visible, frame: frame.visible, glass: glass.visible, water: water.visible, bed: bed.visible || chunks.visible, pieces: [glass.geometry.instanceCount, chunks.geometry.instanceCount] }),
