@@ -50,7 +50,8 @@ function neonText(c, text, x, y, { px, col, day, spacing = 0, weight = 800, fam 
 /**
  * the card: the frame + the sign + the game's middle (`drawMiddle(c, box, card)` — the cartridge's) + the name + the result + the site
  * → a canvas (null when this phone can't make one). `o` (a cartridge whose middle is THE HERO — JAYWALK's frame): `box` = its own
- * middle box, `nameY` / `namePx` = the name under it; a card with no `result` prints no result line.
+ * middle box, `nameY` / `namePx` = the name under it; a card with no `result` prints no result line. `o.head(c, card)` (FREEFALL F4B) = the
+ * cartridge's OWN head (its logo + its mode line) in the place of the sign + the game's line.
  */
 export function drawRunCard(card, drawMiddle = null, o = {}) {
   const W = RUN_W, H = RUN_H, day = card.look === 'day';
@@ -62,6 +63,9 @@ export function drawRunCard(card, drawMiddle = null, o = {}) {
   if (day) { g.addColorStop(0, '#e9eef6'); g.addColorStop(1, '#cfd8e6'); } else { g.addColorStop(0, '#0b0820'); g.addColorStop(0.55, '#120b2c'); g.addColorStop(1, '#05040e'); }
   c.fillStyle = g; c.fillRect(0, 0, W, H);
   if (!day) { const r = c.createRadialGradient(W / 2, 150, 0, W / 2, 150, 520); r.addColorStop(0, 'rgba(255,79,196,0.22)'); r.addColorStop(1, 'rgba(255,79,196,0)'); c.fillStyle = r; c.fillRect(0, 0, W, H); }   // (the whole card — a clipped haze left a hard edge)
+  // (FREEFALL F4B — `o.head(c, card)`: a cartridge whose head is its OWN — its logo + its mode line over the middle — draws it in the
+  //  place of the sign + the game's line; the ground, the middle, the name + THE FOOT stay the kit's)
+  if (o.head) { try { o.head(c, card); } catch (e) { console.warn('[share-run] head', e); } } else {
   // THE SIGN: NEON (pink tubes) + SPEAKEASY (white, spaced) between two rules
   neonText(c, 'NEON', W / 2, 168, { px: 128, col: day ? '#e3249b' : '#ff4fc4', day, spacing: 14 });
   c.save(); c.font = FONT(700, 34, DISPLAY); c.textAlign = 'center';
@@ -72,6 +76,7 @@ export function drawRunCard(card, drawMiddle = null, o = {}) {
   c.save(); c.font = FONT(800, 44, DISPLAY); c.textAlign = 'center';
   c.fillStyle = day ? deepen(card.accent) : card.accent; if (!day) { c.shadowColor = card.accent; c.shadowBlur = 18; }
   spacedText(c, card.mode ? `${card.title} · ${card.mode}` : card.title, W / 2 + 4, 318, 8); c.restore();
+  }
   // the game's own middle
   const box = o.box || { x: 140, y: 360, w: W - 280, h: 690 };
   if (drawMiddle) { try { drawMiddle(c, box, card); } catch (e) { console.warn('[share-run] middle', e); } }

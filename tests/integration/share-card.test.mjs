@@ -294,3 +294,31 @@ test('HIGH RISE S5 — A RUN\'s CARD: refused with no counted result (counting O
     forgetShareSweep();
   }
 });
+
+// FREEFALL F4B — ITS RUN CARD on the same machinery, BEHIND THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS is OFF): a run has NO counted
+// result (results/{ROOM}_{m} is never written while the server only says WOULD COUNT) → the card is refused (no_run: the phone shares the
+// picture itself); with a counted result (its go-live) it is taken into FREEFALL's own slot, like JAYWALK's + HIGH RISE's.
+test('FREEFALL F4B — A RUN\'s CARD: refused with no counted result (counting OFF), taken into its own slot once counted', async () => {
+  const a = await ensure('u-ff-run-a', 'FfAmy');
+  const ok = png(CARD_W, CARD_H).toString('base64'), at = T0 + 500;
+  const call = uid => dailyAction(uid, { action: 'shareCard', games: ['freefall'], run: { room: 'FALL', m: 'm1ff4' }, png: ok }, T0 + 1000);
+  try {
+    await assert.rejects(call('u-ff-run-a'), e => e.code === 'no_run', 'counting OFF: no result, no link');
+    await ref('results/FALL_m1ff4').set({ st: 'done', at, g: 'highrise', mode: 'solo', n: 1, o: { [a.pid]: { xp: 3 } } });
+    await assert.rejects(call('u-ff-run-a'), e => e.code === 'no_run', 'another game\'s result never opens FREEFALL\'s card');
+    await ref('results/FALL_m1ff4').set({ st: 'done', at, g: 'freefall', mode: 'solo', n: 1, o: { 'someone-else': { xp: 3 } } });
+    await assert.rejects(call('u-ff-run-a'), e => e.code === 'no_run', 'a counted result that does not name this player never opens it');
+    await ref('results/FALL_m1ff4').set({ st: 'done', at, g: 'freefall', mode: 'solo', n: 1, o: { [a.pid]: { xp: 3 } } });
+    const r = await call('u-ff-run-a');
+    assert.ok(r.code && r.path, 'counted: the link is made');
+    assert.equal(await val(`shrp/${a.pid}:freefall/${today}`), r.code, 'ITS OWN slot (never JAYWALK\'s, HIGH RISE\'s or the day\'s scorecard)');
+    const card = await val(`shr/${r.code}`);
+    assert.deepEqual({ g: card.g, k: card.k, s: card.s }, { g: ['freefall'], k: 'run', s: `${a.pid}:freefall` });
+  } finally {
+    await ref('results/FALL_m1ff4').remove();
+    await ref(`shrp/${a.pid}:freefall`).remove();
+    await ref(`shrx/${today}`).remove();
+    for (const [code, c] of Object.entries((await val('shr')) || {})) if (c.p === a.pid) await ref(`shr/${code}`).remove();
+    forgetShareSweep();
+  }
+});

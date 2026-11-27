@@ -92,6 +92,7 @@ const drv = {
   onLeave: () => (cur ? cur.leave() : null),
   onAgain: () => (cur ? cur.again() : false),
   onWatchTap: () => { if (cur && cur.watchTap) cur.watchTap(); },
+  shotKey: () => (cur && cur.shotKey ? cur.shotKey() : ''),   // (THE SHARE CARD's frame is kept under the match's id — share.js finds it there)
   leaveWords: 'BACK',
 };
 
@@ -438,7 +439,7 @@ export function createView() {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       // (F4B — THE PAUSE GAP: a HELD run's log — the hold with it — leaves AT ONCE, even behind a chunk in the air: its arrival is what grants the pause)
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, hide: held => { if (S && started && !S.state().over) { if (held) holdSrv = serverNow(); flush(held ? 'now' : true); } }, leave };
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, hide: held => { if (S && started && !S.state().over) { if (held) holdSrv = serverNow(); flush(held ? 'now' : true); } }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

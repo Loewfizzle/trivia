@@ -836,6 +836,21 @@ export function createNight(host, o = {}) {
     /** the screen pixels one RADIAN of tower turn moves the ring under the ball (the play pose) — the drag's 1 : 1 */
     pxPerRad: () => ppr,
     project: (x, y, z) => proj(x, y, z),
+    /** (F4B — THE SHARE CARD's frame; HIGH RISE S5's night.js#snap) the picture on the canvas NOW → a 2D canvas `bw` × `bh` of the part
+     *  `rect(width, height, ballX, ballY, column)` names (shot.js#shotCrop — the ball's place 0 … 1 of the picture, the phone column's
+     *  shape) + where the ball stands on it (ballX / ballY, 0 … 1); null = this phone can't. ONLY RIGHT AFTER draw(), IN THE SAME FRAME:
+     *  the drawing buffer is that frame's until the browser shows it (no preserveDrawingBuffer). Asked once a run (its end + a beat —
+     *  stage.js#takeShot): never in play. */
+    snap(bw, bh, rect) {
+      if (!w || !el.width || !el.height) return null;
+      const b = proj(ball.position.x, ball.position.y, ball.position.z), q = rect(el.width, el.height, b[0], b[1], CAM.aspectMax);
+      const cv = document.createElement('canvas'); cv.width = bw; cv.height = bh;
+      const c = cv.getContext('2d');
+      if (!c) return null;
+      c.imageSmoothingQuality = 'high'; c.drawImage(el, q.x, q.y, q.w, q.h, 0, 0, bw, bh);
+      cv.ballX = (b[0] * el.width - q.x) / q.w; cv.ballY = (b[1] * el.height - q.y) / q.h;
+      return cv;
+    },
     /** where things are on the screen — the page's own check: the ball (its centre + its size in px), its floor's line, the floors in sight under it */
     frame(run) {
       const c = proj(ball.position.x, ball.position.y, ball.position.z), top = proj(0, ball.position.y + SHAPE.R_BALL, SHAPE.RB), bot = proj(0, ball.position.y - SHAPE.R_BALL, SHAPE.RB), edge = proj(SHAPE.R_BALL, ball.position.y, SHAPE.RB);

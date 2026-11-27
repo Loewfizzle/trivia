@@ -30,6 +30,7 @@ import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
+import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX } from './shot.js';
 
 /** the wall behind the top of the screen is the area's of this many floors up (night.js#walls keeps a seam in sight that long) */
 const INK_LAG = 5;
@@ -469,6 +470,7 @@ export function createStage(app0, o = {}) {
   /** the match's run lands (THE FIRST GO's seed + tick 0 — it may still lie ahead): `log` = a rejoin's own moves so far · `spectate` = a watcher (no run of its own) */
   function adoptMatch(A) {
     seed = String(A.seed); spect = !!A.spectate;
+    startN++;   // (a new run: a start still in the air belongs to the one before — and THE SHARE CARD's frame is this run's own)
     run = createRun({ seed, mode: 'match' }); ev = []; fed = 0;
     shown = spect; endedAt = 0; overTold = false; handed = false; finished = null; away = false; held = false; owed = 0; pre = 0; newBest = false; drag = null;
     view.reset(run); view.setBest(spect ? 0 : tapeFloor);
@@ -662,6 +664,20 @@ export function createStage(app0, o = {}) {
     if (hook.ends.length > 50) hook.ends.shift();
   }
 
+  // F4B — THE SHARE CARD's frame (shot.js — HIGH RISE S5's pattern): a beat after YOUR run's end (per cause — shotMs) the frame JUST DRAWN is
+  // copied off the canvas (night.js#snap — the picture round the ball, the card's hero box) and kept on this phone under the driver's key
+  // (`o.shotKey()` — the cartridge: its match id; else the run's seed) until the next run. Once a run; nothing is made in play.
+  let shotRun = -1;
+  const shotKey = () => { try { return String((o.shotKey && o.shotKey()) || seed); } catch { return seed; } };
+  function takeShot() {
+    shotRun = startN;
+    if (!view.snap) return;
+    try {   // (a picture is polish: whatever goes wrong here never reaches the frame)
+      const res = resultOf(run), cause = res.cause, at = ballAt(cause);
+      const cv = view.snap(SHOT_BOX.w, SHOT_BOX.h, (sw, sh, bx, by, col) => shotCrop(sw, sh, bx, by, at, col));
+      if (cv) keepShot({ key: shotKey(), canvas: cv, cause, made: !!res.made, floor: res.floor, blazes: res.blazes, look: lookT, ballX: cv.ballX, ballY: cv.ballY });
+    } catch { /* no frame: the card draws on the night's dark */ }
+  }
   let raf = 0, last = 0, frameN = 0, prevWork = 0;
   const frames = new Float32Array(600); let frameK = 0;
   function frame(now) {
@@ -733,6 +749,7 @@ export function createStage(app0, o = {}) {
       ghostsFrame(now, tauW, R0, tauD, lead);
     }
     view.draw(R0, tauD, dt, lead);
+    if (over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs(run.st === 'out' ? run.cause : run.st)) takeShot();   // (F4B — THE SHARE CARD's frame: this very frame, a beat after the end — this phone's OWN run on screen, never a watched one)
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
     if (R0.floor !== hudFloor) hudFloorNow(R0);
     const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);
@@ -814,6 +831,8 @@ export function createStage(app0, o = {}) {
     msToLanding: () => (t0 != null && !held && !isOver(run) ? t0 + run.nl * TICK_MS - performance.now() : null),
     restart: s => restart(s), begin: () => begin(performance.now()), dive: n => { if (t0 != null) { dive(n); t0 = performance.now() - run.t * TICK_MS; fromRun = true; prepBanner(run.floor); } },
     hide, show, log: () => logOf(run), events: () => ev.slice(), result: () => resultOf(run),
+    /** (F4B) THE SHARE CARD's frame of the last ended run on this phone (shot.js — null: none yet) */
+    shot: () => lastShot(),
     frames: () => { const out = [], n = Math.min(frameK, 600); for (let i = n - 1; i >= 0; i--) out.push(frames[(frameK - 1 - i + 6000) % 600]); return out; },
     setLook: l => setLook(l), setTier: t => tiers.set(t), lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
     stop() { cancelAnimationFrame(raf); },
@@ -841,6 +860,8 @@ export function createStage(app0, o = {}) {
     me(rec) { rec.floor = run.floor; rec.over = isOver(run); rec.made = run.st === 'made'; rec.cause = run.st === 'made' ? 'made' : run.st === 'cap' ? 'cap' : run.cause || ''; return rec; },
     matchState: () => matchInfo(),
     start() { begin(performance.now()); },
+    /** F4B — THE SHARE CARD's frame of THIS stage's run (shot.js — null until it ended + a beat; share.js reads it by the same key) */
+    shot: () => shotFor(shotKey()),
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
     destroy() { gone = true; MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },

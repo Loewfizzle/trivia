@@ -59,7 +59,7 @@ test('FREEFALL IS HIDDEN FROM PLAYERS (F1 → F4A: THE HIDDEN CARTRIDGE): a `pre
     assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
   }
   const dir = readdirSync(new URL('../js/games/freefall/', import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'meta.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'view.js'], 'F1 – F3B\'s files + F4A\'s cartridge: director · final · index · lines · meta · proof · view');
+  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'ghost-fx.js', 'ghosts.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'match.js', 'matchhud.js', 'matchsim.js', 'meta.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'share.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'view.js'], 'F1 – F3B\'s files + F4A\'s cartridge: director · final · index · lines · meta · proof · view + F4B\'s SHARE CARD: share · shot');
   // the endpoints: the REPORT alone reads FREEFALL (the solo run's proof node, behind THE SWITCH) — the 8 stay 8
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'));
   assert.equal(fns.length, 8);
@@ -68,7 +68,9 @@ test('FREEFALL IS HIDDEN FROM PLAYERS (F1 → F4A: THE HIDDEN CARTRIDGE): a `pre
   // THE DAILY MODE is daily-ready only: it lives in the engine + the judge, and NOTHING turns it on
   assert.match(read('js/games/freefall/tuning.js'), /daily: \{ finish: 200, capTicks: 3 \* 60 \* TICK_HZ, holds: 0 \}/);
   for (const n of readdirSync(new URL('../js/daily/', import.meta.url)).filter(x => x.endsWith('.js'))) assert.doesNotMatch(read(`js/daily/${n}`), /freefall/i, `js/daily/${n}: no daily path`);
-  for (const n of readdirSync(new URL('../api/_lib/', import.meta.url)).filter(x => x.endsWith('.js') && !['freefall.js', 'trust-lists.js', 'catalog.js', 'lab-text.js'].includes(x))) assert.doesNotMatch(read(`api/_lib/${n}`), /freefall/i, `api/_lib/${n}: no daily path, no other wiring`);
+  for (const n of readdirSync(new URL('../api/_lib/', import.meta.url)).filter(x => x.endsWith('.js') && !['freefall.js', 'trust-lists.js', 'catalog.js', 'lab-text.js', 'share-card.js'].includes(x))) assert.doesNotMatch(read(`api/_lib/${n}`), /freefall/i, `api/_lib/${n}: no daily path, no other wiring`);
+  // (F4B — THE SHARE CARD: share-card.js#RUN_GAMES names it — a run's card is taken only with the server's own COUNTED result: none while THE SWITCH is off)
+  assert.match(read('api/_lib/share-card.js'), /export const RUN_GAMES = Object\.freeze\(\['jaywalk', 'highrise', 'freefall'\]\)/);
 });
 
 test('THE LAB NEVER COUNTS — its WHOLE module graph: only its own engine files + the integer hash + three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {

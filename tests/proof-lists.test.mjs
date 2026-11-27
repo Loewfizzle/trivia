@@ -13,8 +13,8 @@ import { GAMES } from '../js/config.js';
 const src = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const listIn = (file, name) => { const m = new RegExp(String.raw`${name} = Object\.freeze\(\[([^\]]*)\]\)`).exec(src(file)); return m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')).filter(Boolean) : null; };
 
-/** FREEFALL F4A — THE HIDDEN CARTRIDGE (being built): the run card (SHARE) is F4B's — the ONE named wait; it must be EMPTY at its go-live */
-export const RUN_CARD_WAITS = Object.freeze({ freefall: 'F4B — SHARE + the run card' });
+/** a proof game being built whose run card (SHARE) is not there yet — a named wait; EMPTY since FREEFALL F4B (its card: js/games/freefall/share.js) */
+export const RUN_CARD_WAITS = Object.freeze({});
 
 test('M1: every VERIFIED_SOLO id has its row in every proof list (the server, the registry, the report extract, the run card)', () => {
   const runGames = listIn('api/_lib/share-card.js', 'RUN_GAMES');
