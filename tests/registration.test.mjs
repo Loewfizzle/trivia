@@ -21,9 +21,8 @@ const BUILDING = GAMES.filter(g => !g.playable && g.preview && !g.daily);
 export const JAYWALK_WAITS = Object.freeze({});   // (THE GO-LIVE PASS, Nov 17: EMPTY — meta, help, art all landed; JAYWALK is playable)
 /** HIGH RISE S4A — THE HIDDEN CARTRIDGE (being built): what it does not have YET, each with the pass that gives it */
 export const HIGHRISE_WAITS = Object.freeze({});   // (HIGH RISE's GO-LIVE, Nov 20: EMPTY — the meta, HOW TO PLAY, the tile, THE BOARD's tab all landed; HIGH RISE is playable)   // (S4B: its smoke start is IN — e2e-smoke.mjs: a local page that asks, two phones = THE MATCH's opening)
-/** FREEFALL F4A — THE HIDDEN CARTRIDGE (being built): what it does not have YET, each with the pass that gives it (F5A: its tile is IN — ui/game-art.js ART) */
+/** FREEFALL F4A — THE HIDDEN CARTRIDGE (being built): what it does not have YET, each with the pass that gives it (F5A: its tile is IN — ui/game-art.js ART · F5C: HOW TO PLAY is IN — ui/help.js RULES.freefall + its tab) */
 export const FREEFALL_WAITS = Object.freeze({
-  help: 'the go-live pass — HOW TO PLAY (ui/help.js RULES + its tab)',
   boardtab: 'the go-live pass — its tab on THE BOARD (board/view.js TABS — the tab is wired + hidden: board/view.js#HIDDEN_TABS)',
   smoke: 'F4B — its smoke start (e2e-smoke.mjs), with THE MATCH',
 });

@@ -20,7 +20,7 @@ import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff, floorInto } from './
 import { replay, judgeRun, isHold } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
 import { cleanBest, bestLine, crossedBest, nextBest } from './best.js';
-import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S } from './sounds.js';
+import { CUE_NEW_BEST, CUE_FIREWORKS, BREAK_AT, BREAK_HIT_S, BOTTOM_HIT_S, DUCK_MS } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
 import { resolveLook, sunUpNow } from '../kit/look.js';
 import { createNight, FF_ART_REV, SHAPE } from './night.js';
@@ -279,6 +279,17 @@ export function createStage(app0, o = {}) {
   // reads `gData`), THE DEPTH RAIL's rows, the markers, WATCH's playback, the test page's bot room (`o.rivals`)
   // (F5C — THE MATCH MOMENTS: none in the first MOMENTS_QUIET_MS of a run — a rejoin's catch-up replays old outs; LAST ONE STANDING once)
   const MOMENTS_QUIET_MS = 2000;
+  // F5C — THE MUSIC DUCKS under the big moments (sounds.js#DUCK_MS — JAYWALK's way): the page's `o.duck(on)` (the cartridge: the console's
+  // music — view.js; the test page has none). ONE window: a later moment only stretches it; released at a restart + at the end of the stage
+  let duckUntil = 0, duckT = 0;
+  function duckFor(ms) {
+    if (!o.duck) return;
+    const now = performance.now(), until = now + ms;
+    if (until <= duckUntil) return;
+    if (duckUntil <= now) { try { o.duck(true); } catch { /* polish */ } }
+    duckUntil = until; clearTimeout(duckT); duckT = setTimeout(unduck, ms);
+  }
+  function unduck() { clearTimeout(duckT); if (duckUntil) { duckUntil = 0; if (o.duck) { try { o.duck(false); } catch { /* polish */ } } } }
   let momentsAt = Infinity, lastSaid = false;
   let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
   const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [], marks = { up: [], down: [] };
@@ -306,7 +317,7 @@ export function createStage(app0, o = {}) {
     stage.dataset.dark = '';
     // (F4B: a new run has no rivals yet — the bot room / the match's view sets them again)
     sim = null; spect = false; ghosts.length = 0; rows.length = 0; view.ghosts(0, null); watchUid = ''; WA = null; playing = -1; clockSec = -1; rowsDirty = true;
-    MH.reset(); stage.classList.remove('is-watch'); momentsAt = Infinity; lastSaid = false;
+    MH.reset(); stage.classList.remove('is-watch'); momentsAt = Infinity; lastSaid = false; unduck();
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
   function dive(n) {
@@ -514,7 +525,7 @@ export function createStage(app0, o = {}) {
     MH.rail(rows);
     MH.marks(edgeMarks(rows, R0.floor, marks));
     // F5C — LAST ONE STANDING (3+ players, every rival over, me still falling): once a match — JAYWALK's card + its sound
-    if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) snd.play('last-standing'); } }
+    if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
     for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
     if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)} · ` : ''}${n} PLAYING`; }
@@ -767,7 +778,7 @@ export function createStage(app0, o = {}) {
       const late = away; away = false;
       moments(fed, ev.length, now, late);
       view.feed(ev, fed, ev.length);
-      if (snd) snd.playCues(snd.cuesOf(ev, late, cues, fed));
+      if (snd) { snd.playCues(snd.cuesOf(ev, late, cues, fed)); for (let i = 0; i < cues.length; i++) { const ms = DUCK_MS[cues[i].id]; if (ms) duckFor(ms + (cues[i].delay || 0) * 1000); } }
       fed = ev.length;
     }
     const over = isOver(run);
@@ -910,6 +921,6 @@ export function createStage(app0, o = {}) {
     shot: () => shotFor(shotKey()),
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
-    destroy() { gone = true; MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; unduck(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

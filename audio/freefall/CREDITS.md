@@ -21,4 +21,5 @@ THE BREAKTHROUGHS' three (`skylight` · `splashdown` · `fireworks` — `Downloa
 `notes-fireworks.txt`) are byte copies too; `skylight` + `splashdown` come in about 7 dB quieter than the rest (−23.4 / −23.7 LUFS
 against ≈ −16): they are loudness-matched by their GAIN in `js/games/freefall/sounds.js` (the build machine has no MP3 encoder).
 
-Area arrival + NEW BEST are JAYWALK's files (`audio/jaywalk/area-arrive.mp3` · `new-best.mp3` — `audio/jaywalk/CREDITS.md`).
+Area arrival + NEW BEST + (F5C) a rival's OUT + LAST ONE STANDING are JAYWALK's files (`audio/jaywalk/area-arrive.mp3` · `new-best.mp3` ·
+`out-drop.mp3` · `last-standing.mp3` — `audio/jaywalk/CREDITS.md`). The site's credits sheet lists all of FREEFALL's in its own group (`js/ui/credits.js`).

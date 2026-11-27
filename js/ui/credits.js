@@ -3,6 +3,7 @@
 // exactly as its credits.txt gives it (e.g. art/models/<name>/credits.txt). Groups show in the order they first appear.
 import { h } from './dom.js';
 import { openSheet } from './sheet.js';
+import { isPlayable } from '../config.js';
 
 // C4c — the harvest display's 3D model (art/models/harvest/credits.txt). Its licence (Tencent Hunyuan 3D 2.1 Community License) asks
 // AI-generated content shown publicly to be identified as AI-generated, and does not cover the EU, the UK + South Korea.
@@ -210,6 +211,15 @@ export const CREDITS = [
   { group: 'PODIUM SOUNDS', title: '"card-place-2" (the card reveal)', by: 'Kenney (Casino Audio pack)', licence: 'Creative Commons CC0 1.0 (public domain) - https://creativecommons.org/publicdomain/zero/1.0/', link: 'https://opengameart.org/content/54-casino-sound-effects-cards-dice-chips' },
   { group: 'PODIUM SOUNDS', title: '"Button Arp Twinkle" (the card reveal’s sparkle)', by: 'Cinematic Sound Design (pack "User Interface", GDC 2026 bundle)', licence: 'Sonniss #GameAudioGDC Bundle License v2.0 - https://sonniss.com/gdc-bundle-license/', link: 'https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Cinematic%20Sound%20Design%20-%20User%20Interface/Button%20Arp%20Twinkle.wav' },
   { group: 'PODIUM SOUNDS', title: '"SmartNotif - 266 - Belly - SPK C - P8" (the achievement)', by: 'aXLsound (pack "Smartphone Notification Sounds", GDC 2020 bundle)', licence: 'Sonniss #GameAudioGDC Bundle License v2.0 - https://sonniss.com/gdc-bundle-license/', link: 'https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/aXLsound%20-%20Smartphone%20Notification%20Sounds/SmartNotif%20-%20266%20-%20Belly%20-%20SPK%20C%20-%20P8.wav' },
+  // FREEFALL (F5C — every asset it SHIPS: audio/freefall/CREDITS.md + assets/freefall/CREDITS.md; `game`: the group shows only where the game
+  //  is playable — the owner's phone while it is BEING BUILT, everyone from its go-live. Not credited: Water 001's normal map — F5A removed it;
+  //  the billboard — not installed; the roof's grain — made in code)
+  { game: 'freefall', group: 'FREEFALL', title: 'The bounce, the whoosh, the blaze, the shatter, the crash, the lights out, the bottom', by: '"C4.wav" by joesh2 (freesound.org/s/577691) · "Whoosh - Weighted string - Airy whistle" by Sadiquecat (freesound.org/s/855733) · "Fire Burst Flash" by Za-Games (freesound.org/s/539972) + "ignite_flame_01" by DaUik (freesound.org/s/798713) · "Break something (ice/glass/...)" by Aurelon (freesound.org/s/422633) + "Smash.ogg" by egomassive (freesound.org/s/536777) · "zap1" + "impactPunch_heavy_000" by Kenney (kenney.nl) · "MnG - Power Down.wav" by SergeyIonov (freesound.org/s/467405) · "Underwater Deep Impact" by Sheyvan (freesound.org/s/470084) + "Sparkling Star 01.wav" by LilMati (freesound.org/s/462095)', licence: 'CC0 1.0', link: 'https://freesound.org/' },
+  { game: 'freefall', group: 'FREEFALL', title: 'The skylight, the splashdown, the fireworks', by: '"neon tube smash explode shatter glass debris.flac" by kyles (freesound.org/s/453499) · "Foley_Natural_Water_Jump_Mono.wav" by Nox_Sound (freesound.org/s/585744) · "Firework during New Years Eve @ Groningen.wav" by JelleGeus (freesound.org/s/179987) — trimmed, softened', licence: 'CC0 1.0', link: 'https://freesound.org/' },
+  { game: 'freefall', group: 'FREEFALL', title: 'The area’s arrival, NEW BEST, a rival out, last one standing', by: 'JAYWALK’s own sounds, shared — their credits are in the JAYWALK group', licence: 'see JAYWALK' },
+  { game: 'freefall', group: 'FREEFALL', title: 'The blaze’s flames + the breakthroughs’ sprites', by: 'Particle Pack by Kenney Vleugels (kenney.nl) — eleven of its sprites, greyscale', licence: 'CC0 1.0', link: 'https://kenney.nl/assets/particle-pack' },
+  { game: 'freefall', group: 'FREEFALL', title: 'The seabed', by: 'Ground 055 S (colour + normal) by ambientCG (Lennart Demes)', licence: 'CC0 1.0', link: 'https://ambientcg.com/view?id=Ground055S' },
+  { game: 'freefall', group: 'FREEFALL', title: 'The shaft’s walls, the rooftop, the roof below + its city, the title', by: 'Made for NEON SPEAKEASY with Grok Imagine (xAI)', licence: 'AI-generated — made for NEON SPEAKEASY', link: 'https://x.ai/' },
   { group: 'THE TYPE', title: 'Orbitron', by: 'Matt McInerney', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Orbitron' },
   { group: 'THE TYPE', title: 'Chakra Petch', by: 'Cadson Demak', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Chakra+Petch' },
   { group: 'THE TYPE', title: 'JetBrains Mono', by: 'JetBrains', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/JetBrains+Mono' },
@@ -219,7 +229,7 @@ let sheet = null;
 export function openCredits() {
   closeCredits();
   const groups = [];
-  for (const c of CREDITS) { let g = groups.find(x => x.name === c.group); if (!g) groups.push(g = { name: c.group, items: [] }); g.items.push(c); }
+  for (const c of CREDITS) { if (c.game && !isPlayable(c.game)) continue; let g = groups.find(x => x.name === c.group); if (!g) groups.push(g = { name: c.group, items: [] }); g.items.push(c); }
   const body = h('div.cr-body', ...groups.map(g => h('section.cr-group', h('h3.cr-head', g.name), ...g.items.map(c =>
     h('div.cr-item', h('b.cr-title', c.link ? h('a', { href: c.link, target: '_blank', rel: 'noopener' }, c.title) : c.title), h('span.cr-by', c.by), h('span.cr-lic', c.licence))))));
   sheet = openSheet({ title: 'CREDITS', kicker: 'NEON SPEAKEASY', cls: 'cr-sheet', body, onClose: () => { sheet = null; } });   // (SHELL 2.0 A: THE SHEET)

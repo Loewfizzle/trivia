@@ -44,6 +44,8 @@ import { CLOCK, START_LEAD_MS, START_LATE_MS, GRANT_PHONE_MS, finalCount, packRa
 import { scoreNode } from './director.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { endLogo } from './endscreen.js';
+import { DUCK } from './sounds.js';
+import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { SRV_BEST_KEY } from './lines.js';
 import { createStage, newSeed } from './stage.js';
 import { soloGo, GO_WAIT_MS } from '../highrise/go.js';   // (THE SOLO GO — PURE + generic: up to 7 tries, the server's copy read again, ≤ 9 s)
@@ -97,7 +99,10 @@ const drv = {
   onWatchTap: () => { if (cur && cur.watchTap) cur.watchTap(); },
   shotKey: () => (cur && cur.shotKey ? cur.shotKey() : ''),   // (THE SHARE CARD's frame is kept under the match's id — share.js finds it there)
   leaveWords: 'BACK',
+  // F5C — THE MUSIC DUCKS under the big moments (sounds.js#DUCK — JAYWALK's view.js#applyDuck): the level found is put back after
+  duck: on => { try { if (on) { if (ducked == null) ducked = musicDuckLevel(); duckMusic(Math.min(ducked, DUCK.level), DUCK.inS); } else if (ducked != null) { duckMusic(ducked, DUCK.outS); ducked = null; } } catch { /* polish */ } },
 };
+let ducked = null;
 
 export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';

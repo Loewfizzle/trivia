@@ -66,3 +66,37 @@ pillar only; (d) the BLUE = by the SCREEN's height: deepest at the bottom (#0030
 4. **LAST ONE STANDING** — 3+ players, every rival over, me still falling → once a match: JAYWALK's card (its type + gold glow, a soft dark
    ground under it over the busy floors) + `last-standing.mp3` (referenced): "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD ·
    KEEP FALLING" · level: "LEVEL WITH THE LEAD · KEEP FALLING" (`ghosts.js#lastStanding` + `lastWords`, PURE).
+
+## GROUP 2 — HOW TO PLAY
+`ui/help.js#RULES.freefall` (+ its drawings, JAYWALK's shape: one line, short lines ≤ 52, one drawing each) — through the site's ONE lazy
+opener (`ui/help-open.js`; ☰ → How to play in a game asks for the game on screen). HOW TO FALL: DRAG TO SPIN · a GAP = a fall · RED =
+OUT · 3 FLOORS CLEAN = THE BLAZE · it smashes the next floor, even red · the arrow keys. HOW IT ENDS: DON'T STALL — THE LIGHTS GO OUT · a
+MATCH: the same tower, the deepest wins · THE BOTTOM (floor 200) or 3:00 · SOLO never ends, leaving the app PAUSES it · 3 PAUSES a run (a
+match never pauses). Its tab shows where FREEFALL is open (a hidden game's tab only there); `registration.test.mjs`'s FREEFALL_WAITS lost
+`help`. Shots: `howto\a1\` (`shots.mjs --preview --scenes ff-help,ff-help-day,ff-help-end` — night + day, 375 × 667 + 390 × 844).
+
+## GROUP 3 — THE MIX + CREDITS
+**THE MIX** — every FREEFALL + JAYWALK file DECODED in Chromium (WebAudio — the Beelink has no ffmpeg), its loudest 300 ms (RMS, dBFS) +
+its gain = how loud it plays (both games: the same limiter + trim → the console's SFX bus):
+
+| sound | before (gain → as played) | after | JAYWALK's reference |
+| --- | --- | --- | --- |
+| bounce | 0.5 → −18.3 | kept (stays SOFT) | hop −11.2 (a 40 ms tick) |
+| whoosh | 0.34 → −30.0 | 0.42 → −28.2 | — |
+| blaze · shatter | −13.6 · −16.3 | kept | — |
+| crash · lights-out | −12.4 · −14.3 | kept | hit −10.8 |
+| bottom | 0.9 → −15.7 | 1.1 → −14.0 | — |
+| area-arrive · new-best (JAYWALK's files) | 1.0 → −15.3 · 1.15 → −18.7 | 1.25 → −13.3 · 1.45 → −16.7 | = JAYWALK's own |
+| skylight · splashdown | −13.7 · −12.5 | kept | — |
+| fireworks | −24.8 | kept (soft, on purpose) | — |
+| out-drop (new) | — | 0.8 → −17.9 | 0.28 → −27.1 (lost under FREEFALL's bounces) |
+| last-standing (new) | — | 1.1 → −16.3 | 0.6 → −21.5 |
+
+**THE DUCK** (JAYWALK's flyers.js#DUCK way): the console's music to 0.5 of its level (in 0.25 s, out 0.9 s) under the big moments —
+`sounds.js#DUCK_MS`: crash 1.3 s · lights-out 1.8 s · skylight 1.8 s · splashdown 2.3 s · bottom 2.4 s · last-standing 1.8 s (one window;
+a later moment only stretches it; always released at a restart + when the stage goes). The cartridge's driver applies it (`view.js` —
+`audio/music.js#duckMusic`, the level found put back); the test page has no music. `tests/freefall-mix.test.mjs`.
+**CREDITS** — `js/ui/credits.js` group FREEFALL: the ten sounds' Freesound / Kenney authors, JAYWALK's shared four (→ the JAYWALK group),
+the Particle Pack (Kenney, eleven sprites), Ground 055 S (ambientCG), the art made for NEON SPEAKEASY with Grok. **Not credited (unused):**
+3DTextures Water 001 (its normal map left the game in F5A), the billboard (not installed), the roof's grain (made in code). The group
+shows only where FREEFALL is playable (`isPlayable` — the owner's phone now, everyone at the go-live): the public sheet never names a hidden game.

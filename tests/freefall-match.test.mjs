@@ -292,5 +292,5 @@ test('F5C — THE MATCH MOMENTS (PURE — ghosts.js): RIVAL OUT\'s words + its q
   // the stage: a rival's run that ended OUT (never a finish / time's up), past the quiet start; LAST ONE STANDING once a match
   const st = readFileSync(new URL('../js/games/freefall/stage.js', import.meta.url), 'utf8');
   assert.ok(st.includes("if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }"));
-  assert.ok(st.includes("if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) snd.play('last-standing'); } }"));
+  assert.ok(st.includes("if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }"));
 });
