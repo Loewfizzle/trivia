@@ -205,8 +205,8 @@ void main() {
 // tubes' light lies on it (until they short).
 export const DECK_V = 'varying vec3 vW, vL; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vL = position; gl_Position = projectionMatrix * viewMatrix * w; }';
 export const DECK_F = /* glsl */`
-uniform sampler2D tRoof;
-uniform float uHaveR, uFlipR, uDay, uBloom, uHalf, uWide, uTime, uBreakT, uNear;
+uniform sampler2D tRoof, tGrain;
+uniform float uHaveR, uFlipR, uDay, uBloom, uHalf, uWide, uTime, uBreakT, uNear, uHaveG;
 uniform vec2 uRoof;
 varying vec3 vW, vL;
 ${HASH}
@@ -223,6 +223,9 @@ void main() {
   vec2 sheet = abs(fract(q / 0.74 + 0.5) - 0.5) * 0.74, sw = fwidth(q) * 1.2 + 0.004;
   float seam = 1.0 - smoothstep(0.0, sw.x + 0.006, sheet.x) * smoothstep(0.0, sw.y + 0.006, sheet.y);
   c *= mix(1.0, (0.8 + 0.36 * grain) * (0.93 + 0.14 * mott) * (1.0 - 0.3 * seam), uNear);
+  // (F5A — THE ROOF GRAIN: the same detail tile, read as the roof below reads it — night-fx.js SKY_F: one roof, no edge where the deck ends)
+  float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.62 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.38;
+  c *= 1.0 + gr * uNear * uHaveG * mix(0.5, 1.15, uDay);
   // the tubes' light on the deck (night), dying with them
   float lit = 1.0 - smoothstep(0.0, 0.5, uTime - uBreakT - 0.3);
   c += mix(vec3(0.2, 0.75, 0.95), vec3(0.95, 0.25, 0.8), smoothstep(-0.4, 0.4, q.x * sign(q.y + 0.001))) * exp(-(inside - uHalf) / 0.28) * 0.55 * lit * (1.0 - uDay);

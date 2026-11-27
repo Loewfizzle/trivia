@@ -190,7 +190,8 @@ export function createNight(host, o = {}) {
     // THE ROOF BELOW (F3B): the painting + the city's tile, its plane (set every frame — draw()), how much of it is there, the skylight open
     tRoof: { value: null }, tCity: { value: null }, uHaveR: { value: 0 }, uFlipR: { value: 0 }, uHaveC: { value: 0 }, uFlipC: { value: 0 },
     uGN: { value: new THREE.Vector3(0, 1, 0) }, uGV: { value: new THREE.Vector3(0, 0, -1) }, uGC: { value: new THREE.Vector3(0, -80, -60) }, uGK: { value: -80 }, uGW: { value: 0.01 },
-    uGA: { value: 1 }, uGCurl: { value: ROOF.curl }, uOpen: { value: 0 }, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) } };
+    uGA: { value: 1 }, uGCurl: { value: ROOF.curl }, uOpen: { value: 0 }, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) },
+    tGrain: { value: null }, uHaveG: { value: 0 }, uGrain: { value: 0 } };   // (F5A — THE ROOF GRAIN: its detail tile · how much of it is in — 0 far below, 1 over the landing)
   const skyMat = new THREE.ShaderMaterial({ vertexShader: SKY_V, fragmentShader: SKY_F, uniforms: skyU, depthTest: false, depthWrite: false,
     // (NOT `transparent`: three.js draws every transparent mesh after the opaque ones — the sky would lie over the pillar + the ball. It is
     //  an opaque-pass mesh, second in the scene's order, that blends itself over the wall by its own alpha)
@@ -241,7 +242,7 @@ export function createNight(host, o = {}) {
   const cityNow = () => (day ? picture('city-day', ROOF_URL[1][1], 3) : picture('city', ROOF_URL[0][1], 3));
   // THE BREAKTHROUGHS' textures (F3B): the sprites, the seabed's sand (F5A: the water is worked out in its shader — Water 001's normal map is gone)
   const fxUrl = name => new URL(`../../../assets/freefall/fx/${name}.webp?v=${FF_ART_REV}`, import.meta.url).href;
-  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true) };
+  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), grain: picture('grain', new URL(`../../../assets/freefall/roof/grain.webp?v=${FF_ART_REV}`, import.meta.url).href, true), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true) };
   // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run): a picture's first upload mid-run was a long frame — EVERY picture of the look on
   // screen is asked for behind the opening (the four walls, the panorama, the roof below + its city; the breakthroughs' textures above):
   // nothing is decoded or uploaded while a run is on (a look that turns mid-run asks for its own set at once)
@@ -597,6 +598,8 @@ export function createNight(host, o = {}) {
     const e = roofM.elements;
     e[0] = k; e[1] = 0; e[2] = 0; e[3] = 0; e[4] = 0; e[5] = k * ca; e[6] = k * sa; e[7] = 0; e[8] = 0; e[9] = -k * sa; e[10] = k * ca; e[11] = 0; e[12] = 0; e[13] = Cy; e[14] = Cz; e[15] = 1;
     skyU.uGN.value.set(0, ca, sa); skyU.uGV.value.set(0, sa, -ca); skyU.uGC.value.set(0, dy, dz); skyU.uGK.value = dy * ca + dz * sa; skyU.uGW.value = 1 / wide;
+    // (F5A — THE ROOF GRAIN comes in as the roof comes close: the deck's own measure — the plane's scale, 0.3 → 0.8)
+    { const gk = (k - 0.3) / 0.5, gp = PICS.grain; skyU.uGrain.value = gk <= 0 ? 0 : gk >= 1 ? 1 : gk; skyU.tGrain.value = gp.tex; skyU.uHaveG.value = gp.have; }
     G.uCutY.value = breaks.out[0] > 0.5 ? -1e9 : Cy;   // (the roof is shut: the pillar ends where it goes into it)
   }
 

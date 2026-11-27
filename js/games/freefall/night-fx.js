@@ -116,7 +116,7 @@ void main() {
 // it. THE DARKNESS reads here as on the walls (above its line: the lights out · by day THE STORM CLOUD). A red pixel leans to pink.
 export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9998, 1.0); }';
 export const SKY_F = /* glsl */`
-uniform sampler2D tPano, tRoof, tCity;
+uniform sampler2D tPano, tRoof, tCity, tGrain;
 uniform vec3 uCam, uRight, uUp, uFwd, uDarkA;
 uniform float uTan, uAspect, uHave, uFlip, uSeamY, uBallY, uDarkY, uTime, uRW, uRise, uShift, uDay, uBloom, uSpanAz, uSpanEl, uTopEl, uGlow;
 // THE ROOF BELOW (F3B — the owner: the title screen + the first 40 floors can not be the weak spot): the building's own roof seen from
@@ -127,7 +127,7 @@ uniform float uTan, uAspect, uHave, uFlip, uSeamY, uBallY, uDarkY, uTime, uRW, u
 // open (the room below shows under the seam — until then the roof covers it)
 uniform vec3 uGN, uGV, uGC;
 uniform vec2 uRoof;
-uniform float uGK, uGW, uGA, uGCurl, uOpen, uHaveR, uFlipR, uHaveC, uFlipC;
+uniform float uGK, uGW, uGA, uGCurl, uOpen, uHaveR, uFlipR, uHaveC, uFlipC, uHaveG, uGrain;
 varying vec2 vS;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 ${NOISE}
@@ -174,6 +174,11 @@ void main() {
     vec3 ct2 = pow(texture2D(tCity, vec2(ru.y * 2.34 + 0.37, ru.x * 2.34 + 0.11)).rgb, vec3(2.2));
     ct = mix(ct, ct2, smoothstep(0.44, 0.56, vnoise(ru * 2.7 + 5.0)));
     vec3 flat_ = mix(vec3(0.016, 0.012, 0.04), vec3(0.3, 0.33, 0.38), uDay);
+    // F5A — THE ROOF GRAIN (floors 36 – 39 by day looked soft: the painting was made at 1024 + enlarged): a fine concrete-grain DETAIL
+    // tile laid over the roof as it comes close (uGrain) — two readings of it, a fine one + a coarser one turned (no tile shows), as light
+    // + shade about the painting's own colour; its mipmaps let it go with distance. The same reading as the deck's (DECK_F): one roof.
+    float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.62 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.38;
+    rf *= 1.0 + gr * uGrain * uHaveG * mix(0.5, 1.15, uDay);
     vec3 g = mix(mix(flat_, rf, uHaveR), mix(flat_, ct, uHaveC), outside);
     g *= mix(1.5, 1.0, uDay);                                 // (by night the painting is shown a little over its own light: the neon reads from 40 floors up)
     // only a LIGHT distance haze, far out — where the city meets the panorama

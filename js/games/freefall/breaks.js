@@ -127,7 +127,7 @@ export function createBreaks(X) {
   // ---- THE SKYLIGHT: the deck round it (the roof's own painting, at the skylight's true size), its frame + neon tubes, its glass
   const skyY = -BREAK_FLOORS.skylight * SHAPE.H + SKYLIGHT.up, H = SKYLIGHT.half;
   const breakT = { value: 1e9 };
-  const deckU = { tRoof: { value: null }, uHaveR: { value: 0 }, uFlipR: { value: 0 }, uDay: G.uDay, uBloom: G.uBloom, uNear: { value: 0 }, uHalf: { value: H + 0.07 }, uWide: { value: 2 * (H + 0.07) / (2 * ROOF.sky) }, uTime: G.uTime, uBreakT: breakT, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) } };
+  const deckU = { tRoof: { value: null }, tGrain: { value: null }, uHaveG: { value: 0 }, uHaveR: { value: 0 }, uFlipR: { value: 0 }, uDay: G.uDay, uBloom: G.uBloom, uNear: { value: 0 }, uHalf: { value: H + 0.07 }, uWide: { value: 2 * (H + 0.07) / (2 * ROOF.sky) }, uTime: G.uTime, uBreakT: breakT, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) } };
   const deckMat = new THREE.ShaderMaterial({ vertexShader: DECK_V, fragmentShader: DECK_F, uniforms: deckU, ...blend });
   const deckGeo = plane(9); deckGeo.translate(0, -0.05, 0);
   const deck = add(new THREE.Mesh(deckGeo, deckMat), 1.5, deckMat);
@@ -387,7 +387,7 @@ export function createBreaks(X) {
       deck.matrixWorld.copy(X.roofM);
       const near = (X.roofM.elements[0] - 0.3) / 0.5; deckU.uNear.value = near <= 0 ? 0 : near >= 1 ? 1 : near;
       const r = pics.roof(), p = pics.pano();
-      deckU.tRoof.value = r.tex; deckU.uHaveR.value = r.have; deckU.uFlipR.value = r.flip;
+      deckU.tRoof.value = r.tex; deckU.uHaveR.value = r.have; deckU.uFlipR.value = r.flip; deckU.tGrain.value = pics.grain.tex; deckU.uHaveG.value = pics.grain.have;
       glassU.tPano.value = p.tex; glassU.uHaveP.value = p.have; glassU.uFlipP.value = p.flip;
     }
     out[0] = skSt > 0 ? 1 : 0;

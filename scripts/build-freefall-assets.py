@@ -2,7 +2,7 @@
 """FREEFALL F2 + F3 — THE FILES IN (docs/freefall.md "THE ASSETS"): COPIES the owner's delivered files into the repo, small. The originals
 (Downloads\\grok\\freefall\\ by default) are only READ — never moved, renamed or edited. HIGH RISE's pattern (build-highrise-assets.py).
 
-    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title,sky,roof,break]
+    python -P -E scripts/build-freefall-assets.py [source folder] [--only=walls,sfx,fx,title,sky,roof,break,grain]
     (-P -E: nothing is imported from the script's folder / the working folder / the environment; numpy lives in the user's site-packages,
      which -I would hide)
 
@@ -433,3 +433,37 @@ if want('roof'):
     print('THE ROOF BELOW'); roof()
 if want('break'):
     print('THE BREAKTHROUGHS (the textures)'); breaks()
+
+
+def grain():
+    """F5A — THE ROOF GRAIN: a fine concrete-grain DETAIL tile for the roof below (floors 36 – 39: the roof painting was made at 1024 +
+    enlarged — soft that close, by day). MADE HERE, from nothing (no source file, no credit): band-limited noise built in the frequency
+    domain (so it tiles exactly), a fine grain + a coarser mottle + a few dark pits, mean 0.5 — the shaders read it as light + shade
+    about that mean. → assets/freefall/roof/grain.webp (256², greyscale, it tiles both ways)."""
+    n = 256
+    rng = np.random.default_rng(0x5a7e)
+    fy = np.fft.fftfreq(n)[:, None] * n
+    fx = np.fft.fftfreq(n)[None, :] * n
+    f = np.hypot(fx, fy)
+    def band(lo, hi, seed_shift):
+        ph = np.exp(2j * np.pi * rng.random((n, n)))
+        amp = np.exp(-((np.log(np.maximum(f, 1e-3)) - np.log((lo * hi) ** 0.5)) ** 2) / (2 * (np.log(hi / lo) / 2.2) ** 2))
+        amp[0, 0] = 0
+        g = np.real(np.fft.ifft2(ph * amp))
+        return g / g.std()
+    fine = band(24, 90, 0)       # the grain: 3 – 10 px
+    mott = band(4, 14, 1)        # a mottle: 18 – 64 px
+    pits = band(40, 110, 2)
+    pit = -np.clip(pits - 1.9, 0, None) * 1.6          # a few dark pits (the grain's deepest hollows)
+    g = 0.62 * fine + 0.5 * mott + pit
+    g = (g - g.mean()) / g.std()
+    img = np.clip(0.5 + 0.17 * g, 0, 1)
+    out = os.path.join(OUT_R, 'grain.webp')
+    Image.fromarray(np.uint8(img * 255 + 0.5), 'L').convert('RGB').save(out, 'WEBP', quality=84, method=6)
+    back = np.asarray(Image.open(out).convert('L'), dtype=np.float32)
+    wrap = float(np.abs(back[:, 0] - back[:, -1]).mean()); inside = float(np.abs(back[:, 1:] - back[:, :-1]).mean())
+    print(f'  made in code → {os.path.relpath(out, ROOT)}  {n}²  {kb(out)}  mean {back.mean() / 255:.3f}  seam left|right {wrap:.1f} (inside: {inside:.1f})')
+
+
+if want('grain'):
+    print('THE ROOF GRAIN'); grain()
