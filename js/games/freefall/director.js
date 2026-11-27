@@ -6,12 +6,13 @@ import { onTime } from '../../core/proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, matchStart, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
-export function createGame({ matchId, settings, participants, now, seed }) {
+export function createGame({ matchId, settings, participants, now, seed, look = '' }) {
   const mode = modeOf(participants), solo = mode === 'solo';
   return {
     id: 'freefall', matchId, settings: cleanSettings(settings), participants, mode,
     seed: solo ? String(seed) : '',   // (a MATCH's seed is picked AFTER GO — the step count → play; a SOLO run's from its own GO — never this)
     phase: solo ? 'play' : 'count', phaseStartAt: now, playAt: solo ? now : now + COUNT_MS,
+    ...(!solo && (look === 'day' || look === 'night') ? { look } : {}),   // (THE LOOK LOCK: the host's look, every phone's for the whole match)
   };
 }
 

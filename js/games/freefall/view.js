@@ -62,6 +62,7 @@ const lookNow = () => (typeof document !== 'undefined' && document.body && docum
 const drv = {
   hook: TEST ? '__ffStage' : '',
   lookNow,
+  lookLock: () => (cur && cur.lookLock ? cur.lookLock() : null),   // (THE LOOK LOCK: a match's look = the host's stamp, game.look)
   // YOUR BEST: the SERVER's — the best it last told this phone (a counted run's answer) — once counting is ON; while THE SWITCH is OFF this
   // phone's own (the test page's). A run on this stage never writes it.
   best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), write() {} },
@@ -440,7 +441,7 @@ ${sub}`;
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       // (F4B — THE PAUSE GAP: a HELD run's log — the hold with it — leaves AT ONCE, even behind a chunk in the air: its arrival is what grants the pause)
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, hide: held => { if (S && started && !S.state().over) { if (held) { holdSrv = serverNow(); holdN = finalCount(S.run()); } flush(held ? 'now' : true); } }, leave };
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, lookLock: () => { const L = isMatch && st && st.game ? st.game.look : ''; return L === 'day' || L === 'night' ? L : null; }, hide: held => { if (S && started && !S.state().over) { if (held) { holdSrv = serverNow(); holdN = finalCount(S.run()); } flush(held ? 'now' : true); } }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

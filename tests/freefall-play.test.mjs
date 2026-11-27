@@ -421,12 +421,17 @@ test('THE DAY LOOK (F3 — static): ONE scene, a LOOK read LIVE (every material 
   assert.equal(AREA_DAY_KINDS(n).join(' '), '0 3 3 1 2', 'the rooftop none · dust in the two rooms · bubbles under the harbor · drifting particles in the deep');
   assert.match(dfx, /float y = uBaseY \+ mod\(aS\.y \* uSpan \+ uSpeed \* \(0\.6 \+ 0\.8 \* seed\) \* uTime - uBaseY, uSpan\);/, 'a mote stands in the WORLD (wrapped round the camera) — a pure function of the time');
   // the big number by day: pink #ff3fa8 in a soft dark outline; the ball pink
-  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-num \{ color: #ff3fa8; text-shadow: var\(--ff-out\)/);
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-num \{ color: #fff; text-shadow: var\(--ff-out\)/, 'FIX A — THE DAY HUD: a white number in the navy outline');
+  assert.match(css, /\.ff-stage\[data-look='day'\] \.ff-shade::before \{ height: 30%; background: radial-gradient\(/, '… on its own navy ground');
   assert.match(fx, /col = mix\(vec3\(1\.0, 0\.08, 0\.4\), vec3\(1\.0, 0\.4, 0\.7\), k \* k\);/, 'the day ball: pink (#ff50aa in linear light)');
   // the stage: the kit's shared look
   assert.match(st, /import \{ resolveLook, sunUpNow \} from '\.\.\/kit\/look\.js';/, 'the match kit\'s shared DAY / NIGHT');
-  assert.match(st, /let lookT = o\.lookNow \? cleanLk\(o\.lookNow\(\)\) : LOOK_Q \|\| guessLook\(new Date\(\)\.getHours\(\)\), lookSeen = '';/, 'the console\'s look · ?look= · AUTO by the phone\'s clock');
-  assert.match(st, /if \(o\.lookNow && frameN % 15 === 0\) \{ const l = cleanLk\(o\.lookNow\(\)\); if \(l !== lookT\) setLook\(l\); \}/, 'the console\'s GAME LOOK read LIVE');
+  assert.match(st, /let lookT = cleanLk\(\(o\.lookLock && o\.lookLock\(\)\) \|\| \(o\.lookNow \? o\.lookNow\(\) : LOOK_Q \|\| guessLook\(new Date\(\)\.getHours\(\)\)\)\), lookSeen = '';/, 'a match\'s stamp · the console\'s look · ?look= · AUTO by the phone\'s clock');
+  assert.match(st, /if \(L\) \{ if \(cleanLk\(L\) !== lookT\) forceLook\(L\); \} else setLook\(o\.lookNow \? o\.lookNow\(\) : lookWant\);/, 'the console\'s GAME LOOK read LIVE (a match: the host\'s stamp wins)');
+  // THE LOOK LOCK (FIX A — the review's M1): a change asked for mid-run waits for the run's end
+  assert.match(st, /const lookHeld = \(\) => \(t0 != null \|\| starting\) && !!run && !isOver\(run\);/);
+  assert.match(st, /function setLook\(l\) \{ lookWant = cleanLk\(l\); if \(lookWant !== lookT && !lookHeld\(\)\) \{/);
+  assert.match(code(`${FF}director.js`), /\.\.\.\(!solo && \(look === 'day' \|\| look === 'night'\) \? \{ look \} : \{\}\)/, 'the host stamps a MATCH\'s look');
   assert.match(st, /if \(!o\.lookNow && !LOOK_Q\) \{ askSun\(\); sunTimer = setInterval\(askSun, SUN_EVERY_MS\); \}/, 'AUTO: the site\'s own sun rule, asked again every minute');
   assert.match(code(`${FF}play.js`), /const LOOK = Q\.get\('look'\) === 'day' \|\| Q\.get\('look'\) === 'night' \? Q\.get\('look'\) : null;/);
   assert.doesNotMatch(st, /ff-look|LOOK_LABEL|look-b/, 'no look switch of its own on the screen');

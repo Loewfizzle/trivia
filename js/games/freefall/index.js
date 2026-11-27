@@ -7,6 +7,7 @@ import { BOARD } from './lines.js';
 export * from './meta.js';
 import { lazyView } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { currentLook, resolveLook, sunUpNow } from '../kit/look.js';
 
 /** THE MUSIC FOLLOWS THE LOOK (JAYWALK's rule — the existing mood stations): the day deck by day, the evening deck by night */
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
@@ -29,8 +30,10 @@ function newSeed() {
 export async function start({ matchId, settings, participants, now }) {
   const n = Object.keys(participants || {}).length;
   if (n < 1 || n > MATCH_MAX) return null;
-  return createGame({ matchId, settings, participants, now, seed: newSeed() });
+  return createGame({ matchId, settings, participants, now, seed: newSeed(), look: n > 1 ? await hostLook() : '' });
 }
+/** THE LOOK LOCK (FIX A): a match plays in the HOST's look on every phone — its Game look setting, AUTO = the sun at the host's place */
+const hostLook = () => sunUpNow(Date.now()).then(up => resolveLook(currentLook(), up), () => resolveLook(currentLook(), true));
 
 export function prepare() { /* nothing to top up: the phone runs its own tower */ }
 

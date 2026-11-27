@@ -227,8 +227,14 @@ async function partA() {
   const before = await snap(pids, code, null);
   // ---- 1. the owner starts; 3 · 2 · 1; GO
   ok(!(await H.startGame(pages[1], 'freefall', {}).catch(() => false)) && !(await H.evalIn(host, s => s.game)), 'a guest can NOT start it (a game being built: nobody but THE OWNER)');
+  // THE LOOK LOCK (FIX A — the review's M1): the HOST's look on every phone, whatever each phone's own Game look (the host NIGHT, the guests DAY)
+  const setLk = (p, l) => p.evaluate(v => import('/js/games/kit/look.js').then(L => L.saveLook(v)), l);
+  await setLk(host, 'night'); await all(I.slice(1), p => setLk(p, 'day'));
   const seen = await ownerStart(host, I, 'match-count', 'THE OWNER (the host) starts FREEFALL for the room');
   const { m, SV } = await goChecks(I, code, seen, '');
+  const lk0 = await H.evalIn(host, s => s.game && s.game.look);
+  const lks = await all(I, p => p.evaluate(() => { const e = document.querySelector('.ff-stage'), S = window.__ffStage; return e ? `${e.dataset.look}/${S && S.state ? S.state().look : '?'}` : ''; }));
+  ok(lk0 === 'night' && lks.every(l => /^night\//.test(l)), `THE LOOK LOCK: the host stamped the match's look (game.look ${lk0}) — every phone plays it, the guests' own DAY setting aside (${lks.join(' · ')})`);
   ok((await all(I, p => p.evaluate("!!document.querySelector('.ff-stage.ff-game.is-match canvas.ff-canvas') && !!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"))).every(Boolean), 'the match screen on every phone: the stage in the console\'s frame, the corner buttons on it');
   ok((await all(I, stg)).every(s => s && s.mode === 'match' && s.started && !s.held), 'a MATCH starts on its COUNT (never a drag): every stage is live in MATCH mode');
   // ALICE dives (THE FINISH is hers); BOB plays; CHARLIE stays a moment on safe ground, then plays (a floor or two behind BOB)

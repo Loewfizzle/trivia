@@ -140,22 +140,18 @@
 @keyframes ff-sweep { 0%, 100% { transform: translateX(-46px); } 50% { transform: translateX(46px); } }
 .ff-foot-t { margin-top: 14px; font: 900 clamp(22px, calc(var(--ff-w) * 0.07), 28px)/1 var(--font-display); letter-spacing: 0.08em; text-indent: 0.08em; color: #fff; text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 168, 0.95), 0 2px 0 rgba(8, 4, 20, 0.7); }
 
-/* THE DAY LOOK (F3 — the stage's data-look: the picture's look, read live; docs/freefall.md "THE DAY LOOK"): the big number PINK #ff3fa8 in
-   a soft dark outline (the owner's ff-day.png), the small words in NAVY ink with a pale halo on a light ground — THE ROOFTOP, UNDER THE HARBOR
-   (its top is the water's lightest) — and WHITE in a navy outline where the day's wall is dark (THE OFFICES' window grid, THE SPEAKEASY's
-   brick, THE DEEP, THE TRENCH: data-area). No dark fall behind the HUD by day: the inks carry themselves. Static shadows only. */
-.ff-stage[data-look='day'] { --ff-ink: #0b2a4a; --ff-ink-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.55); --ff-out: 0 0 2px rgba(8, 28, 58, 1), 0 2px 0 rgba(8, 28, 58, 0.95), 0 0 3px rgba(8, 28, 58, 0.95), 0 0 9px rgba(8, 28, 58, 0.6); }
-.ff-stage[data-look='day']:is([data-area='offices'], [data-area='speakeasy'], [data-area='deep'], [data-area='bottom'], [data-area='trench']) { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }
-.ff-stage[data-look='day']:is([data-dark='2'], [data-dark='1']) { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }   /* (THE DARKNESS has come down over the top of the screen: light ink on it) */
-.ff-stage[data-look='day'].is-held { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); }   /* (THE REVIEW: under PAUSED's dark plate) */
-.ff-stage[data-look='day'] .ff-shade::before { background: none; }
+/* THE DAY LOOK (F3 — the stage's data-look: the picture's look, read live; docs/freefall.md "THE DAY LOOK"; the HUD's inks: FIX A below) */
+.ff-stage[data-look='day'] { --ff-ink: #fff; --ff-ink-halo: 0 1px 0 rgba(4, 14, 34, 0.95), 0 0 4px rgba(4, 14, 34, 0.95), 0 0 10px rgba(4, 14, 34, 0.7); --ff-out: 0 0 2px rgba(8, 28, 58, 1), 0 2px 0 rgba(8, 28, 58, 0.95), 0 0 3px rgba(8, 28, 58, 0.95), 0 0 9px rgba(8, 28, 58, 0.6); }
+/* FIX A — THE DAY HUD (the review's M2: the pink number measured 1.1–1.3 : 1 on the rooftop, the offices, the harbor): the day has its own
+   GROUND now — a soft navy fall behind the HUD's column (the foot's navy) — and the night's inks on it: a WHITE number (GOLD on NEW BEST) in
+   the navy outline, the top line white in a dark edge. Static shadows only. */
+.ff-stage[data-look='day'] .ff-shade::before { height: 30%; background: radial-gradient(ellipse 64% 100% at 50% 0%, rgba(6, 22, 52, 0.8) 0%, rgba(6, 22, 52, 0.66) 42%, rgba(6, 22, 52, 0.3) 72%, rgba(6, 22, 52, 0) 100%); }
 .ff-stage[data-look='day'] .ff-shade::after { background: linear-gradient(to top, rgba(6, 22, 52, 0.82) 0%, rgba(6, 22, 52, 0.6) 55%, rgba(6, 22, 52, 0) 100%); }
 .ff-stage[data-look='day'] :is(.ff-best, .ff-snd, .ff-note) { color: var(--ff-ink); text-shadow: var(--ff-ink-halo); }
 .ff-stage[data-look='day'].is-open .ff-note, .ff-stage[data-look='day'].is-over :is(.ff-note, .ff-snd) { color: #fff; text-shadow: 0 1px 0 #07040f, 0 0 8px #07040f; }   /* (on the opening's dark foot + the end's dark card) */
-.ff-stage[data-look='day'].is-gold .ff-best { color: #8a5a00; text-shadow: var(--ff-ink-halo); }
-.ff-stage[data-look='day'].is-gold:is([data-area='offices'], [data-area='speakeasy'], [data-area='deep'], [data-area='bottom'], [data-area='trench']) .ff-best { color: var(--ff-gold); }
-.ff-stage[data-look='day'] .ff-num { color: #ff3fa8; text-shadow: var(--ff-out), 0 0 16px rgba(8, 28, 58, 0.3); }
-.ff-stage[data-look='day'].is-gold .ff-num { color: #ffc234; text-shadow: var(--ff-out), 0 0 16px rgba(8, 28, 58, 0.3); }
+.ff-stage[data-look='day'].is-gold .ff-best { color: var(--ff-gold); text-shadow: var(--ff-ink-halo); }
+.ff-stage[data-look='day'] .ff-num { color: #fff; text-shadow: var(--ff-out), 0 0 16px rgba(8, 28, 58, 0.55); }
+.ff-stage[data-look='day'].is-gold .ff-num { color: #ffc234; text-shadow: var(--ff-out), 0 0 16px rgba(8, 28, 58, 0.55); }
 .ff-stage[data-look='day'] .ff-call.is-blaze { color: #fff4d6; text-shadow: 0 0 2px rgba(46, 10, 0, 1), 0 2px 0 rgba(46, 10, 0, 0.95), 0 0 4px rgba(46, 10, 0, 0.95), 0 0 10px rgba(46, 10, 0, 0.8), 0 0 20px rgba(46, 10, 0, 0.55); }   /* (F4A — the owner: day BLAZE! was orange on the orange flame — pale letters on a dark, warm backing) */
 .ff-stage[data-look='day'] .ff-call.is-gold { color: #ffc83c; text-shadow: var(--ff-out); }
 .ff-stage[data-look='day'] .ff-call.is-teal { color: #37ecf0; text-shadow: var(--ff-out); }

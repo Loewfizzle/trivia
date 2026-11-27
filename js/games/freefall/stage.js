@@ -75,7 +75,7 @@ export function createStage(app0, o = {}) {
   // the host's AUTO · DAY · NIGHT; no switch of its own) · the test page: `?look=day|night` for a check (`o.look`), else AUTO — the phone's
   // clock at once, then THE SITE's OWN SUN RULE (sunUpNow: the city's sun at this phone's place), asked again every minute. Same rules in both looks.
   const LOOK_Q = o.look === 'day' || o.look === 'night' ? o.look : null, cleanLk = l => (l === 'day' ? 'day' : 'night');
-  let lookT = o.lookNow ? cleanLk(o.lookNow()) : LOOK_Q || guessLook(new Date().getHours()), lookSeen = '';
+  let lookT = cleanLk((o.lookLock && o.lookLock()) || (o.lookNow ? o.lookNow() : LOOK_Q || guessLook(new Date().getHours()))), lookSeen = '';
   const bestAt = o.best || { read: () => 0, write() {} }, readBest = () => cleanBest(bestAt.read()), writeBest = n => bestAt.write(n);
   const ac = new AbortController(), sig = { signal: ac.signal };   // (unmounted: every listener on the document goes with it)
   let gone = false;
@@ -177,7 +177,12 @@ export function createStage(app0, o = {}) {
   const BN = bakedNumber(num);
   // THE LOOK, live: the scene flips at once (night.js#setLook); the page's words follow the picture in the next frame (`data-look` — the
   // baked number is baked again in its day ink)
-  function setLook(l) { lookT = cleanLk(l); view.setLook(lookT); }
+  // THE LOOK LOCK (FIX A — the review's M1): a run keeps the look it STARTED in — a change asked for mid-run (the console's setting, AUTO's
+  // sun, the test page's setLook) waits for the run's end; `o.lookLock` = a MATCH's look, stamped by the host (game.look) — always wins
+  let lookWant = lookT;
+  const lookHeld = () => (t0 != null || starting) && !!run && !isOver(run);
+  function setLook(l) { lookWant = cleanLk(l); if (lookWant !== lookT && !lookHeld()) { lookT = lookWant; view.setLook(lookT); } }
+  function forceLook(l) { lookWant = lookT = cleanLk(l); view.setLook(lookT); }
   let sunTimer = 0;
   const askSun = () => sunUpNow(Date.now()).then(up => { if (!gone) setLook(resolveLook('auto', up)); }, () => {});
   if (!o.lookNow && !LOOK_Q) { askSun(); sunTimer = setInterval(askSun, SUN_EVERY_MS); }
@@ -509,7 +514,7 @@ export function createStage(app0, o = {}) {
     if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
     for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
-    if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)} · ` : ''}${n} PLAYING`; }
+    if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`; }   // (FIX A — N13: never "0 PLAYING")
     // (the bot room with `&watch=1`: every bot is down — its own card comes now)
     if (sim && o.watchSim && watchUid && n === 0) { watch(''); end.hidden = false; }
   }
@@ -724,7 +729,10 @@ export function createStage(app0, o = {}) {
     const w0 = performance.now();
     frameN++;
     if (!warmed && frameN > 2 && t0 == null) warmed = view.warm(run);
-    if (o.lookNow && frameN % 15 === 0) { const l = cleanLk(o.lookNow()); if (l !== lookT) setLook(l); }   // (the console's GAME LOOK, read LIVE — four times a second)
+    if (frameN % 15 === 0) {   // (the console's GAME LOOK, read LIVE — four times a second; applied when no run is on: THE LOOK LOCK)
+      const L = o.lookLock && o.lookLock();
+      if (L) { if (cleanLk(L) !== lookT) forceLook(L); } else setLook(o.lookNow ? o.lookNow() : lookWant);
+    }
     if (lookT !== lookSeen) lookNow();
     let tau = FIRST;   // (THE OPENING: the ball rests on floor 0)
     if (t0 != null) {
@@ -845,7 +853,7 @@ export function createStage(app0, o = {}) {
     ghosts: ghosts.map((g, i) => ({ uid: g.uid, name: g.name, floor: g.G.floor, over: g.G.over, end: g.G.end, lost: g.G.lost, held: g.G.held, moves: g.G.moves, bad: g.G.bad, a: g.G.a, y: g.G.y, phi: gData[i * GHOST_STRIDE], alpha: gData[i * GHOST_STRIDE + 5], near: gData[i * GHOST_STRIDE + 6] })) });
   Object.assign(hook, {
     matchState: matchInfo, watch: uid => watch(uid), simShift: n => { simShift = Math.max(0, Math.floor(n) || 0); }, simNear: v => { simNear = !!v; },
-    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookWant, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** (F4A — THE HAZE CHECK) where the middle of a slice's top face on the floor `df` under the ball's is on the screen ([x, y], 0 … 1) —

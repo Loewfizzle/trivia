@@ -755,11 +755,13 @@ async function checks3() {
   await sleep(300);
   let num = await box(t.p, '.ff-num'), bestL = await box(t.p, '.ff-best');
   ok(num.col === 'rgb(255, 63, 168)' && bestL.col === 'rgb(11, 42, 74)', `by day the big number is PINK (${num.col}) in its dark outline, YOUR BEST in navy ink on the open sky (${bestL.col})`);
-  // the look turns LIVE mid-run (the console's GAME LOOK): the picture + the inks follow at once — the run is untouched
-  await t.p.evaluate(() => window.__ffPlay.setLook('night')); await sleep(260);
-  s = await st(t.p); num = await box(t.p, '.ff-num');
-  ok(s.look === 'night' && s.lookAttr === 'night' && s.info.look === 'night' && num.col === 'rgb(255, 255, 255)' && !s.over, `the look turned LIVE mid-run (day → night): the scene, the stage, the number's ink (${num.col}) — the run goes on (floor ${s.floor})`);
-  await t.p.evaluate(() => window.__ffPlay.setLook('day')); await sleep(200);
+  // THE LOOK LOCK (FIX A — the review's M1): a look asked for mid-run (the console's GAME LOOK, AUTO's sun) WAITS for the run's end
+  await t.p.evaluate(() => window.__ffPlay.setLook('night')); await sleep(400);
+  s = await st(t.p);
+  ok(s.look === 'day' && s.lookWant === 'night' && s.lookAttr === 'day' && s.info.look === 'day' && !s.over, `THE LOOK LOCK: night asked for mid-run — the run stays in its DAY look (scene ${s.info.look}, stage ${s.lookAttr}, waiting: ${s.lookWant}; floor ${s.floor})`);
+  await t.p.evaluate(() => window.__ffPlay.setLook('day')); await sleep(300);
+  s = await st(t.p);
+  ok(s.look === 'day' && s.lookWant === 'day' && s.info.look === 'day', `…asked back for day: nothing to wait for (${s.lookWant})`);
   // THE LOST CONTEXT by day: the scene is rebuilt IN THE DAY LOOK
   const lost = await t.p.evaluate(() => window.__ffPlay.lose());
   const back = await waitFor(t.p, 'window.__ffPlay.state().rebuilds >= 1', 6000);
@@ -768,7 +770,10 @@ async function checks3() {
   await auto(t.p, 'red');
   await waitFor(t.p, 'window.__ffPlay.state().shown', 40000);
   const e = await t.p.evaluate(() => window.__ffPlay.ends[0]);
-  ok(e && e.same && e.live.over && !t.errs.length, `REPLAY = LIVE on a run whose look turned twice and whose context was lost (floor ${e && e.live.floor}, ${e && e.live.cause} — the first ten floors have no red: the lights took it; errors: ${t.errs.join(' | ') || 'none'})`);
+  ok(e && e.same && e.live.over && !t.errs.length, `REPLAY = LIVE on a run whose look was asked to turn twice (held by THE LOOK LOCK) and whose context was lost (floor ${e && e.live.floor}, ${e && e.live.cause} — the first ten floors have no red: the lights took it; errors: ${t.errs.join(' | ') || 'none'})`);
+  await t.p.evaluate(() => window.__ffPlay.setLook('night'));
+  const turned = await waitFor(t.p, "window.__ffPlay.state().look === 'night' && window.__ffPlay.state().info.look === 'night' && window.__ffPlay.state().lookAttr === 'night'", 3000);
+  ok(turned, 'THE LOOK LOCK lets go at the end card: a look asked for there turns the scene at once');
   ok(!t.reqs.some(r => COUNTS.test(r)) && !t.sockets.length && t.reqs.every(r => r.startsWith('GET ') && (r.includes(BASE) || OUTSIDE.test(r.slice(4)))), `by day too: ${t.reqs.length} requests — its own static files, three.js, the fonts; nothing that counts, no socket`);
   await t.close();
   // ---- UNDER THE HARBOR by day: THE CAUSTICS on the slices, the rising BUBBLES (a fixed pool — the tier's count); by night neither
@@ -781,8 +786,11 @@ async function checks3() {
   const trimmed = await waitFor(t.p, 'window.__ffPlay.state().info.motes === 18 && window.__ffPlay.state().info.caust < 0.05', 6000);
   s = await st(t.p);
   ok(trimmed, `tier 0 trims it: ${s.info.motes} bubbles, the caustics on the wall only (${s.info.caust.toFixed(2)} on the slices)`);
-  await t.p.evaluate(() => { window.__ffPlay.setTier(2); window.__ffPlay.setLook('night'); });
-  const wetN = await waitFor(t.p, 'window.__ffPlay.state().info.motes > 0 && window.__ffPlay.state().info.caust > 0.5', 6000);
+  await t.close();
+  // (FIX A — THE LOOK LOCK: a look never turns mid-run — the night run opens in its own look)
+  t = await open(390, 844, 3, '?seed=day2&look=night&floor=124&tier=2');
+  await start(t); await auto(t.p, 'play');
+  const wetN = await waitFor(t.p, 'window.__ffPlay.state().floor >= 126 && window.__ffPlay.state().info.motes > 0 && window.__ffPlay.state().info.caust > 0.5', 30000);
   // (F5B — THE WATER SWAP: by night UNDER THE HARBOR wears the day's water too — its bubbles (cyan) + the caustics' shimmer on the slices)
   s = await st(t.p);
   ok(wetN && !t.errs.length, `by night too (F5B — THE WATER SWAP): ${s.info.motes} bubbles, the caustics on the slices (${s.info.caust.toFixed(2)})`);
@@ -1300,7 +1308,59 @@ async function perf8() {
   }
 }
 
+// =============================================================================================================== THE DAY HUD's CONTRAST
+// FIX A (the review's M2): every area by day — the frame FROZEN (__slowmo(0)), shot with the HUD and without it; the digits' own pixels
+// (white in the first shot) against what is behind them in the second: the worst 10 % (the brightest) + the median. The top line the same.
+// The gold of NEW BEST is judged against the same pixels. `node freefall-play.mjs "<chromium>" <outDir> --contrast [--looks=day,night]`
+const CONTRAST_AT = [['rooftop', 0], ['rooftop-30', 28], ['offices', 46], ['speakeasy', 88], ['water', 115], ['harbor', 128], ['deep', 168]];
+async function contrast() {
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const lum = (r, g, b0) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b0);
+  const GOLD = lum(0xff, 0xc2, 0x34), rows = [];
+  for (const lk of LOOKS) for (const [name, floor] of CONTRAST_AT) {
+    const t = await open(390, 844, 3, `?seed=look2&look=${lk}&tier=2${floor ? `&floor=${floor}` : ''}`, { best: 141 });
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === 'bounce'`, 30000);
+    await sleep(700);
+    await t.p.evaluate(() => window.__slowmo(0)); await sleep(300);
+    const bx = await t.p.evaluate(() => {
+      const r = n => { const q = n.getBoundingClientRect(); return [q.left, q.top, q.width, q.height]; };
+      const best = document.querySelector('.ff-best'), rg = document.createRange(); rg.selectNodeContents(best);
+      const tb = rg.getBoundingClientRect();
+      return { num: r(document.querySelector('.ff-numc') || document.querySelector('.ff-num')), best: [tb.left, tb.top, tb.width, tb.height], text: best.textContent };
+    });
+    const clipOf = ([x, y, w, h]) => ({ x: Math.max(0, x), y: Math.max(0, y), width: Math.max(4, w), height: Math.max(4, h) });
+    const grab = async () => ({ num: await t.p.screenshot({ encoding: 'base64', clip: clipOf(bx.num) }), best: await t.p.screenshot({ encoding: 'base64', clip: clipOf(bx.best) }) });
+    const A = await grab();
+    if (OUT) await t.p.screenshot({ path: join(OUT, `contrast-${lk}-${name}.png`) });
+    await t.p.evaluate(() => { for (const s of ['.ff-hud', '.ff-best']) document.querySelector(s).style.visibility = 'hidden'; }); await sleep(150);
+    const B = await grab();
+    const m = await t.p.evaluate(async (A, B) => {
+      const px = async b64 => { const im = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob()); const c = new OffscreenCanvas(im.width, im.height), x = c.getContext('2d'); x.drawImage(im, 0, 0); return x.getImageData(0, 0, im.width, im.height).data; };
+      const out = {};
+      for (const k of ['num', 'best']) {
+        const a = await px(A[k]), b = await px(B[k]), bg = [];
+        for (let i = 0; i < a.length; i += 4) if (a[i] + a[i + 1] + a[i + 2] > 600 && Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 30) bg.push([b[i], b[i + 1], b[i + 2], a[i], a[i + 1], a[i + 2]]);
+        out[k] = bg;
+      }
+      return out;
+    }, A, B);
+    const res = {};
+    for (const k of ['num', 'best']) {
+      const L = m[k].map(([r, g, b0]) => lum(r, g, b0)).sort((x, y) => x - y), T = m[k].map(v => lum(v[3], v[4], v[5])).sort((x, y) => x - y);
+      const q = f => L[Math.min(L.length - 1, Math.floor(L.length * f))] || 0, ink = T[Math.floor(T.length / 2)] || 1;   // (the ink = the text's own median pixel)
+      res[k] = { n: L.length, worst: (ink + 0.05) / (q(0.9) + 0.05), med: (ink + 0.05) / (q(0.5) + 0.05), gold: (GOLD + 0.05) / (q(0.9) + 0.05) };
+    }
+    rows.push([lk, name, res]);
+    const f2 = v => v.toFixed(1);
+    ok(res.num.n > 50 && res.num.worst >= 3 && res.best.n > 10 && res.best.worst >= 4.5, `THE ${lk.toUpperCase()} HUD · ${name}: the number ${f2(res.num.worst)} : 1 (median ${f2(res.num.med)}; NEW BEST's gold ${f2(res.num.gold)}) · the top line "${bx.text}" ${f2(res.best.worst)} : 1 (median ${f2(res.best.med)}) — ${res.num.n} / ${res.best.n} px`);
+    await t.close();
+  }
+  console.log('CONTRAST', JSON.stringify(rows.map(([l, n, r]) => [l, n, +r.num.worst.toFixed(2), +r.num.med.toFixed(2), +r.num.gold.toFixed(2), +r.best.worst.toFixed(2), +r.best.med.toFixed(2)])));
+}
+
 if (LOOK) await look();
+else if (argv.includes('--contrast')) await contrast();
 else if (argv.includes('--stutters')) await stutters();
 else if (argv.includes('--perf8')) await perf8();
 else if (argv.includes('--water')) await water();
