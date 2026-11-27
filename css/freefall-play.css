@@ -178,7 +178,7 @@
 /* THE END = JAYWALK'S STANDARD (endscreen.js): the header · the cause · the big number · YOUR BEST · one line · the table's slot · the foot */
 .ff-end { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr auto; text-align: center;
   background: linear-gradient(to bottom, rgba(5, 3, 13, 0.94) 0%, rgba(5, 3, 13, 0.9) 46%, rgba(5, 3, 13, 0.66) 66%, rgba(5, 3, 13, 0.9) 100%); }
-.ff-ec { align-self: start; margin-top: calc(env(safe-area-inset-top, 0px) + 40px); padding: 0 12px; display: grid; justify-items: center; gap: 9px; }
+.ff-ec { align-self: start; margin-top: calc(env(safe-area-inset-top, 0px) + 48px); padding: 0 12px; display: grid; justify-items: center; gap: 9px; }
 .ff-ec-hd { margin-bottom: 4px; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; }
 .ff-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--ff-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; text-wrap: balance; }
 .ff-ec.is-made .ff-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--ff-w) * 0.07)); }

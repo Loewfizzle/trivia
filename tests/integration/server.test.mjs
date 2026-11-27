@@ -1260,7 +1260,7 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
     }
     flush(run.end);
     const live = resultOf(run);
-    const node = forge ? { go, c: { 0: { s: packRun(run).slice(0, 380).replace(/[.+\-!][0-9a-z]*$/, ''), at: go + 900 } } } : { go, c, ...(Object.keys(h).length ? { h } : {}), e: { f: live.floor, t: live.tick, w: live.cause } };
+    const node = forge ? { go, c: { 0: { s: packRun(run).slice(0, 380).replace(/(?:\.[0-9a-z]*)?(?:[+\-!][0-9a-z]*)?$/, ''), at: go + 900 } } } : { go, c, ...(Object.keys(h).length ? { h } : {}), e: { f: live.floor, t: live.tick, w: live.cause } };
     return { node, live, go, heldAt, after: log.filter(e => e.t > heldAt).length };
   };
   /** the solo room as the phone leaves it at a run's end: the game (final — its results the HOST's own claim), the night record, the proof */
@@ -1380,7 +1380,7 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   t.after(async () => { await ref('testFreefallCounts').set(null); });
   const { gameStandings } = await import('../../js/games/freefall/logic.js');
   const { matchStart } = await import('../../js/games/freefall/match.js');
-  const { createSim } = await import('../../js/games/freefall/matchsim.js');
+  const { botRun } = await import('../../js/games/freefall/matchsim.js');
   const { freefallMatch, FREEFALL_COUNTS } = await import('../../api/_lib/freefall.js');
   assert.equal(FREEFALL_COUNTS, false, 'THE SWITCH ships OFF');
   await ref('testReportAll').set(null); await ref('testFreefallCounts').set(null);
@@ -1393,10 +1393,21 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   /** a finished match as the room holds it: each player's proof node (a bot's run on THE FIRST GO's seed — the packed log's FINAL events in
    *  chunks, stamped on the match's own clock), the night record, the game (final) with FORGED host values the server must never read.
    *  `named` = the players the HOST names (the game + the night record) · `liveUid` = that player's run is still going (no end, its
-   *  chunks up to "now") · `age` = how long ago THE FIRST GO was */
-  const seedMatch = async ({ moved = false, players = U, bots = ['great', 'good', 'sloppy'], maxFloor = 90, named = players, mutate = null, liveUid = null, age = 400_000 } = {}) => {
-    const matchId = `m${(mN++).toString(36)}fm${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
-    const g0 = clock - age, S = matchStart(code, matchId, { a: { go: g0 } }), sim = createSim(S.seed, players.length, { bots, maxFloor }), nodes = {}, live = {};
+   *  chunks up to "now") · `age` = how long ago THE FIRST GO was. THE ORDER IS THE BOTS': each bot stops at its own floor (CAPS — it
+   *  stands there to the cap) and a seed on which a better bot did not end strictly deeper is not used (the next match id is tried) —
+   *  the first whole run of this case drew 90 · 90 · 59: two bots on the one shared ceiling, a tie for first */
+  const CAPS = { great: 90, good: 45, sloppy: 14 }, RANK = ['great', 'good', 'sloppy'];
+  const seedMatch = async ({ moved = false, players = U, bots = ['great', 'good', 'sloppy'], maxFloor = null, named = players, mutate = null, liveUid = null, age = 400_000 } = {}) => {
+    const g0 = clock - age, nodes = {}, live = {};
+    let matchId, S, sim;
+    for (let tries = 0; ; tries++) {
+      matchId = `m${(mN++).toString(36)}fm${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+      S = matchStart(code, matchId, { a: { go: g0 } });
+      sim = { runs: players.map((_, k) => botRun(S.seed, k, { bot: bots[k], maxFloor: maxFloor != null ? maxFloor : CAPS[bots[k]] })) };
+      const byRank = players.map((_, k) => k).sort((a, b) => RANK.indexOf(bots[a]) - RANK.indexOf(bots[b])).map(k => sim.runs[k].result.floor);
+      if (maxFloor != null || byRank.every((f, i) => f >= 1 && (i === 0 || f < byRank[i - 1]))) break;
+      assert.ok(tries < 40, `the fixture: no seed in 40 gave the bots' order (${byRank.join(' · ')})`);
+    }
     players.forEach((u, i) => {
       const B = sim.runs[i], c = {};
       B.chunks.forEach((x, k) => { c[k] = { s: x.s, at: Math.round(S.playAt + x.at * MS) }; });
@@ -1461,7 +1472,7 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   tick(60_000);
   const F = await seedMatch({ mutate: (nodes, S) => { nodes[U[2]].c = { 0: { s: '+1.a+5', at: S.playAt + 400 }, 1: { s: '!4', at: S.playAt + 700 }, 2: { s: '.9+3', at: S.playAt + 5000 } }; nodes[U[2]].h = { 0: S.playAt + 3000 }; } });
   assert.equal(freefallMatch({ code, matchId: F.matchId, uids: U, nodes: F.nodes }).game.results[U[2]].bad, 'too many holds');
-  const rf = await report(U[2], F);
+  const rf = await report(U[2], F).then(r => r, e => ({ status: e.code }));   // (a node that counts no floor did not PLAY: A SEAT IS NOT A PLAY → 403 not_in_match — or, with a floor before the hold, a would-count of nothing)
   assert.ok(rf.status !== 'counted' && !((rf.outcome && rf.outcome.would && rf.outcome.would.floor) > 0), `a hold in a match earns nothing (${rf.status})`);
   assert.equal((await report(U[1], F)).outcome.would.floor, F.live[U[1]].floor, '… the honest players of that match are judged as ever');
   assert.equal(await snap(), before, 'after every OFF report: still nothing written');

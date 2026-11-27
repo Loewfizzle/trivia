@@ -531,7 +531,7 @@ export function createStage(app0, o = {}) {
       // (ABOVE me a ghost rides in the HUD's own lanes — the number, the band: fainter there, and no tag: its edge marker names it)
       // (the screen review: at the top edge it read as a smudge beside the corner button — it thins out to nothing by the marker's own range)
       if (up && d > 0.9) { const k = (MARK_UP - d) * 0.6; if (k < gData[o8 + 5]) gData[o8 + 5] = k > 0 ? k : 0; gData[o8 + 7] = -1; }
-      if (simNear) { gData[o8 + 1] = myY - ((i % 5) - 2) * 0.9; gData[o8 + 5] = 1; gData[o8 + 6] = 0; }   // (the SPEED TEST's own tool: every ghost in the picture at once, tags and all — never in a match)
+      if (simNear) { gData[o8 + 1] = myY - ((i % 5) - 2) * 0.9; gData[o8 + 5] = 1; gData[o8 + 6] = 0; gData[o8 + 7] = i; }   // (the SPEED TEST's own tool: every ghost in the picture at once, tags and all — never in a match)
       // (a rival at a BREAKTHROUGH: a small echo only)
       if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
       const row = g.row;
