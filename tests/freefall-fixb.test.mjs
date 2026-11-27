@@ -32,7 +32,7 @@ test('S1 A SILENT PHONE: the podium written while a phone was silent is RE-SCORE
   for (const k of keys.slice(Math.max(1, Math.floor(keys.length / 3)))) delete early.bot1.c[k];
   delete early.bot1.e;
   const g = playing(S), endAt = S.playAt + 60000, fin = finalPatch(g, early, endAt, CODE), gf = { ...g, ...fin };
-  assert.deepEqual(gf.ends, { bot0: 1 }, 'the podium records whose ends it had');
+  assert.deepEqual(gf.ends, { _: 1, bot0: 1 }, 'the podium records whose ends it had (`_`: never an empty object — the database would drop it)');
   assert.equal(nextStep(gf, { now: endAt + 500, live: { runs: early }, code: CODE }), null, 'nothing new: the podium stands');
   // … then the phone is back: its queued chunks + its end land
   const re = nextStep(gf, { now: endAt + 9000, live: { runs: tree }, code: CODE });
@@ -41,14 +41,14 @@ test('S1 A SILENT PHONE: the podium written while a phone was silent is RE-SCORE
   assert.ok(re.results.bot1.f > gf.results.bot1.f, `the late phone's floors are counted (${gf.results.bot1.f} → ${re.results.bot1.f})`);
   assert.deepEqual(re.results.bot0, gf.results.bot0);
   assert.equal(re.phaseStartAt, undefined); assert.equal(re.endAt, undefined, 'the podium\'s own moment is kept');
-  assert.deepEqual([re.ends, re.rescored], [{ bot0: 1, bot1: 1 }, 1]);
+  assert.deepEqual([re.ends, re.rescored], [{ _: 1, bot0: 1, bot1: 1 }, 1]);
   assert.equal(nextStep({ ...gf, ...re }, { now: endAt + 9500, live: { runs: tree }, code: CODE }), null, 'once: the judge runs at a landing, never a tick');
   // an end that lands too late (the cap's grace is over) changes nothing
   assert.equal(rescore(gf, tree, M.capAt(gf) + M.END_GRACE_MS, CODE), null);
   // an end that changes no row only marks itself seen (no night record written again)
   const same = structuredClone(tree); delete same.bot1.e;
   const gs = { ...g, ...finalPatch(g, same, endAt, CODE) };
-  assert.deepEqual(nextStep(gs, { now: endAt + 1000, live: { runs: tree }, code: CODE }), { ends: { bot0: 1, bot1: 1 } });
+  assert.deepEqual(nextStep(gs, { now: endAt + 1000, live: { runs: tree }, code: CODE }), { ends: { _: 1, bot0: 1, bot1: 1 } });
   // a podium written before this pass (no `ends`), a solo run, an unproven match: never re-scored
   const { ends, ...old } = gf; void ends;
   assert.equal(rescore(old, tree, endAt + 9000, CODE), null);
@@ -80,7 +80,7 @@ test('S6 (b) NO ON-TIME GO = NO RUN: the room stops waiting NO_GO_END_MS after T
 
 test('S6 (a) A DELIBERATE LEAVE mid-run writes `e` for a live proven run (view.js#unmount — the room left; never a yielded tab)', () => {
   const v = read('js/games/freefall/view.js');
-  assert.match(v, /if \(isMatch && runLive\(\) && !wroteE && !dup\(\) && \(!A \|\| A\.code !== code\)\) \{ const r = S\.result\(\); wroteE = true; spent = true; W\.end\(\{ f: r\.floor, t: r\.tick, w: 'left' \}\); \}\n\s+W\.close\(\);/);
+  assert.match(v, /if \(isMatch && runLive\(\) && !wroteE && !dup\(\) && \(!A \|\| A\.code !== code \|\| !\(A\.players && A\.players\[uid\]\)\)\) \{ const r = S\.result\(\); wroteE = true; spent = true; W\.end\(\{ f: r\.floor, t: r\.tick, w: 'left' \}\); \}\n\s+W\.close\(\);/);
 });
 
 test('S7 A LOST PHONE: never THE LEADER · a followed one left once silent > LOST_GONE_MS · not PLAYING · never in LAST ONE STANDING\'s way', () => {
@@ -95,13 +95,14 @@ test('S7 A LOST PHONE: never THE LEADER · a followed one left once silent > LOS
   // LAST ONE STANDING: a gone rival is down for it; a lost one (< 2 s) still holds it back
   const others = [row('b', 12, { over: true, end: 'out' })];
   assert.equal(G.lastStanding([me, row('a', 25, { lost: true }), ...others]), null);
-  assert.equal(G.lastStanding([me, row('a', 25, { lost: true, gone: true }), ...others]), 5, 'me 30 vs the deepest rival down (25)');
-  assert.equal(G.LOST_GONE_MS, 2000);
+  assert.equal(G.lastStanding([me, row('a', 25, { lost: true, gone: true }), ...others]), null, 'a 2 s blip never fires the once-a-match card');
+  assert.equal(G.lastStanding([me, row('a', 25, { lost: true, gone: true, dead: true }), ...others]), 5, 'no news for LOST_OUT_MS: down for it — me 30 vs the deepest rival down (25)');
+  assert.deepEqual([G.LOST_GONE_MS, G.LOST_OUT_MS], [2000, 8000]);
   // the ghost records when it went quiet
   const s = read('js/games/freefall/ghosts.js'), st = read('js/games/freefall/stage.js');
   assert.match(s, /if \(G\.lost && !wasLost\) G\.lostAt = now;/);
-  assert.match(st, /const gone = G\.lost && now - G\.lostAt > LOST_GONE_MS;/);
-  assert.match(st, /if \(!rows\[i\]\.over && !rows\[i\]\.gone\) n\+\+;/, '"n PLAYING" leaves a gone phone out');
+  assert.match(st, /const quiet = G\.lost \? now - G\.lostAt : 0, gn = quiet > LOST_GONE_MS, dead = quiet > LOST_OUT_MS;/);
+  assert.match(st, /if \(!rows\[i\]\.over && !rows\[i\]\.dead\) n\+\+;/, '"n PLAYING" leaves a phone with no news for 8 s out');
 });
 
 test('FIX B — THE SPEED SWITCHES are the TEST PAGE\'s only: the cartridge passes no `ab` and no `fps`; the stage keeps the engine untouched (the smooth tower is a VIEW lead)', () => {

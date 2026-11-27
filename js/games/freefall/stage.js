@@ -14,7 +14,7 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard, warmLogo } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
-import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX, LOST_GONE_MS } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX, LOST_GONE_MS, LOST_OUT_MS } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
 import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';
@@ -537,7 +537,7 @@ export function createStage(app0, o = {}) {
     // F5C — LAST ONE STANDING (3+ players, every rival over, me still falling): once a match — JAYWALK's card + its sound
     if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; saidKeep(); MH.last(lastWords(lead, madeAhead(rows))); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
-    for (let i = 0; i < rows.length; i++) if (!rows[i].over && !rows[i].gone) n++;   // (FIX B — S7: a phone silent > LOST_GONE_MS is not PLAYING)
+    for (let i = 0; i < rows.length; i++) if (!rows[i].over && !rows[i].dead) n++;   // (FIX B — S7: a phone with no news for LOST_OUT_MS is not PLAYING)
     if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`; }   // (FIX A — N13: never "0 PLAYING")
     // (the bot room with `&watch=1`: every bot is down — its own card comes now)
     if (sim && o.watchSim && watchUid && n === 0) { watch(''); end.hidden = false; }
@@ -566,11 +566,11 @@ export function createStage(app0, o = {}) {
       // (a rival at a BREAKTHROUGH: a small echo only)
       if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
       const row = g.row;
-      const gone = G.lost && now - G.lostAt > LOST_GONE_MS;
-      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end || row.gone !== gone) {
+      const quiet = G.lost ? now - G.lostAt : 0, gn = quiet > LOST_GONE_MS, dead = quiet > LOST_OUT_MS;
+      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end || row.gone !== gn || row.dead !== dead) {
         // F5C — RIVAL OUT: a rival's run ended OUT (red / the dark — never a finish, never time's up): the drop + "MIA IS OUT" in their colour
         if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }
-        row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.gone = gone; row.end = G.end; rowsDirty = true;
+        row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.gone = gn; row.dead = dead; row.end = G.end; rowsDirty = true;
       }
     }
     if (rowsDirty) matchHudNow(R0);
@@ -601,7 +601,7 @@ export function createStage(app0, o = {}) {
     view.rest(false); last = 0; tiers.reset(); hudGap = -99;   // (… the darkness's line + its rumble are set again from the run — the hide silenced them)
     // FIX B — S15 THE CLOCK AFTER A LOCK: a MATCH's tick 0 is the SERVER's — the page's own clock may have slept with the phone (iOS): tick 0
     // is anchored again from the server's time (`o.matchT0` — view.js), so the ball is where the match's clock says, never where it hung
-    if (match && t0 != null && o.matchT0) { const T = o.matchT0(); if (T != null && Number.isFinite(T) && Math.abs(T - t0) > 40) t0 = T; }
+    if (match && t0 != null && o.matchT0) { const T = o.matchT0(); if (T != null && Number.isFinite(T) && Math.abs(T - t0) > 250) t0 = T; }   // (a real jump only — never the server offset's own jitter)
     if (held && !countAt) startCount();
     if (glDown) { clearTimeout(lostTimer); lostTimer = 0; rebuild(); }
   }
@@ -1036,7 +1036,7 @@ export function createStage(app0, o = {}) {
     /** F4B — THE SHARE CARD's frame of THIS stage's run (shot.js — null until it ended + a beat; share.js reads it by the same key) */
     shot: () => shotFor(shotKey()),
     /** FIX B — S8: no run here (a phone not in the room's solo run): the line says so, a drag starts nothing ('' = the run may start again) */
-    block(text) { const t = String(text || ''); if (t === blockTxt) return; blockTxt = t; if (t) { note.textContent = t; note.hidden = false; } else if (!runNote) { note.textContent = PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : ''; note.hidden = !PAGE; } },
+    block(text) { const t = String(text || ''); if (t === blockTxt) return; blockTxt = t; stage.classList.toggle('is-blocked', !!t); if (t) { note.textContent = t; note.hidden = false; } else if (!runNote) { note.textContent = PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : ''; note.hidden = !PAGE; } },
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
     destroy() { gone = true; unduck(); clearInterval(pingT); if (longObs) longObs.disconnect(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },

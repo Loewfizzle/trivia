@@ -292,7 +292,12 @@
    on a short screen the logo, the cause + the number come down a size (the logo never under 180 pt — the script reads there) */
 .ff-final .final .winner, .ff-final .final .rc-plaque { display: none; }
 /* FIX B — S9 THE PODIUM's FALLBACK: the shared block did not come — a plain three-line list names the winner (view.js#plainList) */
-.ff-final .ff-fin-plain { list-style: none; margin: 12px auto 0; padding: 0; width: min(320px, 88%); font: 700 18px/1.55 var(--font-ui); color: #fff; }
+.ff-final .ff-fin-plain { margin: 12px auto 0; width: min(320px, 88%); font: 700 18px/1.55 var(--font-ui); color: #fff; }
+.ff-final .ff-fin-plain ol { list-style: none; margin: 0; padding: 0; }
+.ff-final .ff-fin-win { margin-bottom: 4px; font: 900 19px/1.2 var(--font-display); letter-spacing: 0.04em; text-align: center; color: #ffd45a; }
+/* FIX B — S8: a phone not in the room's solo run — no hint, no DRAG TO SPIN: the line IS the screen's word */
+.ff-stage.is-blocked .ff-foot { display: none; }
+.ff-stage.is-blocked .ff-note { font: 800 17px/1.3 var(--font-display); letter-spacing: 0.06em; color: #fff; }
 .ff-final .ff-fin-plain li { display: flex; gap: 10px; align-items: baseline; }
 .ff-final .ff-fin-plain b { width: 1.3em; font-family: var(--font-num); color: #ff4fa8; }
 .ff-final .ff-fin-plain span { flex: 1 1 auto; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

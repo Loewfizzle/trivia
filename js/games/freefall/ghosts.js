@@ -174,9 +174,12 @@ export function madeAhead(rows) {
  *  LAST_MIN_PLAYERS or more · null = not (yet) */
 /** FIX B — S7: a rival with no news this long (a dead phone, a dropped signal) is `gone` — not "PLAYING", never in the way of LAST ONE STANDING, never WATCHED on */
 export const LOST_GONE_MS = 2000;
+/** … and one with no news THIS long is OUT of "n PLAYING" + LAST ONE STANDING's way (the fresh-eyes review: 2 s let a network blip fire the
+ *  once-a-match card; a held projection is lost after 0.9 s) */
+export const LOST_OUT_MS = 8000;
 export function lastStanding(rows) {
   let me = null, n = 0, deep = -Infinity;
-  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over && !r.gone) return null; if (r.end !== 'made' && r.floor > deep) deep = r.floor; }   // (FIX A — S14: the lead is measured to the rivals who did NOT finish)
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over && !r.dead) return null; if (r.end !== 'made' && r.floor > deep) deep = r.floor; }   // (FIX A — S14: the lead is measured to the rivals who did NOT finish)
   return me && !me.over && n >= LAST_MIN_PLAYERS ? (deep === -Infinity ? 0 : me.floor - deep) : null;
 }
 /** an edge marker's words: "MIA ↓12" (deeper than me) · "MIA ↑3" (above me) */

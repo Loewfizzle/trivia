@@ -6,7 +6,7 @@ import { onTime } from '../../core/proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, matchStart, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
 /** FIX B — S1: the nodes whose END had landed when the podium was written (`game.ends` — a re-score is owed when another one lands) */
-const endsOf = (ids, runs) => { const o = {}; for (const u of ids) if (runs[u] && runs[u].e) o[u] = 1; return o; };
+const endsOf = (ids, runs) => { const o = { _: 1 }; for (const u of ids) if (runs[u] && runs[u].e) o[u] = 1; return o; };   // (`_`: never an empty object — the database would drop it, and with it the re-score)
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
 export function createGame({ matchId, settings, participants, now, seed, look = '' }) {

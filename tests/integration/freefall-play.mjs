@@ -1490,6 +1490,7 @@ async function fixb() {
   // (8) G3.2 — LAST ONE STANDING's two lines: the dot ENDS line 1, never leads line 2 — the longest words (a 12-letter name) at 375 + 390
   for (const [w, hh, dd] of [[375, 667, 2], [390, 844, 3]]) {
     t = await open(w, hh, dd, '?seed=fixb5&mode=match&rivals=2');
+    await start(t); await auto(t.p, 'play'); await sleep(1800);   // (mid-run: the title gone, the card where a player sees it)
     const rows = [];
     for (const words of ['ABCDEFGHIJKL HIT THE BOTTOM · KEEP FALLING FOR 2ND', '2 RIVALS HIT THE BOTTOM · KEEP FALLING FOR 3RD', '123 FLOORS TO THE LEAD · KEEP FALLING']) {
       await t.p.evaluate(x => window.__ffPlay.mh.last(x), words); await sleep(500);
