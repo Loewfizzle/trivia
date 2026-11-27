@@ -32,8 +32,12 @@ void main() {
   float s6 = aK.w * 6.2832, tt = age / (1.0 + aK.z * age);
   vec3 p = aO + aV * tt + vec3(0.0, aK.y * age * age, 0.0);
   p += vec3(sin(age * 3.1 + s6 * 3.0), 0.5 * sin(age * 2.3 + s6), cos(age * 2.7 + s6 * 5.0)) * (aM.x * min(1.0, age * 2.0));
-  vec4 c = projectionMatrix * viewMatrix * vec4(p, 1.0);
+  vec4 mv = viewMatrix * vec4(p, 1.0), c = projectionMatrix * mv;
   float size = mix(aT.z, aT.w, 1.0 - (1.0 - k) * (1.0 - k)), a = s6 + age * aM.y, ca = cos(a), sa = sin(a);
+  // (F5A — THE DUST: a puff is a soft BALL, not a card — its depth is its NEAR side's. A card at its middle's depth was cut off along a
+  //  straight line wherever the ground under it ran in front: the dust clouds' flat edges)
+  vec4 cn = projectionMatrix * (mv + vec4(0.0, 0.0, size * 0.6, 0.0));
+  c.z = cn.z / cn.w * c.w;
   c.xy += vec2(position.x * ca - position.y * sa, position.x * sa + position.y * ca) * size * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
   gl_Position = c;
 }`;
@@ -51,9 +55,11 @@ void main() {
   t *= 1.0 - smoothstep(0.7, 0.97, r);                // (the fresh-eyes review: a smoke cell reaches its border — faded out round, a cloud never shows its square)
   float k = vK.x, a = t * smoothstep(0.0, 0.07, k) * (1.0 - k * k);
   // (BY DAY added light is lost on a bright ground: a light covers what is behind it — uCover)
-  float cover = mix(vC.a, max(vC.a, 0.88), uCover);
+  // (F5A — a SOFT CLOUD (a cover under 0: the seabed's dust) keeps its own thin cover in both looks — many soft veils, never a heavy blob)
+  float soft = step(vC.a, -0.001), own = abs(vC.a);
+  float cover = mix(mix(own, max(own, 0.88), uCover), own, soft);
   vec3 col = vC.rgb * a;
-  if (uBloom > 0.5) { col *= (1.0 - vC.a) * 0.6; cover = 0.0; }
+  if (uBloom > 0.5) { col *= (1.0 - own) * 0.6 * (1.0 - soft); cover = 0.0; }
   gl_FragColor = vec4(col, a * cover);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -370,6 +376,7 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.2 * smoothstep(0.15, 0.9, dash) + po
 // light lie on it; by day the water's caustics. THE IMPACT: a shockwave ring of sand + light runs out from under the ball (uImpT).
 // SAND = the look, shared by the plane (SEABED_F — outside the square that cracks) and the pieces (CHUNK_F — the square that cracks open).
 const SAND = /* glsl */`
+${HASH}
 uniform sampler2D tSand, tSandN;
 uniform float uHaveS, uFlipS, uHaveSN, uFlipSN, uTime, uDay, uBloom, uImpT, uRW, uHole;
 uniform vec3 uRimC, uBall;
@@ -402,16 +409,24 @@ vec4 sand(vec2 xz, float under, float lit) {
   vec2 tb = xz - uBall.xz;
   // (lit — a piece that has let go carries the bed's own light away with it no longer: the pool + the ball's light stay on the bed)
   float pool = exp(-r * r / 3.4) * lit, ball = exp(-dot(tb, tb) / 0.9) * lit;
-  // by night: deep violet-blue sand, the tower's rim glow in a pool round its foot, the ball's own light · by day: the deep's blue water light + caustics
-  vec3 night = c * vec3(0.04, 0.038, 0.12) * (0.4 + 0.9 * dif) + c * uRimC * pool * 1.0 * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.6, 0.8) * ball * 0.7;
-  vec3 day = c * vec3(0.22, 0.5, 0.7) * (0.4 + 0.95 * dif) + c * vec3(0.45, 0.9, 0.95) * (sc1(xz * 1.4, uTime) + 0.6 * sc1(xz * 2.4 + 3.1, uTime * 1.31 + 2.0)) * 0.3 + c * vec3(0.5, 0.75, 0.9) * pool * 0.5;
+  // F5A — THE SAND READS AS SAND: its own warm colour kept (it was washed to one grey-teal / one flat violet), SOFT LIGHT across it — low
+  // dunes (a slow swell of light + shade) —, a fine grain, and single grains that catch the light near the ball + the tower's foot
+  float dune = vn2(xz * 0.5 + 3.0) * 0.62 + vn2(xz * 1.6 + 11.0) * 0.38, grain = vn2(xz * 64.0), soft = 0.62 + 0.76 * dune;
+  vec2 gq = xz * 96.0;
+  float glint = step(0.99, h21(floor(gq))) * (1.0 - smoothstep(0.12, 0.42, length(fract(gq) - 0.5))) * (0.3 + ball + 0.6 * pool);   // (a round grain of light — never a square dot)
+  c *= 0.86 + 0.28 * grain;
+  // by night: deep blue-violet sand, the tower's rim glow in a pool round its foot, the ball's own warm light (the sand's true colour shows in it) · by day: sunlit sand under blue water + the caustics
+  vec3 night = c * vec3(0.075, 0.07, 0.19) * (0.34 + 0.95 * dif) * soft + c * uRimC * pool * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.7, 0.74) * ball * 0.9 + vec3(0.7, 0.75, 1.0) * glint * 0.22;
+  vec3 day = c * vec3(0.6, 0.8, 0.84) * (0.42 + 0.92 * dif) * soft + c * vec3(0.5, 0.92, 0.95) * (sc1(xz * 1.4, uTime) + 0.6 * sc1(xz * 2.4 + 3.1, uTime * 1.31 + 2.0)) * 0.42 + c * vec3(0.55, 0.78, 0.9) * pool * 0.4 + vec3(1.0) * glint * 0.3;
   vec3 col = mix(night, day, uDay);
+  // (… and it goes off into the water's own haze toward the shaft's far wall: never a hard bright line where the bed ends)
+  col = mix(col, mix(vec3(0.008, 0.008, 0.035), vec3(0.02, 0.15, 0.3), uDay), smoothstep(uRW - 1.3, uRW, r) * step(xz.y, 0.0) * 0.8);
   // THE SHOCKWAVE of the impact: a ring of lifted sand + light
   float age = uTime - uImpT, emit = 0.0;
   if (age > 0.0 && age < 1.8) {
     float dI = length(xz - uImpact), rr = 0.25 + 4.6 * (1.0 - exp(-2.3 * age)), band = exp(-pow((dI - rr) / (0.16 + 0.2 * age), 2.0)) * (1.0 - smoothstep(0.7, 1.7, age));
-    col += c * 0.5 * band + mix(mix(uRimC, vec3(1.0), 0.35) * 1.5, vec3(0.75, 1.0, 1.0), uDay) * band * 0.9;
-    emit = band * 0.9;
+    col += c * 0.5 * band + mix(mix(uRimC, vec3(1.0), 0.35) * 1.5, vec3(0.75, 1.0, 1.0), uDay) * band * 0.5;   // (F5A: a ring of lifted sand + light — never a clipped white band where it meets the far edge)
+    emit = band * 0.5;
     col += vec3(1.0, 0.9, 0.7) * exp(-dI * dI / 0.35) * exp(-age * 5.0) * 1.2;
   }
   // (a piece seen from below: bare wet rock — dark, but a solid thing, never see-through)
@@ -457,13 +472,15 @@ void main() {
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
-/** THE ROCKS on the bed (a few instanced boulders: aP = its place + size, aS = its squash + turn): the sand's own stone, darker */
+/** THE ROCKS on the bed (a few instanced boulders: aP = its place + size, aS = its squash + turn). F5A — THE ROCKS READ AS ROCKS: a
+ *  smooth, worn boulder (breaks.js: a finer ball, pushed about by a slow noise — never a spiky low-poly lump), lit softly from above +
+ *  by the tower's own glow, darker where it sits in the sand, mottled stone with sand lying on its top; each on its own soft SHADOW. */
 export const ROCK_V = /* glsl */`
 attribute vec4 aP;
 attribute vec3 aS;
 uniform vec3 uOrigin;
 uniform float uTime, uBreakT;
-varying vec3 vN, vW;
+varying vec3 vN, vW, vL;
 varying float vGone;
 void main() {
   float c = cos(aS.z), s = sin(aS.z);
@@ -471,23 +488,81 @@ void main() {
   p = vec3(p.x * c + p.z * s, p.y, -p.x * s + p.z * c); n = vec3(n.x * c + n.z * s, n.y, -n.x * s + n.z * c);
   float age = max(0.0, uTime - uBreakT - 0.15 - 0.1 * aS.z);   // (the bed cracks open: they go down with it)
   vec4 w = vec4(uOrigin + aP.xyz + p + vec3(0.0, -4.5 * age * age, 0.0), 1.0);
-  vW = w.xyz; vN = n; vGone = age / 1.2;
+  vW = w.xyz; vN = n; vL = position * (1.0 + aS.z); vGone = age / 1.2;
   gl_Position = vGone > 1.0 ? vec4(2.0, 2.0, 2.0, 1.0) : projectionMatrix * viewMatrix * w;
 }`;
 export const ROCK_F = /* glsl */`
 uniform float uDay, uBloom;
-uniform vec3 uRimC;
-varying vec3 vN, vW;
+uniform vec3 uRimC, uOrigin;
+varying vec3 vN, vW, vL;
 varying float vGone;
+${HASH}
 void main() {
-  vec3 N = normalize(vN);
-  float dif = max(dot(N, normalize(vec3(-0.35, 0.8, 0.5))), 0.0), r = length(vW.xz);
-  // (sand lies on its top, bare stone on its sides)
-  vec3 stone = mix(vec3(0.3, 0.27, 0.25), vec3(0.6, 0.5, 0.36), smoothstep(0.35, 0.85, N.y));
-  vec3 col = mix(stone * vec3(0.07, 0.065, 0.19) * (0.5 + 1.2 * dif) + stone * uRimC * exp(-r * r / 3.4) * 1.3 * max(0.0, dot(N, normalize(vec3(-vW.x, 0.8, -vW.z)))), stone * vec3(0.22, 0.5, 0.7) * (0.45 + 1.1 * dif), uDay);
+  vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+  float key = max(dot(N, normalize(vec3(-0.35, 0.8, 0.5))), 0.0), hemi = 0.5 + 0.5 * N.y, r = length(vW.xz);
+  // mottled stone: a slow patchwork + a fine grain; sand lies on its top (the bed's own colour)
+  float mott = vn2(vL.xz * 2.6 + vL.y * 1.9), fine = vn2(vL.xy * 15.0 + vL.z * 9.0);
+  vec3 stone = mix(vec3(0.17, 0.17, 0.19), vec3(0.4, 0.38, 0.36), mott) * (0.82 + 0.36 * fine);
+  stone = mix(stone, vec3(0.6, 0.51, 0.37), smoothstep(0.5, 0.92, N.y + 0.25 * (fine - 0.5)) * 0.8);
+  // darker where it sits in the sand; a soft edge light against the water behind it
+  float ao = 0.4 + 0.6 * smoothstep(0.0, 0.16, vW.y - uOrigin.y), rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+  vec3 night = stone * vec3(0.1, 0.095, 0.24) * (0.3 + 0.5 * hemi + 0.8 * key) * ao + stone * uRimC * exp(-r * r / 3.4) * 1.3 * max(0.0, dot(N, normalize(vec3(-vW.x, 0.8, -vW.z)))) + vec3(0.1, 0.12, 0.3) * rim * 0.5;
+  vec3 day = stone * vec3(0.58, 0.8, 0.86) * (0.3 + 0.45 * hemi + 0.8 * key) * ao + vec3(0.3, 0.6, 0.7) * rim * 0.22;
+  vec3 col = mix(night, day, uDay);
   float alpha = 1.0 - clamp(vGone, 0.0, 1.0);
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col * alpha, alpha);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+/** … a rock's SHADOW on the sand (a soft dark pool under it, thrown a little away from the light — the same instances as the rocks) */
+export const RSHADOW_V = /* glsl */`
+attribute vec4 aP;
+attribute vec3 aS;
+uniform vec3 uOrigin;
+uniform float uTime, uBreakT;
+varying vec2 vUv;
+varying float vGone;
+void main() {
+  float c = cos(aS.z), s = sin(aS.z);
+  vec3 p = position * vec3(aS.x, 1.0, 1.0) * aP.w * 2.9;
+  p = vec3(p.x * c + p.z * s, 0.0, -p.x * s + p.z * c);
+  float age = max(0.0, uTime - uBreakT - 0.15 - 0.1 * aS.z);
+  vUv = position.xz * 2.0; vGone = age / 0.3;
+  gl_Position = projectionMatrix * viewMatrix * vec4(uOrigin + vec3(aP.x + 0.3 * aP.w, 0.012, aP.z - 0.25 * aP.w) + p, 1.0);
+}`;
+export const RSHADOW_F = /* glsl */`
+uniform float uDay, uBloom;
+varying vec2 vUv;
+varying float vGone;
+void main() {
+  float d = length(vUv), a = (1.0 - smoothstep(0.25, 1.0, d)) * mix(0.62, 0.5, uDay) * (1.0 - clamp(vGone, 0.0, 1.0)) * (1.0 - uBloom);
+  gl_FragColor = vec4(vec3(0.0), a);
+}`;
+
+// ---- THE DAY FINISH's SUN RAYS (F5A — THE DAY CELEBRATION): shafts of sunlight falling through the water from high above onto the spot
+// where the ball came down — a fan of soft moving rays on one upright card behind the ball (turned to the camera in its vertex shader),
+// pure added light; it comes with the burst of bubbles (uT0) and is gone 3.4 s later.
+export const RAYS_V = /* glsl */`
+uniform vec3 uO;
+varying vec2 vP;
+void main() {
+  vec3 right = normalize(vec3(viewMatrix[0][0], 0.0, viewMatrix[2][0]));
+  vP = position.xy;
+  gl_Position = projectionMatrix * viewMatrix * vec4(uO + right * position.x * 4.4 + vec3(0.0, (position.y + 0.5) * 6.5, 0.0), 1.0);
+}`;
+export const RAYS_F = /* glsl */`
+uniform float uTime, uT0, uBloom;
+varying vec2 vP;
+void main() {
+  float y = vP.y + 0.5, a = vP.x / mix(0.92, 0.3, y), t = uTime * 0.4;      // (the fan: wide on the bed, narrow high above)
+  float rays = 0.5 + 0.5 * sin(a * 41.0 + t * 1.3 + sin(a * 9.0 - t) * 2.0);
+  rays = rays * rays * rays * (0.55 + 0.45 * sin(a * 97.0 - t * 2.3)) + 0.12;     // (many thin shafts on a faint veil of light — never two wide bars)
+  float env = (1.0 - smoothstep(0.2, 0.5, abs(a))) * smoothstep(0.0, 0.1, y) * (1.0 - smoothstep(0.82, 1.0, y)) * (0.4 + 0.6 * y);
+  float age = uTime - uT0, life = smoothstep(0.0, 0.45, age) * (1.0 - smoothstep(2.3, 3.4, age));
+  vec3 col = mix(vec3(0.5, 0.95, 1.0), vec3(1.0, 0.97, 0.78), y) * rays * env * life * 0.5;
+  if (uBloom > 0.5) col *= 0.3;
+  gl_FragColor = vec4(col, 0.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;

@@ -10,7 +10,7 @@
 //     are shed, never the look's shape; the sparks ride night.js's own streak pool
 // ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): update() + the emitters write into typed arrays made once; no object is made in a frame.
 import * as THREE from 'three';
-import { HIT_TICKS, CRACK, BURST_V, BURST_F, FRACT_V, GLASS_F, FRAME_V, FRAME_F, DECK_V, DECK_F, WATER_V, WATER_F, SEABED_V, SEABED_F, CHUNK_F, ROCK_V, ROCK_F } from './break-fx.js';
+import { HIT_TICKS, CRACK, BURST_V, BURST_F, FRACT_V, GLASS_F, FRAME_V, FRAME_F, DECK_V, DECK_F, WATER_V, WATER_F, SEABED_V, SEABED_F, CHUNK_F, ROCK_V, ROCK_F, RSHADOW_V, RSHADOW_F, RAYS_V, RAYS_F } from './break-fx.js';
 
 /** the three breakthroughs' floors (tuning.js#AREAS' starts: THE OFFICES · UNDER THE HARBOR · THE BOTTOM) */
 export const BREAK_FLOORS = Object.freeze({ skylight: 40, splash: 120, bottom: 200 });
@@ -176,13 +176,28 @@ export function createBreaks(X) {
   const chunkMat = new THREE.ShaderMaterial({ vertexShader: FRACT_V, fragmentShader: CHUNK_F, uniforms: chunkU, extensions: derivs, side: THREE.DoubleSide, ...blend });
   const chunks = add(new THREE.Mesh(fractureGeo(SEABED.half, 0, SHAPE.RB, 12, [0.15, 0.45, 1], 0x5eabed, 0.35, -0.6, 0.22), chunkMat), 1.52, chunkMat);
   // (… + FRONT_ROCKS more in front of the ball, a FINISH's only — the last ones of the list: the bed there is whole, and never an empty beach)
-  const FRONT_ROCKS = 5, rockN = 9 + FRONT_ROCKS, rGeo = new THREE.InstancedBufferGeometry(), ico = new THREE.IcosahedronGeometry(1, 1);
-  { // (a boulder: the ball of an icosahedron, knocked about a little — the same vertex gets the same knock)
-    const p = ico.getAttribute('position');
-    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 0.82 + 0.3 * (Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453 % 1 + 1) % 1; p.setXYZ(i, x * k, y * k * 0.7, z * k); }
-    // (round, not faceted: a boulder worn by the water — its normal is its own direction from its middle)
-    const nn = ico.getAttribute('normal');
-    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i) / 0.7, z = p.getZ(i), l = Math.hypot(x, y, z) || 1; nn.setXYZ(i, x / l, y / l, z / l); }
+  const FRONT_ROCKS = 5, rockN = 9 + FRONT_ROCKS, rGeo = new THREE.InstancedBufferGeometry(), ico = new THREE.IcosahedronGeometry(1, 3);
+  { // F5A — A BOULDER WORN BY THE WATER (it was the ball of a coarse icosahedron with every corner knocked its own way: a spiky low-poly
+    // lump): a finer ball pushed about by a SLOW noise of its direction — broad shoulders + hollows, no spikes —, flatter than it is wide;
+    // its normal is the pushed surface's own (two near directions, their cross): smooth light, the same at a shared corner
+    const p = ico.getAttribute('position'), nn = ico.getAttribute('normal');
+    const push = (x, y, z) => 0.84 + 0.17 * Math.sin(2.3 * x + 1.1 * y + 0.7) + 0.13 * Math.sin(3.1 * z - 1.9 * x + 2.0) + 0.1 * Math.sin(2.7 * y + 1.4 * z + 4.0) + 0.045 * Math.sin(6.1 * x + 5.3 * y + 4.7 * z);
+    const at = (x, y, z, o, i) => { const l = Math.hypot(x, y, z) || 1, k = push(x / l, y / l, z / l); o[i] = x / l * k; o[i + 1] = y / l * k * 0.62; o[i + 2] = z / l * k; };
+    const q = new Float64Array(9), e = 0.02;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      // two directions across the surface here: t1 = up × d (or x × d at the poles), t2 = d × t1
+      let t1x = -z, t1y = 0, t1z = x;
+      if (Math.abs(y) > 0.95) { t1x = 0; t1y = -z; t1z = y; }
+      const tl = Math.hypot(t1x, t1y, t1z) || 1; t1x /= tl; t1y /= tl; t1z /= tl;
+      const t2x = y * t1z - z * t1y, t2y = z * t1x - x * t1z, t2z = x * t1y - y * t1x;
+      at(x, y, z, q, 0); at(x + e * t1x, y + e * t1y, z + e * t1z, q, 3); at(x + e * t2x, y + e * t2y, z + e * t2z, q, 6);
+      const ax = q[3] - q[0], ay = q[4] - q[1], az = q[5] - q[2], bx = q[6] - q[0], by = q[7] - q[1], bz = q[8] - q[2];
+      let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+      if (nx * x + ny * y + nz * z < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      p.setXYZ(i, q[0], q[1], q[2]); nn.setXYZ(i, nx / nl, ny / nl, nz / nl);
+    }
   }
   rGeo.setAttribute('position', ico.getAttribute('position')); rGeo.setAttribute('normal', ico.getAttribute('normal'));
   const rP = new Float32Array(rockN * 4), rS = new Float32Array(rockN * 3);
@@ -200,6 +215,16 @@ export function createBreaks(X) {
   rGeo.instanceCount = rockN;
   const rockMat = new THREE.ShaderMaterial({ vertexShader: ROCK_V, fragmentShader: ROCK_F, uniforms: { uOrigin: bedOrigin, uTime: G.uTime, uBreakT: bedBreak, uDay: G.uDay, uBloom: G.uBloom, uRimC: bedRim }, ...blend });
   const rocks = add(new THREE.Mesh(rGeo, rockMat), 1.55, rockMat);
+  // (F5A — each rock's soft SHADOW on the sand: the rocks' own instances on a flat card, drawn just before them)
+  const shGeo = new THREE.InstancedBufferGeometry(), shQuad = plane(1);
+  shGeo.index = shQuad.index; shGeo.setAttribute('position', shQuad.getAttribute('position'));
+  shGeo.setAttribute('aP', rGeo.getAttribute('aP')); shGeo.setAttribute('aS', rGeo.getAttribute('aS')); shGeo.instanceCount = rockN;
+  const shMat = new THREE.ShaderMaterial({ vertexShader: RSHADOW_V, fragmentShader: RSHADOW_F, uniforms: { uOrigin: bedOrigin, uTime: G.uTime, uBreakT: bedBreak, uDay: G.uDay, uBloom: G.uBloom }, depthWrite: false, transparent: true });
+  const rockSh = add(new THREE.Mesh(shGeo, shMat), 1.54, shMat);
+  // (F5A — THE DAY CELEBRATION's sun rays: one upright card behind the ball, pure added light — break-fx.js RAYS_F)
+  const raysU = { uTime: G.uTime, uBloom: G.uBloom, uT0: { value: -100 }, uO: { value: new THREE.Vector3() } };
+  const raysMat = new THREE.ShaderMaterial({ vertexShader: RAYS_V, fragmentShader: RAYS_F, uniforms: raysU, depthWrite: false, ...blend });
+  const rays = add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), raysMat), 5.5, raysMat);
 
   // ---- the state (numbers only): each breakthrough's stage · the tick its moment is due · the scene time it happened at
   let fin = -1;
@@ -212,9 +237,9 @@ export function createBreaks(X) {
     const M = run.R.modes[run.mode];
     fin = M.finish == null ? -1 : M.finish;
     skSt = 0; skHit = -1; skT = 1e9; spSt = 0; spHit = -1; spT = 1e9; spBub = 0; spWake = 0;
-    boSt = 0; boHit = -1; boT = 1e9; boCrack = -1; boCT = 1e9; fwAt = 1e9; fwN = 0; played = 0;
+    boSt = 0; boHit = -1; boT = 1e9; boCrack = -1; boCT = 1e9; fwAt = 1e9; fwN = 0; played = 0; raysUntil = -1; raysU.uT0.value = -100;
     breakT.value = 1e9; waterU.uSplashT.value = 1e9; waterU.uLine.value = -2; bedImp.value = 1e9; bedBreak.value = 1e9; bedU.uOuter.value = 1;
-    rGeo.instanceCount = fin === BREAK_FLOORS.bottom ? rockN : rockN - FRONT_ROCKS;
+    rGeo.instanceCount = shGeo.instanceCount = fin === BREAK_FLOORS.bottom ? rockN : rockN - FRONT_ROCKS;
     bedHole.value = fin === BREAK_FLOORS.bottom ? 0 : SEABED.mouth;   // (SOLO: the tower goes on down THE TRENCH's MOUTH — the floor under the ball is always in sight)
     bedY = -BREAK_FLOORS.bottom * SHAPE.H - (fin === BREAK_FLOORS.bottom ? 0 : SEABED.down);
     bed.position.set(0, bedY, 0); bed.updateMatrix(); bed.matrixWorld.copy(bed.matrix);
@@ -275,12 +300,14 @@ export function createBreaks(X) {
   }
   function hitBottom(bx, bz) {
     boSt = 1; boT = time; bedImp.value = time; played++;
-    const y = bedY, n = X.reduce ? 4 : share(14), solo = fin < 0;
+    const y = bedY, n = X.reduce ? 4 : share(16), solo = fin < 0;
     // the dust cloud: sand lifted off the bed, rolling out + up, slowed by the water (a FINISH: all round the ball · SOLO: off the shelves)
     for (let k = 0; k < n; k++) {
       const a = k / n * 6.2832 + rnd() * 0.6, o = 0.8 + rnd() * 1.1, c = 0.85 + rnd() * 0.3;
       if (solo) shelf(k); else { sx = bx + Math.cos(a) * 0.3; sz = bz + Math.sin(a) * 0.3; svx = Math.cos(a) * o; svz = Math.sin(a) * o; }
-      puff(sx, y + 0.1, sz, svx, 0.35 + rnd() * 0.7, svz, 1.4 + rnd() * 0.8, 0.26, solo ? 0.78 : 1.0, k & 1, -0.12, 2.2, 0.04, 0.4, (day ? 0.17 : 0.1) * c, (day ? 0.165 : 0.08) * c, (day ? 0.13 : 0.17) * c, day ? 0.92 : 0.8);
+      // (F5A — SOFT: many thin veils of lifted sand in the sand's own lit colour — never a few heavy dark blobs)
+      // (a veil's light is its colour × its cover: piled up, the veils come to the dust's own colour — never to white)
+      puff(sx, y + 0.16, sz, svx, 0.35 + rnd() * 0.7, svz, 1.5 + rnd() * 0.9, 0.3, solo ? 0.82 : 1.0, k & 1, -0.12, 2.2, 0.05, 0.4, (day ? 0.115 : 0.04) * c, (day ? 0.118 : 0.036) * c, (day ? 0.098 : 0.07) * c, -0.42);
     }
     for (let k = 0; k < share(7); k++) {
       const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.2;
@@ -291,8 +318,8 @@ export function createBreaks(X) {
     if (!day) for (let k = 0; k < share(22); k++) { const a = rnd() * 6.2832, r = 0.3 + rnd() * 1.4, cy = rnd() < 0.55; puff(bx + Math.cos(a) * r, y + 0.1, bz + Math.sin(a) * r, Math.cos(a) * 0.5, 0.25 + rnd() * 0.55, Math.sin(a) * 0.5, 2 + rnd() * 1.1, 0.07, 0.022, 2, 0.05, 1.2, 0.28, 0, cy ? 0.3 : 0.75, cy ? 0.95 : 0.4, 1, 0); }
     X.kick(0.3, 1);
     X.flashFloors(BREAK_FLOORS.bottom - 2, BREAK_FLOORS.bottom, 0.6);
-    // a FINISH by night: the firework comes right after
-    if (fin === BREAK_FLOORS.bottom && !day && !X.reduce) { fwAt = time + 0.9; fwN = 0; }
+    // a FINISH: the celebration comes right after — by night the firework, by day THE DAY CELEBRATION (F5A: bubbles + sun rays)
+    if (fin === BREAK_FLOORS.bottom && !X.reduce) { fwAt = time + 0.9; fwN = 0; }
   }
   /** one firework-style burst: glowing stars thrown out all round a point, slowed by the water, + a glint at its heart */
   function firework(x, y, z, r, g, b) {
@@ -307,9 +334,24 @@ export function createBreaks(X) {
     for (let k = 0; k < share(18); k++) { const a = rnd() * 6.2832, v = 1.3 + rnd() * 1.6; X.spark(x, y, z, Math.cos(a) * v, Math.sin(a) * v + 0.8, (rnd() - 0.5) * v * 0.6, 0.45 + rnd() * 0.45, 0.011 + rnd() * 0.01, r, g, b); }
     X.sparksDirty();
   }
+  /** F5A — THE DAY CELEBRATION's burst: a shimmering ball of BUBBLES thrown out round a point, then rising — slowed by the water, each a
+   *  bright ring — with glints of sunlight among them + a soft flash at its heart */
+  function bubbles(x, y, z) {
+    played++;
+    puff(x, y, z, 0, 0, 0, 0.3, 0.14, 0.5, 5, 0, 0, 0, 1.2, 1, 1, 0.92, 0);   // (its heart: a small glint of sun — by day a light COVERS: a big one is a white disc)
+    for (let k = 0; k < share(24); k++) {
+      const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u), v = 1.5 + rnd() * 1.3, big = rnd();
+      puff(x, y, z, Math.cos(a) * s * v, u * v + 0.5, Math.sin(a) * s * v * 0.6, 1.3 + rnd() * 0.8, 0.035 + big * 0.05, 0.07 + big * 0.1, 3, 0.55, 2.1, 0.07, 0, 0.88, 1, 1, 0.12);
+    }
+    // (the shimmer: glints of sun that come + go among the bubbles as they rise)
+    for (let k = 0; k < share(9); k++) {
+      const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u), v = 0.9 + rnd() * 1.1;
+      puff(x + Math.cos(a) * s * 0.2, y + u * 0.2, z, Math.cos(a) * s * v, u * v + 0.6, Math.sin(a) * s * v * 0.5, 0.5 + rnd() * 0.6, 0.02, 0.16, 5, 0.3, 2, 0.05, 2.5, 1, 1, 0.9, 0);
+    }
+  }
   function crackOpen(bx, bz) {
     boSt = 2; boCT = time; bedBreak.value = time; played++;
-    for (let k = 0; k < share(8); k++) { shelf(k); puff(sx, bedY + 0.05, sz, svx * 0.6, 0.3 + rnd() * 0.6, svz * 0.6, 1.1 + rnd() * 0.7, 0.28, 0.78, k & 1, -0.2, 1.8, 0.05, 0.4, day ? 0.17 : 0.1, day ? 0.165 : 0.08, day ? 0.13 : 0.17, day ? 0.92 : 0.8); }
+    for (let k = 0; k < share(10); k++) { shelf(k); puff(sx, bedY + 0.12, sz, svx * 0.6, 0.3 + rnd() * 0.6, svz * 0.6, 1.1 + rnd() * 0.7, 0.3, 0.82, k & 1, -0.2, 1.8, 0.05, 0.4, day ? 0.115 : 0.04, day ? 0.118 : 0.036, day ? 0.098 : 0.07, -0.42); }
     X.kick(0.16, 0.7);
   }
 
@@ -389,9 +431,9 @@ export function createBreaks(X) {
     if (boSt === 0 && boCrack >= 0 && tau >= boCrack + 30) boSt = 3;
     if (now >= fwAt) {
       // (the fresh-eyes review: ROUND THE BALL — over the sand, between the ball and the band; never up at the number or off the sides)
-      if (fwN === 0) { firework(bx - 0.48, by + 0.42, bz - 0.25, 1, 0.76, 0.22); fwN = 1; fwAt = now + 0.3; }
-      else if (fwN === 1) { firework(bx + 0.52, by + 0.62, bz - 0.35, 0.25, 0.92, 1); fwN = 2; fwAt = now + 0.34; }
-      else { firework(bx + 0.02, by + 0.95, bz - 0.6, 1, 0.84, 0.36); fwAt = 1e9; }
+      if (fwN === 0) { if (day) { bubbles(bx - 0.48, by + 0.42, bz - 0.25); raysU.uT0.value = now; raysU.uO.value.set(bx, bedY, bz - 0.28); raysUntil = now + 3.5; } else firework(bx - 0.48, by + 0.42, bz - 0.25, 1, 0.76, 0.22); fwN = 1; fwAt = now + 0.3; }
+      else if (fwN === 1) { if (day) bubbles(bx + 0.52, by + 0.62, bz - 0.35); else firework(bx + 0.52, by + 0.62, bz - 0.35, 0.25, 0.92, 1); fwN = 2; fwAt = now + 0.34; }
+      else { if (day) bubbles(bx + 0.02, by + 0.95, bz - 0.6); else firework(bx + 0.02, by + 0.95, bz - 0.6, 1, 0.84, 0.36); fwAt = 1e9; }
     }
     if (boSt === 2) {
       const k = (now - boCT - 0.2) / 0.5;
@@ -399,7 +441,7 @@ export function createBreaks(X) {
       if (now - boCT > 1.7) boSt = 3;
     }
     const boNear = boSt < 3 && camY > 184 && camY < 207;
-    bed.visible = boNear && bedU.uOuter.value > 0.003; chunks.visible = boNear; rocks.visible = boNear;
+    bed.visible = boNear && bedU.uOuter.value > 0.003; chunks.visible = boNear; rocks.visible = boNear; rockSh.visible = boNear; rays.visible = boNear && now < raysUntil;
     if (boNear) {
       const s = pics.sand, sn = pics.sandN;
       if (bedU.tSand.value !== s.tex || bedU.tSandN.value !== sn.tex) {
@@ -414,7 +456,7 @@ export function createBreaks(X) {
     if (forced) for (let i = 0; i < meshes.length; i++) meshes[i].visible = true;
     if (burstDirty) { burstDirty = false; bO.needsUpdate = bV.needsUpdate = bT.needsUpdate = bK.needsUpdate = bC.needsUpdate = bM.needsUpdate = true; }
   }
-  let spWakeOwed = 0, forced = false;
+  let spWakeOwed = 0, forced = false, raysUntil = -1;
 
   /** THE WARM FRAME's share: every piece drawn once (their programs — the picture's + the bloom pass's — are built behind the opening) */
   function force(on) { forced = !!on; for (let i = 0; i < meshes.length; i++) meshes[i].visible = forced; }

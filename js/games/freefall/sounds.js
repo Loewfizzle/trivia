@@ -10,7 +10,7 @@
 //   area-arrive  the ball enters an area · new-best  the fall that passes YOUR BEST   (the stage's: it knows the best)
 //   F3B — THE BREAKTHROUGHS: skylight (floor 40: the glass breaks) · splashdown (floor 120: the plunge) · bottom (floor 200: the ball hits
 //   the seabed — SOLO too now) take the place of the arrival's sound on those three floors, each timed to the moment the ball gets there;
-//   fireworks = a finish by night, softly, right after bottom (the stage's: it knows the look)
+//   fireworks = a finish, softly, right after bottom (the stage's — F5A: in both looks, by day behind the bubbles + the sun rays)
 /** a sound: `file` in audio/<dir>/, played at `rate`, `gain` into the limiter, its priority; `play` = it sounds in a run today */
 const snd = (id, label, dir, gain, pri, play = true, more = null) => Object.freeze({ id, label, file: id, dir, rate: 1, gain, pri, play, ...more });
 export const SOUNDS = Object.freeze([
@@ -28,7 +28,7 @@ export const SOUNDS = Object.freeze([
   // build machine has no MP3 encoder; the limiter holds their peaks). fireworks: soft, on purpose.
   snd('skylight', 'THE SKYLIGHT (FLOOR 40)', 'freefall', 2.0, 4),
   snd('splashdown', 'THE SPLASHDOWN (FLOOR 120)', 'freefall', 2.05, 4),
-  snd('fireworks', 'FIREWORKS (A NIGHT FINISH)', 'freefall', 0.5, 3),
+  snd('fireworks', 'FIREWORKS (A FINISH)', 'freefall', 0.5, 3),
 ]);
 export const SOUND_IDS = Object.freeze(SOUNDS.map(s => s.id));
 /** every file the table names: [dir, file] (the fetch list + the test that each exists) */
@@ -54,7 +54,7 @@ export function scaleRate(n) {
 export const BREAK_HIT_S = 8 / 60, BOTTOM_HIT_S = 18 / 60;
 /** the floors whose arrival is a BREAKTHROUGH (its own sound takes the arrival's place) */
 export const BREAK_AT = Object.freeze({ skylight: 40, splash: 120, seabed: 200 });
-/** FIREWORKS (a finish by night — the stage plays it: it knows the look): softly, right after the seabed's hit */
+/** FIREWORKS (a finish — the stage plays it; F5A: in both looks): softly, right after the seabed's hit */
 export const CUE_FIREWORKS = Object.freeze({ id: 'fireworks', delay: BOTTOM_HIT_S + 0.9 });
 // (ZERO GARBAGE — HIGH RISE's: every cue is one of a few CONSTANT records)
 const CUE = Object.freeze({

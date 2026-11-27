@@ -40,6 +40,15 @@ async function open(w, h, dpr, q = '', { best = 0, auto = false } = {}) {
   await cdp.send('Network.enable');
   cdp.on('Network.webSocketCreated', e => sockets.push(e.url));
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr, isMobile: w < 700, hasTouch: w < 700 });
+  // (F5A — THE REVIEW's SLOW MOTION, the test browser's alone: `window.__slowmo(k)` runs the page's clock (performance.now + the frame's
+  //  own stamp) at k × the real one — a 0.3 s moment can be shot frame by frame at 3×, where one screenshot takes a third of a second.
+  //  At 1 (until it is asked for) the clock is the real one, shifted by nothing.)
+  await p.evaluateOnNewDocument(() => {
+    const real = performance.now.bind(performance), raf = window.requestAnimationFrame.bind(window);
+    let k = 1, base = 0, vbase = 0, on = false;
+    const now = () => (on ? vbase + (real() - base) * k : real());
+    window.__slowmo = v => { const n = now(); vbase = n; base = real(); k = v; if (!on) { on = true; performance.now = now; window.requestAnimationFrame = cb => raf(() => cb(now())); } };
+  });
   if (best) await p.evaluateOnNewDocument(n => { try { localStorage.setItem('ff:play:best', String(n)); } catch { /* fine */ } }, best);
   await p.goto(guardUrl(`${BASE}/freefall-play${q}`, 'freefall-play'), { waitUntil: 'load' });
   const up = await waitFor(p, "!!window.__ffPlay && !!document.querySelector('canvas.ff-canvas') && window.__ffPlay.state().info.frames > 3");
@@ -332,23 +341,27 @@ async function look() {
       }
     }
     if (want('finish')) {
+      // (the moment in SLOW MOTION — the page's clock at 0.1 ×: each frame is taken at its own time AFTER THE IMPACT, on the page's clock)
+      const timed = async (t2, name, tag, at) => {
+        const hit = await t2.p.evaluate(() => performance.now());
+        for (const ms of at) { await waitFor(t2.p, `performance.now() >= ${hit + ms}`, 60000); await shot(t2.p, g5(`${name}-${String(ms).padStart(4, '0')}ms-${tag}`)); }
+      };
       for (const [sw, sh, sd] of SIZES5) {
         const tag = `${sw}x${sh}`;
         t = await open(sw, sh, sd, `?seed=look2${q}&floor=196&mode=match`, { best: 141 });
         await start(t); await auto(t.p, 'play');
-        await waitFor(t.p, 'window.__ffPlay.state().floor >= 199', 40000); await shot(t.p, g5(`20-finish-0-before-${tag}`));
-        await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 40000);
-        const at = [80, 330, 700, 1100, 1500, 1950, 2400];
-        let was = 0;
-        for (let i = 0; i < (sw === 390 ? at.length : 4); i++) { await sleep(at[i] - was); was = at[i]; await shot(t.p, g5(`20-finish-${i + 1}-${at[i]}ms-${tag}`)); }
-        if (t.errs.length) console.log(lk, 'finish', t.errs);
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 199', 40000); await t.p.evaluate(() => window.__slowmo(0.1)); await shot(t.p, g5(`20-finish-0-before-${tag}`));
+        await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 90000);
+        await timed(t, '20-finish', tag, sw === 390 ? [60, 250, 600, 950, 1150, 1400, 1700, 2100] : [250, 1150, 1700]);
+        if (t.errs.length || t.logs.length) console.log(lk, 'finish', t.errs, t.logs.slice(0, 4));
         await t.close();
-        if (sw !== 390) continue;
+        if (sw !== 390 || STILL) continue;
         // SOLO: the shelf of sand + the trench's mouth, the impact, the bed cracking open
         t = await open(sw, sh, sd, `?seed=look2${q}&floor=196`, { best: 141 });
         await toFloor(t, 198); await shot(t.p, g5(`21-bottom-solo-0-before-${tag}`));
-        await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 40000);
-        await sleep(120); await shot(t.p, g5(`21-bottom-solo-1-${tag}`)); await sleep(400); await shot(t.p, g5(`21-bottom-solo-2-${tag}`));
+        await t.p.evaluate(() => window.__slowmo(0.1));
+        await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 90000);
+        await timed(t, '21-bottom-solo', tag, [120, 500]);
         await t.close();
       }
     }

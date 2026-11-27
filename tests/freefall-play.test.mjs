@@ -593,7 +593,11 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(wf, /float lines\(vec2 p, float t\)/, 'the day\'s thin ripple lines'); assert.match(wf, /THE FOAM/, 'the foam line at the wall + round the pillar');
   assert.doesNotMatch(wf, /tN\b|uRingC|uFaceC|uFloorY/, 'no normal map (crinkled foil), no floors mirrored (the brown blob)');
   assert.match(wf, /gl_FragColor = vec4\(col, 1\.0\);/, 'the surface hides what is under it');
-  assert.match(bk, /if \(fin === BREAK_FLOORS\.bottom && !day && !X\.reduce\) \{ fwAt = time \+ 0\.9; fwN = 0; \}/, 'the firework: a FINISH by night only');
+  // (F5A — THE DAY CELEBRATION: a finish celebrates in BOTH looks — by night the firework, by day a burst of bubbles + the sun rays)
+  assert.match(bk, /if \(fin === BREAK_FLOORS\.bottom && !X\.reduce\) \{ fwAt = time \+ 0\.9; fwN = 0; \}/, 'the celebration: a FINISH only, never with reduced motion');
+  assert.match(bk, /if \(day\) \{ bubbles\(bx - 0\.48, by \+ 0\.42, bz - 0\.25\); raysU\.uT0\.value = now;/, 'by day: the bubbles + the sun rays'); assert.match(bk, /else firework\(bx - 0\.48, by \+ 0\.42, bz - 0\.25, 1, 0\.76, 0\.22\);/, 'by night: the firework');
+  assert.match(bfx, /export const RAYS_F/, 'the sun rays\' shader'); assert.match(bfx, /export const RSHADOW_F/, 'a rock\'s soft shadow'); assert.match(bk, /new THREE\.IcosahedronGeometry\(1, 3\)/, 'a boulder: a finer ball, pushed about by a slow noise');
+  assert.match(bfx, /float soft = step\(vC\.a, -0\.001\), own = abs\(vC\.a\);/, 'THE DUST: a soft cloud keeps its own thin cover'); assert.match(bfx, /c\.z = cn\.z \/ cn\.w \* c\.w;/, 'a puff\'s depth is its near side\'s');
   // ZERO GARBAGE in the new frame code
   const BUILDS = [[/=>/, 'an arrow function'], [/\bfunction\b/, 'an inner function'], [/\.\.\./, 'a spread'], [/`/, 'a template string'], [/[=(,:?]\s*\[/, 'a list'], [/[=(,:?]\s*\{/, 'a record'], [/\bnew\s+[A-Z]/, 'a new object'], [/\.(map|filter|slice|concat|flatMap|reduce|split|join|keys|values|entries|toFixed|toString|padStart)\(/, 'a list- / string-making call'], [/\bfor\s*\([^)]*\bof\b/, 'a for … of']];
   const frameFns = { 'night.js': ['  function roofPlane() {'], 'breaks.js': ['  function update(run, tau, now, sec, camY, bx, by, bz, tier) {', '  function puff(x, y, z, vx, vy, vz, life, s0, s1, cell, grav, drag, swirl, spin, r, g, b, cover) {', '  function breakSkylight() {', '  function splash(bx, bz) {', '  function hitBottom(bx, bz) {', '  function firework(x, y, z, r, g, b) {', '  function crackOpen(bx, bz) {', '  function feed(e, tau) {'] };
@@ -617,5 +621,5 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(n, /if \(poseTo !== POSE\.finish\) pose\('finish'\);/, 'THE FINISH has its own camera'); assert.match(n, /export const STUMP = 0\.36;/);
   assert.match(n, /if \(run\.st === 'made'\) return SHAPE\.H \* \(1 - u\) \* \(1 - 0\.45 \* u\);/, 'the last drop onto the seabed is the view\'s own');
   assert.match(st, /if \(e\.e === 'area' && e\.floor === BREAK_AT\.splash && snd && snd\.muffle\) snd\.muffle\(MUFFLE_S, BREAK_HIT_S \+ MUFFLE_AFTER_S\);/, 'THE SPLASHDOWN muffles the mix');
-  assert.match(st, /if \(e\.e === 'made' && lookT === 'night' && snd && !reduceM\) snd\.playCues\(FIREWORK_CUES\);/, 'the firework\'s sound: a night finish only — and never without its firework (reduced motion)');
+  assert.match(st, /if \(e\.e === 'made' && snd && !reduceM\) snd\.playCues\(FIREWORK_CUES\);/, 'the celebration\'s sound: a finish in both looks (F5A) — and never without its celebration (reduced motion)');
 });

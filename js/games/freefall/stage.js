@@ -598,7 +598,7 @@ export function createStage(app0, o = {}) {
       // F3B — THE BREAKTHROUGHS (the scene plays them — night.js; the sounds: sounds.js#cuesOf): THE SPLASHDOWN muffles the mix for a moment ·
       // a FINISH by night: the firework's sound, softly, right after the seabed's
       if (e.e === 'area' && e.floor === BREAK_AT.splash && snd && snd.muffle) snd.muffle(MUFFLE_S, BREAK_HIT_S + MUFFLE_AFTER_S);
-      if (e.e === 'made' && lookT === 'night' && snd && !reduceM) snd.playCues(FIREWORK_CUES);   // (reduced motion: no firework is drawn — none is heard)
+      if (e.e === 'made' && snd && !reduceM) snd.playCues(FIREWORK_CUES);   // (reduced motion: no celebration is drawn — none is heard. F5A: by DAY too — the burst of bubbles + the sun rays have the same soft fireworks)
       if (e.e === 'fall' && !fromRun && crossedBest(best, e.floor)) {
         // THE CROSSING (once a run): NEW BEST — the number turns gold for the rest of the run
         newBest = true; stage.classList.add('is-gold'); BN.dirty();
