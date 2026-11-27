@@ -72,6 +72,24 @@ void main() {
       // the wall curves away to the shaft's sides: darker towards its edges (a round room, not a flat picture)
       float side = abs(hit.x) / uRW;
       col *= mix(1.0, 0.42, smoothstep(0.35, 1.0, side));
+      // F5B — THE WATER SWAP (the owner, Nov 27): UNDER THE HARBOR by NIGHT wears the DAY's water in night inks — its gradient down the
+      // screen (a dark teal), the caustics' swirling light lines in cyan + violet, faint shafts from the surface (the motes: rising bubbles;
+      // the plankton kept). The day's own recipe (day-fx.js DAY_MAIN), recoloured.
+      float wetN = mix(uWetA, uWetB, k);
+      if (wetN > 0.01) {
+        float sy = vS.y * 0.5 + 0.5;
+        vec3 g = mix(vec3(0.0006, 0.007, 0.014), vec3(0.0016, 0.026, 0.04), smoothstep(0.0, 0.36, sy));
+        g = mix(g, vec3(0.003, 0.06, 0.08), smoothstep(0.32, 0.72, sy));
+        g = mix(g, vec3(0.012, 0.13, 0.16), smoothstep(0.68, 1.0, sy));
+        vec3 wcol = mix(g, col * vec3(0.5, 0.9, 1.0), 0.18);   // (the painting only a ghost under the night water)
+        float shallow = exp(-max(0.0, uSurfY - hit.y) / 30.0);
+        float ru = atan(hit.x, -hit.z) * 3.2 + hit.y * 0.16;
+        float rays = pow(vnoise(vec2(ru * 2.2 + uTime * 0.07, 1.3)) * 0.6 + vnoise(vec2(ru * 5.1 - uTime * 0.11, 7.7)) * 0.4, 2.2);
+        wcol += vec3(0.1, 0.3, 0.55) * rays * (0.25 + 0.75 * sy) * 0.3 * shallow * uShafts;
+        wcol += vec3(0.03, 0.62, 0.72) * caust(uv * 20.0, uTime) * 0.11 * shallow;                       // the swirling light lines: cyan …
+        wcol += vec3(0.36, 0.1, 0.8) * caust(uv * 13.0 + 2.3, uTime * 0.8 + 5.0) * 0.035 * shallow;     // … and a slower violet net under them
+        col = mix(col, wcol, wetN);
+      }
     } else {
       col = uSkyA > 0.5 ? sky(d) : vec3(0.004, 0.002, 0.012);
     }
@@ -298,6 +316,11 @@ void main() {
       float c1 = abs(q.y - 0.55 * q.x - 0.1 * sin(q.x * 9.0)), c2 = abs(q.y + 0.8 * q.x + 0.12 * sin(q.x * 7.0 + 1.0)), c3 = abs(q.x - 0.15 * sin(q.y * 8.0) + 0.1);
       float crack = 1.0 - smoothstep(0.0, 0.07, min(c1, min(c2, c3)));
       col = mix(col, vec3(0.02, 0.0, 0.01), crack * 0.9);
+    }
+    // F5B — THE WATER SWAP: UNDER THE HARBOR by night the slices wear the day's faint caustic shimmer, in cyan (the night's uCaust)
+    if (uCaust + uCaustB > 0.001) {
+      float zbN = 1.0 - smoothstep(-0.3, 0.3, vW.y - uFogSeam);
+      col += vec3(0.1, 0.55, 0.65) * caust(vW.xz * 3.2 + vW.y, uTime) * 0.1 * mix(uCaust, uCaustB, zbN) * (1.0 - red * 0.6);
     }
     // THE BALL's LIGHT on its own floor (never under it by more than a floor: the eye goes to where the ball is)
     float pool = exp(-dot(vW.xz - vec2(0.0, 0.66), vW.xz - vec2(0.0, 0.66)) / 0.2) * smoothstep(1.2, 0.0, depth);

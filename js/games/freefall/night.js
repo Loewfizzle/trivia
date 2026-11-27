@@ -53,7 +53,8 @@ export const WALLS = Object.freeze([null, 'offices', 'speakeasy', 'harbor', 'dee
  *  lattice at 4). Linear light. THE NIGHT WALLS v2 (the add-on, Nov 26: offices · harbor · deep, relit from the day walls) are shown near
  *  their own light (the old offices wall was held down to 0.5, the old harbor wall pushed × 2). */
 const DEEP_N = [1.25, 1.25, 1.4, 0, 0, 0, 0, 0, 0, 0, 0, 2], DEEP_D = [0.9, 1.0, 1.5, 0.004, 0.012, 0.05, 0.006, 0.02, 0.022, 0, 2, 4];
-export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.3, 1.3, 1.45, 0, 0, 0, 0, 0, 0, 0, 0, 4], [0.95, 0.86, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.05, 1.1, 1.15, 0, 0, 0, 0, 0, 0, 0, 0, 4], DEEP_N, DEEP_N, DEEP_N]);
+// (F5B — THE WATER SWAP: UNDER THE HARBOR by night is UNDER THE WATER too — the day's water in night inks: its `1` + its rising bubbles)
+export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.3, 1.3, 1.45, 0, 0, 0, 0, 0, 0, 0, 0, 4], [0.95, 0.86, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.05, 1.1, 1.15, 0, 0, 0, 0, 0, 0, 1, 1, 4], DEEP_N, DEEP_N, DEEP_N]);
 export const AREA_DAY = Object.freeze([
   [1, 1, 1, 0.56, 0.74, 0.93, 0.09, 0.105, 0.15, 0, 0, 4],           // THE ROOFTOP: the open air · THE STORM CLOUD
   [0.5, 0.62, 0.86, 0.2, 0.37, 0.72, 0.03, 0.04, 0.08, 0, 3, 4],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it) — F5A's add-on: its haze a DEEPER blue (it was the floors' own pale periwinkle: 0.5, 0.68, 0.92)
@@ -79,6 +80,8 @@ export const ROOF = Object.freeze({ cx: 0.505, cy: 0.472, sky: 0.130, s0: 0.92, 
 export const ROOF_WIDE = (SKYLIGHT.half + SKYLIGHT.bar) / ROOF.sky, ROOF_Y = -BREAK_FLOORS.skylight * SHAPE.H + SKYLIGHT.up;
 /** THE MOTES by kind: [the shader's kind (1 a bubble · 2 a soft dot), its speed in floors a second (+ = rising), its size, its strength, its colour] */
 export const MOTE_KINDS = Object.freeze([null, [1, 0.55, 0.05, 0.9, 0.85, 1, 1], [2, -0.07, 0.024, 0.7, 0.75, 0.9, 1], [2, 0.04, 0.015, 0.5, 1, 0.98, 0.9]]);
+/** F5B — THE WATER SWAP: the night's bubbles glow CYAN on the dark teal (the day's are white-aqua) */
+export const MOTE_NIGHT = Object.freeze([0.4, 0.9, 1.0]);
 /** the motes' FIXED pool — the tiers trim how many are drawn (tier 0 · 1 · 2) */
 /** THE ROOFTOP's PANORAMA (the add-on, Nov 26 — FREEFALL's own, 3072 × 1024, a 360° picture): shown across `az` radians of the compass (it
  *  repeats round it — a texel is never stretched past ~1.3 screen pixels on a 390 / 430-wide phone at 3×), `el` radians tall, its top at
@@ -754,15 +757,16 @@ export function createNight(host, o = {}) {
     G.uFog.value.set(FA[3], FA[4], FA[5]); G.uFogB.value.set(FB[3], FB[4], FB[5]);
     G.uFogK.value = FOG_K[fk]; G.uFogKB.value = FOG_K[fn > fa ? fn : fa];
     G.uFogS.value = FOG_START[fk]; G.uFogSB.value = FOG_START[fn > fa ? fn : fa];
-    G.uCaust.value = day && tier > 0 ? FA[9] : 0; G.uCaustB.value = day && tier > 0 ? FB[9] : 0;
+    const NA = AREA_NIGHT[fk], NB = AREA_NIGHT[fn > fa ? fn : fa];   // (F5B — THE WATER SWAP: by night UNDER THE HARBOR's slices shimmer too)
+    G.uCaust.value = tier > 0 ? (day ? FA : NA)[9] : 0; G.uCaustB.value = tier > 0 ? (day ? FB : NB)[9] : 0;
     G.uFogSeam.value = -AREAS[fn > fa ? fn : fa].from * SHAPE.H + 0.5;   // (half a floor above the border's first floor)
     fogSnap = false;
-    const mk = day ? AD[10] : 0;
+    const mk = (day ? AD : AREA_NIGHT[fa])[10];
     if (mk !== moteKind) {
       moteA -= sec * 3;
       if (moteA <= 0) {
         moteA = 0; moteKind = mk;
-        if (mk) { const M = MOTE_KINDS[mk]; moteU.uKind.value = M[0]; moteU.uSpeed.value = M[1] * SHAPE.H; moteU.uSize.value = M[2]; moteU.uCol.value.set(M[4], M[5], M[6]); }
+        if (mk) { const M = MOTE_KINDS[mk]; moteU.uKind.value = M[0]; moteU.uSpeed.value = M[1] * SHAPE.H; moteU.uSize.value = M[2]; if (day) moteU.uCol.value.set(M[4], M[5], M[6]); else moteU.uCol.value.set(MOTE_NIGHT[0], MOTE_NIGHT[1], MOTE_NIGHT[2]); }
       }
     } else if (moteA < 1) moteA = Math.min(1, moteA + sec * 1.6);
     motes.visible = moteKind > 0 && moteA > 0;
@@ -824,6 +828,7 @@ export function createNight(host, o = {}) {
     G.uDay.value = day ? 1 : 0; G.uCover.value = day ? 1 : 0;
     tapeLook();
     breaks.setLook(day);
+    if (moteKind > 0) moteKind = -1;   // (F5B: the motes' colour is the look's — they come back in its own)
     preload();   // (the look's own pictures — asked for at once: a look that turns mid-run has them a moment later)
     wK = -1; fogSnap = true;
   }

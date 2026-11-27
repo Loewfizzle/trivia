@@ -347,18 +347,36 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + p
     col += gc + pc; glow += (gc + pc) * 0.6;
     col = min(col, vec3(0.62));                 // (LINEAR light — a reflection in dark water stays a soft one: never a white blotch)
   } else {
-    // ---- DAY: bright turquoise, paler toward the far edge (a soft lift — never a clipped white rim)
-    col = mix(vec3(0.03, 0.5, 0.7), vec3(0.1, 0.66, 0.8), smoothstep(0.12, 0.5, graze));   // (the review: turquoise to the near edge — it went steel-blue there)
-    col = mix(col, vec3(0.4, 0.85, 0.9), smoothstep(0.5, 0.8, graze));
-    col *= 1.0 + 0.09 * g.y;
-    // thin, few, moving ripple LINES
-    col = mix(col, vec3(0.8, 1.0, 1.0), lines(vW.xz * 1.9, uTime) * 0.42 * (1.0 - 0.7 * far));
-    // sun SPARKLES near the far edge
-    vec2 sp = speck(vW.xz * 7.0 + g * 0.1, 0.4, vec2(1.0, 2.2), 0.28);
-    col += vec3(1.0) * sp.x * pow(0.5 + 0.5 * sin(uTime * 2.6 + sp.y * 60.0), 5.0) * smoothstep(0.42, 0.7, graze) * 0.7;
-    // the ball: its soft pink glow + a pale streak of light
-    col = mix(col, vec3(1.0, 0.58, 0.84), pool * 0.5);
-    col = mix(col, vec3(1.0, 0.78, 0.92), lane * 0.3);   // (the review: PINK — it read as a white column)
+    // ---- DAY (F5B — THE WATER SWAP, the owner: a deeper OCEAN BLUE, the reflections done the way the NIGHT does them — the speakeasy's
+    // warm lamps + its brick as broken vertical streaks — + sun glints + small white foam crests riding the swell; no big whitecaps, a closed
+    // shaft; the pearl floors read on it; never a clipped white area)
+    col = mix(vec3(0.004, 0.09, 0.26), vec3(0.018, 0.22, 0.46), smoothstep(0.12, 0.55, graze));
+    col = mix(col, vec3(0.1, 0.4, 0.62), smoothstep(0.55, 0.85, graze));          // (a soft lift toward the far edge — the sky's own blue, never white)
+    col *= 1.0 + 0.14 * g.y + 0.08 * g.x + 0.18 * (vn2(vW.xz * 0.9 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5);
+    // THE STREAKS — NIGHT's method on the DAY painting: the wall's column over this point, read soft down two rows of the painting
+    float u = atan(hit.x, -hit.y) * 0.15915494 * uTileW + (g.x * (0.004 + 0.007 * s) + 0.006 * sin(s * 4.3 + uTime * 0.6) * min(s, 2.0));
+    float bias = 5.0 - clamp(log2(fwidth(u) * 1024.0 + 1e-4), -3.0, 5.0);
+    vec3 c1 = texture2D(tWall, vec2(u, 0.125), bias).rgb, c2 = texture2D(tWall, vec2(u, 0.375), bias).rgb, wallC = (c1 * c1 + c2 * c2) * 0.5;
+    float lum = min(dot(wallC, vec3(2.6)), 1.15), heart = lum * lum; heart *= heart;
+    float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
+    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 2.8);
+    // … the BRICK: the painting's own warm colour as a soft broken column (darker than the wall) · the LAMPS: a pale amber heart
+    vec3 brick = min(wallC * vec3(1.15, 0.85, 0.7), vec3(0.5)) * uHaveW;
+    col = mix(col, brick, 0.42 * streak * smoothstep(0.05, 0.7, dash + 0.3 * (1.0 - smoothstep(0.2, 1.0, s))));
+    col += vec3(1.0, 0.74, 0.4) * min(heart * 0.5, 0.42) * streak * uHaveW;
+    // SUN GLINTS: small hard points of light that blink on the ripples (round on the screen: drawn longer toward the viewer)
+    vec2 sp = speck(vW.xz * 7.0 + g * 0.1, 0.42, vec2(1.0, max(V.y, 0.25) * 2.2), 0.2);
+    col += vec3(1.0, 0.97, 0.88) * sp.x * pow(0.5 + 0.5 * sin(uTime * 2.6 + sp.y * 60.0), 6.0) * (0.35 + 0.65 * smoothstep(0.25, 0.7, graze)) * 0.6;
+    // SMALL FOAM CRESTS: short white flecks where the swell's slope tops out, broken up, drifting — never a band
+    vec2 fk = speck((vW.xz + g * 0.05) * vec2(4.2, 7.5) + vec2(uTime * 0.05, uTime * 0.11), 0.34, vec2(0.55, 1.6), 0.24);
+    float crest = fk.x * smoothstep(0.45, 1.1, g.y + 0.35 * g.x) * (0.55 + 0.45 * sin(uTime * 1.3 + fk.y * 31.0)) * (1.0 - 0.6 * far);
+    col = mix(col, vec3(0.9, 0.97, 1.0), min(crest * 0.95, 0.85));
+    // a few thin moving ripple lines, quieter than before (the light on the swell)
+    col = mix(col, vec3(0.55, 0.85, 1.0), lines(vW.xz * 1.9, uTime) * 0.16 * (1.0 - 0.7 * far));
+    // the ball: its soft pink glow + a pale pink streak of light
+    col = mix(col, vec3(1.0, 0.5, 0.8), pool * 0.26);
+    col = mix(col, vec3(1.0, 0.72, 0.9), lane * 0.24);
+    col = min(col, vec3(0.86));                 // (never a clipped white area: the brightest a glint or a crest may be)
   }
   // THE FOAM: a soft line where the water meets the wall + round the pillar (by night only a faint pale edge)
   float ang = atan(vW.x, -vW.z), fe = vn2(vec2(ang * 9.0, uTime * 0.25)) * 0.16 + 0.04 * sin(ang * 31.0 + uTime * 0.8);

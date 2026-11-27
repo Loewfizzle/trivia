@@ -272,6 +272,15 @@ async function look() {
         await t.close();
       }
     }
+    if (want('swap')) {
+      // F5B — THE WATER SWAP: the surface from above (floor 119) + under it (121 · 125), the ball standing, 390 × 844 @3
+      for (const fl of [119, 121, 125]) {
+        t = await open(390, 844, 3, `?seed=look2${q}&floor=${fl - 2}`, { best: 141 });
+        await toFloor(t, fl); await sleep(1500);
+        await shot(t.p, f(`50-water-${fl}`));
+        await t.close();
+      }
+    }
     if (want('crown')) {
       // F5B — THE PLUNGE's CROWN frame by frame (the review: a near-white flash for a frame or two): the page's clock at 0.08 × the real one
       // from the splash on — 14 frames 8 ms of game time apart, 390 × 844 @3
@@ -1082,7 +1091,7 @@ async function perf() {
   const rows = [];
   // BOTH LOOKS: the heaviest play in THE SPEAKEASY (THE BLAZE's fire, a shatter every few floors) — and by day UNDER THE HARBOR (the
   // caustics on the slices + the wall, the sun rays, the bubbles, the fire on the water)
-  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
+  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR'], ['night', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {   // (F5B: UNDER THE HARBOR by night wears the day's water now)
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;   // (`--one=day-84-1-4`: one row again)
     const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}`);
     await start(d); await auto(d.p, 'smash');
@@ -1253,7 +1262,7 @@ async function checks6() {
  *  its tag (the checks' own tool: `simNear`) — in the heaviest play (THE SPEAKEASY: THE BLAZE's fire, a shatter every few floors; by day
  *  UNDER THE HARBOR too), every tier, 1× + 4× CPU, both looks. A MEASURED 60 fps. */
 async function perf8() {
-  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
+  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR'], ['night', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {   // (F5B: UNDER THE HARBOR by night wears the day's water now)
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
     const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}&mode=match&rivals=8&simshift=2000`);
     await start(d); await auto(d.p, 'smash');
