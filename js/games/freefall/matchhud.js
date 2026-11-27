@@ -28,14 +28,15 @@ export function createMatchHud({ busy = () => false } = {}) {
   const outs = h('div.ff-outs', { 'aria-live': 'polite' }), outQ = [];
   let outN = 0, lastCard = null, outTotal = 0, lastTotal = 0;
   const el = h('div.ff-match', rail, clock, count, outs, over, watch);
-  let outWait = 0;
+  let outWait = 0, gen = 0;   // (FIX B — Grok's G3: `gen` = the reset count — a callout's timer from before a reset() never touches the new count)
   function nextOut() {
     // (FIX A — the callouts live in the BANDS' zone under the number now: one waits while an arrival band is up)
     if (outQ.length && busy()) { if (!outWait) outWait = setTimeout(() => { outWait = 0; nextOut(); }, 250); return; }
     while (outN < OUT_CALL_MAX && outQ.length) {
       const o = outQ.shift(), line = h('div.ff-out', { style: { '--c': o.hex } }, o.text);
       outs.append(line); outN++; outTotal++;
-      setTimeout(() => { line.remove(); outN--; nextOut(); }, OUT_CALL_MS);
+      const g0 = gen;
+      setTimeout(() => { line.remove(); if (g0 !== gen) return; outN--; nextOut(); }, OUT_CALL_MS);
     }
   }
   const dots = new Map();   // uid → { el, y, cls, hex, name: { el, t, text, ny } | null }
@@ -83,9 +84,11 @@ export function createMatchHud({ busy = () => false } = {}) {
     callout(text, hex) { outQ.push({ text, hex }); nextOut(); },
     /** F5C — LAST ONE STANDING: JAYWALK's moment card, once a match (the stage decides when) */
     last(words) {
-      if (busy()) { setTimeout(() => this.last(words), 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
+      if (busy()) { const g0 = gen; setTimeout(() => { if (g0 === gen) this.last(words); }, 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
       if (lastCard) lastCard.remove();
-      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), h('span', String(words).replace(' · ', ' · ')));   // (FIX A: a wrapped line breaks AFTER the dot)
+      // (FIX B: TWO lines, the dot ENDS the first — "CHARLIE HIT THE BOTTOM ·" / "KEEP FALLING FOR 2ND" — never leading the second)
+      const W = String(words), k = W.indexOf(' · '), sub = k < 0 ? h('span', W) : h('span', h('i', `${W.slice(0, k)} ·`), h('i', W.slice(k + 3)));
+      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), sub);   // (FIX A: a wrapped line breaks AFTER the dot)
       el.append(c); lastTotal++;   // (never in .ff-over: that layer hides the rail — Call the Winner's sheet)
       setTimeout(() => { c.remove(); if (lastCard === c) lastCard = null; }, LAST_CARD_MS);
     },
@@ -107,6 +110,7 @@ export function createMatchHud({ busy = () => false } = {}) {
       for (const d of dots.values()) { d.el.remove(); if (d.name) d.name.el.remove(); }
       dots.clear(); rail.hidden = true;
       clockKey = ''; clock.hidden = true; watchKey = ''; watch.hidden = true;
+      gen++; clearTimeout(outWait); outWait = 0;
       outQ.length = 0; outs.replaceChildren(); outN = 0; outTotal = 0; lastTotal = 0; if (lastCard) { lastCard.remove(); lastCard = null; }
       if (outCard) { outCard.remove(); outCard = null; }
       over.replaceChildren();

@@ -31,8 +31,8 @@ export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 600 }
  *  · SHOT_ZOOM: how far the camera steps back for it (2–3 floors of context under the ball; THE BOTTOM keeps the finish's own pose)
  *  · SHOT_BLOOM: the glow's share (THE BOTTOM's kept LOW — the night gold card was a white blob) · SHOT_GLOW: the red slice's own glow */
 export const SHOT_BEFORE = Object.freeze({ red: 9, dark: 9, cap: 0, made: 0 });
-export const SHOT_ZOOM = Object.freeze({ red: 1.32, dark: 1.28, cap: 1.28, made: 1.14 });   // (the camera's distance × this: FIX A — N3, the finish pulled back a little)
-export const SHOT_BLOOM = Object.freeze({ red: 0.75, dark: 0.75, cap: 0.75, made: 0.08 });   // (F5B: THE BOTTOM 0.3 → 0.12 — still a hazy white blur at 360 px)
+export const SHOT_ZOOM = Object.freeze({ red: 1.32, dark: 1.28, cap: 1.28, made: 0.74 });   // (FIX B: THE BOTTOM zoomed IN — the ball + its gold ring BIG, the celebration round them: the fresh-eyes reviewer was right, FIX A's "pulled back" was wrong)   // (the camera's distance × this: FIX A — N3, the finish pulled back a little)
+export const SHOT_BLOOM = Object.freeze({ red: 0.75, dark: 0.75, cap: 0.75, made: 0.16 });   // (F5B: THE BOTTOM 0.3 → 0.12 — still a hazy white blur at 360 px)
 export const SHOT_GLOW = 1.15;   // (THE MARK's own light under the ball, wide + red-hot — a white flash would whiten the slice: it must read RED)
 const own = (T, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(T, k);   // (the table's own rows only: never 'constructor')
 export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.cap);
@@ -41,7 +41,7 @@ export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.c
 export const BALL_AT = Object.freeze({ red: 0.42, dark: 0.4, cap: 0.4, made: 0.42 });
 export const ballAt = cause => (own(BALL_AT, cause) ? BALL_AT[cause] : BALL_AT.cap);
 /** the staged frame's numbers for a cause → { before, zoom, bloom, glow, alive } (an unknown cause: the bell's) */
-export const stagingOf = cause => { const k = own(SHOT_ZOOM, cause) ? cause : 'cap'; return { before: SHOT_BEFORE[k], zoom: SHOT_ZOOM[k], bloom: SHOT_BLOOM[k], glow: k === 'red' ? SHOT_GLOW : 0, alive: k !== 'made' }; };
+export const stagingOf = cause => { const k = own(SHOT_ZOOM, cause) ? cause : 'cap'; return { before: SHOT_BEFORE[k], zoom: SHOT_ZOOM[k], bloom: SHOT_BLOOM[k], glow: k === 'red' ? SHOT_GLOW : 0, alive: k !== 'made', party: k === 'made' }; };   // (FIX B — `party`: THE BOTTOM's celebration — the dust, the fireworks, the ring's light — stays in the picture)
 /**
  * PURE: the part of a `sw` × `sh` picture the frame shows — the phone's COLUMN wide (`col` = its width : its height, night.js#CAM.aspectMax:
  * a wide screen is framed as the phone's), of THE BOX's shape, centred across on the ball (`bx`, `by`: 0 … 1 of the picture), the ball

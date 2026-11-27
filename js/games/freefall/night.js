@@ -893,7 +893,7 @@ export function createNight(host, o = {}) {
           const span = runX.nl - runX.pl, u = runX.fl === 'fall' && span > 0 ? Math.min(1, Math.max(0, (tauX - runX.pl) / span)) : 1;
           S[CAMY] = runX.floor - (1 - u);
         }
-        if (!o.alive) { breaks.quiet(true); breaks.crisp(true); lightMat.uniforms.uHalo.value = SHOT_HALO; }   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it; F5B: the ring crisp, the ball's halo small)
+        if (!o.alive) { if (!o.party) breaks.quiet(true); breaks.crisp(true); lightMat.uniforms.uHalo.value = SHOT_HALO; }   // (FIX B — `party`: the finish's celebration stays in the zoomed-in picture)   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it; F5B: the ring crisp, the ball's halo small)
         shotGlow = o.glow > 0 ? o.glow : 0;
         // (the slice under the ball wears no leftover flash in the picture: it reads RED — its glow is THE MARK's, red-hot, in draw())
         if (shotGlow > 0) { const fr = floorRec(runX.floor), su = sliceUnder(runX.a, fr.twist); fi = (runX.floor % RING) * SLICES + su; f0 = flash[fi]; flash[fi] = 0; }

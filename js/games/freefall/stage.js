@@ -14,7 +14,7 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard, warmLogo } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
-import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX, LOST_GONE_MS } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
 import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';
@@ -270,7 +270,7 @@ export function createStage(app0, o = {}) {
   // ---- the run: the pure engine on this page's clock
   let seed = '', run = null, t0 = null, shown = false, endedAt = 0, starting = false, startN = 0, warmed = false;
   let owed = 0, carry = 0, pre = 0, clamped = 0, drag = null, keyDir = 0, keyTick = 0, autoTick = 0;
-  let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9;
+  let held = false, heldT = 0, countAt = 0, countShown = 0, away = false, restartAt = -1e9, blockTxt = '';
   let whipAt = -1e9, countN = 0, countTries = 0, stamped = false, overTold = false;   // (F4A — the cartridge: the spin-up · a hold's way back + its stamp · the run's end told once)
   let best = readBest(), tapeFloor = 0, newBest = false, fromRun = false, hudFloor = -1, hudGap = -99, hudArea = '', hudInk = '', hitches = 0;
   let ev = [], fed = 0;
@@ -298,7 +298,7 @@ export function createStage(app0, o = {}) {
   const saidSeen = () => !!(o.said && o.said.seen(seed)), saidKeep = () => { if (o.said) o.said.keep(seed); };
   let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
   const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [];
-  const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, me: true };
+  const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, gone: false, me: true };
   let watchUid = '', WA = null, evW = [], wfed = 0, wNew = false, rowsDirty = true, simNear = false, watchDelay = WATCH_DELAY;
   const UNIT = 2 * Math.PI / TURN;
   const reduceM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -355,7 +355,7 @@ export function createStage(app0, o = {}) {
   // late path (THE SOUND SYNC; a first-ever touch is also the audio's unlock). The logo + the hint fade and the camera sweeps down
   // meanwhile; the finger's first moves are kept (`pre`) and turn the tower from tick 0.
   function begin(ts) {
-    if (starting || t0 != null || shown) return;
+    if (starting || t0 != null || shown || blockTxt) return;   // (FIX B — S8: a phone that is not in this run's match never starts one)
     starting = true; startN++;
     stage.classList.remove('is-open'); stage.classList.add('is-starting');
     turnAt = performance.now(); if (!pre && MODE !== 'match') teachOn(true);   // (S12: a TAP started it — the hint stays until the tower turns)
@@ -477,7 +477,7 @@ export function createStage(app0, o = {}) {
     for (let i = 0; i < L.length; i++) {
       const p = L[i], hex = hexOk(p.hex), name = String(p.name || 'GHOST').toUpperCase().slice(0, 12);
       let g = ghosts[i];
-      if (!g || g.uid !== p.uid) { g = { uid: p.uid, name: '', hex: '', r: 0, g: 0, b: 0, G: createGhost(seed, 'match'), row: { uid: p.uid, name: '', hex: '', floor: 0, over: false, end: '', lost: false, me: false, side: 1 } }; ghosts[i] = g; changed = true; }
+      if (!g || g.uid !== p.uid) { g = { uid: p.uid, name: '', hex: '', r: 0, g: 0, b: 0, G: createGhost(seed, 'match'), row: { uid: p.uid, name: '', hex: '', floor: 0, over: false, end: '', lost: false, gone: false, me: false, side: 1 } }; ghosts[i] = g; changed = true; }
       if (g.name !== name || g.hex !== hex) { g.name = name; g.hex = hex; g.r = lin(parseInt(hex.slice(1, 3), 16)); g.g = lin(parseInt(hex.slice(3, 5), 16)); g.b = lin(parseInt(hex.slice(5, 7), 16)); g.row.name = name; g.row.hex = hex; changed = true; }
     }
     ghosts.length = L.length;
@@ -537,7 +537,7 @@ export function createStage(app0, o = {}) {
     // F5C — LAST ONE STANDING (3+ players, every rival over, me still falling): once a match — JAYWALK's card + its sound
     if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; saidKeep(); MH.last(lastWords(lead, madeAhead(rows))); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
-    for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
+    for (let i = 0; i < rows.length; i++) if (!rows[i].over && !rows[i].gone) n++;   // (FIX B — S7: a phone silent > LOST_GONE_MS is not PLAYING)
     if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`; }   // (FIX A — N13: never "0 PLAYING")
     // (the bot room with `&watch=1`: every bot is down — its own card comes now)
     if (sim && o.watchSim && watchUid && n === 0) { watch(''); end.hidden = false; }
@@ -566,10 +566,11 @@ export function createStage(app0, o = {}) {
       // (a rival at a BREAKTHROUGH: a small echo only)
       if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
       const row = g.row;
-      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end) {
+      const gone = G.lost && now - G.lostAt > LOST_GONE_MS;
+      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end || row.gone !== gone) {
         // F5C — RIVAL OUT: a rival's run ended OUT (red / the dark — never a finish, never time's up): the drop + "MIA IS OUT" in their colour
         if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }
-        row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.end = G.end; rowsDirty = true;
+        row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.gone = gone; row.end = G.end; rowsDirty = true;
       }
     }
     if (rowsDirty) matchHudNow(R0);
@@ -598,6 +599,9 @@ export function createStage(app0, o = {}) {
   }
   function show() {
     view.rest(false); last = 0; tiers.reset(); hudGap = -99;   // (… the darkness's line + its rumble are set again from the run — the hide silenced them)
+    // FIX B — S15 THE CLOCK AFTER A LOCK: a MATCH's tick 0 is the SERVER's — the page's own clock may have slept with the phone (iOS): tick 0
+    // is anchored again from the server's time (`o.matchT0` — view.js), so the ball is where the match's clock says, never where it hung
+    if (match && t0 != null && o.matchT0) { const T = o.matchT0(); if (T != null && Number.isFinite(T) && Math.abs(T - t0) > 40) t0 = T; }
     if (held && !countAt) startCount();
     if (glDown) { clearTimeout(lostTimer); lostTimer = 0; rebuild(); }
   }
@@ -1003,7 +1007,7 @@ export function createStage(app0, o = {}) {
     /** (F4B) THE SHARE CARD's frame of the last ended run on this phone (shot.js — null: none yet) */
     shot: () => lastShot(),
     frames: () => { const out = [], n = Math.min(frameK, 600); for (let i = n - 1; i >= 0; i--) out.push(frames[(frameK - 1 - i + 6000) % 600]); return out; },
-    setLook: l => setLook(l), setTier: t => tiers.set(t), hitch: ms => hitchNow(ms, performance.now()), drawn: () => view.drawn ? Array.from(view.drawn()) : null, smoothOn: () => SMOOTH, lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
+    setLook: l => setLook(l), setTier: t => tiers.set(t), hitch: ms => hitchNow(ms, performance.now()), mh: { callout: (t, c) => MH.callout(t, c), reset: () => MH.reset(), last: w => MH.last(w) }, drawn: () => view.drawn ? Array.from(view.drawn()) : null, smoothOn: () => SMOOTH, lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
     stop() { cancelAnimationFrame(raf); },
   });
   if (o.hook) window[o.hook] = hook;
@@ -1031,6 +1035,8 @@ export function createStage(app0, o = {}) {
     start() { begin(performance.now()); },
     /** F4B — THE SHARE CARD's frame of THIS stage's run (shot.js — null until it ended + a beat; share.js reads it by the same key) */
     shot: () => shotFor(shotKey()),
+    /** FIX B — S8: no run here (a phone not in the room's solo run): the line says so, a drag starts nothing ('' = the run may start again) */
+    block(text) { const t = String(text || ''); if (t === blockTxt) return; blockTxt = t; if (t) { note.textContent = t; note.hidden = false; } else if (!runNote) { note.textContent = PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : ''; note.hidden = !PAGE; } },
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
     destroy() { gone = true; unduck(); clearInterval(pingT); if (longObs) longObs.disconnect(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },

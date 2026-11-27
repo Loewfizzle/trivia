@@ -44,14 +44,14 @@ export function createGhost(seed, mode = 'match') {
     done: false, bad: false, fresh: false, seen: false,   // their own end is here · a chunk the engine refused (the judge will refuse that log) · confirmed news since the last frame
     held: false, heldAt: 0,                  // the drawn run stands before a step that would end it, unconfirmed
     off: false, oa: 0, oy: 0, ot0: 0, oms: 1,   // the catch-up: the angle (units) + the height (world units) still to close, from when, for how long
-    a: 0, y: 0, floor: 0, lost: false, over: false, end: '', capped: false,   // WHAT IS DRAWN: their tower's angle · the ball's height (world y) · its floor · not drawn (no news) · ended (how)
+    a: 0, y: 0, floor: 0, lost: false, lostAt: 0, over: false, end: '', capped: false,   // WHAT IS DRAWN: their tower's angle · the ball's height (world y) · its floor · not drawn (no news) · ended (how)
   };
 }
 /** the match's seed moved (THE FIRST GO landed late on this phone): the ghost starts again on it — their chunks are read again */
 export function resetGhost(G, seed, mode = G.mode) {
   G.seed = seed; G.mode = mode; G.conf = createRun({ seed, mode }); G.run = createRun({ seed, mode }); G.keep = createRun({ seed, mode });
   G.n = 0; G.pt = -1; G.pa = 0; G.moves = 0; G.lt.length = 0; G.la.length = 0; G.done = false; G.bad = false; G.fresh = false; G.seen = false; G.held = false; G.off = false;
-  G.a = 0; G.y = 0; G.floor = 0; G.lost = false; G.over = false; G.end = ''; G.capped = false;
+  G.a = 0; G.y = 0; G.floor = 0; G.lost = false; G.lostAt = 0; G.over = false; G.end = ''; G.capped = false;
 }
 
 const digit = c => (c >= 48 && c <= 57 ? c - 48 : c >= 97 && c <= 122 ? c - 87 : -1);
@@ -141,7 +141,9 @@ export function stepGhost(G, tau, now) {
   G.a = wrap(a + Math.round(ka)); G.y = y + ky;
   G.seen = true;   // (the first frame never arcs in from nowhere)
   // not drawn: held too long with no news (their signal) — or a log the judge will refuse past here
+  const wasLost = G.lost;
   G.lost = !over && ((G.held && now - G.heldAt > HELD_SHOW_MS) || (!G.done && target > (G.pt < 0 ? 0 : G.pt) + SILENT_TICKS));
+  if (G.lost && !wasLost) G.lostAt = now;   // (FIX B — S7: since when — a row LOST longer than LOST_GONE_MS is `gone`: out of the count + LAST ONE STANDING)
   return G;
 }
 /** WHERE A GHOST IS DRAWN ROUND MY TOWER: the world angle (units, 0 = the front where MY ball is) = (the ball's angle − their tower's) + MY tower's */
@@ -170,9 +172,11 @@ export function madeAhead(rows) {
 }
 /** LAST ONE STANDING (PURE): rows { me, over, floor } → my lead over the deepest rival when I'm the LAST still falling in a match of
  *  LAST_MIN_PLAYERS or more · null = not (yet) */
+/** FIX B — S7: a rival with no news this long (a dead phone, a dropped signal) is `gone` — not "PLAYING", never in the way of LAST ONE STANDING, never WATCHED on */
+export const LOST_GONE_MS = 2000;
 export function lastStanding(rows) {
   let me = null, n = 0, deep = -Infinity;
-  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over) return null; if (r.end !== 'made' && r.floor > deep) deep = r.floor; }   // (FIX A — S14: the lead is measured to the rivals who did NOT finish)
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over && !r.gone) return null; if (r.end !== 'made' && r.floor > deep) deep = r.floor; }   // (FIX A — S14: the lead is measured to the rivals who did NOT finish)
   return me && !me.over && n >= LAST_MIN_PLAYERS ? (deep === -Infinity ? 0 : me.floor - deep) : null;
 }
 /** an edge marker's words: "MIA ↓12" (deeper than me) · "MIA ↑3" (above me) */
@@ -212,15 +216,15 @@ export function follow(rows, stay = '') {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (r.me) continue;
-    if (r.uid === stay && !r.over) return stay;
-    if (!r.over && (!lead || deepFirst(r, lead) < 0)) lead = r;
+    if (r.uid === stay && !r.over && !r.gone) return stay;   // (FIX B — S7: the one followed stays while they fall — not once their phone has been silent > LOST_GONE_MS)
+    if (!r.over && !r.lost && (!lead || deepFirst(r, lead) < 0)) lead = r;   // (… and THE LEADER is the deepest one we HEAR falling)
     if (!any || deepFirst(r, any) < 0) any = r;
   }
-  return lead ? lead.uid : stay && rows.some(r => r.uid === stay) ? stay : any ? any.uid : '';
+  return lead ? lead.uid : stay && rows.some(r => r.uid === stay && !r.gone) ? stay : any ? any.uid : '';
 }
 /** a TAP = the next player: the ones still falling, deepest first, round and round (nobody still falling: everyone, deepest first) */
 export function nextFollow(rows, cur) {
-  let list = rows.filter(r => !r.me && !r.over);
+  let list = rows.filter(r => !r.me && !r.over && !r.gone);
   if (!list.length) list = rows.filter(r => !r.me);
   list.sort(deepFirst);
   if (!list.length) return '';

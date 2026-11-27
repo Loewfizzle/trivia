@@ -36,6 +36,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 | THE REVIEW (report only) | Nov 27 2026 | `docs/games/passes/freefall-review.md` | MUST 3 · SHOULD 16 · NICE 15 — the fix list for THE FIX PASS |
 | THE FIX PASS A — THE LOOK + THE FEEL | Nov 27 2026 | `docs/games/passes/freefall-fixa.md` | MAKE ROOM (MODULE NOTES) · THE LOOK LOCK · THE DAY HUD · THE WATER (Grok's ripple map) · the callouts up · THE RAIL's NAMES (no edge markers) · THE MARK = D · `?fps=1`'s END-OF-RUN SUMMARY · THE SPIKE RULE · the title's dark hold · THE TAPPER · the deep lifted by night |
+| THE FIX PASS B — SPEED BY EXPERIMENT + THE MATCH + STABILITY | Nov 27 2026 | `docs/games/passes/freefall-fixb.md` | THE SPIKE RULE steps down only if it HELPS · `?fps=2` THE BREAKDOWN · THE A/B SWITCHES (`?bloom=0 · ?fx=0 · ?wall=0 · ?ghosts=0 · ?smooth=0`) · SMOOTH MOTION (the tower at the real time) · a lost context keeps the rivals · a yielded tab never writes proof · S1 the re-score · S6 leavers · S7 lost phones · S8 not in the run · S9 the podium's fallback · S15 the clock after a lock · the finish card zoomed in · LAST ONE STANDING's two lines |
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same INPUT LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers
@@ -823,6 +824,27 @@ FREEFALL stays HIDDEN; THE SWITCH stays OFF. No rules-file change.
 - **THE MIX** (`sounds.js` gains + `DUCK` / `DUCK_MS` · `stage.js#duckFor` · `view.js` drv.duck): measured against JAYWALK's; the music ducks
   to 0.5 under the outs, the breakthroughs, the bottom + LAST ONE STANDING. **THE CREDITS**: `ui/credits.js` group FREEFALL (`game` —
   shown where FREEFALL is playable).
+
+## THE FIX PASS B — SPEED BY EXPERIMENT + THE MATCH + STABILITY (Nov 27 — `docs/games/passes/freefall-fixb.md`, the whole text there)
+- **THE SPIKE RULE ONLY STEPS DOWN IF IT HELPS** (`stage.js#SPIKE` — `{ n 4, span 20 s, trial 10 s, settle 0.5 s, helped 0.5, floor 1 }`):
+  a step down is a TRIAL — the next 10 s of play must halve the hitch rate, else the tier goes back up and the rule rests for the page.
+  Never below tier 1 on spikes alone.
+- **`?fps=2` — THE BREAKDOWN**: each hitch split into `ours` (update · build · submit) · `busy` (the main thread held by other work — a 4 ms
+  ping) · `gpu` (the wait with the thread free), over the last two gaps; long tasks counted (Chromium). The live line + the END-OF-RUN
+  SUMMARY. **THE A/B SWITCHES** (the test page only — `play.js#AB` → `stage.js` → `night.js` `o.ab`): `?bloom=0 · ?fx=0 · ?wall=0 ·
+  ?ghosts=0 · ?smooth=0` with `?dpr= · ?tier=`; named at the head of every `?fps=` line.
+- **SMOOTH MOTION** (VIEW ONLY — `stage.js#spinAhead`): the tower drawn at the real time — the turn the next tick will make × the fraction
+  of the tick gone; at the tick the drawn angle IS the landing's. The engine + the proof never see it.
+- **THE MATCH + STABILITY**: a lost context re-sends the ghosts (`rebuild`) · a yielded duplicate tab (`state.dupTab`) only WATCHES and
+  writes nothing, then takes over as a refresh (`view.js#dup`) · the callouts' timers survive a reset (`matchhud.js` `gen`) · **S1**
+  `game.ends` + `director.js#rescore` (a silent phone's late end re-scores `results` + the night record; the late phone's own podium =
+  `scoredNow`) · **S6** a LEAVE writes `e` (`w: 'left'`), no on-time GO = ended 3 s after the window (`match.js#noRunFor`) · **S7**
+  `row.gone` (lost > `ghosts.js#LOST_GONE_MS` 2 s) out of the count + LAST ONE STANDING, the leader the deepest one HEARD · **S8** not in
+  the room's solo run → "PLAYING — WAIT FOR THE REMATCH" (`stage.js#block`), BACK → `setState({ quit })` for a non-host · **S9** the
+  podium's plain list when the shared block has no rows (`view.js#plainList`) · **S15** `show()` anchors a match's tick 0 again from the
+  server's time (`o.matchT0`).
+- **THE FINISH CARD ZOOMED IN** (`shot.js` `SHOT_ZOOM.made` · `stagingOf().party`): the ball + its gold ring big, the celebration kept in
+  the staged frame · **LAST ONE STANDING** in two lines, the dot ending the first.
 
 ## THE FIX PASS A — THE LOOK + THE FEEL (Nov 27 — `docs/games/passes/freefall-fixa.md`)
 - **THE LOOK LOCK** (the review's M1; the owner: the HOST's look for the whole match, the same on every phone): a run keeps the look it

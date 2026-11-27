@@ -58,9 +58,10 @@ test('THE STAGE + THE SCENE: ONE small hook each — the frame JUST DRAWN is cop
   assert.match(st, /rb\.a = run\.a;/, 'the tower at the angle the run ENDED on: the ball is over the slice it is about to land on');
   {
     const S = SHOTS;
-    assert.deepEqual(S.stagingOf('red'), { before: 9, zoom: S.SHOT_ZOOM.red, bloom: S.SHOT_BLOOM.red, glow: S.SHOT_GLOW, alive: true }, 'the red: 150 ms before the hit, the slice glowing');
+    assert.deepEqual(S.stagingOf('red'), { before: 9, zoom: S.SHOT_ZOOM.red, bloom: S.SHOT_BLOOM.red, glow: S.SHOT_GLOW, alive: true, party: false }, 'the red: 150 ms before the hit, the slice glowing');
     assert.ok(S.SHOT_BEFORE.red >= 9 && S.SHOT_BEFORE.red <= 15, 'a beat BEFORE the end: 150 – 250 ms'); assert.equal(S.SHOT_BEFORE.dark, S.SHOT_BEFORE.red);
-    assert.deepEqual([S.stagingOf('made').before, S.stagingOf('made').zoom, S.stagingOf('made').alive, S.stagingOf('made').glow], [0, 1.14, false, 0], 'THE BOTTOM (FIX A — N3: pulled back a little): the impact itself, the finish\'s own pose');
+    assert.deepEqual([S.stagingOf('made').before, S.stagingOf('made').alive, S.stagingOf('made').glow, S.stagingOf('made').party], [0, false, 0, true], 'THE BOTTOM: the impact itself, the finish\'s own pose — its celebration kept in the picture (FIX B)');
+    assert.ok(S.SHOT_ZOOM.made < 0.7, 'FIX B: THE BOTTOM zoomed IN — the ball + its gold ring big in the frame (FIX A\'s pulled-back 1.14 was the wrong call)');
     assert.ok(S.SHOT_BLOOM.made <= 0.35, 'THE BOTTOM\'s bloom is kept LOW (the night gold card was a white blob)');
     assert.ok(S.SHOT_ZOOM.red > 1.2 && S.SHOT_ZOOM.red < 1.6, 'zoomed out a little: 2 – 3 floors of context');
     assert.deepEqual(S.stagingOf('constructor'), S.stagingOf('cap'), 'an unknown cause: the bell\'s');

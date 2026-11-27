@@ -5,6 +5,9 @@ import { judgeSolo, judgeMatch } from './proof.js';
 import { onTime } from '../../core/proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, matchStart, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
+/** FIX B — S1: the nodes whose END had landed when the podium was written (`game.ends` — a re-score is owed when another one lands) */
+const endsOf = (ids, runs) => { const o = {}; for (const u of ids) if (runs[u] && runs[u].e) o[u] = 1; return o; };
+
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
 export function createGame({ matchId, settings, participants, now, seed, look = '' }) {
   const mode = modeOf(participants), solo = mode === 'solo';
@@ -51,7 +54,7 @@ export function finalPatch(game0, runs, now, code) {
   const game = moved ? { ...game0, seed: S.seed, playAt: S.playAt, g0: S.g0 } : game0;
   const results = {};
   for (const uid of Object.keys(game.participants || {})) results[uid] = game.unproven ? { ...NONE } : scoreMatchNode(game, runs[uid]);
-  const patch = { phase: 'final', phaseStartAt: now, endAt: now, results, ...(moved ? { seed: S.seed, playAt: S.playAt, g0: S.g0 } : {}) };
+  const patch = { phase: 'final', phaseStartAt: now, endAt: now, results, ends: endsOf(Object.keys(game.participants || {}), runs), ...(moved ? { seed: S.seed, playAt: S.playAt, g0: S.g0 } : {}) };
   const calls = game.unproven ? {} : scoreCalls(game, runs, results);
   if (Object.keys(calls).length) patch.calls = calls;
   return patch;
@@ -67,6 +70,7 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
     if (S) return now >= S.playAt ? { phase: 'play', phaseStartAt: S.playAt, playAt: S.playAt, seed: S.seed, g0: S.g0 } : null;
     return now >= game.playAt + NO_GO_MS ? { phase: 'play', phaseStartAt: now, playAt: now + 800, seed: seedOf(code, game.matchId, `u${now}`), unproven: 1 } : null;
   }
+  if (game.phase === 'final') return rescore(game, runs, now, code);
   if (game.phase !== 'play') return null;
   if (game.mode !== 'solo') {
     if (now >= capAt(game) + END_GRACE_MS) return finalPatch(game, runs, now, code);
@@ -85,6 +89,23 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
   //  ended (`game.x/{uid}`, view.js#again): the match closes with the judge's row of a node that is not there — floor 0, never counted)
   const gone = u => game.mode === 'solo' && !!game.x && !!game.x[u];
   return ids.length > 0 && ids.every(u => (runs[u] && runs[u].e) || gone(u)) ? finalPatch(game, runs, now, code) : null;
+}
+/**
+ * FIX B — S1 A SILENT PHONE (the owner's call: keep the 18 s rule + RE-SCORE): the podium was written while a phone was silent (presence
+ * still "online" after a hard drop) — when that player's END lands AFTER the final and before the cap's grace is over, the host scores the
+ * match again from the nodes as they stand: `results` (+ the calls) — written with `phase: 'final'` so the night record is written again
+ * too (host.js#roomPatch); the podium's own moment (phaseStartAt / endAt) is kept. An end that changes no row only marks itself seen.
+ * Only a podium that recorded its ends (`game.ends`) is ever re-scored; once each, so the host's judge runs at a landing, never a frame.
+ */
+export function rescore(game, runs, now, code) {
+  if (game.mode === 'solo' || game.unproven || !game.ends || !game.results || !(now < capAt(game) + END_GRACE_MS)) return null;
+  const ids = Object.keys(game.participants || {}), fresh = ids.filter(u => runs[u] && runs[u].e && !game.ends[u]);
+  if (!fresh.length) return null;
+  const P = finalPatch({ ...game, phase: 'play' }, runs, now, code), ends = { ...game.ends };
+  for (const u of fresh) ends[u] = 1;
+  const same = ids.every(u => JSON.stringify(P.results[u] || null) === JSON.stringify(game.results[u] || null));
+  if (same) return { ends };
+  return { phase: 'final', results: P.results, ends, calls: P.calls || null, rescored: (Number(game.rescored) || 0) + 1 };
 }
 /** the run as it stands → the podium (the host's END GAME) */
 export const endNow = (game, { now, live, code = '' } = {}) => (game && (game.phase === 'count' || game.phase === 'play') ? finalPatch(game, (live && live.runs) || {}, now, code) : null);

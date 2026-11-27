@@ -299,6 +299,14 @@ async function look() {
         await t.close();
       }
     }
+    if (want('pillar')) {
+      // FIX B — the pillar's end at 199 (FIX A left it open — not reproduced): the last floor before THE BOTTOM, bouncing on it, a match
+      t = await open(390, 844, 3, `?seed=look2${q}&floor=196&mode=match`, { best: 141 });
+      await toFloor(t, 199); await shot(t.p, f('42p-pillar-199'));
+      await sleep(700); await shot(t.p, f('42p-pillar-199b'));
+      console.log(lk, 'pillar', (await st(t.p)).floor, t.errs);
+      await t.close();
+    }
     if (want('crown')) {
       // F5B — THE PLUNGE's CROWN frame by frame (the review: a near-white flash for a frame or two): the page's clock at 0.08 × the real one
       // from the splash on — 14 frames 8 ms of game time apart, 390 × 844 @3
@@ -1469,6 +1477,28 @@ async function fixb() {
     const on = judge(await pace('', steps)), off = judge(await pace('&smooth=0', steps));
     ok(on.n >= 30 && on.bad <= Math.ceil(on.n * 0.05), `SMOOTH MOTION · ${name}: the tower moves its TRUE distance every frame — ${on.n - on.bad} / ${on.n} frames within a tick's share (units a frame: ${on.sample})`);
     if (name !== '60 Hz + one 36 ms frame') ok(off.bad > on.bad, `… ?smooth=0 (the old way) steps once a tick: ${off.bad} / ${off.n} frames off (${off.sample})`);
+  }
+  // (7) G3 — THE CALLOUTS' TIMERS after a reset(): 2 callouts, reset, past OUT_CALL_MS, then 4 → never more than OUT_CALL_MAX on screen
+  t = await open(390, 844, 3, '?seed=fixb5&mode=match&rivals=2');
+  const outs = () => t.p.evaluate('window.__ffPlay.matchState().hud.outs.length');
+  await t.p.evaluate(() => { window.__ffPlay.mh.callout('MIA IS OUT', '#00f0ff'); window.__ffPlay.mh.callout('LIAM IS OUT', '#ffd23f'); window.__ffPlay.mh.reset(); });
+  await sleep(1500 + 400);
+  await t.p.evaluate(() => { for (const n of ['A', 'B', 'C', 'D']) window.__ffPlay.mh.callout(`${n} IS OUT`, '#fff'); });
+  const o1 = await outs(); await sleep(200); const o2 = await outs();
+  ok(o1 <= 2 && o2 <= 2 && o1 === 2, `G3 — the callouts after a reset: ${o1} then ${o2} on screen of 4 asked (OUT_CALL_MAX 2 — the timers from before the reset touch nothing)`);
+  await t.close();
+  // (8) G3.2 — LAST ONE STANDING's two lines: the dot ENDS line 1, never leads line 2 — the longest words (a 12-letter name) at 375 + 390
+  for (const [w, hh, dd] of [[375, 667, 2], [390, 844, 3]]) {
+    t = await open(w, hh, dd, '?seed=fixb5&mode=match&rivals=2');
+    const rows = [];
+    for (const words of ['ABCDEFGHIJKL HIT THE BOTTOM · KEEP FALLING FOR 2ND', '2 RIVALS HIT THE BOTTOM · KEEP FALLING FOR 3RD', '123 FLOORS TO THE LEAD · KEEP FALLING']) {
+      await t.p.evaluate(x => window.__ffPlay.mh.last(x), words); await sleep(500);
+      rows.push(await t.p.evaluate(() => { const L = [...document.querySelectorAll('.ff-last span i')]; return L.map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent, l: r.left, r: r.right, y: r.top }; }); }));
+      if (words.startsWith('ABC')) await shot(t.p, `fixb-last-${w}.png`);
+    }
+    const good = rows.every(L => L.length === 2 && / ·$/.test(L[0].t) && !/^·/.test(L[1].t) && L[1].y > L[0].y && L.every(x => x.l >= 8 && x.r <= w - 8));
+    ok(good, `G3.2 — LAST ONE STANDING at ${w}: "${rows.map(L => L.map(x => x.t.replace(/ /g, ' ')).join(' / ')).join('" · "')}" — the dot ends line 1, both lines inside the screen`);
+    await t.close();
   }
   // (6) G1 — A LOST CONTEXT in a match: the new scene gets the 7 rivals + their names again; while WATCHING, the next frame adopts the watched run
   t = await open(390, 844, 3, '?seed=look3&mode=match&rivals=7');

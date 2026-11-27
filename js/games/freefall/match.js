@@ -2,7 +2,7 @@
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { TICK_HZ, MODES } from './tuning.js';
 import { seedOf, gameStandings } from './logic.js';
-import { firstGo, inMatch, fullDraw, liveGoers } from '../../core/proof.js';
+import { firstGo, inMatch, fullDraw, liveGoers, onTime, GO_WINDOW_MS } from '../../core/proof.js';
 
 export { CALL_MS, firstGo };
 export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
@@ -60,7 +60,11 @@ export function lastSeen(game, node) {
 }
 /** has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the darkness has ended the run
  *  AND (offline) a dropped signal has had its time to come back */
-export const endedFor = (game, node, now, online) => !!(node && node.e) || now >= lastSeen(game, node) + IDLE_OUT_MS + (online ? 0 : DROP_WAIT_MS);
+export const endedFor = (game, node, now, online) => !!(node && node.e) || noRunFor(game, node, now) || now >= lastSeen(game, node) + IDLE_OUT_MS + (online ? 0 : DROP_WAIT_MS);
+/** FIX B — S6 (b): a phone with NO ON-TIME GO (a tab closed in the 3 · 2 · 1, a GO that came late) can never have a run (core/proof.js#liveGoers
+ *  says so): the room stops waiting for it NO_GO_END_MS after THE FIRST GO's window — never the 18 + 75 s of a silent run */
+export const NO_GO_END_MS = 3000;
+export const noRunFor = (game, node, now) => game.g0 > 0 && !onTime(node, game.g0) && now >= game.g0 + GO_WINDOW_MS + NO_GO_END_MS;
 
 /**
  * THE CONSOLE FIX — THE LIVE RUNS of a match (core/proof.js#liveGoers on this game's clock: THE FIRST GO's tick 0, the 3:00 cap +

@@ -291,6 +291,13 @@
    who), the personal-best plaques fold into YOUR BEST + the board (the XP line stays), and NOTHING SCROLLS at 375 × 667 · 390 × 844 · 430 × 932:
    on a short screen the logo, the cause + the number come down a size (the logo never under 180 pt — the script reads there) */
 .ff-final .final .winner, .ff-final .final .rc-plaque { display: none; }
+/* FIX B — S9 THE PODIUM's FALLBACK: the shared block did not come — a plain three-line list names the winner (view.js#plainList) */
+.ff-final .ff-fin-plain { list-style: none; margin: 12px auto 0; padding: 0; width: min(320px, 88%); font: 700 18px/1.55 var(--font-ui); color: #fff; }
+.ff-final .ff-fin-plain li { display: flex; gap: 10px; align-items: baseline; }
+.ff-final .ff-fin-plain b { width: 1.3em; font-family: var(--font-num); color: #ff4fa8; }
+.ff-final .ff-fin-plain span { flex: 1 1 auto; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ff-final .ff-fin-plain i { font-style: normal; font-family: var(--font-num); color: #d9dbff; }
+.ff-final .ff-fin-plain li.is-me span { color: #ff8fe0; }
 .ff-final .final .eb { margin-top: 4px; }
 .ff-final .final.has-eb .eb { --eb-acc: #ff4fa8; --eb-you: #ff8fe0; --eb-tick: #fff; }   /* (THE END-BOARD SWITCH-ON: the block's accents = the game's — FREEFALL's = F5C's FREE pink, unchanged) */
 .ff-final .ff-fin .ff-ec { gap: 4px; }
@@ -375,6 +382,7 @@
 /* F5C — LAST ONE STANDING = JAYWALK's moment card (css/jaywalk.css .jw-last) — FIX A: up in the bands' zone under the number (never over the floors below the ball) */
 .ff-last { position: absolute; z-index: 0; left: 12px; right: 12px; top: calc(var(--ff-band-top) + 6px); display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; animation: ff-last 2.6s ease-out both; }
 .ff-last b { font: 900 clamp(19px, 6.1vw, 26px)/1.05 var(--font-display); letter-spacing: 0.05em; white-space: nowrap; color: #fff8e6; text-shadow: 0 0 4px #fff, 0 0 16px #ffc83c, 0 0 34px rgba(255, 190, 40, 0.75), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.ff-last span i { display: block; font-style: normal; white-space: nowrap; }   /* (FIX B: one line each — the dot ends the first) */
 .ff-last span { font: 800 clamp(11.5px, 3.4vw, 14px)/1.25 var(--font-ui); letter-spacing: 0.1em; padding-left: 0.1em; max-width: 340px; text-wrap: balance; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
 /* (over the busy floors: a soft dark ground under the card — a static gradient, faded with the card) */
 .ff-last::before { content: ''; position: absolute; left: -12px; right: -12px; top: -18px; bottom: -16px; z-index: -1; background: radial-gradient(ellipse at 50% 50%, rgba(7, 4, 15, 0.82) 0%, rgba(7, 4, 15, 0.6) 48%, rgba(7, 4, 15, 0) 74%); }

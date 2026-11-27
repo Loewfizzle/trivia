@@ -558,7 +558,100 @@ async function partC() {
   await H.shot(pages[0], 'cap-podium');
 }
 
-const PARTS = [['a', partA, true], ['b', partB, !FAST], ['c', partC, CAP]];
+
+// =====================================================================================================================================
+// D — FIX B (docs/games/passes/freefall-fixb.md): G2 A YIELDED DUPLICATE TAB never writes proof, then TAKES OVER · S15 THE CLOCK AFTER A LOCK
+// (the page's clock slept) · S6 (a) a deliberate LEAVE writes `e` · the podium comes at once after them · S9 THE PODIUM's FALLBACK
+async function partD() {
+  section = 'D fix b';
+  const { host, code } = await openRoom('fd', 3), I = R(3), ids = I.map(i => uids[i]);
+  // (S9: CHARLIE's shared end-board block is taken away the moment it appears — as ui/final.js does when its import fails)
+  await pages[2].evaluateOnNewDocument(() => { new MutationObserver(() => { for (const e of document.querySelectorAll('.final-eb')) e.remove(); }).observe(document, { childList: true, subtree: true }); });
+  await pages[2].evaluate(() => { new MutationObserver(() => { for (const e of document.querySelectorAll('.final-eb')) e.remove(); }).observe(document, { childList: true, subtree: true }); });
+  const seen = await ownerStart(host, I, null, 'THE OWNER starts FREEFALL for three');
+  const { m } = await goChecks(I, code, seen, '3 players — ');
+  await all(I, p => hand(p, 'play'));
+  await until(async () => (await all(I, floorOf)).every(f => f >= 3), 30000);
+  // ---- G2: BOB opens the game AGAIN in a second tab (the same slot): the new tab yields — it WATCHES, writes nothing
+  const url = pages[1].url(), tab2 = await H.ctxs[1].newPage();
+  tab2.on('pageerror', e => BOOK.errors.push(`[${section}] BOB tab 2 pageerror: ${e.message}`));
+  await tab2.setViewport({ width: 390, height: 844 });
+  await tab2.goto(url);
+  await pages[1].bringToFront();   // (THE TAB YOU LOOK AT PLAYS — identity.js: the first tab stays on screen, the new one yields behind it)
+  const y = await until(async () => { const d = await tab2.$('.dup-tab'), s = await tab2.evaluate('window.__ffGame ? window.__ffGame.state() : null'); return d && s && s.adopted ? s : null; }, 40000);
+  const nodeA = await dbGet(`rooms/${code}/ff/${m}/${uids[1]}`);
+  await sleep(2500);
+  const y2 = await tab2.evaluate('window.__ffGame.state()'), nodeB = await dbGet(`rooms/${code}/ff/${m}/${uids[1]}`);
+  ok(!!y && y2.dupSeen && y2.dup && !y2.proven && y2.sent === y.sent && y2.chunks === y.chunks && !y2.end && !y2.stranded && y2.hud.spect, `G2 — A YIELDED DUPLICATE TAB: adopted as a WATCHER, writes nothing (dupSeen ${y2.dupSeen} · proven ${y2.proven} · its writer still at the node's ${y2.sent} moves / ${y2.chunks} chunks · end ${y2.end} · stranded ${y2.stranded}) — "${y2.hud.hud.watching}"`);
+  ok(!nodeB.e && Object.keys(nodeB.c || {}).length >= Object.keys(nodeA.c || {}).length, `… BOB's run goes on from his FIRST tab (${Object.keys(nodeA.c || {}).length} → ${Object.keys(nodeB.c || {}).length} chunks, no end)`);
+  await H.shot(tab2, 'fixb-dup-tab');
+  // … THE SECOND TAB ON SCREEN: it TAKES OVER — as a refresh: his own moves replayed from the node, proven, writing on
+  await hand(pages[1], 'safe'); await sleep(900);
+  await tab2.bringToFront();   // (the yielded tab brought on screen takes over — the owner's rule; USE THIS TAB does the same)
+  const took = await until(async () => { const s = await tab2.evaluate('window.__ffGame.state()'); return !s.dup && !s.dupSeen && s.adopted && s.proven && !s.hud.spect ? s : null; }, 20000);
+  const old = await until(async () => { const s = await pages[1].evaluate('window.__ffGame.state()'); return s.dup ? s : null; }, 15000);
+  ok(!!took && !!old, `… brought on screen, the second tab TAKES OVER (proven ${took && took.proven}, a player again, ${took && took.sent} moves taken back up from the node) — the first one yields (dup ${old && old.dup})`);
+  await tab2.evaluate(() => { if (window.__ffStage) window.__ffStage.auto = 'play'; });
+  const c0 = Object.keys((await dbGet(`rooms/${code}/ff/${m}/${uids[1]}`)).c || {}).length;
+  const grew = await until(async () => { const n = await dbGet(`rooms/${code}/ff/${m}/${uids[1]}`); return n && !n.e && Object.keys(n.c || {}).length > c0 + 1 ? n : null; }, 15000);
+  const oldW = await pages[1].evaluate('window.__ffGame.state()');
+  ok(!!grew, `… his run's chunks now come from the second tab (${c0} → ${grew ? Object.keys(grew.c).length : '?'}); the yielded first tab sends nothing more (proven ${oldW.proven})`);
+  await pages[1].close(); pages[1] = tab2;
+  // ---- S15 THE CLOCK AFTER A LOCK: CHARLIE's phone locks on safe ground and its PAGE CLOCK sleeps 20 s (iOS) — back, the ball is where
+  //      the match's clock says (the darkness has had him), never where it hung
+  await hand(pages[2], 'safe'); await sleep(500);
+  const s0 = await stg(pages[2]);
+  await hideShow(pages[2], true); await sleep(400);
+  await pages[2].evaluate(() => { const real = performance.now.bind(performance), raf = window.requestAnimationFrame.bind(window); performance.now = () => real() - 20000; window.requestAnimationFrame = cb => raf(t => cb(t - 20000)); });
+  await hideShow(pages[2], false);
+  const s1 = await until(async () => { const s = await stg(pages[2]); return s.over ? s : null; }, 3000, 50);
+  ok(!!s1 && s1.cause === 'dark', `S15 — 20 s of a SLEPT page clock on safe ground: back, the run is OUT at once (THE LIGHTS WENT OUT — ${s1 ? `${s1.cause} @${s1.floor}` : `still falling @${(await stg(pages[2])).floor}`}; floor ${s0.floor} before)`);
+  // ---- S6 (a) A DELIBERATE LEAVE: BOB leaves the room mid-run → his END is written at once (w: 'left')
+  const b0 = await stg(pages[1]);
+  ok(!b0.over, `BOB is still falling (floor ${b0.floor})`);
+  const tL = Date.now();
+  await pages[1].evaluate(() => import('/js/room.js').then(r => r.leaveRoom()));
+  const eL = await until(async () => { const n = await dbGet(`rooms/${code}/ff/${m}/${uids[1]}`); return n && n.e ? n.e : null; }, 10000, 100);
+  ok(!!eL && eL.w === 'left', `S6 (a) — A LEAVE mid-run writes BOB's END at once (${eL ? `${JSON.stringify(eL)}, ${((Date.now() - tL) / 1000).toFixed(1)} s` : 'never'}) — the others never wait 18 + 75 s`);
+  // ---- … ALICE goes out: the podium comes now (every run has ended), not 93 s later
+  await hand(pages[0], 'red');
+  const tA = Date.now();
+  await onPodium([0, 2], 30000, 'the podium after the leaver');
+  ok(Date.now() - tA < 20000, `… ALICE out → the podium in ${((Date.now() - tA) / 1000).toFixed(1)} s (BOB left, CHARLIE out)`);
+  // ---- S9 THE PODIUM's FALLBACK: CHARLIE's shared block never came → a plain three-line list names the winner
+  const pl = await until(async () => pages[2].evaluate(() => { const l = document.querySelector('.ff-final .ff-fin-plain'); return l ? [...l.querySelectorAll('li')].map(li => li.textContent) : null; }), 8000);
+  const g = await dbGet(`rooms/${code}/game`), first = gameStandings(g)[0], nm = n => NAMES[uids.indexOf(n)];
+  ok(!!pl && pl.length === 3 && pl[0].startsWith('1') && (first.uid === uids[1] || pl[0].includes(nm(first.uid))) && !(await pages[2].$('.final-eb')), `S9 — no end-board block on CHARLIE's podium → THE PLAIN LIST: ${pl ? pl.join(' / ') : 'none'} (the winner ${nm(first.uid)})`);
+  ok(!(await pages[0].$('.ff-final .ff-fin-plain')) && !!(await pages[0].$('.ff-final .eb.has-rows')), '… ALICE\'s block came: no plain list there');
+  await H.shot(pages[2], 'fixb-podium-fallback');
+}
+
+
+// E — FIX B S8: A NON-PARTICIPANT in a solo-mode room (back after the start): no GO, no run — "PLAYING — WAIT FOR THE REMATCH"
+async function partE() {
+  section = 'E fix b S8';
+  const { host, code } = await openRoom('fe', 2);
+  const url = pages[1].url();
+  await pages[1].close();   // (BOB's phone is away at the start: the room's game is the owner's SOLO run)
+  await until(async () => { const pr = await dbGet(`rooms/${code}/presence/${uids[1]}`); return !pr || !pr.c; }, 20000);
+  ok(await H.startGame(host, 'freefall', {}), 'THE OWNER starts FREEFALL with BOB away');
+  const g = await until(async () => { const x = await dbGet(`rooms/${code}/game`); return x && x.id === 'freefall' ? x : null; }, 20000);
+  ok(!!g && g.mode === 'solo' && !g.participants[uids[1]], `the room's game is the owner's SOLO run (${g && g.mode}, ${g && Object.keys(g.participants).length} participant)`);
+  await hand(host, 'play');
+  await host.evaluate(() => { const S = window.__ffStage; if (S && S.begin) S.begin(); });
+  // … BOB comes back mid-run
+  const b = await H.ctxs[1].newPage(); pages[1] = b;
+  b.on('pageerror', e => BOOK.errors.push(`[${section}] BOB pageerror: ${e.message}`));
+  await b.setViewport({ width: 390, height: 844 }); await b.goto(url);
+  const on = await until(async () => b.evaluate("(() => { const n = document.querySelector('.ff-stage .ff-note'); return window.__ffStage && n && !n.hidden ? n.textContent : null; })()"), 40000);
+  ok(on === 'PLAYING — WAIT FOR THE REMATCH', `S8 — BOB is back after the start: "${on}"`);
+  await b.mouse.move(195, 600); await b.mouse.down(); await b.mouse.move(260, 600, { steps: 4 }); await b.mouse.up(); await sleep(1500);
+  const bs = await stg(b), bn = await dbGet(`rooms/${code}/ff/${g.matchId}/${uids[1]}`), gs = await state(b);
+  ok(!bs.started && !bn && gs && !gs.proven && gs.sent === 0, `… a drag starts NOTHING: no run (started ${bs.started}), no proof node (${bn ? 'written!' : 'none'}), nothing sent`);
+  await H.shot(b, 'fixb-not-here');
+}
+
+const PARTS = [['a', partA, true], ['b', partB, !FAST], ['c', partC, CAP], ['d', partD, true], ['e', partE, true]];
 for (const [id, fn, on] of PARTS) {
   if (ONLY ? !ONLY.split(',').includes(id) : !on) continue;
   let fatal = null;
