@@ -30,6 +30,7 @@ import { freefallSolo, freefallMatch, FREEFALL_COUNTS } from './_lib/freefall.js
 import { goUids, firstGo, onTime, liveRetryMs, VERIFIED_SOLO } from '../js/core/proof.js';
 import { liveOf as jaywalkLive } from '../js/games/jaywalk/director.js';   // (THE CONSOLE FIX: the live runs — PURE, the host's own rule)
 import { liveOf as highriseLive } from '../js/games/highrise/match.js';
+import { liveOf as freefallLive } from '../js/games/freefall/match.js';   // (FREEFALL F4B: the match's live runs)
 import { isOnline } from '../js/core/room-logic.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
@@ -117,7 +118,7 @@ import { DROP_GUARD, PROOF_NODES, proofPaths, PROOF_TREES, FLAT_PROOF, GO_TREES 
 export const PROOF_GAMES = Object.freeze({
   jaywalk: Object.freeze({ node: PROOF_NODES.jaywalk, solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
   highrise: Object.freeze({ node: PROOF_NODES.highrise, solo: highriseSolo, match: highriseMatch, live: highriseLive }),
-  freefall: Object.freeze({ node: PROOF_NODES.freefall, solo: freefallSolo, match: freefallMatch, live: null }),   // (FREEFALL F4A: the solo run — a match has no live runs to wait for yet: F4B)
+  freefall: Object.freeze({ node: PROOF_NODES.freefall, solo: freefallSolo, match: freefallMatch, live: freefallLive }),   // (FREEFALL F4A: the solo run · F4B: THE MATCH + its live runs)
 });
 // (THE FIX PASS — M1: a proof game missing here would be paid from the host's own game.results — for a solo run, the player's own claim. ONE
 //  guard at load (the /api tests import this file) + tests/proof-lists.test.mjs over the pure lists: every VERIFIED_SOLO id in every list)

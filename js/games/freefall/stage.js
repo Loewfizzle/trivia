@@ -15,7 +15,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
-import { createRun, stepTo, turn, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
+import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
 import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff, floorInto } from './tower-gen.js';
 import { replay, judgeRun } from './replay.js';
 import { endWords, tickOf, areaOf, nextArrival, isArrival, arrivalWords } from './logic.js';
@@ -27,6 +27,9 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY } from './ghosts.js';
+import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
+import { createMatchHud } from './matchhud.js';
 
 /** the wall behind the top of the screen is the area's of this many floors up (night.js#walls keeps a seam in sight that long) */
 const INK_LAG = 5;
@@ -73,12 +76,12 @@ function press(node, fn) {
   return node;
 }
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
-const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, destroy() {} };
+const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
 
 export function createStage(app0, o = {}) {
   let app = app0, acIn = new AbortController();   // (the element the stage is mounted in — the cartridge moves a parked stage to its next view's: `moveTo`)
   const PAGE = !!o.page, FIXED = String(o.seed || '').slice(0, SEED_MAX);
-  const MODE = MODE_IDS.includes(o.mode) ? o.mode : 'solo';
+  let MODE = MODE_IDS.includes(o.mode) ? o.mode : 'solo';   // (F4B: the cartridge's match sets it — setMatch)
   const FROM = Math.max(0, Math.min(600, Math.floor(Number(o.from) || 0)));
   // THE LOOK (F3 — the match kit's shared DAY / NIGHT, games/kit/look.js): the console's GAME LOOK read LIVE (`o.lookNow` — F4's cartridge:
   // the host's AUTO · DAY · NIGHT; no switch of its own) · the test page: `?look=day|night` for a check (`o.look`), else AUTO — the phone's
@@ -104,6 +107,8 @@ export function createStage(app0, o = {}) {
   const hud = h('div.ff-hud', num, call, warn);   // (F3: F2's small area name under the number is gone — THE ARRIVAL BANNERS name an area as the ball reaches it)
   // THE ARRIVAL BANNERS (banner.js): a band across the foot of the screen on reaching an area — its text BAKED ahead of the arrival
   const BNR = createBanner();
+  // F4B — THE MATCH's HUD (matchhud.js): 3 · 2 · 1 + the names, THE DEPTH RAIL, the edge markers, the OUT card, the WATCHING line
+  const MH = createMatchHud();
   // THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube
   // sign + its dropping ball are gone). THE GLINT (.ff-glint): a band of light swept across the lettering, MASKED TO THE LETTERING's
   // OWN ALPHA (the mask = the very file the <img> picked — no second download), a 4-point star on the last letter as it leaves — CSS
@@ -125,8 +130,13 @@ export function createStage(app0, o = {}) {
   const again = h('button.ff-again', { type: 'button' }, h('span.ff-again-i'), h('span.ff-again-t', 'PLAY AGAIN'));
   again.firstChild.innerHTML = ICON_AGAIN;
   // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
-  const share = h('button.ff-foot-b.ff-share', { type: 'button', disabled: true, 'aria-disabled': 'true' }, 'SHARE · SOON'), city = o.onLeave ? h('button.ff-foot-b.ff-city', { type: 'button' }, o.leaveWords || 'BACK') : h('a.ff-foot-b.ff-city', { href: '/' }, 'CITY');
-  const end = h('div.ff-end', { hidden: true }, EC.el, h('div.ff-endfoot', again, h(`div.ff-foot-row${o.onLeave ? '.is-one' : ''}`, o.onLeave ? null : share, city)));   // (the cartridge's own card: no SHARE · SOON — the way out alone)
+  // F4B — THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — ui/final.js's, copied here: this page loads no
+  // console): the PLAY AGAIN bar, then the quiet links SHARE | HOME with the SAME drawn icons. The page's SHARE hands the phone's own share
+  // sheet a line + this page's link (no card, no server: NOTHING COUNTS here — the run card is the cartridge's: share.js)
+  const linkIco = id => { const i = h('i.ff-link-i', { 'aria-hidden': 'true' }); i.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${id === 'share' ? '<path d="M12 15V3.8"/><path d="M7.6 8 12 3.6 16.4 8"/><path d="M5 12.5v6.5h14v-6.5"/>' : '<path d="M3.8 11.2 12 4l8.2 7.2"/><path d="M6.3 9.4V20h11.4V9.4"/><path d="M10 20v-5.2h4V20"/>'}</svg>`; return i; };
+  const shareT = h('span', 'SHARE'), share = h('button.ff-link.ff-share', { type: 'button' }, linkIco('share'), shareT);
+  const city = o.onLeave ? h('button.ff-link.ff-city', { type: 'button' }, linkIco('home'), h('span', o.leaveWords || 'BACK')) : h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'));
+  const end = h('div.ff-end', { hidden: true }, EC.el, h('div.ff-endfoot', again, h('div.ff-links', ...(o.onLeave ? [city] : [share, h('i.ff-link-div', { 'aria-hidden': 'true' }), city]))));   // (the cartridge's own card — an unproven run's: the way out alone)
   const note = h('div.ff-note', PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : '');
   let runNote = '';   // (the cartridge: an UNPROVEN run says so for as long as it is on — NOT COUNTED — …)
   const fpsA = document.createTextNode(''), fps = o.fps ? h('div.ff-fps', fpsA) : null;
@@ -137,7 +147,7 @@ export function createStage(app0, o = {}) {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
+  const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
   app.replaceChildren(stage);
   const hook = { ends: [], view: null, sfx: null, auto: null };
   // (the page installs the shared engine itself; in the console it is running long since)
@@ -263,6 +273,13 @@ export function createStage(app0, o = {}) {
   const cues = [], FIREWORK_CUES = [CUE_FIREWORKS];
   /** F3B — THE FINISH's hook: what a finished run hands on (F4's cartridge wires the match here) · the last one, for the checks */
   let finished = null, handed = false;
+  // F4B — THE MATCH (docs/freefall.md "THE MATCH" · "THE GHOSTS"): the rivals' ghosts (ghosts.js steps them — records made once, the scene
+  // reads `gData`), THE DEPTH RAIL's rows, the markers, WATCH's playback, the test page's bot room (`o.rivals`)
+  let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
+  const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [], marks = { up: [], down: [] };
+  const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, me: true };
+  let watchUid = '', WA = null, evW = [], wfed = 0, wNew = false, rowsDirty = true, simNear = false;
+  const UNIT = 2 * Math.PI / TURN;
   const reduceM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
@@ -282,6 +299,9 @@ export function createStage(app0, o = {}) {
     bnrQueued = -1; clearTimeout(bnrTimer); BNR.clear(); prepBanner(0);
     bedDue = 0; pendText = ''; pendPri = 0; finished = null; handed = false;
     stage.dataset.dark = '';
+    // (F4B: a new run has no rivals yet — the bot room / the match's view sets them again)
+    sim = null; spect = false; ghosts.length = 0; rows.length = 0; view.ghosts(0, null); watchUid = ''; WA = null; playing = -1; clockSec = -1; rowsDirty = true;
+    MH.reset(); stage.classList.remove('is-watch');
   }
   /** `n` floors played at once through the REAL engine (a gap every time — the test page's `?floor=N` + the checks): the run goes on live from there */
   function dive(n) {
@@ -307,6 +327,7 @@ export function createStage(app0, o = {}) {
     if (FROM) { dive(FROM); fromRun = true; t0 = ts - run.t * TICK_MS; prepBanner(run.floor); }
     owed = Math.max(-OWED_MAX, Math.min(OWED_MAX, pre)); pre = 0;
     awakeAt = performance.now(); awake(true);
+    if (o.rivals && !o.go) startSim();   // (the test page's bot room: `?mode=match&rivals=N`)
     if (document.visibilityState === 'hidden') hide();   // (it went live behind a hidden page — the start waited for the sounds: held at once, never lost to the dark unseen)
   }
   // THE START: the first drag. Tick 0 waits a moment (≤ START_WAIT_MS) until EVERY sound is decoded — no sound of a run ever takes the
@@ -380,9 +401,11 @@ export function createStage(app0, o = {}) {
   const sig = { signal: acIn.signal };
   app.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // (F4B — WATCH THE LEADER: a tap = the next player — the view's pick; the test page's bot room: the stage's own)
+    if ((watchUid || spect) && !onUi(e) && !sheetOpen) { if (o.onWatchTap) o.onWatchTap(); else if (sim) watch(nextFollow(rows, watchUid)); return; }
     if (onUi(e) || shown || sheetOpen) return;
     if (drag) return;                                               // (a second finger never steals the drag: the first one keeps it)
-    if (t0 == null) { if (performance.now() - restartAt < RESTART_GUARD_MS) return; begin(stamp(e.timeStamp)); }   // (the tail of a double tap on PLAY AGAIN is not a start)
+    if (t0 == null && !(match && !o.rivals)) { if (performance.now() - restartAt < RESTART_GUARD_MS) return; begin(stamp(e.timeStamp)); }   // (the tail of a double tap on PLAY AGAIN is not a start · F4B: a MATCH starts on its count — never on a drag)
     drag = { id: e.pointerId, x: e.clientX };
     try { app.setPointerCapture(e.pointerId); } catch { /* fine */ }
   }, sig);
@@ -416,13 +439,114 @@ export function createStage(app0, o = {}) {
   }, sig);
   document.addEventListener('keyup', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') keyDir = 0; }, sig);
 
+  // ---- F4B — THE MATCH (docs/freefall.md "THE MATCH" · "THE GHOSTS" · "THE DEPTH RAIL")
+  const lin = v => Math.pow(v / 255, 2.2);
+  const hexOk = hex => (/^#[0-9a-f]{6}$/i.test(hex || '') ? hex : '#00f0ff');
+  const ghostOf = uid => { for (let i = 0; i < ghosts.length; i++) if (ghosts[i].uid === uid) return ghosts[i]; return null; };
+  /** the match's rivals: [{ uid, name, hex }] — a ghost each (kept across calls: a name / a colour that changed bakes the tags again) */
+  function setGhosts(list) {
+    const L = (list || []).slice(0, GHOSTS_MAX);
+    let changed = L.length !== ghosts.length;
+    for (let i = 0; i < L.length; i++) {
+      const p = L[i], hex = hexOk(p.hex), name = String(p.name || 'GHOST').toUpperCase().slice(0, 12);
+      let g = ghosts[i];
+      if (!g || g.uid !== p.uid) { g = { uid: p.uid, name: '', hex: '', r: 0, g: 0, b: 0, G: createGhost(seed, 'match'), row: { uid: p.uid, name: '', hex: '', floor: 0, over: false, end: '', lost: false, me: false } }; ghosts[i] = g; changed = true; }
+      if (g.name !== name || g.hex !== hex) { g.name = name; g.hex = hex; g.r = lin(parseInt(hex.slice(1, 3), 16)); g.g = lin(parseInt(hex.slice(3, 5), 16)); g.b = lin(parseInt(hex.slice(5, 7), 16)); g.row.name = name; g.row.hex = hex; changed = true; }
+    }
+    ghosts.length = L.length;
+    if (changed) { view.ghostNames(ghosts); view.ghosts(ghosts.length, gData); rows.length = 0; for (let i = 0; i < ghosts.length; i++) rows.push(ghosts[i].row); if (!spect) rows.push(meRow); rowsDirty = true; }
+  }
+  /** WATCH (after an out · a watcher — JAYWALK's: the leader first, a tap = the next): the camera + the tower follow that player — their own run, played back exactly, WATCH_DELAY behind ('' = back to this phone's own) */
+  function watch(uid) {
+    const g = uid ? ghostOf(uid) : null;
+    if (!g) { if (watchUid) { watchUid = ''; WA = null; stage.classList.remove('is-watch'); view.reset(run); view.adopt(run, ev, ev.length); hudFloor = -1; hudGap = -99; rowsDirty = true; if (sim) MH.watching(''); } return; }
+    if (uid === watchUid) return;
+    watchUid = uid; WA = createWatch(seed, 'match'); evW = []; wfed = 0; wNew = true;
+    view.pose('play'); hudFloor = -1; hudGap = -99; rowsDirty = true;
+    stage.classList.add('is-watch'); stage.classList.remove('is-gold'); BN.dirty();
+    if (sim) MH.watching(`WATCHING ${g.name} · TAP FOR THE NEXT`);   // (the bot room's own line — in the cartridge the view writes it, with the floor)
+  }
+  /** the match's run lands (THE FIRST GO's seed + tick 0 — it may still lie ahead): `log` = a rejoin's own moves so far · `spectate` = a watcher (no run of its own) */
+  function adoptMatch(A) {
+    seed = String(A.seed); spect = !!A.spectate;
+    run = createRun({ seed, mode: 'match' }); ev = []; fed = 0;
+    shown = spect; endedAt = 0; overTold = false; handed = false; finished = null; away = false; held = false; owed = 0; pre = 0; newBest = false; drag = null;
+    view.reset(run); view.setBest(spect ? 0 : tapeFloor);
+    whipAt = reduceM ? -1e9 : performance.now();
+    for (let i = 0; i < ghosts.length; i++) resetGhost(ghosts[i].G, seed, 'match');
+    watchUid = ''; WA = null; end.hidden = true;
+    stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting', 'is-gold'); stage.classList.add('is-live');
+    view.pose('play'); prepBanner(0);
+    starting = false; soundsBtn.hidden = true; note.hidden = !runNote;
+    t0 = Number(A.t0) || performance.now();
+    awakeAt = performance.now(); awake(true);
+    if (!spect && A.log && A.log.length) {   // (a rejoin mid-run: this player's own moves so far, then on from now — unseen + unheard)
+      for (let i = 0; i < A.log.length; i++) setAngle(run, A.log[i].t, A.log[i].a, ev);
+      const T = Math.floor((performance.now() - t0) / TICK_MS);
+      if (T > 0) stepTo(run, T, ev);
+      fed = ev.length; view.adopt(run, ev, fed);
+    }
+    rows.length = 0; for (let i = 0; i < ghosts.length; i++) rows.push(ghosts[i].row); if (!spect) rows.push(meRow);
+    rowsDirty = true; playing = -1; clockSec = -1; hudFloor = -1; hudGap = -99;
+  }
+  /** the test page's BOT ROOM (matchsim.js — lazy: never in the cartridge): N bots on this run's seed, fed to the ghosts as a room's proof nodes would be */
+  function startSim() {
+    const s = seed;
+    match = true; stage.classList.add('is-match');
+    lazyImport(import('./matchsim.js'), './matchsim.js').then(MS => {
+      if (gone || t0 == null || s !== seed) return;
+      sim = MS.createSim(seed, Math.max(1, Math.min(GHOSTS_MAX, Math.floor(o.rivals))), o.simOpts || {});
+      setGhosts(sim.players);
+      for (let i = 0; i < ghosts.length; i++) resetGhost(ghosts[i].G, seed, 'match');
+    }).catch(() => {});
+  }
+  const clockText = left => `${Math.floor(left / 60)}:${left % 60 < 10 ? '0' : ''}${left % 60}`;
+  /** the rail + the markers + the top line — built where something CHANGED (a floor passed, an out), never in a frame that changed nothing */
+  function matchHudNow(R0) {
+    rowsDirty = false; domAt = performance.now();
+    if (!spect) { meRow.floor = run.floor; meRow.over = isOver(run); meRow.end = !meRow.over ? '' : run.st === 'made' ? 'made' : run.st === 'cap' ? 'cap' : 'out'; }
+    MH.rail(rows);
+    MH.marks(edgeMarks(rows, R0.floor, marks));
+    let n = 0;
+    for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
+    if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)} · ` : ''}${n} PLAYING`; }
+    // (the bot room with `&watch=1`: every bot is down — its own card comes now)
+    if (sim && o.watchSim && watchUid && n === 0) { watch(''); end.hidden = false; }
+  }
+  /** ONE FRAME of the match: every ghost to the world's tick (ghosts.js) → the scene's records. ZERO GARBAGE: numbers into `gData`. */
+  function ghostsFrame(now, tauW, R0, tauD, lead) {
+    const n = ghosts.length, tauG = tauW + simShift, nodes = sim ? sim.reveal(Math.floor(tauG)) : null;
+    const myA = wrap(R0.a + lead), myY = -R0.floor * LIFT.H + (isOver(R0) ? 0 : liftOf(R0, tauD)), alone = spect && !watchUid;
+    for (let i = 0; i < n; i++) {
+      const g = ghosts[i], G = g.G, was = G.floor, o8 = i * GHOST_STRIDE;
+      if (nodes) feedGhost(G, nodes[g.uid]);
+      stepGhost(G, tauG, now);
+      const up = G.y > myY, d = up ? G.y - myY : myY - G.y, off = G.lost || G.over || g.uid === watchUid, far = up ? MARK_UP : MARK_FLOORS;
+      gData[o8] = ghostPhi(G.a, myA) * UNIT; gData[o8 + 1] = G.y; gData[o8 + 2] = g.r; gData[o8 + 3] = g.g; gData[o8 + 4] = g.b;
+      gData[o8 + 5] = off || d >= far ? 0 : d > far - 0.5 ? (far - d) * 2 : 1;   // (it fades out where its edge marker takes over)
+      gData[o8 + 6] = alone || d >= NEAR_FLOORS ? 0 : d <= NEAR_FLOORS - 0.4 ? 1 : (NEAR_FLOORS - d) * 2.5;
+      gData[o8 + 7] = i;
+      // (ABOVE me a ghost rides in the HUD's own lanes — the number, the band: fainter there, and no tag: its edge marker names it)
+      if (up && d > 0.9) { gData[o8 + 5] *= 0.6; gData[o8 + 7] = -1; }
+      if (simNear) { gData[o8 + 1] = myY - ((i % 5) - 2) * 0.9; gData[o8 + 5] = 1; gData[o8 + 6] = 0; }   // (the SPEED TEST's own tool: every ghost in the picture at once, tags and all — never in a match)
+      // (a rival at a BREAKTHROUGH: a small echo only)
+      if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
+      const row = g.row;
+      if (row.floor !== G.floor || row.over !== G.over || row.lost !== G.lost || row.end !== G.end) { row.floor = G.floor; row.over = G.over; row.lost = G.lost; row.end = G.end; rowsDirty = true; }
+    }
+    if (rowsDirty) matchHudNow(R0);
+    // the last half minute's clock (one write a second)
+    const left = Math.ceil((MODES.match.capTicks - tauW) / 60);
+    if (left !== clockSec) { clockSec = left; MH.clock(left <= 30 && left > 0 ? clockText(left) : ''); }
+  }
+
   // ---- THE HOLD: the page hidden / the phone locked holds a SOLO run (engine.js#hold — a logged event); back = 3 · 2 · 1, then on
   function hide() {
     awake(false);
     if (snd && snd.rumble) snd.rumble(0);
     view.rest(true);
     if (held) { countAt = 0; countShown = 0; holdN.textContent = ''; return; }   // (hidden again during the 3 · 2 · 1: the count starts over when the page is back — never skipped)
-    if (t0 == null || isOver(run)) { if (t0 != null) handOn(); return; }
+    if (t0 == null || isOver(run) || spect) { if (t0 != null && !spect) handOn(); return; }
     const T = Math.max(0, Math.floor((performance.now() - t0) / TICK_MS));
     settle(T); stepTo(run, T, ev);
     handOn();   // (a finish that came in this very step: handed on before the page sleeps)
@@ -490,8 +614,20 @@ export function createStage(app0, o = {}) {
     finished = { seed, mode: MODE, floor: res.floor, tick: res.tick, look: lookT, same: null, judged: null };
     if (o.onFinish) { try { o.onFinish(finished, log); } catch { /* the page's own business */ } }
   }
-  function playAgain() { if (!shown) return; if (o.onAgain) { again.classList.add('is-busy'); Promise.resolve(o.onAgain()).then(ok => { again.classList.remove('is-busy'); if (ok === false) restart(); }, () => again.classList.remove('is-busy')); } else restart(); }
+  function playAgain() { if (!shown || end.hidden) return;   /* (F4B: only from the stage's OWN card — never while WATCHING) */ if (o.onAgain) { again.classList.add('is-busy'); Promise.resolve(o.onAgain()).then(ok => { again.classList.remove('is-busy'); if (ok === false) restart(); }, () => again.classList.remove('is-busy')); } else restart(); }
   press(again, playAgain);
+  /** the page's SHARE: the phone's own share sheet — a line + this page's link; no sheet → the link is copied (said on the button for a moment) */
+  function sharePage() {
+    if (!shown) return;
+    const f = run.floor, text = `I fell ${f} floor${f === 1 ? '' : 's'} in FREEFALL`, url = `${location.origin}/freefall-play`;
+    const said = t => { shareT.textContent = t; setTimeout(() => { shareT.textContent = 'SHARE'; }, 1600); };
+    try {
+      if (navigator.share) { navigator.share({ title: 'FREEFALL', text, url }).catch(() => {}); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(`${text} — ${url}`).then(() => said('LINK COPIED'), () => said('COULD NOT SHARE')); return; }
+    } catch { /* an old browser */ }
+    said('COULD NOT SHARE');
+  }
+  press(share, sharePage);
   if (o.onLeave) press(city, () => { city.classList.add('is-busy'); Promise.resolve(o.onLeave()).then(null, () => city.classList.remove('is-busy')); });
   function showEnd(now) {
     shown = true; drag = null; keyDir = 0; owed = 0;
@@ -519,6 +655,8 @@ export function createStage(app0, o = {}) {
     const E = o.onEnd ? o.onEnd(res) || { own: true } : { own: true };
     if (E.note) { runNote = String(E.note); note.textContent = runNote; }
     end.hidden = !E.own; soundsBtn.hidden = false; note.hidden = !(PAGE || (E.own && runNote));
+    // (F4B — the test page's bot room with `&watch=1`: OUT = WATCH THE LEADER — its card comes when every bot is down)
+    if (sim && o.watchSim && rows.some(r => !r.me && !r.over)) { end.hidden = true; watch(follow(rows)); }
     stage.classList.remove('is-live', 'is-near'); stage.classList.add('is-over');
     hook.ends.push({ seed, mode: MODE, same, at, live: res, replay: r, judge: verdict, entries: log.length, holds: run.holds, clamped, best, was, isNew });
     if (hook.ends.length > 50) hook.ends.shift();
@@ -552,7 +690,7 @@ export function createStage(app0, o = {}) {
         }
       } else {
         tau = Math.max(0, (now - t0) / TICK_MS);
-        if (!isOver(run)) {
+        if (!isOver(run) && !spect) {
           const T = Math.floor(tau);
           if (keyDir) { for (let t = Math.max(keyTick + 1, T - 3); t <= T; t++) owed += keyDir * KEY_SPIN; }
           keyTick = T;
@@ -580,11 +718,25 @@ export function createStage(app0, o = {}) {
     // (what the tower shows AHEAD of the run: the finger's moves before the start · before tick 0 · THE SPIN-UP — one whole turn, eased out)
     let lead = t0 == null ? pre : now < t0 ? owed : 0;
     if (now - whipAt < WHIP_MS) { const k = 1 - (now - whipAt) / WHIP_MS; lead += Math.round(TURN * k * k * k); }
-    view.draw(run, over ? run.end : tau, dt, lead);
+    // F4B — THE MATCH: the world's tick runs on past my own end → the ghosts to it; WATCH = that player's own run, played back exactly
+    let R0 = run, tauD = over ? run.end : tau;
+    if (match && t0 != null) {
+      const tauW = now > t0 ? (now - t0) / TICK_MS : 0;
+      if (watchUid) {
+        const g = ghostOf(watchUid), tw = tauW > WATCH_DELAY ? tauW - WATCH_DELAY : 0;
+        if (g) {
+          if (stepWatch(WA, g.G, Math.floor(tw), evW) || wNew) { wNew = false; view.reset(WA.run); view.adopt(WA.run, evW, evW.length); wfed = evW.length; }
+          else if (evW.length > wfed) { view.feed(evW, wfed, evW.length); wfed = evW.length; }
+          R0 = WA.run; tauD = isOver(R0) ? R0.end : tw;
+        }
+      }
+      ghostsFrame(now, tauW, R0, tauD, lead);
+    }
+    view.draw(R0, tauD, dt, lead);
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
-    if (run.floor !== hudFloor) hudFloorNow();
-    const gap = over ? 9 : darkGap(run);
-    if (gap !== hudGap) hudDarkNow(gap, over);
+    if (R0.floor !== hudFloor) hudFloorNow(R0);
+    const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);
+    if (gap !== hudGap) hudDarkNow(gap, overD);
     const work = performance.now() - w0;
     tiers.sample(now, prevWork); prevWork = work;
     if (pin == null && frameN % 10 === 0) tiers.tick(now);
@@ -606,8 +758,8 @@ export function createStage(app0, o = {}) {
   /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
   function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); BNR.dirty(); }
   /** a floor was passed: the big number, the area (YOUR BEST's line once it is beaten) */
-  function hudFloorNow() {
-    hudFloor = run.floor; setNum(hudFloor);
+  function hudFloorNow(R = run) {
+    hudFloor = R.floor; setNum(hudFloor); rowsDirty = true;
     const a = areaOf(hudFloor).name, ink = areaOf(Math.max(0, hudFloor - INK_LAG)).id;
     if (a !== hudArea) hudArea = a;
     if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; domAt = performance.now(); }   // (`data-area` = the area whose WALL is behind the top of the screen — THE REVIEW: it changes INK_LAG floors after a border, as the wall does: the day's inks + THE DARKNESS's look read it)
@@ -621,7 +773,7 @@ export function createStage(app0, o = {}) {
     const on = t0 != null && !over;
     stage.dataset.dark = on ? String(Math.max(1, Math.min(3, gap))) : '';
     stage.classList.toggle('is-near', gap <= 1 && on);
-    if (snd && snd.rumble) snd.rumble(!on || held ? 0 : gap <= 1 ? 1 : gap === 2 ? 0.5 : 0);
+    if (snd && snd.rumble) snd.rumble(!on || held || watchUid || spect ? 0 : gap <= 1 ? 1 : gap === 2 ? 0.5 : 0);   // (F4B: the rumble is MY run's — never a watched player's)
   }
   function countLine(c) { countShown = c; holdN.textContent = String(c); }
   /** `?fps=1`: the last 120 frames, twice a second */
@@ -634,7 +786,10 @@ export function createStage(app0, o = {}) {
   }
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
+  const matchInfo = () => ({ on: match, spect, watch: watchUid, watchFloor: WA ? WA.run.floor : -1, playing, shift: simShift, hud: MH.info(), layer: view.ghostInfo(), top: topL.textContent,
+    ghosts: ghosts.map((g, i) => ({ uid: g.uid, name: g.name, floor: g.G.floor, over: g.G.over, end: g.G.end, lost: g.G.lost, held: g.G.held, moves: g.G.moves, bad: g.G.bad, a: g.G.a, y: g.G.y, phi: gData[i * GHOST_STRIDE], alpha: gData[i * GHOST_STRIDE + 5], near: gData[i * GHOST_STRIDE + 6] })) });
   Object.assign(hook, {
+    matchState: matchInfo, watch: uid => watch(uid), simShift: n => { simShift = Math.max(0, Math.floor(n) || 0); }, simNear: v => { simNear = !!v; },
     state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
@@ -673,9 +828,21 @@ export function createStage(app0, o = {}) {
     /** F4A — the cartridge's hands (view.js): the run as it stands (its log is the proof's), the start (PLAY AGAIN's remount: the tap WAS
      *  the start), the stage's own card with a line (NO SIGNAL), the card put away (the podium takes the screen) */
     run: () => run, result: () => resultOf(run), state: () => ({ started: t0 != null, starting, shown, held, over: isOver(run), seed, note: runNote }),
+    /** F4B — THE MATCH's hands (view.js): the mode · 3 · 2 · 1 + the names · the run on THE FIRST GO's seed + clock · the rivals + their
+     *  proof nodes · WATCH · the OUT card + the WATCHING line · the overlay Call the Winner sits in · my own numbers */
+    setMatch(on) { match = !!on; MODE = on ? 'match' : MODE_IDS.includes(o.mode) ? o.mode : 'solo'; stage.classList.toggle('is-match', match); run = createRun({ seed, mode: MODE }); view.reset(run); },
+    count: (text, names) => MH.count(text, names),
+    adopt: A => adoptMatch(A),
+    setGhosts,
+    feedGhost(uid, node) { const g = ghostOf(uid); return g ? feedGhost(g.G, node) : 0; },
+    ghostRows: () => rows,
+    watch, watching: () => watchUid, watchFloor: () => (WA ? WA.run.floor : -1),
+    watchLine: text => MH.watching(text), outCard: c => MH.outCard(c), over: MH.over,
+    me(rec) { rec.floor = run.floor; rec.over = isOver(run); rec.made = run.st === 'made'; rec.cause = run.st === 'made' ? 'made' : run.st === 'cap' ? 'cap' : run.cause || ''; return rec; },
+    matchState: () => matchInfo(),
     start() { begin(performance.now()); },
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
-    destroy() { gone = true; cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

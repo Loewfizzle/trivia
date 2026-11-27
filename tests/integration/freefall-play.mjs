@@ -210,6 +210,59 @@ async function look() {
         await t.close();
       }
     }
+    // F4B — THE MATCH on the page (the bot room: `?mode=match&rivals=7`): the ghosts (their tags, the x-ray, the outline near my ball), THE
+    // DEPTH RAIL, the edge markers — at the 4 sizes; a look's own contrast (the day's pearl / gold / lavender floors, the water)
+    if (want('match')) {
+      const M = 'window.__ffPlay.matchState()';
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3], [1440, 900, 1]]) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look3&mode=match&rivals=7${q}`, { best: 88 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `${M}.ghosts.length === 7 && window.__ffPlay.state().floor >= 1`, 20000);
+        await sleep(500); await shot(t.p, f(`50-match-a-start-${tag}`));
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 7 && window.__ffPlay.state().fl === "bounce"', 30000); await auto(t.p, 'safe'); await sleep(700);
+        await shot(t.p, f(`50-match-b-ghosts-${tag}`));
+        await sleep(2200); await shot(t.p, f(`50-match-c-below-${tag}`));
+        console.log(lk, tag, 'match', JSON.stringify(await t.p.evaluate(`(() => { const m = ${M}; return { top: m.top, hud: m.hud, layer: m.layer, g: m.ghosts.map(g => [g.name, g.floor, +g.alpha.toFixed(2), +g.near.toFixed(2), g.over, g.lost]) }; })()`)), t.errs);
+        await t.close();
+      }
+      // … deep in a run, the rivals level with me (the bot room's clock shifted): the offices · the speakeasy's gold · the harbor's pearl + the water
+      for (const [name, floor, shift] of [['offices', 46, 900], ['speakeasy', 88, 2300], ['harbor', 124, 3500], ['deep', 166, 5200]]) {
+        t = await open(w, h, dpr, `?seed=look3&mode=match&rivals=7&floor=${floor}&simshift=${shift}${q}`, { best: 88 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, `${M}.ghosts.length === 7`, 20000);
+        await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000); await auto(t.p, 'safe'); await sleep(900);
+        await shot(t.p, f(`51-match-${name}`));
+        console.log(lk, name, JSON.stringify(await t.p.evaluate(`${M}.ghosts.map(g => [g.name, g.floor, +g.alpha.toFixed(2)])`)), t.errs);
+        await t.close();
+      }
+    }
+    // F4B — THE END SCREEN (THE LOGO header, the cause, the number, YOUR BEST, the stats line, THE UNIVERSAL FOOTER): a red out · the
+    // lights · a NEW BEST · THE BOTTOM (gold) — at the 4 sizes + a phone held sideways
+    if (want('end')) {
+      const endShown = "window.__ffPlay.state().shown && !document.querySelector('.ff-end').hidden";
+      for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3], [1440, 900, 1], [844, 390, 2]]) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look2${q}`, { best: 88 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 7', 30000); await auto(t.p, 'red');
+        await waitFor(t.p, endShown, 30000); await sleep(500);
+        await shot(t.p, f(`60-end-red-${tag}`));
+        await t.close();
+        if (sw !== 390 && sw !== 375) continue;
+        t = await open(sw, sh, sd, `?seed=look2${q}`, { best: 4 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 9', 30000); await auto(t.p, 'safe');
+        await waitFor(t.p, endShown, 30000); await sleep(700);
+        await shot(t.p, f(`60-end-newbest-dark-${tag}`));
+        await t.close();
+        t = await open(sw, sh, sd, `?seed=look2&mode=match&floor=198${q}`, { best: 141 });
+        await start(t); await auto(t.p, 'gap');
+        await waitFor(t.p, endShown, 30000); await sleep(600);
+        await shot(t.p, f(`60-end-made-${tag}`));
+        await t.close();
+      }
+    }
     if (want('breaks')) {
       // each breakthrough: the floor before it (the piece in sight), then a burst of frames through the moment
       const through = async (t2, name, until, n, gap, first = 0) => { await waitFor(t2.p, until, 40000); if (first) await sleep(first); for (let i = 0; i < n; i++) { await shot(t2.p, f(`${name}-${i + 1}`)); if (i + 1 < n) await sleep(gap); } };
@@ -381,15 +434,16 @@ async function checks1() {
   await sleep(500);
   s = await st(t.p);
   const e = await t.p.evaluate(() => { const q = x => document.querySelector(x), c = x => getComputedStyle(q(x)).color, r = x => q(x).getBoundingClientRect(); const last = window.__ffPlay.ends[window.__ffPlay.ends.length - 1];
-    return { hd: q('.ff-ec-hd').textContent, cols: [c('.fn-w1'), c('.fn-w2'), c('.fn-m')], cause: q('.ff-ec-cause').textContent, causeCol: c('.ff-ec-cause'), n: q('.ff-ec-n').getAttribute('aria-label'), nFs: parseFloat(getComputedStyle(q('.ff-ec-n')).fontSize), fl: q('.ff-ec-fl').textContent, best: q('.ff-ec-best').textContent, line: q('.ff-ec-line').textContent,
-      again: { x: r('.ff-again').left, r: r('.ff-again').right, h: r('.ff-again').height, b: r('.ff-again').bottom, bg: getComputedStyle(q('.ff-again')).backgroundColor, rad: getComputedStyle(q('.ff-again')).borderRadius }, share: { dis: q('.ff-share').disabled, text: q('.ff-share').textContent, h: r('.ff-share').height }, city: { href: q('.ff-city').getAttribute('href'), h: r('.ff-city').height }, lineB: r('.ff-ec-line').bottom, againT: r('.ff-again').top, hudOp: +getComputedStyle(q('.ff-hud')).opacity,
+    return { hd: q('.ff-ec-logo').getAttribute('aria-label'), logo: { w: r('.ff-ec-logo-img').width, h: r('.ff-ec-logo-img').height, nat: q('.ff-ec-logo-img').naturalWidth, src: q('.ff-ec-logo-img').currentSrc, cardW: r('.ff-ec').width, stageW: r('.ff-stage').width }, mode: q('.ff-ec-mode').textContent, modeCol: c('.ff-ec-mode'), modeFs: parseFloat(getComputedStyle(q('.ff-ec-mode')).fontSize), cause: q('.ff-ec-cause').textContent, causeCol: c('.ff-ec-cause'), n: q('.ff-ec-n').getAttribute('aria-label'), nFs: parseFloat(getComputedStyle(q('.ff-ec-n')).fontSize), fl: q('.ff-ec-fl').textContent, best: q('.ff-ec-best').textContent, line: q('.ff-ec-line').textContent,
+      again: { x: r('.ff-again').left, r: r('.ff-again').right, h: r('.ff-again').height, b: r('.ff-again').bottom, bg: getComputedStyle(q('.ff-again')).backgroundColor, rad: getComputedStyle(q('.ff-again')).borderRadius }, share: { dis: q('.ff-share').disabled, text: q('.ff-share').textContent, h: r('.ff-share').height, x: r('.ff-share').left, ico: !!q('.ff-share svg') }, city: { href: q('.ff-city').getAttribute('href'), text: q('.ff-city').textContent, h: r('.ff-city').height, x: r('.ff-city').left, ico: !!q('.ff-city svg') }, lineB: r('.ff-ec-line').bottom, againT: r('.ff-again').top, hudOp: +getComputedStyle(q('.ff-hud')).opacity,
       last: { same: last.same, cause: last.live.cause, floor: last.live.floor, judge: last.judge.ok, jf: last.judge.floor, holds: last.holds, entries: last.entries } }; });
-  ok(e.hd === 'FREEFALL · SOLO' && e.cols.join('|') === 'rgb(255, 79, 168)|rgb(39, 224, 230)|rgb(207, 239, 245)', `the header "${e.hd}": FREE hot pink · FALL electric teal · the mode a pale ice — title-05's colours (${e.cols.join(' ')})`);
+  ok(e.hd === 'Freefall, solo' && e.logo.nat >= 780 && /lettering-(780|1170)\.webp/.test(e.logo.src) && e.logo.w >= 210 && e.logo.w / e.logo.stageW >= 0.55 && e.logo.w / e.logo.stageW <= 0.62 && Math.abs(e.logo.w / e.logo.h - 780 / 379) < 0.03, `F4B — THE HEADER = THE LOGO: title-05's lettering, ${e.logo.w.toFixed(0)} pt wide = ${(100 * e.logo.w / e.logo.stageW).toFixed(0)} % of the card (≥ 210 pt: the script reads)`);
+  ok(e.mode === 'SOLO' && e.modeCol === 'rgb(39, 224, 230)' && e.modeFs >= 12, `… the mode under it: "${e.mode}" in small teal caps (${e.modeFs} px)`);
   ok(e.cause === 'HIT THE RED' && e.causeCol === 'rgb(39, 224, 230)', `the cause "${e.cause}" in teal neon (${e.causeCol}) — never red`);
   ok(e.n === String(s.floor) && e.nFs >= 84 && e.fl === 'FLOORS', `the big number ${e.n} (${e.nFs.toFixed(0)} px) · ${e.fl}`);
   ok(e.best === 'YOUR BEST · 88' && /^\d+ BOUNCES? · \d+ BLAZES? · BEST RUN \d+$/.test(e.line), `"${e.best}" in gold · "${e.line}"`);
-  ok(e.again.h >= 58 && e.again.x >= 15 && e.again.r <= 375 && e.again.bg === 'rgb(39, 224, 230)' && e.again.rad === '8px' && e.lineB < e.againT, `PLAY AGAIN: one solid teal bar, ${e.again.h.toFixed(0)} pt tall, a rounded rectangle (${e.again.rad}), under the card`);
-  ok(e.share.dis && e.share.text === 'SHARE · SOON' && e.city.href === '/' && e.share.h >= 44 && e.city.h >= 44, `the foot: ${e.share.text} (a placeholder until F4) | CITY (→ ${e.city.href}), both ≥ 44 pt`);
+  ok(e.again.h >= 58 && e.again.x >= 15 && e.again.r <= 375 && e.again.bg === 'rgb(39, 224, 230)' && e.again.rad === '12px' && e.lineB < e.againT, `PLAY AGAIN: one solid teal bar, ${e.again.h.toFixed(0)} pt tall, a rounded rectangle (${e.again.rad}), under the card`);
+  ok(!e.share.dis && e.share.text === 'SHARE' && e.share.ico && e.city.text === 'HOME' && e.city.ico && e.city.href === '/' && e.share.x < e.city.x && e.share.h >= 44 && e.city.h >= 44, `F4B — THE UNIVERSAL FOOTER: PLAY AGAIN, then ${e.share.text} | ${e.city.text} (→ ${e.city.href}) with their drawn icons, both ≥ 44 pt — SHARE works (no "SOON")`);
   ok(e.hudOp === 0, 'the HUD leaves at once when the card comes');
   ok(e.last.same && e.last.judge && e.last.jf === e.last.floor && e.last.cause === 'red' && e.last.holds === 3, `REPLAY = LIVE: the log (${e.last.entries} entries + ${e.last.holds} holds) through a fresh engine + the judge = the live run (floor ${e.last.floor})`);
   ok(t.logs.some(l => /\[freefall\] REPLAY = LIVE ✓/.test(l)) && !(await box(t.p, '.ff-check')), 'REPLAY = LIVE ✓ is said in the console only (no line on the card)');
@@ -443,7 +497,7 @@ async function checks2() {
   await sleep(500); await hideShow(t.p, false); await sleep(200);
   const s2 = await st(t.p);
   ok(!s.held && s.holds === 0 && s2.t > t1 + 20 && s2.holds === 0, `a match does NOT hold: the clock ran on behind the hidden page (tick ${t1} → ${s2.t})`);
-  ok((await box(t.p, '.ff-ec-hd')).text === 'FREEFALL · MATCH', 'the header would say MATCH');
+  ok((await box(t.p, '.ff-ec-mode')).text === 'MATCH', 'the mode under the logo says MATCH');
   await t.close();
 
   // ---- `?floor=N`: the look check — live from floor N, its area's wall, never YOUR BEST
@@ -1026,10 +1080,64 @@ async function checks6() {
       `${lk} ${w}×${h} — THE FRAME BAR: the ball stands on floor 40 — 0.45 s after the break the deck is not drawn, 1.75 s after it no piece of the frame is; the bar's line (left · right) + the top bar's line read at 1 s as they do at 3.2 s (lightness off by ${diff.map(v => v.toFixed(1)).join(' · ')} of 255 — nothing lies there)`);
     await t.close();
   }
+  // ---- THE MATCH ON THE PAGE (the bot room — `?mode=match&rivals=7`: seven bots on the run's own seed, fed to the ghosts as a room's proof
+  // nodes would be; nothing counts, nothing is asked of any server): the ghosts, their tags, the outline near my ball, THE DEPTH RAIL,
+  // the edge markers, the top line; OUT = WATCH THE LEADER (a tap = the next player)
+  {
+    const M = 'window.__ffPlay.matchState()';
+    const t = await open(390, 844, 2, '?seed=look3&mode=match&rivals=7&watch=1&look=night');
+    await start(t);
+    ok(await waitFor(t.p, `${M}.ghosts.length === 7 && ${M}.layer.baked === 1`, 20000), 'THE BOT ROOM: seven rivals — a ghost each, their name tags baked ONCE (behind the start)');
+    let m = await t.p.evaluate(M);
+    ok(m.on && m.ghosts.every(g => g.floor <= 1 && g.near >= 0.9 && !g.bad) && m.layer.tagged === 0, `at the start everyone stands on the same slice: every ghost within a floor of my ball is an OUTLINE with no tag (${m.ghosts.map(g => g.near.toFixed(1)).join(' ')}) — my own ball is never hidden`);
+    ok(/8 PLAYING$/.test(m.top) && m.hud.rail && m.hud.dots.length === 8 && m.hud.dots.some(d => d.uid === 'me'), `the top line "${m.top}" · THE DEPTH RAIL: a dot a player (${m.hud.dots.length}), mine among them`);
+    await auto(t.p, 'safe');
+    ok(await waitFor(t.p, `${M}.hud.down.length >= 2 && ${M}.ghosts.some(g => g.alpha === 0 && !g.over && !g.lost) && ${M}.ghosts.some(g => g.alpha > 0.9 && g.near < 0.1)`, 30000), 'the rivals fall on while I stay: a ghost in the picture below me, the far ones as EDGE MARKERS at the foot');
+    m = await t.p.evaluate(M);
+    const far = m.ghosts.filter(g => g.floor - (m.ghosts.length ? 0 : 0) >= 0 && g.alpha === 0 && !g.over && !g.lost);
+    ok(m.hud.down.every(x => /^[A-Z]+ ↓[0-9]+$/.test(x)) && m.hud.down.length <= 3 && far.length >= 1 && m.layer.tagged >= 1 && m.layer.baked === 1, `the markers "${m.hud.down.join('" · "')}" (≤ 3, the nearest first) · ${far.length} ghosts too far to draw · ${m.layer.tagged} tag(s) over the ghosts in sight · the atlas still baked once`);
+    const me0 = m.hud.dots.find(d => d.uid === 'me').y, deep = Math.max(...m.hud.dots.map(d => d.y));
+    ok(deep > me0 + 8 && m.hud.railH > 300, `the rail: the deepest dot ${deep.toFixed(0)} px down a ${m.hud.railH}-px rail, mine at ${me0.toFixed(0)}`);
+    // … the lights take me (I stood still): OUT → WATCH THE LEADER
+    ok(await waitFor(t.p, `window.__ffPlay.state().over && ${M}.watch !== ''`, 30000), 'OUT (the lights went out): WATCH THE LEADER');
+    m = await t.p.evaluate(M);
+    const lead = m.ghosts.filter(g => !g.over).sort((x, y) => y.floor - x.floor)[0], w1 = m.watch;
+    await sleep(2200);
+    m = await t.p.evaluate(M);
+    const s = await st(t.p);
+    ok(w1 === lead.uid && m.watchFloor > 0 && s.num === String(m.watchFloor) && /is-watch/.test(s.cls) && /^WATCHING [A-Z]+ · TAP FOR THE NEXT$/.test(m.hud.watching) && (await t.p.evaluate(() => document.querySelector('.ff-end').hidden)), `… the deepest rival still falling (${lead.name}): the big number shows THEIR floor (${s.num}), "${m.hud.watching}", my own card stays away`);
+    ok(m.ghosts.find(g => g.uid === w1).alpha === 0 && m.hud.dots.find(d => d.uid === 'me').cls === 'is-out', 'the watched player is the ball on screen (no ghost of them) · my dot on the rail is crossed');
+    await drag(t, 195, 600, 0, { steps: 1 });
+    ok(await waitFor(t.p, `${M}.watch !== '' && ${M}.watch !== '${w1}'`, 5000), 'a TAP = the next player');
+    ok(!t.errs.length && !t.reqs.some(r => r.includes('/api/')) && !t.sockets.length, `the bot room asked nothing of any server (${t.reqs.filter(r => /matchsim|ghost/.test(r)).length} of its own files) — no error`);
+    await t.close();
+  }
+}
+
+/** F4B — THE SPEED TEST WITH 8 GHOSTS (`--perf8`): the bot room at its fullest — 8 rivals, EVERY one of them in the picture at once with
+ *  its tag (the checks' own tool: `simNear`) — in the heaviest play (THE SPEAKEASY: THE BLAZE's fire, a shatter every few floors; by day
+ *  UNDER THE HARBOR too), every tier, 1× + 4× CPU, both looks. A MEASURED 60 fps. */
+async function perf8() {
+  for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
+    if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
+    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}&mode=match&rivals=8&simshift=2000`);
+    await start(d); await auto(d.p, 'smash');
+    await waitFor(d.p, 'window.__ffPlay.matchState().ghosts.length === 8', 20000);
+    await d.p.evaluate(() => window.__ffPlay.simNear(true));
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
+    await sleep(1500);
+    await d.p.evaluate(() => { window.__f0 = performance.now(); window.__n0 = window.__ffPlay.state().info.frames; });
+    await sleep(10000);
+    const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s = P.state(), m = P.matchState(), n = s.info.frames - window.__n0, ms = performance.now() - window.__f0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / ms, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], worst: a[a.length - 1], floor: s.floor, over: s.over, look: s.look, dpr: s.info.dpr, shown: m.layer.shown, tagged: m.layer.tagged, calls: s.info.calls }; });
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    ok(r.look === lk && r.shown === 8 && r.tagged >= 6 && r.fps >= 58 && r.p95 <= 20, `8 GHOSTS · ${lk} · ${where} · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) — ${r.shown} ghosts drawn, ${r.tagged} tags, floor ${r.floor}${r.over ? ' (over)' : ''}, @${r.dpr}`);
+    await d.close();
+  }
 }
 
 if (LOOK) await look();
 else if (argv.includes('--stutters')) await stutters();
+else if (argv.includes('--perf8')) await perf8();
 else if (PERF) await perf();
 else if (argv.includes('--f3b')) await checks4();
 else if (argv.includes('--haze')) await haze(true);

@@ -4,9 +4,12 @@
 // THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS) is OFF — the server judges the run and answers what it WOULD award.
 // F4A = THE SOLO RUN: the stage (stage.js — the SAME module /freefall-play mounts) in the console's frame, the proof written as you play
 // (view.js → rooms/{CODE}/ff/{matchId}/{uid}), the end screen's body (final.js), PLAY AGAIN = the console's INSTANT AGAIN.
-// THE MATCH (2 … 8 players: ghosts, Call the Winner, the podium, the finish) = F4B — a room of two or more can not start it yet.
+// F4B = THE MATCH (2 … 8 players — a room THE OWNER hosts while the game is hidden; docs/freefall.md "THE MATCH"; HIGH RISE's is the
+// pattern): the SAME tower for everyone (THE FIRST GO), each player's own proof node, the rivals' GHOSTS + THE DEPTH RAIL, out = Call the
+// Winner + WATCH THE LEADER, THE FINISH at THE BOTTOM (floor 200), the 3:00 cap, the podium, REMATCH; the server replays every player's run.
 import { createGame, nextStep, nextRun } from './director.js';
 import { gameStandings } from './logic.js';
+import { nightBonus as bonus, MATCH_MAX } from './match.js';
 // (THE THIN META: DEFAULT_SETTINGS, OPTIONS, estimateMinutes, MUSIC, LOOKS, SOLO, the banner, the chat's lock, cleanSettings — meta.js)
 export * from './meta.js';
 import { lazyView } from '../lazy-view.js';
@@ -28,16 +31,19 @@ function newSeed() {
   return [...a].map(x => x.toString(36)).join('');
 }
 
-/** F4A: ONE player = THE SOLO RUN. A room of two or more → null (the console's COULD NOT START): THE MATCH is F4B. (WHO may start it is
- *  the console's gate — the owner's phone only while the game is being built.) */
+/** ONE player = THE SOLO RUN · 2 … 8 = THE MATCH (F4B). (WHO may start it is the console's gate — the owner's phone only while the game
+ *  is being built; a late joiner is not among the participants: they WATCH until the REMATCH deals them in.) */
 export async function start({ matchId, settings, participants, now }) {
-  if (Object.keys(participants || {}).length !== 1) return null;
+  const n = Object.keys(participants || {}).length;
+  if (n < 1 || n > MATCH_MAX) return null;
   return createGame({ matchId, settings, participants, now, seed: newSeed() });
 }
 
 export function prepare() { /* nothing to top up: the phone runs its own tower */ }
 
-export const step = (game, { now, live, code }) => nextStep(game, { now, live, code });
+export const step = (game, { now, live, code, online }) => nextStep(game, { now, live, code, online });
+/** Call the Winner's game-night points (F4B) */
+export const nightBonus = bonus;
 /** every phone, at the game start (the walk inside): the sounds' bytes into the cache — fetch, never build */
 export function preload() {
   lazyImport(import('./sfx.js'), './sfx.js').then(S => S.fetchSounds()).catch(() => {});

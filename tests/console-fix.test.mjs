@@ -109,7 +109,7 @@ test('THE WIRING (pinned): the router holds a game screen that holds a run — n
   // (THE FIX PASS — M6: EVERY proof game — core/proof.js#VERIFIED_SOLO — through the contract's PROOF block, never a literal list of two)
   // (FREEFALL F4A — THE HIDDEN CARTRIDGE: its view is THE SOLO RUN only — THE MATCH (the run hold, the live wait, the match GO) is F4B's: the ONE
   //  named wait; the day its view writes a match GO this check comes back for it)
-  const MATCH_WAITS = { freefall: 'F4B — THE MATCH' };
+  const MATCH_WAITS = {};   // (FREEFALL F4B: THE MATCH is built — its view answers every check below)
   for (const id of Object.keys(MATCH_WAITS)) assert.doesNotMatch(read(`js/games/${id}/${PROOF.VIEW_FILE}`), /writeMatchGo\(/, `${id}: its match is built — take it off MATCH_WAITS (${MATCH_WAITS[id]})`);
   for (const v of VERIFIED_SOLO.filter(id => !MATCH_WAITS[id]).map(id => `js/games/${id}/${PROOF.VIEW_FILE}`)) {
     const s = read(v);

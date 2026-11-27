@@ -246,6 +246,11 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   const j = judgeRun({ seed, mode, log });
   return j.ok && cut ? { ...j, cut } : j;
 }
+/** F4B — a MATCH's node: judged on THE FIRST GO's seed + clock — tick 0 = `playAt` (logic.js#matchStart: the first GO + its lead) for
+ *  everyone, whatever the node's own GO says (it only proves the player was there on time: core/proof.js#onTime — the caller's check).
+ *  NO HOLDS (the judge refuses one by name), THE FINISH at floor 200, the 3:00 cap. */
+export const judgeMatch = ({ seed, node, playAt, mirror = false } = {}) => (node && Number(node.go) > 0 && Number(playAt) > 0
+  ? judgeNode({ seed, mode: 'match', node: { ...node, go: Number(playAt) - START_LEAD_MS }, mirror }) : { ok: false, why: 'no go' });
 /** a SOLO run's node: the seed = logic.js#seedOf(code, matchId, its own GO) — picked AFTER GO, nobody can shop for a tower */
 export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0
   ? judgeNode({ seed: seedOf(String(code), String(matchId), Number(node.go)), mode: 'solo', node, mirror }) : { ok: false, why: 'no go' });

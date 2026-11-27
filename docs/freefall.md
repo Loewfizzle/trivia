@@ -1,7 +1,9 @@
 # FREEFALL (id `freefall`) — the falling-ball game
 
-**BEING BUILT — HIDDEN (F4A, Nov 26 2026): registered as a `preview` row — the owner's live test only, never playable; NOTHING COUNTS (THE
-SWITCH is OFF).** F4A: the F3B fixes + THE HIDDEN CARTRIDGE (solo) + THE PROOF (`rooms/{CODE}/ff`) + THE JUDGE on the server + THE SWITCH
+**BEING BUILT — HIDDEN (F4B, Nov 26 2026): registered as a `preview` row — the owner's live test only, never playable; NOTHING COUNTS (THE
+SWITCH is OFF).** **F4B: THE MATCH (2 … 8 — the ghosts, THE DEPTH RAIL, Call the Winner, WATCH THE LEADER, THE FINISH) + THE END SCREEN
+(THE LOGO header, the universal footer) + THE SHARE CARD + two fixes (THE PAUSE GAP · THE SKYLIGHT's FRAME BAR)** — "THE MATCH" … "THE
+TWO FIXES", below; no rules-file change. F4A: the F3B fixes + THE HIDDEN CARTRIDGE (solo) + THE PROOF (`rooms/{CODE}/ff`) + THE JUDGE on the server + THE SWITCH
 (OFF) + THE BOARD (+ AVG) + THE CARDS — "THE CARTRIDGE" … "THE F3B FIXES", below. **RULES CHANGED in F4A — re-publish
 `database.rules.json`** (until then a cartridge run plays UNPROVEN). F4B = THE MATCH + THE END SCREEN (the logo header) + SHARE. F1 (Nov 25 2026): THE RULES — the engine, the replay + the judge (its server
 half), the bot sims + the tuned numbers, and a graybox on the live site: the unlisted lab **https://neonspeakeasy.com/freefall-lab**
@@ -27,6 +29,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F2 — THE NIGHT LOOK + SOLO + THE SOUNDS | Nov 26 2026 | `docs/games/passes/freefall-f2.md` | the rules fixes (the landing after a shatter = a bounce · MOVING RED in THE TRENCH · THE HOLD), the assets, THE TEST PAGE (/freefall-play) + solo, THE OPENING, THE NIGHT LOOK, THE BLAZE = NEON FIRE, YOUR BEST, the sounds, the end screen |
 | F3 — THE DAY LOOK + THE AREA COLOURS + THE NEW OPENING | Nov 26 2026 | `docs/games/passes/freefall-f3.md` | F2's open calls (THE HOLD = EXACT RESUME · the ball's rim + dot · the fire twice as long · the accent = title-05's pink + teal), THE AREA PALETTES (depth-relative), the day walls + the title, THE OPENING (title-05) + THE GLINT, THE DAY LOOK, THE ARRIVAL BANNERS |
 | F3B — THE ROOF BELOW + THE COLOUR FIXES + THE BREAKTHROUGHS | Nov 26 2026 | `docs/games/passes/freefall-f3b.md` | THE DARKNESS EASES WITH DEPTH (the rules) · THE ROOF BELOW · the colour fixes + THE COLOUR RULE · the banner under the number · PAUSED's cover · THE STUTTERS · the assets · THE SKYLIGHT (40) · THE SPLASHDOWN (120) · THE BOTTOM (200: solo cracks open · match + daily: the finish's moment + its hook) |
+| F4B — THE MATCH + THE END SCREEN (THE LOGO) + THE SHARE CARD (+ two fixes) | Nov 26 2026 | `docs/games/passes/freefall-f4b.md` | THE PAUSE GAP · THE SKYLIGHT's FRAME BAR · THE MATCH (the first GO's seed + tick 0, each player's own `ff` node, the ghosts, THE DEPTH RAIL + the edge markers, Call the Winner, WATCH THE LEADER, THE FINISH at THE BOTTOM / the 3:00 cap, the podium, REMATCH; the server's `freefallMatch`) · THE END SCREEN (the logo header, YOUR BEST · AVG, YOUR TABLE, the universal footer) · THE SHARE CARD + SHARE |
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 
 ## THE RULES (the owner's)
@@ -762,6 +765,110 @@ already controls, `sw.js` itself asks `/api/time` at a navigation — ONE DEPLOY
 - `?seed=` (the same tower every restart) · `?mode=solo|match` · `?fps=1` · RESTART (the top-right corner, always; + the end card's).
   The mode switch + the seed are off the screen while a run is live (a thumb at the foot is a drag). Hiding the tab = no pause: the
   darkness ends the run.
+
+## THE MATCH (F4B — 2 … 8 players; HIDDEN: a room THE OWNER hosts; `match.js` · `director.js` · `view.js` · `stage.js` · `matchhud.js`; HIGH RISE's match is the pattern, JAYWALK's start number for number)
+ONE ball each down the SAME tower. **Only the host starts** (the console's gate: the owner's phone while the game is being built), **2 minimum**,
+a late joiner WATCHES until the REMATCH deals them in. **ONE life, NO holds** (`modes.match.holds` 0 — a hidden page runs on: the judge
+refuses a hold in a match by name). **THE FINISH: THE BOTTOM** (floor 200 — `made`, F3B's finish moment + hook) **or the 3:00 cap**, whichever
+first. **Deepest wins, then the earlier tick** (`logic.js#rankCompare`). One round, then REMATCH (in place — the console's).
+- **THE START (JAYWALK's exact start):** `count` (3 · 2 · 1 — `COUNT_MS` 3 s) → every phone writes its own GO 1.8 s before the count's end
+  (a TRANSACTION, never applied locally — `kit/proof-io.js#writeMatchGo`: the stamp first, the GO behind it) → **THE FIRST GO** to land
+  (`core/proof.js#firstGo` — the SERVER's time, final the moment it lands) **picks the seed** (`logic.js#seedOf(code, matchId, g0)`) **and
+  sets tick 0 = that time + 2 s** (`match.js#GO_LEAD_MS`) **for everyone** — `match.js#matchStart`: the phones, the host's director and the
+  server derive the same start from the same nodes (**THE NODES ARE THE TRUTH** — `startOf`: the game's own seed only when there is no node
+  to read). The tower SPINS UP as the real seed lands (the solo run's 0.42 s whip). No GO anywhere 3 s after the count (no signal, the
+  rules not published) → the match plays **UNPROVEN** on a stand-in seed, never counted, and ends after 90 s; a FIRST GO the server stamped
+  before the host gave up takes the mark back (`goBeforeGiveUp`). A GO later than `GO_WINDOW_MS` (5 s) after the first is no run (`late go`).
+- **EACH PLAYER's PROOF in their own `ff` node** (F4A's — the packed input log's FINAL events, a chunk every 250 ms while there are new
+  ones, each stamped by the server on arrival, `e` behind the last one): nothing new in the rules file (F4A's `ff` block already took a
+  match's GO in the count's last 2 s, the stamp, the leaf writes gated on the player's own `go`, `k`).
+- **THE END** (`director.js#nextStep`): every player's run has ended — their node says `e`; a silent phone is waited for: online
+  `IDLE_OUT_MS` 18 s (the darkness has ended a ball nobody steers within 9 s), offline + `DROP_WAIT_MS` 75 s (THE DROPPED SIGNAL) — or the
+  3:00 cap + a 4 s grace. **The results are THE JUDGE's replay of each player's own node** (`proof.js#judgeMatch`: THE FIRST GO's seed +
+  clock — tick 0 = `playAt` for everyone — the speed check both ways, THE DROPPED SIGNAL; `director.js#scoreMatchNode`), never a number a
+  phone claims. A row: `{ f, t, w, e, b, bl, br, ft?, cut?, bad? }`.
+- **THE SERVER** (`api/_lib/freefall.js#freefallMatch` in `/api/report`'s proof path — the 8 functions stay 8): every named player — and
+  everyone the TREE proves started on time, named by the host or not — replayed from their own node; `played` = passed a floor in the
+  server's replay; no report while a run is still LIVE (`match.js#liveOf` → 425 `still_live`: THE CONSOLE FIX — a live proven run is never
+  taken away by the host). Behind THE SWITCH: `would_count` for every player, nothing written.
+- **THE SCREEN** (`view.js#pumpMatch`, ten times a second + at every state change): 3 · 2 · 1 · GO + the names lined up → the run →
+  **OUT = the cause's words over the scene for a moment** (HIT THE RED · THE LIGHTS WENT OUT; THE BOTTOM: YOU HIT THE BOTTOM in gold; the
+  cap: TIME'S UP) → **Call the Winner** (the match kit's — your own node's `k`, while two or more are still falling; a right call earns
+  game-night points: `match.js#scoreCalls` → `nightBonus`) → **WATCH THE LEADER** (a tap = the next player; the WATCHING line names them +
+  their floor) → the podium with the host's step. **THE RUN HOLD** (`holdsRun` — the kit's): this phone's own proven run is played to its
+  own end whatever the host's state says; the podium waits for a rival's run still live (`createLiveWait(liveOf)`) and is then scored from
+  the nodes as they stand. A phone whose own GO missed the start WATCHES, told plainly (YOU MISSED THE START — NOT COUNTED). A refresh
+  mid-match takes its own run back up from the node (its moves so far replayed — `stage.js#adopt({ log })`) if the darkness has not
+  ended it. The last half minute shows a small clock (0:27).
+- **THE TEST PAGE's BOT ROOM** (`?mode=match&rivals=N` — `matchsim.js`, lazy; `&watch=1` = OUT watches the leader; `&simshift=ticks` moves
+  the bots' clock for a look check): N bots on the run's own seed, turned into the chunks their phones would send (the writer's own rule:
+  FINAL events, every 250 ms, 200 ms on the line) and fed to the ghosts exactly as a room's proof nodes are. Nothing counts, nothing is
+  asked of any server.
+
+## THE GHOSTS (F4B — `ghosts.js` (PURE) · `ghost-fx.js` (their layer) · `stage.js#ghostsFrame`; JAYWALK's ghosts are the pattern)
+A rival = their own input log through the SAME engine (their proof node's chunks, each read ONCE as it lands).
+- **STEPPED conf → run:** THE CONFIRMED RUN = their LANDED moves, stepped to the tick of the last one — nothing assumed. THE DRAWN RUN =
+  from it on to THE WORLD's TICK with **their tower's angle HELD** (no new move assumed), the ball bouncing / falling by the rules. A
+  landing that would take them OUT — or over THE FINISH — **is not taken until their own end (`e`) says so**: a ghost never dies on this
+  screen and stands up again. **A late chunk = a quick catch-up ARC** (110 ms + 60 ms a floor, ≤ 320 ms), never a teleport. No news of a
+  held ghost for 0.9 s, or of anyone for 10 s: not drawn until there is (the rail's dot goes hollow).
+- **WHERE:** on their REAL floor over the SAME slice — the world angle **(the ball's angle − their tower's) + MY tower's**
+  (`ghostPhi`): they turn with MY tower. They never collide with anything.
+- **THE LOOK** (`ghost-fx.js` — its own small scene drawn over the finished picture on the SAME depth buffer, after the bloom): **see-
+  through balls in the player's colour** (ONE instanced sphere: a bright ring, a breath of fill, a DARK outer edge — thicker by day: it
+  reads on pearl / gold / lavender floors and on the water) · **X-RAY**: the same instances drawn again where the tower HIDES them (the
+  depth test turned round) as a soft outline + a faint fill on top · **THE NAME TAGS**: one instanced quad over everything, each a row of
+  an atlas BAKED ONCE at the screen's own sharpness (full 3×; the name in the player's colour on a dark rim — at the count, never in a
+  run), set to whole device pixels, pushed away from MY ball, stacked when two would overlap · **within ≈ a floor of my ball a ghost is an
+  OUTLINE with no tag** (my own ball wrote the depth: it is always on top) · above me a ghost rides in the HUD's own lanes: fainter, no
+  tag · a rival at a BREAKTHROUGH = a small echo only (eight sparks in their colour).
+- **WATCH THE LEADER = an EXACT playback, 1.5 s behind the world** (`createWatch` / `stepWatch`, `WATCH_DELAY` 90 ticks: a move is final
+  only at the landing after it + the next flush + the line — by then it is here): the watched player's own run on a run of its own, with
+  its own events — the scene shows THEIR tower (the broken + cracked slices, the breakthroughs), the big number THEIR floor; it never
+  ends before their own end is here; a move that lands after its tick was played rebuilds the playback (rare).
+- **ZERO GARBAGE IN PLAY:** `stepGhost` copies a run's state field by field, the stage writes eight numbers a ghost into ONE typed array
+  the scene reads, the layer's `place()` writes typed arrays made once (the static scan covers all of them).
+
+## THE DEPTH RAIL + THE EDGE MARKERS (F4B — `matchhud.js`; HIGH RISE's altimeter turned upside down)
+**THE DEPTH RAIL:** a thin glowing rail at the right edge (pink → violet → blue), **everyone's dot by depth** — floor 0 at its head, **THE
+BOTTOM marked at its foot** (a gold bar) — mine larger (white in a pink ring), **out = a crossed dot**, the finish gold, no signal hollow.
+A dot is made once a player and moved by ONE transform when its floor changes. **THE EDGE MARKERS:** a rival five or more floors below me
+= "MIA ↓12" at the foot of the screen; two or more floors above (the picture ends sooner there) = "MIA ↑3" beside the rail's head — the
+nearest first, three at most each way (`ghosts.js#edgeMarks` — kept records; a marker's words are built only when they changed). The top
+line reads YOUR BEST 88 · 4 PLAYING. Written only at a change — never in a frame that changed nothing; plain text + dots, no pills.
+
+## THE END SCREEN (F4B — the owner's approved mock; `endscreen.js` — ONE builder for the test page's card and the cartridge's body · `final.js` · `view.js#showFinal`)
+- **THE HEADER = THE LOGO:** title-05's lettering (the opening's own WebP, its alpha) centred at the top, **~58 % of the card's width**
+  (226 pt at 390 — never under 210: the script must read; `clamp(210px, 58 %, 250px)`), **the mode under it in small teal caps** (SOLO ·
+  MATCH; DAILY later). In the cartridge it sits in the console frame's own header slot (`view.js` puts `endLogo` there). FREEFALL is ONE
+  word everywhere — the old FREE / FALL word header is gone.
+- then **the cause** (teal neon — MADE IT TO THE BOTTOM gold; never red), **the big number + FLOORS**, **"YOUR BEST · n · AVG n"** (the
+  server's `o.av` once counting is ON — JAYWALK's JT2: a dash under 5 runs; **a NEW BEST puts the AVG on its own quiet line**; while the
+  switch is OFF: this phone's own best, no AVG), **the run's stats line** (n BOUNCES · n BLAZES · BEST RUN n), **YOUR TABLE** (slim cards
+  through `ui/strip-board.js` — JAYWALK's + HIGH RISE's: you + your friends' bests, the floors at the right, their AVG under them; empty
+  while counting is OFF), the small would-line (WOULD COUNT · …) just over the bar.
+- **A MATCH's body:** how YOUR run ended · "57 FLOORS · YOU FINISHED 2ND" · your call's result — the frame's own WINNER line leads ("MIA
+  FELL THE DEEPEST"), the console lists every place under it as slim cards with their floors + how their run ended.
+- **THE FOOTER = THE SITE's UNIVERSAL END-SCREEN FOOTER**, exactly as the other games use it: the PLAY AGAIN bar (a match: REMATCH), then
+  the quiet links with the same drawn icons — solo **SHARE | HOME**, a match **ROOM | SHARE** (`ui/final.js`; the test page carries a copy
+  of its look: `.ff-links` — its SHARE hands the phone's own share sheet a line + the page's link: no card, no server). The dimmed game
+  scene stays behind it; no pink flash; a phone held sideways + a desktop scale it with the stage's column.
+
+## THE TWO FIXES (F4B's Group 0)
+- **THE PAUSE GAP** (the owner: "a pause is granted only after the moves before it are sent + stamped; nothing arrives late" — F4A's
+  reviewer: the 8 s of play before each hold could arrive at any time, the run's clock stood at the hold): **a hold FREEZES the clock only
+  when it was GRANTED — its OWN chunk (the hold + every move before it) ARRIVED within 2 s of the hold's tick** (`proof.js CLOCK.grant`).
+  A hold whose chunk came later was no pause: the clock ran on, the chunks before it are held to that running clock, and the run is
+  **CUT before the hold's chunk** (`cut.why: 'pause'`; an open dropped-signal burst before it does not count either). More holds than the
+  mode has (a match: any) is refused by name BEFORE the clock. The phone: a held run's log leaves AT ONCE, even behind a chunk in the air
+  (the kit's `proof-writer` `flush('now')` — a phone being locked may not live to see the chunk in the air answered); back on screen it
+  asks the server's copy whether the pause was granted (1.5 s — its own margin: `GRANT_PHONE_MS`); if not: no stamp, ONE count, and the
+  run goes on saying NOT COUNTED PAST THE PAUSE.
+- **THE SKYLIGHT's FRAME BAR** (the owner's iPhone, night, floor 40: the frame's near bar stayed across the screen at the ball's height,
+  its far bar + sides as a dark bar at the top — in front of the tiles): **the outer frame + its neon tubes let go WITH the pane** — they
+  drop away, the short's cascade inside them — **and are gone 0.25 s after the break** (`break-fx.js FRAME_GONE_S`, the deck's own
+  0.25 s); the glazing bars' pieces fall with the shards (0.8 s). Once the pane breaks nothing of the skylight / the roof is between the
+  camera and the floors (checked at three sizes, both looks: `freefall-play.mjs --f4b`).
 
 ## THE CARTRIDGE (F4A — HIDDEN: the owner's live test only, solo; `js/games/freefall/` `meta.js` · `index.js` · `director.js` · `view.js` · `final.js` · `lines.js`; HIGH RISE's S4A is the pattern)
 **HIDDEN.** `config.js` GAMES row `freefall` = `playable: false` + `preview: true` (THE OWNER'S LIVE TEST — HE8): on the owner's phone

@@ -40,5 +40,5 @@ const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catc
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds) with the page's own pieces on (`page`): the SOUNDS
 // list, the note; YOUR BEST = this phone's (`ff:play:best`)
 try {
-  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest } });
+  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest } });
 } catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); }

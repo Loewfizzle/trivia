@@ -71,7 +71,7 @@ test('REGISTERED — HIDDEN: a `preview` GAMES row (never playable, never frozen
   assert.ok(VERIFIED_SOLO.includes('freefall') && SOLO_OK.freefall === true && QUICK_SOLO.freefall === true && REPORT_GAMES.includes('freefall'));
   const idx = read('js/games/freefall/index.js');
   assert.match(idx, /export const livePaths = g => \(\{ runs: `ff\/\$\{g\.matchId\}` \}\);/);
-  assert.match(idx, /if \(Object\.keys\(participants \|\| \{\}\)\.length !== 1\) return null;/, 'F4A: a room of two or more can not start it (THE MATCH is F4B)');
+  assert.match(idx, /if \(n < 1 \|\| n > MATCH_MAX\) return null;/, 'F4B: one player = the solo run · 2 … 8 = THE MATCH (the console gate says WHO may start it)');
   assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), \['kit', 'freefall-play'\]/, 'the SAME stage + sheet as the test page');
   assert.match(idx, /export const soloAgain = /); assert.match(idx, /export \{ finalScene \} from '\.\/final\.js';/);
   assert.doesNotMatch(read('js/config.js'), /id: 'freefall'[^\n]*playable: true/, 'NEVER playable before its go-live pass');
@@ -132,7 +132,7 @@ test('THE JUDGE ON THE SERVER: a SOLO run counted ONLY from the server\'s replay
   // a room's own results are never read: without `sv` the extract gives no record, no feat
   const hosts = extractMatch({ id: 'freefall', matchId: M, phase: 'final', mode: 'solo', participants: { u1: true }, settings: {}, results: { u1: { f: 300, t: 9, w: 'made', ft: 'reachedHarbor terminal reachedBottom' } } });
   assert.deepEqual(hosts.rows.u1.rec, {}); assert.equal(hosts.rows.u1.f, undefined);
-  assert.deepEqual(freefallMatch({ code: CODE, matchId: M, uids: ['a', 'b'], nodes: {} }), { game: null, why: 'the match is not built yet' });
+  assert.deepEqual(freefallMatch({ code: CODE, matchId: M, uids: ['a', 'b'], nodes: {} }), { game: null, why: 'no go' });   // (F4B: THE MATCH is built — tests/freefall-match.test.mjs; with no GO in the tree there is no match to read)
   assert.deepEqual(serverRow({ ok: false, why: 'spin' }), { f: 0, t: 0, w: '', e: -1, bad: 'spin' });
 });
 
@@ -156,7 +156,7 @@ test('THE SWITCH — OFF (the owner: nothing counts until go-live): /api/report 
   assert.equal(SRV_BEST_KEY, 'ff:best');
   // the end screen's body reads the server's answer; the stage's own page never does
   const fin = read('js/games/freefall/final.js');
-  assert.match(fin, /if \(o\.would\) \{ would\.textContent = wouldLine\(o\.would\);/);
+  assert.match(fin, /if \(o\.would\) \{ globalThis\.__ffWould = game\.matchId; overBar\(\); would\.textContent = wouldLine\(o\.would\);/);   // (F4B: the would-line sits just over the bar; the share card then asks no link)
   assert.doesNotMatch(read('js/games/freefall/stage.js') + read('js/games/freefall/play.js'), /profile\/queue|wouldLine/);
 });
 
@@ -272,7 +272,7 @@ test('THE CARTRIDGE\'s SCREEN (static): GO behind THE STAMP → the seed + tick 
   assert.match(st, /if \(left <= 0 && o\.resume && !stamped && countTries < RESUME_TRIES\) startCount\(\);/, 'no stamp: the count runs again (3 tries)');
   assert.match(st, /if \(T < 0\) \{ owed \+= units;/, 'a move before tick 0 is kept');
   assert.match(st, /if \(c !== countShown && \(c < countShown \|\| !countShown\)\) countLine\(c\);/, 'the 3 · 2 · 1 never jumps back up when the stamp\'s answer is slow (the review)');
-  assert.match(st, /o\.onLeave \? null : share, city/, 'the cartridge\'s own card: no SHARE · SOON');
+  assert.ok(st.includes("...(o.onLeave ? [city] : [share, h('i.ff-link-div', { 'aria-hidden': 'true' }), city])"), 'the cartridge\'s own card (an unproven run\'s): the way out alone — no SHARE');
   assert.match(st, /const E = o\.onEnd \? o\.onEnd\(res\) \|\| \{ own: true \} : \{ own: true \};/);
   assert.match(read('css/freefall-play.css'), /\.ff-stage\.ff-game \{ position: fixed; inset: 0; margin: 0 auto; height: 100dvh; \}/, 'the stage fills the window inside the console\'s frame');
 });

@@ -1324,6 +1324,13 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   assert.ok(H3.heldAt > 0 && H3.after > 5);
   const rh3 = await report(uid, H3);
   assert.deepEqual([rh3.status, rh3.outcome.would.cut, rh3.outcome.would.skip], ['would_count', 1, undefined], 'a stamp that landed 30 s late: cut at the hold, counted to it');
+  // F4B — THE PAUSE GAP (the owner: a pause is granted only after the moves before it are sent + stamped): the hold's OWN chunk arrived 6 s
+  // after the hold — no pause was granted: the run is CUT before that chunk (F4A counted it whole, the clock standing at the hold)
+  tick(9000);
+  const H4 = await seedRun(uid, pid, m => { const r = runOf(m, 'good', 60, { holdAt: 'mid', away: 180_000 }); const k = Object.keys(r.node.c).map(Number).find(i => r.node.c[i].s.includes('!')); r.node.c[k].at += 6000; return r; });
+  const rh4 = await report(uid, H4);
+  assert.deepEqual([rh4.status, rh4.outcome.would.cut, rh4.outcome.would.skip], ['would_count', 1, undefined], 'a pause whose chunk came late: cut before it, counted to there');
+  assert.ok(rh4.outcome.would.floor <= H4.live.floor);
   assert.equal(rh3.outcome.would.floor, rh2.outcome.would.floor > 0 ? rh3.outcome.would.floor : rh3.outcome.would.floor); assert.ok(rh3.outcome.would.floor > 0, `… the floors before the pause count (${rh3.outcome.would.floor})`);
   assert.equal(rh3.outcome.would.perfects, undefined, 'FREEFALL\'s answer carries no HIGH RISE field');
   // … a FORGED node (a chunk of the log made in advance — sent the moment the run began): refused by the judge — WOULD NOT COUNT
@@ -1369,6 +1376,113 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
 // HIGH RISE S4B — THE MATCH: every named player's run is REPLAYED from their own `hr` node on THE FIRST GO's seed + clock (nothing the host
 // wrote is read); a game BEING BUILT — a match THE OWNER played in is judged for everyone in it; COUNTING OFF (the switch — the default):
 // WOULD COUNT for each reporter, NOTHING written; COUNTING ON (the emulators' test flip): JAYWALK's normal counted path for all of them.
+test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run from the SERVER\'s replay on THE FIRST GO\'s seed + clock; THE SWITCH OFF = WOULD COUNT for the owner AND his guests, nothing written; a stranger\'s room is not reportable; the host DROPS the leader = the tree says who played; a LIVE run holds the report; a HOLD in a match counts no floor; THE SWITCH ON = counted for all', async (t) => {
+  t.after(async () => { await ref('testFreefallCounts').set(null); });
+  const { gameStandings } = await import('../../js/games/freefall/logic.js');
+  const { matchStart } = await import('../../js/games/freefall/match.js');
+  const { createSim } = await import('../../js/games/freefall/matchsim.js');
+  const { freefallMatch, FREEFALL_COUNTS } = await import('../../api/_lib/freefall.js');
+  assert.equal(FREEFALL_COUNTS, false, 'THE SWITCH ships OFF');
+  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(null);
+  const U = ['u-ff', 'u-ffm2', 'u-ffm3'], NAME = ['FALLER', 'GUESTA', 'GUESTB'];
+  for (let i = 0; i < 3; i++) await ensure(U[i], NAME[i]);
+  const P = await Promise.all(U.map(u => val(`uids/${u}`)));
+  await ref(`testAdmins/${P[0]}`).set(true);   // (THE OWNER'S LIVE TEST: his guests' reports count because HE played in the match — his own proof node)
+  const code = nextCode(), MS = 1000 / 60;
+  let mN = 0;
+  /** a finished match as the room holds it: each player's proof node (a bot's run on THE FIRST GO's seed — the packed log's FINAL events in
+   *  chunks, stamped on the match's own clock), the night record, the game (final) with FORGED host values the server must never read.
+   *  `named` = the players the HOST names (the game + the night record) · `liveUid` = that player's run is still going (no end, its
+   *  chunks up to "now") · `age` = how long ago THE FIRST GO was */
+  const seedMatch = async ({ moved = false, players = U, bots = ['great', 'good', 'sloppy'], maxFloor = 90, named = players, mutate = null, liveUid = null, age = 400_000 } = {}) => {
+    const matchId = `m${(mN++).toString(36)}fm${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+    const g0 = clock - age, S = matchStart(code, matchId, { a: { go: g0 } }), sim = createSim(S.seed, players.length, { bots, maxFloor }), nodes = {}, live = {};
+    players.forEach((u, i) => {
+      const B = sim.runs[i], c = {};
+      B.chunks.forEach((x, k) => { c[k] = { s: x.s, at: Math.round(S.playAt + x.at * MS) }; });
+      nodes[u] = { go: g0 + i * 37, c, e: B.end.e };
+      live[u] = B.result;
+    });
+    if (liveUid) { const n = nodes[liveUid]; for (const k of Object.keys(n.c)) if (n.c[k].at > clock - 500) delete n.c[k]; delete n.e; }
+    if (mutate) mutate(nodes, S);
+    const participants = Object.fromEntries(named.map(u => [u, true]));
+    const game = { id: 'freefall', matchId, phase: 'final', mode: 'match', seed: 'forged', playAt: 12345, g0: 1, participants, settings: {}, phaseStartAt: clock,
+      results: Object.fromEntries(named.map((u, i) => [u, { f: i === 0 ? 1 : 999, t: 5, w: 'made', e: 9 }])) };
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: players[0], status: 'playing', createdAt: clock - 600_000, activeAt: clock },
+      players: Object.fromEntries(players.map((u, i) => [u, { name: NAME[U.indexOf(u)] || 'X', color: 'cyan', avatar: 'bolt', joinedAt: i + 1, pid: P[U.indexOf(u)] || null }])),
+      presence: Object.fromEntries(players.map(u => [u, { online: true, lastSeen: clock, v: 2, c: { a: true } }])),
+      game: moved ? { ...game, matchId: 'mnextmatch', phase: 'play', results: null } : game,
+      [`night/${matchId}`]: { g: 'freefall', at: clock, p: Object.fromEntries(named.map((u, i) => [u, i === 1 ? 3 : 1])), n: Object.fromEntries(named.map(u => [u, 'N'])) },
+      [`ff/${matchId}`]: nodes,
+    });
+    return { code, matchId, live, nodes, seed: S.seed, playAt: S.playAt };
+  };
+  const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
+
+  // ---- THE SWITCH OFF: a GUEST of the owner's room reports → JUDGED from the server's own replay — WOULD COUNT, nothing written
+  const before = await snap();
+  const A = await seedMatch();
+  assert.ok(A.live[U[0]].floor > A.live[U[1]].floor && A.live[U[1]].floor > A.live[U[2]].floor && A.live[U[2]].floor >= 1, `the fixture: three runs (${U.map(u => A.live[u].floor).join(' · ')} floors)`);
+  const ra = await report(U[1], A);
+  assert.equal(ra.status, 'would_count', 'the switch is OFF: the match is JUDGED, never counted');
+  assert.deepEqual([ra.outcome.would.floor, ra.outcome.would.cause], [A.live[U[1]].floor, A.live[U[1]].cause], `WOULD COUNT = the SERVER's replay of the reporter's own node (floor ${ra.outcome.would.floor}) — never the host's forged 999`);
+  assert.ok(ra.outcome.would.xp > 0 && ra.outcome.none === true, 'what the counted path would pay');
+  const ro = await report(U[0], A);
+  assert.deepEqual([ro.status, ro.outcome.would.floor], ['would_count', A.live[U[0]].floor], 'the host\'s own report: his run — never his forged 1');
+  assert.equal(await snap(), before, 'NOTHING written: every profile, pstats, board, results/ record — untouched');
+  assert.equal(await val(`results/${code}_${A.matchId}`), null);
+  // (the server's own match: the seed + tick 0 from THE FIRST GO, the rows = each node's replay; the deepest first)
+  const SV = freefallMatch({ code, matchId: A.matchId, uids: U, nodes: A.nodes });
+  assert.equal(SV.game.seed, A.seed); assert.equal(SV.game.playAt, A.playAt);
+  for (const u of U) assert.deepEqual([SV.game.results[u].f, SV.game.results[u].t, SV.game.results[u].w, SV.game.results[u].bad], [A.live[u].floor, A.live[u].tick, A.live[u].cause, undefined], 'the replay = the run');
+  assert.deepEqual(gameStandings(SV.game).map(r => r.uid), U, 'the placings are the replay\'s: the deepest first');
+  // ---- a report landing AFTER THE REMATCH: the room moved on — the proof nodes + the night record are enough
+  tick(60_000);
+  const B = await seedMatch({ moved: true });
+  assert.deepEqual((r => [r.status, r.outcome.would.floor])(await report(U[2], B)), ['would_count', B.live[U[2]].floor], 'the room is already on the next match: judged from the proof nodes');
+  // ---- HIDDEN: a room THE OWNER is not in — nobody's report of it is judged
+  tick(60_000);
+  const C = await seedMatch({ players: [U[1], U[2]], bots: ['good', 'sloppy'] });
+  await rejects(report(U[1], C), 409, 'not_reportable');
+  // ---- THE HOST DROPS THE LEADER (a modified host names himself + the last one only): the TREE says who played — the dropped player's
+  // own on-time node is read, they may report, and the host's row is still his own run (never a win he wrote)
+  tick(60_000);
+  const D = await seedMatch({ players: [U[1], U[0], U[2]], named: [U[1], U[2]], bots: ['sloppy', 'great', 'good'] });
+  const rd = await report(U[0], D);
+  assert.deepEqual([rd.status, rd.outcome.would.floor], ['would_count', D.live[U[0]].floor], 'the dropped leader reports: judged from their own node (a player the tree proves — named or not)');
+  assert.equal((await report(U[1], D)).outcome.would.floor, D.live[U[1]].floor, 'the host: his own (shallower) run');
+  // ---- A LIVE RUN (the host wrote `final` early while a rival still falls): no report is counted over it — 425, asked again
+  tick(60_000);
+  const E = await seedMatch({ age: 12_000, liveUid: U[1], maxFloor: 400 });
+  assert.ok(Object.keys(E.nodes[U[1]].c).length >= 3 && !E.nodes[U[1]].e, 'the fixture: a run 10 s in, still going');
+  await rejects(report(U[0], E), 425, 'still_live');
+  // ---- A HOLD IN A MATCH (a modified phone): that node counts NO floor — a match never holds; the others are judged as ever
+  tick(60_000);
+  const F = await seedMatch({ mutate: (nodes, S) => { nodes[U[2]].c = { 0: { s: '+1.a+5', at: S.playAt + 400 }, 1: { s: '!4', at: S.playAt + 700 }, 2: { s: '.9+3', at: S.playAt + 5000 } }; nodes[U[2]].h = { 0: S.playAt + 3000 }; } });
+  assert.equal(freefallMatch({ code, matchId: F.matchId, uids: U, nodes: F.nodes }).game.results[U[2]].bad, 'too many holds');
+  const rf = await report(U[2], F);
+  assert.ok(rf.status !== 'counted' && !((rf.outcome && rf.outcome.would && rf.outcome.would.floor) > 0), `a hold in a match earns nothing (${rf.status})`);
+  assert.equal((await report(U[1], F)).outcome.would.floor, F.live[U[1]].floor, '… the honest players of that match are judged as ever');
+  assert.equal(await snap(), before, 'after every OFF report: still nothing written');
+
+  // ---- THE SWITCH ON (the test flip): JAYWALK's normal counted path, for everyone in the match — and a counted MATCH run raises the same best
+  await ref('testFreefallCounts').set(true);
+  tick(60_000);
+  const G2 = await seedMatch();
+  const rg = await report(U[1], G2);
+  assert.equal(rg.status, 'counted', 'ON: a guest reports — counted');
+  const done = await val(`results/${code}_${G2.matchId}`);
+  assert.deepEqual(Object.keys(done.o || {}).sort(), [...P].sort(), 'ALL THREE are credited');
+  assert.equal(!!done.o[P[0]].win, true, 'the deepest run wins'); assert.equal(!!rg.outcome.win, false, '… never the host\'s forged 999 for the reporter');
+  assert.ok(rg.outcome.xp.gain > 0 && rg.outcome.streak >= 1, 'XP + the streak day');
+  assert.deepEqual((rg.outcome.pbs || []).filter(x => x.b === 'freefall-solo').map(x => x.v), [G2.live[U[1]].floor], 'a counted MATCH run raises YOUR BEST (the same board)');
+  assert.equal((await report(U[0], G2, clock + 3000)).status, 'done', 'credited once (the host\'s own report finds it done)');
+  await ref('testFreefallCounts').set(null);
+  await ref('testReportAll').set(true);
+  tick();
+});
+
 test('HIGH RISE S4B → THE GO-LIVE — THE MATCH: every run from the SERVER\'s replay on THE FIRST GO\'s seed; a plain room judged; THE KILL SWITCH OFF = WOULD COUNT, nothing written; the gates (unproven · no proof · a seat is not a play); ON = counted for all', async (t) => {
   t.after(() => ref('testHighriseCounts').set(null));
   const { seedOf, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');

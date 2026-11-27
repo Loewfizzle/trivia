@@ -1,10 +1,13 @@
 // FREEFALL — THE SERVER HALF (F1 — docs/freefall.md "THE JUDGE"). NOT a function (the 8 stay 8) and PURE: it never imports fb.js (THE
 // UNIT JOB INSTALLS NOTHING — tests/freefall-server.test.mjs runs it in Node). It imports the SAME engine modules the phone runs
-// (js/games/freefall/…): the judge's replay IS the phone's run. F4A: WIRED into /api/report (the solo run's proof node; the match's half a
-// stub until F4B; the daily stays off) — behind THE SWITCH (FREEFALL_COUNTS, below: OFF until go-live — judged, never awarded).
+// (js/games/freefall/…): the judge's replay IS the phone's run. F4A: WIRED into /api/report (the solo run's proof node) · F4B: THE MATCH
+// (freefallMatch — every player's own node on THE FIRST GO's seed + clock); the daily stays off — behind THE SWITCH (FREEFALL_COUNTS,
+// below: OFF until go-live — judged, never awarded).
 import { judgeRun as judge, unpackLog, maxEntries, rulesOf } from '../../js/games/freefall/replay.js';
 import { featsOf } from '../../js/games/freefall/logic.js';
-import { judgeSolo } from '../../js/games/freefall/proof.js';
+import { judgeSolo, judgeMatch } from '../../js/games/freefall/proof.js';
+import { matchStart } from '../../js/games/freefall/match.js';
+import { onTime, goOf } from '../../js/core/proof.js';
 import { ENTRY_CHARS_MAX } from '../../js/games/freefall/tuning.js';
 
 /**
@@ -67,5 +70,24 @@ export function freefallSolo({ code, matchId, uid, node }) {
   return { game: { id: 'freefall', matchId, phase: 'final', mode: 'solo', sv: 1, participants: { [uid]: true }, settings: {}, results: { [uid]: judgedRow(v) } }, v };
 }
 
-/** F4B's HALF — A STUB: the cartridge can not start a match yet (index.js#start refuses a room of two or more) — a report of one has no proof to read. → { game: null, why } */
-export const freefallMatch = () => ({ game: null, why: 'the match is not built yet' });
+/** F4B — a player PLAYED a match when the server's replay saw them pass a floor (an EMPTY log — the darkness's own end at floor 0 — is no play: MUST 3, as HIGH RISE's) */
+export const FF_PLAYED_FLOOR = 1;
+/**
+ * F4B — THE MATCH (PURE; HIGH RISE's highriseMatch is the pattern): every named player's run replayed from their OWN proof node on THE
+ * FIRST GO's seed + clock (match.js#matchStart — tick 0 = that GO + its lead, for everyone): nothing the host wrote is read, so the
+ * placings need no second opinion. THE SERVER's TWO GUARDS: a node counts only with a GO · a GO later than GO_WINDOW_MS after THE FIRST
+ * GO is no run ('late go' — the host who GOes alone early and adds the rivals later wins nothing). NO HOLDS in a match (the judge refuses
+ * one by name). → { game, played: [the uids the replay saw PASS A FLOOR] } | { game: null, why }
+ */
+export function freefallMatch({ code, matchId, uids, nodes }) {
+  const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
+  if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
+  if (!ids.some(u => onTime(nodes[u], S.g0) && nodes[u].c != null)) return { game: null, why: 'no moves' };
+  const results = {}, participants = {};
+  for (const u of ids) {
+    participants[u] = true;
+    const node = nodes && nodes[u];
+    results[u] = onTime(node, S.g0) ? judgedRow(judgeMatch({ seed: S.seed, node, playAt: S.playAt })) : { f: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
+  }
+  return { game: { id: 'freefall', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= FF_PLAYED_FLOOR) };
+}

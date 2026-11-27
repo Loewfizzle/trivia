@@ -1813,6 +1813,41 @@ test('FREEFALL F4A — the ff proof node: THE STAMP then GO once, append-only ch
   await assertFails(stampAt(db('p2'), `${R}/ff/fm3/t0`), 'ff only while FREEFALL is the game on');
 });
 
+// FREEFALL F4B — THE MATCH on the ff node. NO RULES-FILE CHANGE: F4A's `ff` block (HIGH RISE's `hr`, mirrored) already took a match — these
+// cases pin what the match leans on: the GO window of the count's last 2 s, THE FIRST GO's 5 s, Call the Winner, THE LIVE LOCK.
+test('FREEFALL F4B — THE MATCH on the ff node (no rules-file change): the stamp + the GO only in the count\'s last 2 s; a GO more than 5 s after THE STAMP is no run; Call the Winner only after your own end, for a player still in, once, never yourself; THE LIVE LOCK: the host never deletes the tree of a match in its count or in play', async () => {
+  const room = playingRoom('play');
+  room.rooms[CODE].game = { id: 'freefall', matchId: 'fm7', phase: 'count', participants: { host: true, p2: true, p3: true }, playAt: now() + 9000, seed: '', mode: 'match' };
+  room.rooms[CODE].players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
+  await seed(room);
+  const T = `${R}/ff/fm7`, C = x => ({ s: x, at: serverTimestamp() });
+  const admin = fn => env.withSecurityRulesDisabled(ctx => fn(ctx.database()));
+  await assertFails(stampAt(db('p2'), `${T}/t0`), 'the count has 9 s to go: no stamp yet (the window opens 2 s before its end)');
+  await admin(d => set(ref(d, `${R}/game/playAt`), now() + 1500));
+  await assertSucceeds(stampAt(db('p2'), `${T}/t0`), 'the count\'s last 2 s: THE STAMP');
+  await assertSucceeds(set(ref(db('p2'), `${T}/p2/go`), serverTimestamp()), '… and THE FIRST GO');
+  await assertSucceeds(set(ref(db('host'), `${T}/host/go`), serverTimestamp()), 'a second GO inside the window');
+  await assertFails(set(ref(db('host'), T), null), 'THE LIVE LOCK: the host never deletes the tree of a match in its COUNT');
+  // (the stamp is 6 s old now: the window after it is shut)
+  await admin(d => set(ref(d, `${T}/t0`), now() - 6000));
+  await assertFails(set(ref(db('p3'), `${T}/p3/go`), serverTimestamp()), 'a GO more than 5 s after THE STAMP is no run (the host who GOes alone and adds the rivals later wins nothing)');
+  // play: the log, the end, the call
+  await admin(d => update(ref(d, `${R}/game`), { phase: 'play', playAt: now() - 1000 }));
+  await assertSucceeds(set(ref(db('p2'), `${T}/p2/c/0`), C('.c+2r+1k')), 'a chunk in play');
+  await assertFails(set(ref(db('host'), T), null), 'THE LIVE LOCK: … nor in PLAY');
+  await assertFails(update(ref(db('p2'), `${T}/p2/k`), { w: 'host', at: serverTimestamp() }), 'no call before your own end');
+  await assertSucceeds(set(ref(db('p2'), `${T}/p2/e`), { f: 4, t: 300, w: 'red' }), 'the end');
+  await assertFails(set(ref(db('p2'), `${T}/p2/c/1`), C('+3')), 'nothing after the end');
+  await assertFails(update(ref(db('p2'), `${T}/p2/k`), { w: 'p2', at: serverTimestamp() }), 'never a call for yourself');
+  await assertFails(update(ref(db('p2'), `${T}/p2/k`), { w: 'p3', at: serverTimestamp() }), 'never for a player with no GO (not in the match)');
+  await assertFails(update(ref(db('p2'), `${T}/p2/k`), { w: 'host', at: now() - 5000 }), 'the call\'s time is the SERVER\'s');
+  await assertSucceeds(update(ref(db('p2'), `${T}/p2/k`), { w: 'host', at: serverTimestamp() }), 'Call the Winner: a player still falling');
+  await assertFails(update(ref(db('p2'), `${T}/p2/k`), { w: 'host', at: serverTimestamp() }), '… once');
+  await assertFails(update(ref(db('host'), `${T}/p2/k`), { w: 'host', at: serverTimestamp() }), 'never somebody else\'s call');
+  // a HOLD's stamp is the rules' to take (they know no mode) — THE JUDGE refuses a hold in a match by name (tests/freefall-match.test.mjs)
+  await assertSucceeds(set(ref(db('host'), `${T}/host/h/0`), serverTimestamp()), '(the rules take a stamp — the judge refuses the hold)');
+});
+
 // FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the host may delete ONE match's proof node (prism / oc / ocm / {m}) — a new start keeps
 // the previous match's for a late report; nobody else may; a write that isn't a delete is refused
 // JAYWALK — THE GO-LIVE REVIEW (the audit): the host could delete `jw` / `jw/{match}` at ANY time — a host on a modified client deletes

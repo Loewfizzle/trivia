@@ -72,8 +72,11 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store; THE DOOR is shut before the stage mounts', () => {
   const g = graph(`${FF}play.js`);
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'logic.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the bots, the lab or the graybox)');
-  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
+  // (F4B — THE MATCH on the page: the ghosts + the match's HUD are the stage's own; THE BOT ROOM — matchsim.js + the sims' bots + the proof's
+  //  pure chunk maths — is LAZY: loaded only with `?mode=match&rivals=N`; nothing of it writes or counts)
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room)');
+  assert.match(read(`${FF}stage.js`), /lazyImport\(import\('\.\/matchsim\.js'\), '\.\/matchsim\.js'\)/, 'the bot room is lazy'); assert.doesNotMatch(read(`${FF}stage.js`), /^import .*matchsim/m);
+  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/proof.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
   // (HIGH RISE's page carries the same five: they are PURE — the sun's place is worked out on the phone, nothing is asked of a server)
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
@@ -110,7 +113,7 @@ test('THE RUN ON THE PAGE: FAIR INPUT (each move at its own event time, coalesce
   const s = code(`${FF}stage.js`);
   assert.match(s, /app\.addEventListener\('pointerdown', e => \{/); assert.match(s, /app\.addEventListener\('pointermove', e => \{/);   // (THE REVIEW: the whole page is the drag's ground — the bars beside the column too)
   assert.match(s, /if \(drag\) return; /, 'THE REVIEW: a second finger never steals the drag');
-  assert.match(s, /if \(t0 == null\) \{ if \(performance\.now\(\) - restartAt < RESTART_GUARD_MS\) return; begin\(stamp\(e\.timeStamp\)\); \}/, 'THE REVIEW: the tail of a double tap on PLAY AGAIN is not a start');
+  assert.match(s, /if \(t0 == null && !\(match && !o\.rivals\)\) \{ if \(performance\.now\(\) - restartAt < RESTART_GUARD_MS\) return; begin\(stamp\(e\.timeStamp\)\); \}/, 'THE REVIEW: the tail of a double tap on PLAY AGAIN is not a start (F4B: a MATCH starts on its count — never on a drag)');
   assert.match(s, /if \(held\) \{ countAt = 0; countShown = 0; holdN\.textContent = ''; return; \}/, 'THE REVIEW: hidden again during the 3 · 2 · 1 — the count starts over, never skipped');
   assert.match(s, /if \(document\.visibilityState === 'hidden'\) hide\(\);/, 'THE REVIEW: a run that goes live behind a hidden page is held at once');
   assert.doesNotMatch(s, /addEventListener\('click'/, 'never a click (TAPS ON PLAIN PAGE AREAS)');
@@ -262,7 +265,9 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   const BUILDS = [[/=>/, 'an arrow function'], [/\bfunction\b/, 'an inner function'], [/\.\.\./, 'a spread'], [/`/, 'a template string'], [/[=(,:?]\s*\[/, 'a list'], [/[=(,:?]\s*\{/, 'a record'],
     [/\bnew\s+[A-Z]/, 'a new object'], [/\.(map|filter|slice|concat|flatMap|reduce|split|join|keys|values|entries|toFixed|toString|padStart)\(/, 'a list- / string-making call'], [/Array\.from|Object\.(assign|keys|values|entries)|JSON\.|String\(/, 'a builder'], [/\bfor\s*\([^)]*\bof\b/, 'a for … of (an iterator)']];
   const frameFns = {
-    'stage.js': ['  function frame(now) {', '  function settle(T) {'],
+    'stage.js': ['  function frame(now) {', '  function settle(T) {', '  function ghostsFrame(now, tauW, R0, tauD, lead) {'],   // (F4B: + the match's own frame)
+    'ghosts.js': ['export function stepGhost(G, tau, now) {', 'export function liftOf(run, tau) {', 'export function copyState(to, from) {'],
+    'ghost-fx.js': ['  function place(n, data, w, h, dpr, ballX, ballY) {'],
     'night.js': ['  function draw(run, tau, dt, extra = 0) {', '  function putFloor(i, n, alpha, out, tick) {', '  function floorRec(i) {', '  function colourOf(i, slot) {', '  function ballLift(run, tau) {', '  function place(c, pitchDeg, back, ballY, camY, kick) {', '  function walls(floor) {', '  const wantWall = k => {'],
     'night-fx.js': ['    render(scene, cam, twins, k = 1) {'],
     'sounds.js': ['export function cuesOf(events, late = false, out = [], from = 0) {'],
@@ -273,7 +278,7 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   }
   const s = bare(read(`${FF}stage.js`));
   assert.doesNotMatch(body(s, '  function frame(now) {'), /getBoundingClientRect|clientHeight|clientWidth|offsetTop|offsetHeight|\.style\./, 'the frame reads no layout and writes no style (the HUD\'s two change functions do)');
-  assert.match(s, /if \(run\.floor !== hudFloor\) hudFloorNow\(\);/); assert.match(s, /if \(gap !== hudGap\) hudDarkNow\(gap, over\);/);
+  assert.match(s, /if \(R0\.floor !== hudFloor\) hudFloorNow\(R0\);/); assert.match(s, /if \(gap !== hudGap\) hudDarkNow\(gap, overD\);/);   // (F4B: R0 = the run on screen — this phone's own, or the one WATCHED)
   const n = bare(read(`${FF}night.js`));
   assert.match(n, /const S = new Float64Array\(24\);/, 'the frame\'s fractions live in ONE typed scratch array');
   assert.match(n, /const ro = new ResizeObserver\(measure\);/, 'the sizes come from a ResizeObserver — never a layout read in a frame');
@@ -296,7 +301,7 @@ test('THE ADD-ONS (the owner, Nov 26) — THE LIGHTS GO OUT = JAYWALK-STYLE PRES
   // THE RUMBLE: the lights-out sound an octave down through a low-pass, looped softly, its own voice; the full sound only when it catches
   assert.match(sf, /export const RUMBLE = Object\.freeze\(\{ id: 'lights-out', rate: 0\.5, lowpass: 240, max: 0\.36, ease: 0\.3 \}\);/);
   assert.match(sf, /if \(!lv \|\| !ctx \|\| !isUnlocked\(\)\) return false;/, 'an effect asks isUnlocked()'); assert.match(sf, /src\.loop = true;/);
-  assert.match(st, /if \(snd && snd\.rumble\) snd\.rumble\(!on \|\| held \? 0 : gap <= 1 \? 1 : gap === 2 \? 0\.5 : 0\);/, 'it swells as the darkness closes; silent 3 floors off, held, or over');
+  assert.match(st, /if \(snd && snd\.rumble\) snd\.rumble\(!on \|\| held \|\| watchUid \|\| spect \? 0 : gap <= 1 \? 1 : gap === 2 \? 0\.5 : 0\);/, 'it swells as the darkness closes; silent 3 floors off, held, or over (F4B: never for a WATCHED player\'s run)');
   // THE PANORAMAS: FREEFALL's own files, kept 3072 wide; a FULL-RESOLUTION layer of its own (never the half-res wall pass), mipmaps + anisotropy
   for (const lk of ['night', 'day']) { const u = new URL(`../assets/freefall/sky/rooftop-${lk}.webp`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < 420000, `rooftop-${lk}.webp ships`); }
   assert.deepEqual(readdirSync(new URL('../assets/freefall/sky/', import.meta.url)).sort(), ['rooftop-day.webp', 'rooftop-night.webp']);
@@ -500,12 +505,16 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.equal(AREAS.length, 7, 'one wall an area');
   assert.equal(TRENCH_PALETTES.length, 4, 'THE TRENCH = THE DEEP\'s, cycled: four laps\' rims'); assert.deepEqual([TRENCH_PALETTES[0].a, TRENCH_PALETTES[0].b, TRENCH_PALETTES[0].rim], [PALETTES[4].a, PALETTES[4].b, PALETTES[4].rim], 'its first lap = the deep\'s own');
   const e = code(`${FF}endscreen.js`), s = code(`${FF}stage.js`);
-  assert.match(e, /const el = h\('div\.ff-ec', hd, cause, n, fl, bestL, line, table\);/, 'top to bottom: the header · the cause · the number · FLOORS · YOUR BEST · the line · the table\'s slot');
-  assert.match(e, /w\('b\.fn-w\.fn-w1', 'FREE', NEON\.pink, NEON\.pink\), w\('b\.fn-w\.fn-w2', 'FALL', NEON\.teal, NEON\.teal\), w\('i\.fn-m', ` · \$\{m\}`, NEON\.mode, NEON\.teal\)/, 'FREE hot pink · FALL electric teal · the mode a pale ice (THE END NEON\'s classes)');
+  assert.ok(e.includes("const el = h('div.ff-ec', hd, cause, n, fl, bestL, avgL, line, table);"), 'top to bottom: THE LOGO · the cause · the number · FLOORS · YOUR BEST (· AVG) · the line · the table\'s slot');
+  // F4B — THE HEADER = THE LOGO (the owner's approved mock): title-05's lettering — the opening's own WebP — + the mode in small teal caps; never the words FREE FALL
+  assert.ok(e.includes("h('img.ff-ec-logo-img', { alt: '', decoding: 'async', draggable: 'false', width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) })") && e.includes("h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m)"), 'the logo + the mode line');
+  assert.ok(!/FREE FALL|'FREE'|'FALL'/.test(e), 'FREEFALL is ONE word — the header is the lettering itself');
+  assert.equal(Number(/export const LOGO_REV = (\d+);/.exec(e)[1]), Number(/export const FF_ART_REV = (\d+);/.exec(code(`${FF}night.js`))[1]), 'the lettering\'s cache key = the scene\'s');
+  assert.match(read('css/freefall-play.css'), /\.ff-ec-logo-img \{ display: block; width: clamp\(210px, calc\(var\(--ff-w\) \* 0\.58\), 250px\);/, '~58 % of the card — never under 210 pt: the script must read');
   assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
-  assert.match(s, /h\('div\.ff-endfoot', again, h\(`div\.ff-foot-row\$\{o\.onLeave \? '\.is-one' : ''\}`, o\.onLeave \? null : share, city\)\)/, 'the foot: PLAY AGAIN, then SHARE | CITY (the cartridge\'s own card: the way out alone)');
-  assert.match(s, /'SHARE · SOON'\), city = o\.onLeave \? h\('button\.ff-foot-b\.ff-city', \{ type: 'button' \}, o\.leaveWords \|\| 'BACK'\) : h\('a\.ff-foot-b\.ff-city', \{ href: '\/' \}, 'CITY'\)/, 'SHARE is a placeholder until F4B; CITY goes home (the cartridge\'s own card: the console\'s way out)');
-  assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 8px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle');
+  assert.ok(s.includes("h('div.ff-endfoot', again, h('div.ff-links', ...(o.onLeave ? [city] : [share, h('i.ff-link-div', { 'aria-hidden': 'true' }), city])))"), 'F4B — THE UNIVERSAL FOOTER: PLAY AGAIN, then SHARE | HOME (the cartridge\'s own card: the way out alone)');
+  assert.ok(!s.includes('SOON') && s.includes("h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'))") && s.includes('press(share, sharePage);'), 'SHARE works (the phone\'s own share sheet — a line + this page\'s link: no card, no server); HOME goes home');
+  assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 12px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle (the universal footer\'s 12 px — never a pill)');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');
 });
 
@@ -590,7 +599,7 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(st, /export const END_HOLD_MADE_MS = 2600;/); assert.match(st, /if \(over && !shown && now - endedAt >= \(run\.st === 'made' \? END_HOLD_MADE_MS : END_HOLD_MS\)\) showEnd\(now\);/);
   // (the fresh-eyes review: handed on AT THE `made` EVENT — the frame it ends in, or the hide that steps into it; only the card waits)
   assert.match(st, /function handOn\(\) \{\n    if \(handed \|\| run\.st !== 'made'\) return;\n    handed = true;\n    const res = resultOf\(run\), log = logOf\(run\);\n    finished = \{ seed, mode: MODE, floor: res\.floor, tick: res\.tick, look: lookT, same: null, judged: null \};\n    if \(o\.onFinish\) \{ try \{ o\.onFinish\(finished, log\); \}/, 'the hook F4 wires the match on');
-  assert.match(st, /if \(over && !endedAt\) \{ endedAt = now; awake\(false\); handOn\(\); \}/); assert.match(st, /if \(t0 == null \|\| isOver\(run\)\) \{ if \(t0 != null\) handOn\(\); return; \}/); assert.match(st, /settle\(T\); stepTo\(run, T, ev\);\n    handOn\(\);/);
+  assert.match(st, /if \(over && !endedAt\) \{ endedAt = now; awake\(false\); handOn\(\); \}/); assert.match(st, /if \(t0 == null \|\| isOver\(run\) \|\| spect\) \{ if \(t0 != null && !spect\) handOn\(\); return; \}/); assert.match(st, /settle\(T\); stepTo\(run, T, ev\);\n    handOn\(\);/);
   assert.match(st, /if \(res\.made\) \{ handOn\(\); finished\.same = same; finished\.judged = verdict\.ok === true; \}/);
   // THE TRENCH's MOUTH (the fresh-eyes review — SOLO: the floor under the ball is ALWAYS in sight): the bed is open round the tower + along the cleft toward the viewer; a finish's bed is whole
   const bfx2 = read(`${FF}break-fx.js`), brk2 = read(`${FF}breaks.js`);

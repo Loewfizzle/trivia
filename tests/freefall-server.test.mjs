@@ -24,12 +24,12 @@ const STALL = DARK.grace + DARK.lead * DARK.pace;
 test('THE SERVER HALF is PURE (F4A: WIRED into the report, behind THE SWITCH — OFF): no fb.js, the SAME engine modules as the phone; /api still has 8 functions and only the report reads FREEFALL', () => {
   const src = read('api/_lib/freefall.js');
   const imports = [...src.matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]);
-  assert.deepEqual(imports, ['../../js/games/freefall/replay.js', '../../js/games/freefall/logic.js', '../../js/games/freefall/proof.js', '../../js/games/freefall/tuning.js'], 'it imports the phone\'s own modules — nothing else');
+  assert.deepEqual(imports, ['../../js/games/freefall/replay.js', '../../js/games/freefall/logic.js', '../../js/games/freefall/proof.js', '../../js/games/freefall/match.js', '../../js/core/proof.js', '../../js/games/freefall/tuning.js'], 'it imports the phone\'s own modules (F4B: + the match\'s start + the shared proof core — both PURE) — nothing else');
   assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1'), /fb\.js|firebase|export default|\breq\b|\bres\./);
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8, `the function count stays 8 (${fns.join(' ')})`);
   for (const f of fns.filter(n => n !== 'report.js')) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
-  assert.match(read('api/report.js'), /freefall: Object\.freeze\(\{ node: PROOF_NODES\.freefall, solo: freefallSolo, match: freefallMatch, live: null \}\)/, 'the report: the solo run from its proof node (the match a stub until F4B)');
+  assert.match(read('api/report.js'), /freefall: Object\.freeze\(\{ node: PROOF_NODES\.freefall, solo: freefallSolo, match: freefallMatch, live: freefallLive \}\)/, 'the report: the solo run from its proof node · F4B: THE MATCH from every player\'s own node + its live runs');
   assert.match(src, /export const FREEFALL_COUNTS = false;/, 'THE SWITCH — OFF until go-live');
 });
 

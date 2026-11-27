@@ -178,7 +178,7 @@
 /* THE END = JAYWALK'S STANDARD (endscreen.js): the header · the cause · the big number · YOUR BEST · one line · the table's slot · the foot */
 .ff-end { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr auto; text-align: center;
   background: linear-gradient(to bottom, rgba(5, 3, 13, 0.94) 0%, rgba(5, 3, 13, 0.9) 46%, rgba(5, 3, 13, 0.66) 66%, rgba(5, 3, 13, 0.9) 100%); }
-.ff-ec { align-self: start; margin-top: calc(env(safe-area-inset-top, 0px) + 58px); padding: 0 12px; display: grid; justify-items: center; gap: 10px; }
+.ff-ec { align-self: start; margin-top: calc(env(safe-area-inset-top, 0px) + 40px); padding: 0 12px; display: grid; justify-items: center; gap: 9px; }
 .ff-ec-hd { margin-bottom: 4px; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; }
 .ff-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--ff-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; text-wrap: balance; }
 .ff-ec.is-made .ff-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--ff-w) * 0.07)); }
@@ -189,20 +189,44 @@
 .ff-ec-best.is-new { padding-left: 0.1em; font: 900 22px/1.1 var(--font-display); letter-spacing: 0.1em; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 14px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65); animation: ff-new 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 @keyframes ff-new { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .ff-ec-line { padding-left: 0.2em; font: 600 13px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); white-space: nowrap; }
-.ff-ec-table { min-height: 8px; }   /* (YOUR TABLE's slot — the slim cards, F4) */
-/* THE FOOT: ONE big solid glowing PLAY AGAIN bar in FREEFALL's accent (TEAL, dark ink — END-SCREEN STANDARD A: a rounded RECTANGLE, never
-   a pill), then SHARE | CITY */
-.ff-endfoot { padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 34px); display: grid; gap: 12px; }
-.ff-again { min-height: 62px; margin: 0; padding: 10px 18px; display: flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-radius: 8px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+.ff-ec-table { min-height: 8px; justify-self: stretch; display: grid; }   /* (YOUR TABLE's slot — the slim cards) */
+/* F4B — THE LOGO HEADER (the owner's approved mock): title-05's lettering, ~58 % of the card's width (≈ 226 pt at 390 — never under 210:
+   the script must read), the mode under it in small teal caps */
+.ff-ec-hd { margin: 0 0 2px; font: inherit; letter-spacing: 0; white-space: normal; }
+.ff-ec-logo { display: grid; justify-items: center; }
+.ff-ec-logo-img { display: block; width: clamp(210px, calc(var(--ff-w) * 0.58), 250px); height: auto; aspect-ratio: 780 / 379; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.ff-ec-mode { margin-top: -5px; padding-left: 0.42em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.42em; color: var(--ff-teal); text-shadow: 0 0 9px rgba(39, 224, 230, 0.6), 0 1px 0 rgba(2, 24, 30, 0.8); }
+.ff-ec-avg { margin-top: -4px; padding-left: 0.2em; font: 700 12.5px/1.2 var(--font-ui); letter-spacing: 0.2em; color: #cfc8ea; white-space: nowrap; }
+.ff-ec-avg:empty { display: none; }
+/* YOUR TABLE (JAYWALK's + HIGH RISE's): slim cards, the floors at the right (THE AVERAGE under them) */
+.ff-table { justify-self: center; width: min(calc(100% + 24px), 440px); margin-top: 6px; }
+.ff-table-k { margin: 0 0 6px; padding-left: 0.28em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: center; }
+.ff-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --ff-side: max(26px, calc(var(--ff-d, 2) * 0.8rem + 2px)); }
+.ff-table-list.has-av { --ff-side: max(48px, calc(var(--ff-d, 2) * 0.8rem + 2px)); }
+.ff-table-list li { position: relative; display: grid; grid-template-columns: var(--ff-side) minmax(0, 1fr) var(--ff-side); align-items: center; column-gap: 8px; }
+.ff-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
+.ff-table-list li.is-me .ff-table-n { color: #ff8fe0; }
+.ff-table-card { min-width: 0; text-align: left; }
+.ff-table-list li > b { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
+.ff-table-av { font: 700 10px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
+/* THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — css/components.css .final-bar / .final-links, copied: this
+   page loads no ui/final.js): ONE big solid glowing PLAY AGAIN bar in FREEFALL's accent (TEAL, dark ink — a rounded RECTANGLE, never a
+   pill), then the quiet links SHARE | HOME with the same drawn icons */
+.ff-endfoot { padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 18px); display: grid; gap: 10px; }
+.ff-again { min-height: 66px; margin: 0; padding: 10px 18px; display: flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-radius: 12px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   background: var(--ff-teal); color: #04262a; font: 900 22px/1 var(--font-display); letter-spacing: 0.17em; box-shadow: 0 0 0 1px rgba(214, 255, 255, 0.65) inset, 0 0 22px rgba(39, 224, 230, 0.55), 0 0 54px rgba(39, 224, 230, 0.28); transition: transform 0.08s; }
 .ff-again:active { transform: scale(0.985); }
 .ff-again-t { padding-left: 0.17em; white-space: nowrap; }
 .ff-again-i { display: inline-flex; flex: none; }
 .ff-again-i svg { display: block; width: 26px; height: 26px; }
-.ff-foot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ff-foot-b { min-height: 46px; display: grid; place-items: center; border: 1.5px solid rgba(39, 224, 230, 0.7); border-radius: 8px; background: rgba(6, 14, 30, 0.6); color: #e9feff; text-decoration: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-  font: 700 14px/1 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; box-shadow: 0 0 12px rgba(39, 224, 230, 0.3); }
-.ff-foot-b[disabled] { border-color: rgba(201, 182, 255, 0.3); color: var(--text-faint); box-shadow: none; cursor: default; }
+.ff-links { display: flex; justify-content: center; align-items: center; min-height: 48px; }
+.ff-link { display: inline-flex; align-items: center; justify-content: center; gap: 10px; flex: 1 1 0; max-width: 230px; min-width: 44px; min-height: 48px; padding: 0 14px; background: none; border: 0; border-radius: 10px; color: #e8f6ff; cursor: pointer; text-decoration: none;
+  font: 800 clamp(13px, calc(var(--ff-w) * 0.039), 15px)/1 var(--font-ui); letter-spacing: 0.2em; white-space: nowrap; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity 0.2s ease; }
+.ff-link-i { display: inline-flex; flex: none; color: var(--ff-teal); }
+.ff-link-i svg { display: block; width: 22px; height: 22px; }
+.ff-link-div { flex: none; width: 1px; height: 30px; background: rgb(232, 246, 255); opacity: 0.24; }
+.ff-link:active { opacity: 0.6; }
+.ff-link.is-busy { opacity: 0.55; pointer-events: none; }
 
 /* the page's own pieces: the SOUNDS button (between runs), the note, the fps line */
 .ff-snd { position: absolute; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 6px); min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; background: none; color: #d9d4f2; font: 700 12px/1 var(--font-ui); letter-spacing: 0.18em; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-shadow: 0 1px 0 #07040f, 0 0 8px #07040f; }
@@ -247,7 +271,8 @@
   .ff-ec { margin-top: 8px; gap: 3px; padding: 0 4px; } .ff-ec-hd { font-size: 11px; margin-bottom: 0; } .ff-ec-cause { font-size: 15px; } .ff-ec-n { margin-top: 0; font-size: 46px; } .ff-ec-fl { font-size: 9px; margin-top: -2px; }
   .ff-ec-best { min-height: 12px; margin-top: 0; font-size: 10px; letter-spacing: 0.1em; } .ff-ec-best.is-new { font-size: 12px; } .ff-ec-line { font-size: 7.5px; letter-spacing: 0.06em; padding-left: 0; }
   .ff-endfoot { padding: 0 8px 10px; gap: 6px; } .ff-again { min-height: 44px; padding: 6px 8px; gap: 8px; font-size: 13px; letter-spacing: 0.1em; } .ff-again-t { padding-left: 0.1em; } .ff-again-i svg { width: 18px; height: 18px; }
-  .ff-foot-row { gap: 6px; } .ff-foot-b { min-height: 44px; font-size: 9px; letter-spacing: 0.1em; text-indent: 0.1em; }
+  .ff-links { min-height: 44px; } .ff-link { min-height: 44px; gap: 5px; padding: 0 4px; font-size: 9px; letter-spacing: 0.1em; } .ff-link-i svg { width: 15px; height: 15px; } .ff-link-div { height: 20px; }
+  .ff-ec-logo-img { width: clamp(118px, calc(var(--ff-w) * 0.56), 150px); } .ff-ec-mode { margin-top: -3px; font-size: 7.5px; } .ff-ec-avg { font-size: 7.5px; }
 }
 
 /* F4A — THE CARTRIDGE (js/games/freefall/view.js: the SAME stage in the console's frame). THE END = the console's podium frame over the
@@ -264,12 +289,70 @@
 .ff-final .final::before { display: none; }
 .ff-final .btn, .ff-final .btn::before, .ff-final .btn::after { border-radius: 8px; }
 .ff-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; text-shadow: none; }
-.ff-fin { display: grid; justify-items: center; gap: 6px; padding: 6px 12px 4px; text-align: center; }
+.ff-final .final > .sheet-kicker.ff-kick { padding: 2px var(--cb-room) 0; font: inherit; letter-spacing: 0; white-space: normal; }
+.ff-fin { display: grid; justify-items: center; gap: 6px; padding: 2px 12px 4px; text-align: center; }
+.ff-fin-place { padding-left: 0.18em; font: 700 clamp(13px, calc(var(--ff-w) * 0.04), 16px)/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.18em; color: #fff; white-space: nowrap; }
+.ff-fin-call { padding-left: 0.16em; font: 700 12.5px/1.2 var(--font-ui); letter-spacing: 0.16em; color: #ffd257; }
+.ff-fin-best { margin-top: 2px; }
 .ff-fin .ff-ec { margin-top: 0; padding: 0; }
 .ff-fin-would { min-height: 16px; margin: 0 0 8px; padding: 0 16px; box-sizing: border-box; max-width: 100%; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.35 var(--font-ui); letter-spacing: 0.08em; white-space: normal; text-wrap: balance; overflow-wrap: anywhere; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
 .ff-fin-would.is-off { color: #d9d4f2; }
 .ff-fin-would:empty { min-height: 0; }
-.ff-again.is-busy, .ff-city.is-busy { opacity: 0.5; pointer-events: none; }
-.ff-foot-row.is-one { grid-template-columns: 1fr; }
+.ff-again.is-busy { opacity: 0.5; pointer-events: none; }
 .ff-stage.ff-game.is-live .ff-note { bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }   /* (an UNPROVEN run says so while it is on) */
 @media (prefers-reduced-motion: reduce) { .ff-final { animation: none; } }
+
+/* ============================================================== F4B — THE MATCH (js/games/freefall/matchhud.js; docs/freefall.md "THE MATCH" ·
+   "THE DEPTH RAIL"): 3 · 2 · 1 + the names · THE DEPTH RAIL at the right edge · THE EDGE MARKERS · the last half minute's clock · the OUT
+   card · the WATCHING line. Plain text + dots + a thin line — no pills. Written only at a change; a dot moves by ONE transform. */
+.ff-match { position: absolute; inset: 0; pointer-events: none; contain: layout style; }
+.ff-stage.is-match .ff-open, .ff-stage.is-match .ff-foot { display: none; }
+.ff-stage.is-match.is-over .ff-best { opacity: 1; }
+.ff-stage.is-over.is-watch .ff-hud { opacity: 1; transition: opacity 0.3s; }
+.ff-stage.is-watch .ff-num { opacity: 0.82; }
+.ff-stage.is-final .ff-match { display: none; }
+/* 3 · 2 · 1 · GO */
+.ff-count { position: absolute; left: 0; right: 0; top: 27%; display: grid; justify-items: center; gap: 14px; text-align: center; }
+.ff-count-n { font: 900 clamp(96px, calc(var(--ff-w) * 0.34), 150px)/0.9 var(--font-display); color: #fff; text-shadow: 0 0 3px #fff, 0 0 18px rgba(255, 79, 168, 0.95), 0 0 46px rgba(255, 79, 168, 0.6), 0 4px 0 rgba(20, 2, 14, 0.7); }
+.ff-count-n.is-go { color: #eaffff; text-shadow: 0 0 3px #fff, 0 0 18px rgba(39, 224, 230, 0.98), 0 0 46px rgba(39, 224, 230, 0.6), 0 4px 0 rgba(2, 24, 30, 0.7); }
+.ff-count-n.is-word { font-size: clamp(34px, calc(var(--ff-w) * 0.11), 48px); letter-spacing: 0.06em; }
+.ff-count-names { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; max-width: min(92%, 420px); padding: 8px 12px; background: radial-gradient(closest-side, rgba(5, 3, 13, 0.72), rgba(5, 3, 13, 0)); }
+.ff-count-name { font: 800 14px/1.2 var(--font-ui); letter-spacing: 0.1em; color: color-mix(in srgb, var(--c, #fff) 76%, #fff); text-shadow: 0 1px 0 #07040f, 0 0 6px #07040f, 0 0 10px rgba(7, 4, 15, 0.9); white-space: nowrap; }
+.ff-count-name.is-me { color: #fff; }
+/* THE DEPTH RAIL */
+.ff-rail { position: absolute; right: max(7px, env(safe-area-inset-right, 0px)); top: 24%; bottom: 13%; width: 20px; }
+.ff-rail-line { position: absolute; left: 50%; top: -4px; bottom: -2px; width: 2px; margin-left: -1px; border-radius: 1px; background: linear-gradient(to bottom, #ff4fa8 0%, #b45bff 45%, #4d7dff 100%); box-shadow: 0 0 0 1px rgba(5, 3, 13, 0.6), 0 0 7px rgba(190, 110, 255, 0.75); }
+.ff-rail-foot { position: absolute; left: 50%; bottom: -5px; width: 16px; height: 3px; margin-left: -8px; background: #ffc83c; box-shadow: 0 0 0 1px rgba(5, 3, 13, 0.7), 0 0 8px rgba(255, 200, 60, 0.9); }
+.ff-rail-in { position: absolute; inset: 0; }
+.ff-rail-dot { position: absolute; left: 50%; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--c, #fff); box-shadow: 0 0 0 1.5px rgba(5, 3, 13, 0.85), 0 0 6px var(--c, #fff); transition: transform 0.2s linear; will-change: transform; }
+.ff-rail-dot.is-me { width: 18px; height: 18px; margin: -9px 0 0 -9px; background: #fff; box-shadow: 0 0 0 3px #ff4fa8, 0 0 0 4.5px rgba(5, 3, 13, 0.85), 0 0 10px rgba(255, 79, 168, 0.95); }
+.ff-rail-dot.is-lost { background: none; box-shadow: 0 0 0 1.5px var(--c, #fff), 0 0 0 3px rgba(5, 3, 13, 0.7); opacity: 0.6; }
+.ff-rail-dot.is-made { background: #ffc83c; box-shadow: 0 0 0 1.5px rgba(5, 3, 13, 0.85), 0 0 8px #ffc83c; }
+.ff-rail-dot.is-out { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: rgba(9, 6, 20, 0.92); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c, #fff) 55%, #0a0616); }
+.ff-rail-dot.is-out::before, .ff-rail-dot.is-out::after { content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 2px; margin: -1px 0 0 -5px; background: color-mix(in srgb, var(--c, #fff) 70%, #fff); transform: rotate(45deg); }
+.ff-rail-dot.is-out::after { transform: rotate(-45deg); }
+.ff-rail-dot.is-me.is-out { background: rgba(9, 6, 20, 0.92); box-shadow: 0 0 0 2px #ff4fa8; }
+/* THE EDGE MARKERS — "MIA ↓12" at the foot · "MIA ↑3" up by the rail's head */
+.ff-marks { position: absolute; display: grid; gap: 2px; }
+.ff-marks.is-dn { left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 54px); justify-items: center; }
+.ff-marks.is-up { right: calc(max(7px, env(safe-area-inset-right, 0px)) + 28px); top: calc(var(--ff-band-top) + 52px); justify-items: end; }   /* (beside the rail's head — never on its line or a dot) */
+.ff-mark { font: 800 13.5px/1.2 var(--font-ui); letter-spacing: 0.07em; white-space: nowrap; color: color-mix(in srgb, var(--c, #fff) 74%, #fff); text-shadow: -1px 0 0 #07040f, 1px 0 0 #07040f, 0 -1px 0 #07040f, 0 1px 0 #07040f, 0 0 7px rgba(7, 4, 15, 0.95); }
+.ff-clock { position: absolute; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 56px); font: 700 16px/1 var(--font-num); letter-spacing: 0.06em; color: #eaffff; text-shadow: 0 0 2px #fff, 0 0 10px rgba(39, 224, 230, 0.9), 0 1px 0 #07040f; }
+/* OUT · THE BOTTOM · TIME'S UP — the cause's words for a moment, then Call the Winner / WATCH */
+.ff-over { position: absolute; inset: 0; display: grid; align-content: start; justify-items: center; padding-top: 30vh; }
+.ff-over > * { pointer-events: auto; }
+.ff-outcard { display: grid; gap: 6px; justify-items: center; padding: 26px 40px; text-align: center; pointer-events: none; background: radial-gradient(closest-side, rgba(5, 3, 13, 0.9), rgba(5, 3, 13, 0.62) 62%, rgba(5, 3, 13, 0)); transition: opacity 0.35s; }
+.ff-outcard.is-gone { opacity: 0; }
+.ff-outcard-k { font: 700 12px/1 var(--font-ui); letter-spacing: 0.34em; text-indent: 0.34em; color: #d9d4f2; }
+.ff-outcard-w { font: 900 clamp(22px, calc(var(--ff-w) * 0.068), 30px)/1.1 var(--font-display); letter-spacing: 0.04em; color: #e9feff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(39, 224, 230, 0.95), 0 0 28px rgba(39, 224, 230, 0.55); white-space: nowrap; }
+.ff-outcard.is-made .ff-outcard-w { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 200, 60, 0.95), 0 0 28px rgba(255, 170, 30, 0.6); }
+.ff-outcard-n { font: 700 15px/1 var(--font-num); letter-spacing: 0.2em; text-indent: 0.2em; color: #fff; }
+.ff-watch { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); text-align: center; font: 700 13px/1.2 var(--font-ui); letter-spacing: 0.16em; text-indent: 0.16em; color: #fff; text-shadow: 0 1px 0 #07040f, 0 0 8px #07040f, 0 0 12px rgba(7, 4, 15, 0.9); }
+@media (max-height: 480px) {
+  .ff-count { top: 18%; gap: 6px; }
+  .ff-count-n { font-size: 84px; }
+  .ff-rail { top: 22%; bottom: 16%; }
+  .ff-over { padding-top: 16vh; }
+  .ff-outcard { padding: 12px 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .ff-rail-dot { transition: none; } }

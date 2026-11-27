@@ -14,6 +14,7 @@ import { PALETTES, TRENCH_PALETTES, GOLD_AREAS } from './palettes.js';
 import { WALL_V, WALL_F, SKY_V, SKY_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_V, PILLAR_F, BALL_V, BALL_F, LIGHT_V, LIGHT_F, SHARD_V, SHARD_F, SPARK_V, SPARK_F, TAPE_V, TAPE_F, FLAME_V, FLAME_F, RIBBON_V, RIBBON_F, createBloom } from './night-fx.js';
 import { MOTE_V, MOTE_F } from './day-fx.js';
 import { createBreaks, SKYLIGHT, BREAK_FLOORS } from './breaks.js';
+import { createGhostLayer, GHOST_STRIDE } from './ghost-fx.js';
 
 /** bump when a picture is replaced (the walls' cache key) */
 export const FF_ART_REV = 1;
@@ -599,6 +600,18 @@ export function createNight(host, o = {}) {
     G.uCutY.value = breaks.out[0] > 0.5 ? -1e9 : Cy;   // (the roof is shut: the pillar ends where it goes into it)
   }
 
+  // F4B — THE GHOSTS (ghost-fx.js): the match's rivals on MY tower — their own small scene over the picture's depth; the stage hands the
+  // records (ghosts.js steps them), this only places + draws them
+  const ghostLayer = createGhostLayer({ renderer, cam, uDay: G.uDay, RB: SHAPE.RB, R_BALL: SHAPE.R_BALL });
+  let ghostN = 0, ghostData = null;
+  /** a rival passed a BREAKTHROUGH (the skylight · the splashdown · THE BOTTOM): a small echo only — a few sparks in their colour where their ball is */
+  function ghostEcho(i) {
+    if (!ghostData || i < 0 || i >= ghostN || reduce) return;
+    const o = i * GHOST_STRIDE, phi = ghostData[o], x = SHAPE.RB * Math.sin(phi), y = ghostData[o + 1] + SHAPE.R_BALL, z = SHAPE.RB * Math.cos(phi);
+    for (let k = 0; k < 8; k++) { const a = rnd() * 6.2832, v = 0.6 + rnd() * 0.9; spark(x, y, z, Math.cos(a) * v, 0.5 + rnd() * 1.2, Math.sin(a) * v, 0.3 + rnd() * 0.25, 0.012, ghostData[o + 2], ghostData[o + 3], ghostData[o + 4]); }
+    pO.needsUpdate = pV.needsUpdate = pT.needsUpdate = pC.needsUpdate = true;
+  }
+
   let frames = 0;
   /** one frame: the run, `tau` = the clock in ticks (a fraction into the next one), `dt` ms since the last frame, `extra` = angle units the tower shows ahead of the run (the finger's moves before tick 0) */
   function draw(run, tau, dt, extra = 0) {
@@ -754,6 +767,12 @@ export function createNight(host, o = {}) {
     renderer.setRenderTarget(wallRT); renderer.render(wallScene, wallCam); renderer.setRenderTarget(null);
     renderer.render(scene, cam);
     if (bloom && tier === 2) bloom.render(scene, cam, TWINS, day ? 0.4 : 1);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
+    // F4B — THE GHOSTS: over the finished picture, on its own depth (seen · x-ray where the tower hides them · the name tags on top)
+    if (ghostN > 0) {
+      V.copy(ball.position).project(cam);
+      ghostLayer.place(ghostN, ghostData, w, hh, dpr, (V.x + 1) * 0.5 * w, (1 - V.y) * 0.5 * hh);
+      ghostLayer.draw();
+    }
   }
 
   // (a static scene: no mesh composes its matrix a frame — the ones that move set theirs in draw)
@@ -771,6 +790,7 @@ export function createNight(host, o = {}) {
       breaks.force(true);   // (F3B: the breakthroughs' pieces drawn once too — in the picture AND the bloom pass: no program is built at floor 30)
       renderer.compile(scene, cam); renderer.compile(wallScene, wallCam);
       draw(run, FIRST, 16);
+      ghostLayer.warm();   // (F4B: the ghosts' three programs too — a match builds nothing at its first rival)
       breaks.force(false);
       for (let i = 0; i < SHARDS; i++) cT.array[i * 4] = -100;
       for (let i = 0; i < SPARKS; i++) pT.array[i * 3] = -100;
@@ -801,6 +821,12 @@ export function createNight(host, o = {}) {
   return {
     el, reset, feed, adopt, draw, pose, setTier, warm, setLook,
     lookNow: () => (day ? 'day' : 'night'),
+    /** F4B — THE GHOSTS: the stage's records (ghost-fx.js GHOST_STRIDE numbers a ghost — the array is READ each frame, never copied) · their
+     *  names' tags (baked once: [{ name, hex }]) · a rival's small echo at a breakthrough */
+    ghosts(n, data) { ghostN = data ? n : 0; ghostData = data || null; if (!ghostN) ghostLayer.clear(); },
+    ghostNames(list) { ghostLayer.names(list, dpr); workAt = performance.now(); },
+    ghostEcho,
+    ghostInfo: () => ghostLayer.info(),
     /** YOUR BEST's floor (0 = none): the gold tape lies round its rim */
     setBest(floor) { S[BEST] = floor > 0 ? floor : 0; tapeLook(); },
     /** the review's shot: the picture with the colour removed (red must still read) */
@@ -831,7 +857,7 @@ export function createNight(host, o = {}) {
       for (const t of texs.values()) if (t.tex) { const im = t.tex.image; t.tex.dispose(); if (im && im.close) im.close(); }
       for (const m of [pillar, slices, tape, ball, shards, sparks, flames, ribbon, lights, motes, backdrop, skyQuad, wallQuad, ...breaks.meshes]) { m.geometry.dispose(); m.material.dispose(); }
       for (const t of TWINS) t[1].dispose();
-      wallRT.dispose(); if (bloom) bloom.dispose();
+      wallRT.dispose(); if (bloom) bloom.dispose(); ghostLayer.dispose();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.remove();
