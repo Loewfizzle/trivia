@@ -761,6 +761,15 @@ IDENTICAL against the commit before it. **THE SHARE CARD's ONE RULE** (this pass
   files, the last effect (file + rate), this origin's settings — and WHY it is silent when it is; the song clock restarts at the TAP FOR
   SOUND tap.
 
+## THE END-BOARD SWITCH-ON (Nov 27, 2026 — docs/games/passes/endboard.md)
+- THE END-SCREEN BOARD is ON for SCORE RUSH (`index.js#END_BOARD = { b: 'prism-rush', word: 'POINTS', on: rush }` — the console's ONE shared
+  block, `ui/end-board.js`; no AVG). BATTLE + SURVIVAL: no board — their end screens exactly as they were.
+- SCORE RUSH's body: the moment (your / the winning board + its line) + "YOUR BEST n" (the server's best as it last told this phone — `pd:rush-best`);
+  the body's own top-3 cards step aside (the block's THIS MATCH / the board's top 3); a solo frame drops SOLO RUN · name · score (the moment says it).
+- By day (the paper) the block's words in the paper's ink, its accent PRISM DROP's own day blue (#1d5aa6); by night its sky blue (#8fd8ff).
+- Fits ONE screen from 375 × 667: a match's winning board at 5-pt cells under 760 px tall, the WINNER title 40 px; a solo board keeps PD-6's 7.
+- Note: a SOLO SCORE RUSH run never writes prism-rush (the solo lane has no `prism-rush-solo` board) — the block shows the room matches' board.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -1045,6 +1045,13 @@ dropped + counted in the build log) and again on every shipped + reserved item b
 The pools after the fixes (party + reserve): T/F 1,993 · H/L 43 stats · 1,123 · TIMELINE 18 · 494 · SORT IT 176 · TRIVIA 3,727 · CLOSEST CALL 887 ·
 MISSING LINK 971 · SPELLCHECK 1,556 — every one above its floor (`tests/overclock-content.test.mjs`).
 
+## THE END-BOARD SWITCH-ON (Nov 27, 2026 — docs/games/passes/endboard.md)
+- THE END-SCREEN BOARD is ON for a QUICK run's SOLO end (`index.js#END_BOARD = { b: 'overclock-quick', word: 'POINTS', match: false, on: quick }`
+  — the console's ONE shared block, `ui/end-board.js`; no AVG): BEST QUICK RUN's top 3 under ☐ FRIENDS ONLY. A MATCH keeps its own 2-1-3 podium
+  (it IS the match's top 3); STANDARD / MARATHON have no board — as they were. The block wears OVERCLOCK's orange (#ff6a1a).
+- The solo line = "YOUR BEST n" (was "YOUR BEST · n"). Fits ONE screen from 375 × 667: OVERCLOCKED 34 px + the score 72 px under 760 px tall.
+- Note: a SOLO quick run still writes no board row (THE FIX PASS S4 — room matches with 2+ verified players only): the block shows the room board.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

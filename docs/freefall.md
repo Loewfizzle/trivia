@@ -1235,6 +1235,11 @@ switch is OFF.
   above the ball's highest point (375 × 667 · 390 × 844 · 430 × 932) — a ball that lets the darkness this close has stopped: no band,
   no call is up; **the day BLAZE!** = pale letters on a dark, warm backing (it was orange on the orange flame).
 
+## THE END-BOARD SWITCH-ON (Nov 27 — docs/games/passes/endboard.md)
+The shared block went on for JAYWALK, HIGH RISE, PRISM DROP + OVERCLOCK; FREEFALL is untouched — pixel-identical to F5C on 13 A/B shots
+(`Downloads\NEON\endboard\freefall-unchanged\`). The block now wears each game's accent: FREEFALL keeps F5C's pink (its FREE pink —
+`css/freefall-play.css` `.ff-final .final.has-eb .eb`).
+
 ## THE RULE-SET TABLE (`tuning.js` — HIGH RISE's `rules.js` pattern)
 Every rule number lives in ONE row per rule set — `RULE_SETS` (made by `makeRuleSet`, frozen, its derived `reach` + `hop` worked out).
 Today's only row: **`classic`**. A later tuning = a NEW row; every run ever recorded still replays on the row it was played on.

@@ -310,8 +310,19 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 ## THE END-SCREEN BOARD (FREEFALL F5B, Nov 27 — the owner's FINAL SHAPE; `js/ui/end-board.js`, prefix `eb-`)
 ONE shared leaderboard block for the podium, **a per-game OPT-IN**: a cartridge exports `END_BOARD = { b: its board id, word: the score's
 word, avg: true }` (THE CONTRACT's optional table — `games/contract.js`). `ui/final.js` then mounts the block (LAZY) under the game's body;
-**a cartridge without it never loads the module — its end screen is exactly as it was** (FREEFALL is the only game on; JAYWALK, HIGH RISE
-and PRISM DROP shot before + after: `Downloads/NEON/freefall-f5b/others-unchanged/`).
+**a cartridge without it never loads the module — its end screen is exactly as it was** (NEON PAR, SLIPSTREAM, HOLD'EM).
+- **ON (THE END-BOARD SWITCH-ON, Nov 27 — docs/games/passes/endboard.md):** FREEFALL (`freefall-solo`, FLOORS, AVG) · JAYWALK (`jaywalk-solo`,
+  LANES, AVG) · HIGH RISE (`highrise-solo`, FLOORS, AVG — its stored average from Nov 27) · PRISM DROP (`prism-rush`, POINTS — `on(game)`:
+  SCORE RUSH only) · OVERCLOCK (`overclock-quick`, POINTS — `on(game)`: a QUICK run; `match: false`: solo only, its 2-1-3 podium is a match's top 3).
+- **The optional pieces:** `on(game)` → false = not this match (the frame as it was) · `match: false` = solo only. A MATCH with the block on = the
+  block IS the list (the console's own results list stays away). `.final.has-eb` folds the personal-best / world-rank plaques (the XP line stays).
+  The values print in the BOARD's own format (`core/boards.js#fmtValue` — HIGH RISE's tower number → its floor); a 5+ character score column
+  narrower (`.eb-list.is-wide`) so a 12-letter name stays whole.
+- **The game's own look (the owner, Nov 27):** the block's accents = the game's (`--eb-acc` / `--eb-you` / `--eb-tick` ← the frame's `--fin` /
+  `--fin-ink`); FREEFALL keeps F5C's pink (its FREE pink); PRISM DROP by day = its own day ink on the paper. Each game keeps its art, its bar, its
+  SHARE + HOME; to fit 375 × 667 a game shrinks ITS hero / cause / spacing under 760 px tall — never the block's rows.
+- **Look preview:** `tests/integration/endboard-preview.html?game=jaywalk|highrise|prism|overclock&mode=solo|match&look=…` (the real frame +
+  body + block, a board fixture) — `shots.mjs --page … --probe "__ebEnd()"` prints each size's overflow.
 - **SOLO:** the board's TOP 3 — everyone (the all-time top 100, ONE read a session) by default — under ONE header: the tick **☐ FRIENDS
   ONLY** (F5C — the owner, Nov 27: no "THE WORLD" heading; a drawn box + the words, no pill; a 44 pt tap area; unticked = everyone) that switches the rows to YOUR TABLE (`/api/profile` `table`, read only once
   ticked, kept). ONE remembered setting for every game (`localStorage ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world
@@ -444,6 +455,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `globalThis.__nsHelp[id] = () => [nodes]` — and the shared sheet shows it (☰ → HOW TO PLAY in its match, its card's link), its tab the
   first two letters of its name. The go-live pass moves the content into `ui/help.js` (`JAYWALK_WAITS.help`).
 - **A game with no tile** (`ui/game-art.js` — a boot file): THE GAME CARD shows its neon mark in the art's place (`.nd-pv-mark`).
+- **ONE ICON PER GAME (Nov 27 — THE END-BOARD SWITCH-ON):** every SMALL game icon is the game's NEON MARK (`ui/mark-svg.js#markSvg` ← `core/marks.js#markFor`):
+  the PLAY shelf, the room's PICK A GAME, HOW TO PLAY's tabs. `ui/game-art.js`'s poster tiles = the BIG art only: THE GAME CARD sheet's 120-pt tile.
 - **THE OWNER'S LIVE TEST reaches PLAY NOW** (HE8 + H3): on the owner's phone a `preview` game is also on the title's PLAY shelf
   (`JAYWALK · TEST`) and its skyline sign opens its card (`title-taps.js` — `isOwnerTest`; it loads the cartridge first: no meta at boot).
   The server's side: `api/report.js#reportableGame(id, uid)` counts a `preview` game for `ADMIN_PIDS` alone.

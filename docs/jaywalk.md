@@ -2297,6 +2297,16 @@ IMAGE; THE SIGNAL; THE POSTER's render. PLACEHOLDER: THE BLACKBIRD (a dark dart)
 ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); the ghosts' `CATCH_MS` / `HELD_SHOW_MS`; the sounds' levels (the mix: H6 — with it the `-b` takes leave); Grok's new train bell + train horn (not delivered when H5B ran); the day look's palette + the landmarks' drawings (first-pass — the owner judges them on his phone); each area's lean (`AREAS` — first-pass feel); no tile; the train's name ("THE 6:15");
 the poster's hero camera (`POSTER.hero` — the owner judges the frame).
 
+## THE END-BOARD SWITCH-ON (Nov 27, 2026 — docs/games/passes/endboard.md)
+- THE END-SCREEN BOARD is ON (`index.js#END_BOARD = { b: 'jaywalk-solo', word: 'LANES', avg: true }` — the console's ONE shared block,
+  `ui/end-board.js`, docs/cartridge.md "THE END-SCREEN BOARD"): solo = the board's top 3 under ☐ FRIENDS ONLY (ticked = YOUR TABLE — the body's
+  own `yourTable` is gone), "YOU · 12TH · 88 LANES" when you're not in it; a match = THIS MATCH's top 3 (the console's list with each player's
+  cause line stays away) + YOU from 4th down. The block wears JAYWALK's pink (#ff4fc4).
+- The solo line = "YOUR BEST 225 · AVG 180" (FREEFALL F5C's words; the AVG off the room's mirror at once, then the server's answer).
+- YOUR SPLITS is OFF the end screens (the owner, Nov 27 9:46 am — podium solo + match + the local end): the run's splits, `keepOwnSplits`,
+  the server's replay + your best splits (`rememberBests`, pstats.jsp) are kept; the DAILY's end card + the lab still draw `splits-card.js`.
+- Fits ONE screen from 375 × 667 (both looks): under 760 px tall the cause 28 px, the lanes 72 px (`css/jaywalk.css` — the END-BOARD block).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 18)
 DAILY A made room in CLAUDE.md (its 40 KB cap) for DAILY BEST's line: these two lines moved here VERBATIM; CLAUDE.md keeps a short pointer each.
 

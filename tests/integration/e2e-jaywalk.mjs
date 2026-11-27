@@ -314,8 +314,11 @@ try {
     await P.shot(`endboard-${w}.png`);
   }
   await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
-  await ebTick(false);
-  ok(await P.waitFor("[...document.querySelectorAll('.jw-final .eb-list li')].some(li => li.classList.contains('is-me'))", 12000), 'unticked: the world\'s top 3 — your run among them');
+  // (THE YOU ROW: the friends' bests re-seeded UNDER yours, the block mounted again with its reads forgotten — YOUR card leads YOUR TABLE.
+  //  The world board can't be used here: a player is listed from the 3rd COUNTED play — a fresh test phone isn't on it yet)
+  for (let i = 0; i < TBL.length; i++) await dbPut(`pstats/${TBL[i][0]}/b/jaywalk-solo`, { a: [3, 2, 1][i] });
+  await P.ev(`(async () => { const EB = await import('/js/ui/end-board.js'), C = await import('/js/games/jaywalk/index.js'); EB.forgetReads(); localStorage.setItem(EB.FRIENDS_KEY, '1'); const el = document.querySelector('.jw-final .final-eb'); el.replaceChildren(); el.className = 'final-eb'; EB.mountEndBoard(el, C.END_BOARD, { solo: true }); return 1; })()`);
+  ok(await P.waitFor("(document.querySelector('.jw-final .eb-list li') || { classList: { contains: () => false } }).classList.contains('is-me')", 12000), 'YOUR TABLE re-asked (the friends now under you): YOUR card first');
   const gy = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-final .eb-list li')], me = li.find(x => x.classList.contains('is-me')), st = me && me.querySelector('.vl-strip'), b = st ? getComputedStyle(st, '::after') : null;
     return { sb: !!(st && st.classList.contains('sb-me')), sbN: document.querySelectorAll('.jw-final .eb-list .sb-me').length, anim: b ? b.animationName : '', rank: getComputedStyle(me.querySelector('.eb-n')).color, h: [...new Set(li.map(x => Math.round(x.getBoundingClientRect().height)))] }; })()`);
   ok(gy.sb && gy.sbN === 1 && gy.anim === 'sb-breathe' && gy.rank === 'rgb(255, 79, 196)' && gy.h.length === 1, `THE YOU ROW: the shared breathing glow on YOUR card only (${gy.sbN}, ${gy.anim}); your rank in JAYWALK's own colour (${gy.rank} = #ff4fc4 — the owner's add-on: the block wears the game's look); every row one height`);
