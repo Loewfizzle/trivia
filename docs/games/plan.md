@@ -980,3 +980,13 @@
 - **Decided looks:** THE WATER = Grok's mock B (day) + Claude's night recolour (both looks, one ripple path) · THE EDGE MARKERS removed →
   the rivals' names on THE DEPTH RAIL · THE MARK = D (a ring floor: its back edge behind the ball, its front edge in front) · the callouts
   ("MIA IS OUT", LAST ONE STANDING) up under the number.
+
+## FREEFALL — THE FIX PASS, three parts (Nov 27, from FIX A's results)
+- **THE FIX PASS is now three parts:** A ✓ (the look + the feel) · B (speed by experiment + the match + stability — `docs/games/passes/freefall-fixb.md`)
+  · C (scoring + the rules leaf + the shared end board + the test page + the small items) · then the go-live. (The anti-cheat of Ben's answer 1
+  moves with the scoring to PART C.)
+- **SPEED (Ben's iPhone after FIX A, `?fps=1`):** HITCH 29 (85 floors) + 35 (119) — nearly all single 36–44 ms "frame" stalls from floor 6 on
+  (calm floors), and FIX A's spike rule dropped the tier 2 → 1 → 0 WITHOUT stopping them (the lowest look AND the stutter). The Beelink shows
+  0–1: a device-only cause. Method: switches Ben A/Bs on the phone (PART B), then the real fix in PART C. JAYWALK / HIGH RISE "feel alright,
+  not buttery" on the same phone: FREEFALL's constant fast camera fall shows every dropped frame as a jump.
+- **THE WATER:** Ben "good enough for now" — re-judged at the end, no change in B.
