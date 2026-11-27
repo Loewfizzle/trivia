@@ -378,6 +378,16 @@ async function look() {
         }
       }
     }
+    // F5A's ADD-ON — THE DAY OFFICES FOG: THE OFFICES beside THE SPEAKEASY + UNDER THE HARBOR (?floor=48 · 90 · 130, 390 × 844 @3) — the
+    // floors' fade into the haze must begin at the same height in all three (the files: f5a-<look>-40-fog-<floor>.png)
+    if (want('dayfog')) {
+      for (const floor of [48, 90, 130]) {
+        t = await open(390, 844, 3, `?seed=look2${q}&floor=${floor}`, { best: 141 });
+        await toFloor(t, floor + 2); await sleep(2300);
+        await shot(t.p, g5(`40-fog-${floor}`));
+        await t.close();
+      }
+    }
     if (want('sizes')) {
       // the other sizes: the opening, a play frame, an arrival's banner, the end
       for (const [sw, sh, sd] of [[375, 667, 2], [430, 932, 3], [1440, 900, 1], [844, 390, 2]]) {
@@ -1067,6 +1077,24 @@ async function perf() {
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     rows.push({ lk, where, tier, rate, ...r });
     ok(r.look === lk && r.fps >= 58 && r.p95 <= 20, `${lk} · ${where} · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) — floor ${r.floor}, ${r.shatters} shatters, ${r.motes} motes, @${r.dpr}`);
+    await d.close();
+  }
+  // F5A — THE WATER SURFACE STANDING IN THE PICTURE (both looks, every tier, 1× + 4× CPU): the ball bouncing on floor 119, the whole lower
+  // screen the water's shader (the swell, the streaks' column reads, the plankton · by day the lines + the foam) — 8 s of it
+  for (const lk of ['night', 'day']) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
+    if (ONE && ONE !== `${lk}-water-${tier}-${rate}`) continue;
+    const d = await open(390, 844, 3, `?seed=look2&tier=${tier}&floor=117&look=${lk}`);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await start(d); await auto(d.p, 'play');
+    await waitFor(d.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(d.p, 'safe');
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
+    await sleep(800);
+    await d.p.evaluate(() => { window.__f0 = performance.now(); window.__n0 = window.__ffPlay.state().info.frames; });
+    await sleep(8000);
+    const r = await d.p.evaluate(() => { const P = window.__ffPlay, fr = P.frames(), s2 = P.state(), n = s2.info.frames - window.__n0, ms = performance.now() - window.__f0, a = fr.slice(-Math.min(fr.length, n)).sort((x, y) => x - y); return { fps: 1000 * n / ms, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], worst: a[a.length - 1], floor: s2.floor, look: s2.look, water: s2.info.breaks.water, dpr: window.devicePixelRatio }; });
+    await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    rows.push({ lk, where: 'THE WATER (floor 119)', tier, rate, ...r });
+    ok(r.look === lk && r.water === true && r.floor === 119 && r.fps >= 58 && r.p95 <= 20, `${lk} · THE WATER SURFACE in the picture (floor ${r.floor}) · tier ${tier} at ${rate}× CPU: ${r.fps.toFixed(1)} fps (frame p50 ${r.p50.toFixed(1)} · p95 ${r.p95.toFixed(1)} · worst ${r.worst.toFixed(1)} ms) @${r.dpr}`);
     await d.close();
   }
   // F3B — EACH BREAKTHROUGH PLAYING (both looks, tiers 2 + 0, 1× + 4× CPU): the frames from four floors above it to four floors past it

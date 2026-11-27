@@ -66,7 +66,7 @@ test('THE STAGE + THE SCENE: ONE small hook each — the frame JUST DRAWN is cop
     assert.deepEqual(S.stagingOf('constructor'), S.stagingOf('cap'), 'an unknown cause: the bell\'s');
   }
   const nj = readFileSync(new URL('../js/games/freefall/night.js', import.meta.url), 'utf8');
-  assert.match(nj, /shot\(runX, tauX, bw, bh, rect, o\) \{/, 'night.js#shot: the staged draw'); assert.match(nj, /S\.set\(SV\); state = st0; sparks\.visible = sv0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;/, '… nothing of it stays');
+  assert.match(nj, /shot\(runX, tauX, bw, bh, rect, o\) \{/, 'night.js#shot: the staged draw'); assert.match(nj, /S\.set\(SV\); state = st0; sparks\.visible = sv0; shards\.visible = sh0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;/, '… nothing of it stays');
   // (right after the frame's own draw — the drawing buffer is still that frame's)
   assert.match(st, /view\.draw\(R0, tauD, dt, lead\);\n    if \(over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs\(run\.st === 'out' \? run\.cause : run\.st\)\) takeShot\(tauD, lead\);/, 'the capture: the line right after view.draw, a beat after the end, once a run — this phone\'s OWN run on screen (never a WATCHED player\'s, never a watcher\'s)');
   assert.ok(st.includes('const shotKey = () => { try { return String((o.shotKey && o.shotKey()) || seed); } catch { return seed; } };'), 'the key: the driver\'s (the cartridge: its match id) — else the run\'s seed');

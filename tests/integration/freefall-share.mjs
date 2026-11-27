@@ -1,6 +1,6 @@
 // FREEFALL F4B — THE SHARE CARD (js/games/freefall/share.js + shot.js — docs/freefall.md "THE SHARE CARD"), on the LOCAL server (NEVER THE
 // LIVE SITE; scripts/serve.mjs is enough — no emulators). REAL RUNS are played on the test page /freefall-play (the checks' own hand —
-// window.__ffPlay.auto) to each end; the stage takes THE RUN's REAL END FRAME (shot.js — a beat after the end, per cause), and THE CARD is
+// window.__ffPlay.auto) to each end; the stage takes THE RUN's FRAME (shot.js — F5A: STAGED, the moment a beat BEFORE the end), and THE CARD is
 // drawn IN THE PAGE by the same functions the cartridge's SHARE draws (share.js#drawFfCard + loadLogo — imported by THIS check: the page's
 // own module graph never holds them, tests/freefall-play.test.mjs):
 //   · every cause — HIT THE RED · THE LIGHTS WENT OUT · YOU HIT THE BOTTOM (the finish: GOLD) · TIME'S UP (`--cap`: a real 3-minute match

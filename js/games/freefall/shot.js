@@ -1,7 +1,8 @@
 // FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE SHARE CARD"; HIGH RISE S5's shot.js is the pattern): the picture of the moment a
 // run ended (the red's burst round the ball · the darkness on the ball · the seabed's impact, gold · the bell), kept on THIS phone until
-// the next run. The stage takes it (stage.js — a beat after the end, per cause: night.js#snap copies the frame off the canvas in the
-// frame it was drawn), the share card draws it (share.js). Pure state + numbers: no DOM, no fetch, nothing that counts.
+// the next run. The stage takes it (stage.js — a beat after the end, per cause; F5A: the picture is STAGED — the moment a beat BEFORE the
+// end, drawn once more for the card alone: night.js#shot, the numbers below), the share card draws it (share.js). Pure state + numbers:
+// no DOM, no fetch, nothing that counts.
 
 let held = null;
 /** keep this run's frame — { key, canvas (THE BOX's size: the picture round the ball), cause, made, floor, blazes, look } — the one before
@@ -24,7 +25,7 @@ export const SHOT_BOX = Object.freeze({ w: 984, h: 792 });
 // (F4B — the screen review: at 90 ms the slice was still WHITE-HOT — under a HIT THE RED tab the frame read as a white wedge. At 200 ms
 //  the slice is RED again, a pale flash still on it, the sparks spread in the air: it reads as the hit.)
 // (F5A: THE BOTTOM 390 → 410 — the GOLD ring stands round the ball, inside the picture)
-export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 410 });
+export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 355 });   // (the review: 355 — the gold ring tight round the ball, whole inside the picture)
 /** F5A — THE HERO FRAME TELLS THE STORY (the owner's real SHARE read as noise: taken AFTER the crash — no ball, a white hit-flash slice,
  *  random spark streaks): the frame is STAGED — the scene draws the moment a beat BEFORE the end once more, for the card alone
  *  (night.js#shot: zoomed out a little, no hit flash, no sparks; the screen never shows it) —

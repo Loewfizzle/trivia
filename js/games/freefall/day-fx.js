@@ -124,9 +124,10 @@ export const DAY_SLICE = /* glsl */`
     }
     // (uFogK — F3B: the haze's strength by area; THE ROOFTOP has almost none — NO fog wash over the roof below)
     // (F4A — THE HAZE FOLLOWS THE FLOOR: zb = this slice lies under the border in sight — its own area's haze, never the one above's eased over a second)
-    float fogK = mix(uFogK, uFogKB, zb);
-    col = mix(col, mix(uFog, uFogB, zb), far * 0.62 * fogK);
-    alpha *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, far)), fogK);
+    // (F5A's add-on — THE DAY OFFICES FOG: the area's haze STARTS fs of the way down — night.js#FOG_START; 0 everywhere but THE OFFICES)
+    float fogK = mix(uFogK, uFogKB, zb), fs = mix(uFogS, uFogSB, zb), hz = clamp((far - fs) / (1.0 - fs), 0.0, 1.0);
+    col = mix(col, mix(uFog, uFogB, zb), hz * 0.62 * fogK);
+    alpha *= mix(1.0, mix(1.0, 0.62, smoothstep(0.35, 1.0, hz)), fogK);
     col = mix(col, vec3(1.0, 0.36, 0.7), clamp(vF.x, 0.0, 1.0) * (face < 0.5 ? 0.5 : 0.2));   // (a landing's flash: the ball's own pink on the ice)
     if (uBloom > 0.5) col = vec3(0.0);`;
 

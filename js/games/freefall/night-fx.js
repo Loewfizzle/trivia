@@ -177,8 +177,8 @@ void main() {
     // F5A — THE ROOF GRAIN (floors 36 – 39 by day looked soft: the painting was made at 1024 + enlarged): a fine concrete-grain DETAIL
     // tile laid over the roof as it comes close (uGrain) — two readings of it, a fine one + a coarser one turned (no tile shows), as light
     // + shade about the painting's own colour; its mipmaps let it go with distance. The same reading as the deck's (DECK_F): one roof.
-    float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.62 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.38;
-    rf *= 1.0 + gr * uGrain * uHaveG * mix(0.5, 1.15, uDay);
+    float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.5 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.5;
+    rf *= 1.0 + gr * uGrain * uHaveG * mix(0.55, 1.45, uDay);   // (the review: the coarser reading carries half — the fine one alone did not survive a phone's scale)
     vec3 g = mix(mix(flat_, rf, uHaveR), mix(flat_, ct, uHaveC), outside);
     g *= mix(1.5, 1.0, uDay);                                 // (by night the painting is shown a little over its own light: the neon reads from 40 floors up)
     // only a LIGHT distance haze, far out — where the city meets the panorama
@@ -228,7 +228,7 @@ void main() {
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
 export const SLICE_F = /* glsl */`
-uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust, uFogK, uCaustB, uFogKB, uFogSeam;
+uniform float uBloom, uTopY, uTime, uRing, uWidth, uGrey, uDay, uCaust, uFogK, uCaustB, uFogKB, uFogSeam, uFogS, uFogSB;
 uniform vec3 uFog, uFogB;
 varying vec4 vE, vC, vF;
 varying vec3 vW, vN, vR;
@@ -332,7 +332,7 @@ export const PILLAR_V = /* glsl */`
 varying vec3 vW, vN;
 void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
 export const PILLAR_F = /* glsl */`
-uniform float uBloom, uTopY, uDay, uFogK, uFogKB, uFogSeam, uCutY;
+uniform float uBloom, uTopY, uDay, uFogK, uFogKB, uFogSeam, uCutY, uFogS, uFogSB;
 uniform vec3 uCol, uFog, uFogB;
 varying vec3 vW, vN;
 void main() {
@@ -350,7 +350,8 @@ void main() {
     col = mix(vec3(0.26, 0.36, 0.48), vec3(0.78, 0.87, 0.96), nv) * brush + vec3(1.0) * band * 0.45;
     col = mix(col, vec3(0.1, 0.3, 0.42), step(0.5, vN.y));
     float zb = 1.0 - smoothstep(-0.3, 0.3, vW.y - uFogSeam);   // (F4A: under the border in sight — that area's own haze)
-    col = mix(col, mix(uFog, uFogB, zb), far * 0.62 * mix(uFogK, uFogKB, zb));
+    float fs = mix(uFogS, uFogSB, zb), hz = clamp((far - fs) / (1.0 - fs), 0.0, 1.0);   // (F5A's add-on: the area's haze starts fs of the way down)
+    col = mix(col, mix(uFog, uFogB, zb), hz * 0.62 * mix(uFogK, uFogKB, zb));
   }
   if (uBloom > 0.5) col = vec3(0.0);
   gl_FragColor = vec4(col, 1.0);
@@ -425,13 +426,18 @@ void main() {
   vQ = position.xy * 2.0; vK = aQ; vC = aC;
 }`;
 export const LIGHT_F = /* glsl */`
-uniform float uTime, uBloom, uCover;
+uniform float uTime, uBloom, uCover, uOnBed;
 varying vec2 vQ; varying vec4 vK; varying vec3 vC;
 ${FIRE_RAMP}
 void main() {
   float kind = vK.x, a = 0.0, heart = 0.0, isRing = 0.0;
   vec3 ring = vec3(0.0);
-  if (kind < 0.5) { float r = min(1.0, length(vQ)); a = exp(-r * r * 5.5) * (1.0 - r * r) * (1.0 - r * r); heart = a * a * 0.6; }
+  if (kind < 0.5) {
+    float r = min(1.0, length(vQ)); a = exp(-r * r * 5.5) * (1.0 - r * r) * (1.0 - r * r); heart = a * a * 0.6;
+    // (F5A — the review: a FINISH — the ball rests on the seabed, and the sand under it sliced its halo flat along a straight line: there
+    //  its lower part fades out softly before the sand does; the sand wears the ball's own pool of light. uOnBed: only there)
+    a *= mix(1.0, smoothstep(-0.46, -0.1, vQ.y), uOnBed);
+  }
   else if (kind < 1.5) {
     // THE TRAIL: t = 0 at the ball … 1 at its tip
     float t = vQ.y * 0.5 + 0.5, w = mix(1.0, 0.08, pow(t, 0.7));

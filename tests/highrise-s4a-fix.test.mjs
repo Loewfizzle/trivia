@@ -83,7 +83,7 @@ test('THE ICON = "A · THE TOWER": a cyan isometric stack + the pink slab droppi
   for (const [id, mk] of Object.entries(MARKS)) if (id !== 'highrise' && id !== 'freefall') assert.equal(mk.w, undefined, `${id}: no width of its own`);
   assert.equal(MARKS.freefall.w, 6); assert.equal(MARKS.freefall.tubes.length, 5);
   const ff = markSvg({ id: 'freefall' });
-  assert.equal((ff.match(/stroke-width:6;/g) || []).length, 4, 'FREEFALL: the floor, the two flames, the ball at 6'); assert.equal((ff.match(/stroke-width:3;/g) || []).length, 1, '… its core flame thin');
+  assert.equal((ff.match(/stroke-width:6;/g) || []).length, 4, 'FREEFALL: the floor, the two flames, the ball at 6'); assert.equal((ff.match(/stroke-width:4;/g) || []).length, 1, '… its core flame thin');
   for (const [id, mk] of Object.entries(MARKS)) if (id !== 'freefall') for (const t of mk.tubes) assert.equal(t.w, undefined, `${id}: no tube with a width of its own`);
 });
 

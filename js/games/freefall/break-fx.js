@@ -36,7 +36,7 @@ void main() {
   float size = mix(aT.z, aT.w, 1.0 - (1.0 - k) * (1.0 - k)), a = s6 + age * aM.y, ca = cos(a), sa = sin(a);
   // (F5A — THE DUST: a puff is a soft BALL, not a card — its depth is its NEAR side's. A card at its middle's depth was cut off along a
   //  straight line wherever the ground under it ran in front: the dust clouds' flat edges)
-  vec4 cn = projectionMatrix * (mv + vec4(0.0, 0.0, size * 0.6, 0.0));
+  vec4 cn = projectionMatrix * (mv + vec4(0.0, 0.0, size * 0.6 + 0.14, 0.0));   // (+ 0.14: a small star just over the sand is whole too — the review: half-discs)
   c.z = cn.z / cn.w * c.w;
   c.xy += vec2(position.x * ca - position.y * sa, position.x * sa + position.y * ca) * size * vec2(projectionMatrix[0][0], projectionMatrix[1][1]);
   gl_Position = c;
@@ -224,8 +224,8 @@ void main() {
   float seam = 1.0 - smoothstep(0.0, sw.x + 0.006, sheet.x) * smoothstep(0.0, sw.y + 0.006, sheet.y);
   c *= mix(1.0, (0.8 + 0.36 * grain) * (0.93 + 0.14 * mott) * (1.0 - 0.3 * seam), uNear);
   // (F5A — THE ROOF GRAIN: the same detail tile, read as the roof below reads it — night-fx.js SKY_F: one roof, no edge where the deck ends)
-  float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.62 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.38;
-  c *= 1.0 + gr * uNear * uHaveG * mix(0.5, 1.15, uDay);
+  float gr = (texture2D(tGrain, ru * 15.0).r - 0.5) * 0.5 + (texture2D(tGrain, vec2(ru.y, -ru.x) * 5.7 + 0.31).r - 0.5) * 0.5;
+  c *= 1.0 + gr * uNear * uHaveG * mix(0.55, 1.45, uDay);
   // the tubes' light on the deck (night), dying with them
   float lit = 1.0 - smoothstep(0.0, 0.5, uTime - uBreakT - 0.3);
   c += mix(vec3(0.2, 0.75, 0.95), vec3(0.95, 0.25, 0.8), smoothstep(-0.4, 0.4, q.x * sign(q.y + 0.001))) * exp(-(inside - uHalf) / 0.28) * 0.55 * lit * (1.0 - uDay);
@@ -281,7 +281,8 @@ float lines(vec2 p, float t) {
   vec2 q = p + 0.5 * vec2(sin(p.y * 0.7 + t * 0.3), cos(p.x * 0.6 - t * 0.26));
   float a = sin(q.x * 3.4 + t * 0.35) + sin(q.y * 1.7 - t * 0.3) + sin((q.x * 1.3 - q.y * 1.5) * 1.3 + t * 0.22) - 0.35;
   float w = fwidth(a);
-  return 1.0 - smoothstep(w * 0.5, w * 1.5 + 0.003, abs(a));
+  // (the review: hairline closed loops read as scratches on glass — soft strokes two or three pixels wide, broken into arcs that come + go)
+  return (1.0 - smoothstep(w * 0.8, w * 2.6 + 0.004, abs(a))) * smoothstep(0.36, 0.6, vn2(q * 0.85 + 7.0));
 }
 void main() {
   float r = length(vW.xz);
@@ -330,11 +331,11 @@ void main() {
     lamp = mix(vec3(0.62, 0.26, 1.3), vec3(1.0, 0.8, 0.46), warm) * lum * uHaveW;
     // … broken into dashes by the swell — whole at the wall's foot, more broken the farther out
     float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
-    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 3.6);
+    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 2.8);
     vec3 st = min(lamp * 0.42, vec3(0.5)) * streak;
     col += st; glow += st * 0.3;
     // the ball: a soft pink-white streak
-vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.2 * smoothstep(0.15, 0.9, dash) + pool * 0.07);
+vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + pool * 0.04);
     col += bl; glow += bl * 0.3;
     // small pink / cyan GLINTS — short dashes that come + go
     vec2 gl = speck(vW.xz * 6.0 + 3.7, 0.22, vec2(1.0, 2.6), 0.13);
@@ -347,7 +348,7 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.2 * smoothstep(0.15, 0.9, dash) + po
     col = min(col, vec3(0.62));                 // (LINEAR light — a reflection in dark water stays a soft one: never a white blotch)
   } else {
     // ---- DAY: bright turquoise, paler toward the far edge (a soft lift — never a clipped white rim)
-    col = mix(vec3(0.02, 0.37, 0.62), vec3(0.1, 0.66, 0.8), smoothstep(0.12, 0.5, graze));
+    col = mix(vec3(0.03, 0.5, 0.7), vec3(0.1, 0.66, 0.8), smoothstep(0.12, 0.5, graze));   // (the review: turquoise to the near edge — it went steel-blue there)
     col = mix(col, vec3(0.4, 0.85, 0.9), smoothstep(0.5, 0.8, graze));
     col *= 1.0 + 0.09 * g.y;
     // thin, few, moving ripple LINES
@@ -356,8 +357,8 @@ vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.2 * smoothstep(0.15, 0.9, dash) + po
     vec2 sp = speck(vW.xz * 7.0 + g * 0.1, 0.4, vec2(1.0, 2.2), 0.28);
     col += vec3(1.0) * sp.x * pow(0.5 + 0.5 * sin(uTime * 2.6 + sp.y * 60.0), 5.0) * smoothstep(0.42, 0.7, graze) * 0.7;
     // the ball: its soft pink glow + a pale streak of light
-    col = mix(col, vec3(1.0, 0.72, 0.9), pool * 0.45);
-    col = mix(col, vec3(0.8, 0.97, 1.0), lane * 0.34);
+    col = mix(col, vec3(1.0, 0.58, 0.84), pool * 0.5);
+    col = mix(col, vec3(1.0, 0.78, 0.92), lane * 0.3);   // (the review: PINK — it read as a white column)
   }
   // THE FOAM: a soft line where the water meets the wall + round the pillar (by night only a faint pale edge)
   float ang = atan(vW.x, -vW.z), fe = vn2(vec2(ang * 9.0, uTime * 0.25)) * 0.16 + 0.04 * sin(ang * 31.0 + uTime * 0.8);
@@ -387,6 +388,8 @@ uniform vec2 uImpact;
 /** THE TRENCH's MOUTH (SOLO — the tower goes on down; the fresh-eyes review: the floor under the ball is ALWAYS in sight): the bed is open
  *  round the tower's foot + along the cleft that runs from it toward the viewer — everything the camera sees the lower floors through.
  *  → how far outside the mouth's ragged edge a point of the bed is (under 0 = in it). uHole = 0 (a finish): no mouth, the bed is whole. */
+/** (F5A — the review: the bed ended in a ruler-straight line against the wall) the bed thins out toward the shaft's FAR wall: what is behind it shows through → how much of it is there */
+float farFade(vec2 xz) { return 1.0 - smoothstep(uRW - 1.0, uRW - 0.04, length(xz)) * smoothstep(0.3, -0.6, xz.y); }
 float mouth(vec2 xz) {
   float d = length(vec2(xz.x, min(xz.y, 0.0)));
   return d - uHole - 0.06 * sin(xz.y * 2.9 + xz.x * 1.3) - 0.035 * sin(xz.y * 7.3 - xz.x * 5.1 + 1.7) - 0.02 * sin(xz.x * 13.0 + xz.y * 11.0);
@@ -415,12 +418,10 @@ vec4 sand(vec2 xz, float under, float lit) {
   // F5A — THE SAND READS AS SAND: its own warm colour kept (it was washed to one grey-teal / one flat violet), SOFT LIGHT across it — low
   // dunes (a slow swell of light + shade) —, a fine grain, and single grains that catch the light near the ball + the tower's foot
   float dune = vn2(xz * 0.5 + 3.0) * 0.62 + vn2(xz * 1.6 + 11.0) * 0.38, grain = vn2(xz * 64.0), soft = 0.62 + 0.76 * dune;
-  vec2 gq = xz * 96.0;
-  float glint = step(0.99, h21(floor(gq))) * (1.0 - smoothstep(0.12, 0.42, length(fract(gq) - 0.5))) * (0.3 + ball + 0.6 * pool);   // (a round grain of light — never a square dot)
   c *= 0.86 + 0.28 * grain;
   // by night: deep blue-violet sand, the tower's rim glow in a pool round its foot, the ball's own warm light (the sand's true colour shows in it) · by day: sunlit sand under blue water + the caustics
-  vec3 night = c * vec3(0.075, 0.07, 0.19) * (0.34 + 0.95 * dif) * soft + c * uRimC * pool * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.7, 0.74) * ball * 0.9 + vec3(0.7, 0.75, 1.0) * glint * 0.22;
-  vec3 day = c * vec3(0.6, 0.8, 0.84) * (0.42 + 0.92 * dif) * soft + c * vec3(0.5, 0.92, 0.95) * (sc1(xz * 1.4, uTime) + 0.6 * sc1(xz * 2.4 + 3.1, uTime * 1.31 + 2.0)) * 0.42 + c * vec3(0.55, 0.78, 0.9) * pool * 0.4 + vec3(1.0) * glint * 0.3;
+  vec3 night = c * vec3(0.075, 0.07, 0.19) * (0.34 + 0.95 * dif) * soft + c * uRimC * pool * (0.4 + 0.6 * dif) + c * vec3(1.0, 0.7, 0.74) * ball * 0.9;
+  vec3 day = c * vec3(0.82, 0.82, 0.72) * (0.42 + 0.92 * dif) * soft + c * vec3(0.5, 0.92, 0.95) * (sc1(xz * 1.4, uTime) + 0.6 * sc1(xz * 2.4 + 3.1, uTime * 1.31 + 2.0)) * 0.42 + c * vec3(0.55, 0.78, 0.9) * pool * 0.4;
   vec3 col = mix(night, day, uDay);
   // (… and it goes off into the water's own haze toward the shaft's far wall: never a hard bright line where the bed ends)
   col = mix(col, mix(vec3(0.008, 0.008, 0.035), vec3(0.02, 0.15, 0.3), uDay), smoothstep(uRW - 1.3, uRW, r) * step(xz.y, 0.0) * 0.8);
@@ -450,7 +451,8 @@ void main() {
   if (uHole > 0.0 && m < 0.0) discard;                        // (SOLO: the trench's mouth)
   vec4 s = sand(q, 0.0, 1.0);
   vec3 col = uBloom > 0.5 ? mix(uRimC, vec3(1.0), 0.3) * s.w * 0.6 : lipped(s.rgb, m);
-  gl_FragColor = vec4(col * uOuter, uOuter);
+  float fo = uOuter * farFade(q);
+  gl_FragColor = vec4(col * fo, fo);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -470,7 +472,7 @@ void main() {
   float e = min(vB.x, min(vB.y, vB.z)), ew = fwidth(e) * 1.4 + 0.002, line = 1.0 - smoothstep(0.0, ew * 2.2, e);
   float dI = length(vRest.xz - uImpact), front = (uTime - uBreakT) * uCrack, crack = line * smoothstep(0.0, 0.4, front - dI) * step(uBreakT, uTime);
   vec3 col = mix(s.rgb, mix(uRimC * 1.6, vec3(0.3, 0.9, 1.0), uDay * 0.6), crack * 0.9 * (1.0 - 0.75 * fly));
-  float alpha = 1.0 - fly * smoothstep(0.6, 1.0, vK);
+  float alpha = (1.0 - fly * smoothstep(0.6, 1.0, vK)) * farFade(vRest.xz);
   if (uBloom > 0.5) col = mix(uRimC, vec3(1.0), 0.3) * (s.w * 0.6 + crack * 0.7);
   gl_FragColor = vec4(col * alpha, alpha);
   #include <tonemapping_fragment>
@@ -564,7 +566,7 @@ void main() {
   rays = rays * rays * rays * (0.55 + 0.45 * sin(a * 97.0 - t * 2.3)) + 0.12;     // (many thin shafts on a faint veil of light — never two wide bars)
   float env = (1.0 - smoothstep(0.2, 0.5, abs(a))) * smoothstep(0.0, 0.1, y) * (1.0 - smoothstep(0.82, 1.0, y)) * (0.4 + 0.6 * y);
   float age = uTime - uT0, life = smoothstep(0.0, 0.45, age) * (1.0 - smoothstep(2.3, 3.4, age));
-  vec3 col = mix(vec3(0.5, 0.95, 1.0), vec3(1.0, 0.97, 0.78), y) * rays * env * life * 0.5;
+  vec3 col = mix(vec3(0.5, 0.95, 1.0), vec3(1.0, 0.97, 0.78), y) * rays * env * life * 0.3;   // (the review: rays + dust never add up to a white-out)
   if (uBloom > 0.5) col *= 0.3;
   gl_FragColor = vec4(col, 0.0);
   #include <tonemapping_fragment>

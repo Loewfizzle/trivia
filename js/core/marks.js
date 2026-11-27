@@ -82,7 +82,7 @@ export const MARKS = {
     { d: 'M4 93 H32 M68 93 H96', col: '#c35bff' },
     { d: 'M38 60 C30 49 32 38 39 28 C41 36 43 39 47 35 C45 23 51 13 59 4 C58 17 66 24 66 36 C69 33 70 28 70 24 C77 36 75 51 62 60', col: '#ff3fb0' },
     { d: 'M43 54 C41 47 44 41 48 35 C50 40 52 42 55 39 C57 44 58 50 57 54', col: '#ff8c1a' },
-    { d: 'M50 53 C49 50 50 47 51 45', col: '#fff3a8', w: 3 },
+    { d: 'M50 53 C49 50 50 47 51 45', col: '#fffad0', w: 4 },
     { d: 'M38 66 A12 12 0 1 1 62 66 A12 12 0 1 1 38 66', col: '#fff0e0' },
   ] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door

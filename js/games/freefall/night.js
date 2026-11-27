@@ -54,13 +54,18 @@ const DEEP_N = [1.25, 1.25, 1.4, 0, 0, 0, 0, 0, 0, 0, 0, 2], DEEP_D = [0.9, 1.0,
 export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.3, 1.3, 1.45, 0, 0, 0, 0, 0, 0, 0, 0, 4], [0.95, 0.86, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.05, 1.1, 1.15, 0, 0, 0, 0, 0, 0, 0, 0, 4], DEEP_N, DEEP_N, DEEP_N]);
 export const AREA_DAY = Object.freeze([
   [1, 1, 1, 0.56, 0.74, 0.93, 0.09, 0.105, 0.15, 0, 0, 4],           // THE ROOFTOP: the open air · THE STORM CLOUD
-  [0.5, 0.62, 0.86, 0.5, 0.68, 0.92, 0.03, 0.04, 0.08, 0, 3, 4],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it)
+  [0.5, 0.62, 0.86, 0.2, 0.37, 0.72, 0.03, 0.04, 0.08, 0, 3, 4],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it) — F5A's add-on: its haze a DEEPER blue (it was the floors' own pale periwinkle: 0.5, 0.68, 0.92)
   [0.82, 0.68, 0.6, 0.5, 0.33, 0.22, 0.035, 0.02, 0.02, 0, 3, 4],      // THE SPEAKEASY: brick + brass, a warm dusty haze
   [1, 1.08, 1.1, 0.0018, 0.042, 0.107, 0.012, 0.045, 0.04, 1, 1, 4],   // UNDER THE HARBOR: the water (#063a5c below) · THE MURK · bubbles
   DEEP_D, DEEP_D, DEEP_D,                                             // THE DEEP: deep blue, the wreck's warm lamps · drifting particles
 ]);
 /** an area's haze strength by day (how far the tower's lower floors fade into it): THE ROOFTOP has almost none — F3B: NO fog wash over the roof below */
 export const FOG_K = Object.freeze([0.2, 1, 1, 1, 1, 1, 1]);
+/** F5A's ADD-ON — THE DAY OFFICES FOG (the owner's iPhone: by day the offices' floors washed into pale blue from the 3rd floor under the
+ *  ball, ~40 % down the screen — the speakeasy + the harbor fade from 60 – 70 %): how far down the haze STARTS, as a share of its 7 floors
+ *  (0 = from the ball's own floor, as every other area: a dark haze only shows 4 – 5 floors down; THE OFFICES' pale floors on a pale blue
+ *  ground showed it at once) — its floors keep their colour + contrast as far down the screen as the other areas' */
+export const FOG_START = Object.freeze([0, 0.36, 0, 0, 0, 0, 0]);
 /** THE ROOF BELOW (F3B — docs/freefall.md): the painting's skylight (its centre + its frame's half size, as fractions of the picture —
  *  scripts/build-freefall-assets.py ROOF_SKY measures them) · how much of the painting's width the screen's width shows: `s0` on the
  *  title screen + floor 0 → `s1` by floor `to` (it RISES toward you floor by floor, by the same share each floor — then it stops: the
@@ -150,7 +155,7 @@ export function createNight(host, o = {}) {
     // (F4A — THE HAZE FOLLOWS THE FLOOR: the area BELOW the border in sight has its own haze, strength + caustics — uFogSeam = that border's height)
     uFogB: { value: new THREE.Vector3(0.62, 0.84, 0.98) }, uFogKB: { value: FOG_K[0] }, uCaustB: { value: 0 }, uFogSeam: { value: -1e5 },
     // (F3B) how strongly the tower fades into that haze (the area's — THE ROOFTOP: almost none)
-    uFogK: { value: FOG_K[0] },
+    uFogK: { value: FOG_K[0] }, uFogS: { value: 0 }, uFogSB: { value: 0 },
     // (F3B) the pillar is not drawn under this height: THE ROOF is shut until the skylight breaks
     uCutY: { value: -1e9 } };
   const TWINS = [];
@@ -252,11 +257,11 @@ export function createNight(host, o = {}) {
   const fxTex = picture('blaze', new URL(`../../../assets/freefall/fx/blaze.webp?v=${FF_ART_REV}`, import.meta.url).href, false);
 
   // ---- THE TOWER: the pillar + the slices (ONE instanced mesh)
-  const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uDay: G.uDay, uFog: G.uFog, uFogK: G.uFogK, uFogB: G.uFogB, uFogKB: G.uFogKB, uFogSeam: G.uFogSeam, uCutY: G.uCutY, uCol: { value: new THREE.Color(0x2a1466) } } });
+  const pillarMat = new THREE.ShaderMaterial({ vertexShader: PILLAR_V, fragmentShader: PILLAR_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uDay: G.uDay, uFog: G.uFog, uFogK: G.uFogK, uFogS: G.uFogS, uFogSB: G.uFogSB, uFogB: G.uFogB, uFogKB: G.uFogKB, uFogSeam: G.uFogSeam, uCutY: G.uCutY, uCol: { value: new THREE.Color(0x2a1466) } } });
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(SHAPE.RI - 0.004, SHAPE.RI - 0.004, 44, 28, 1, false), pillarMat);   // (capped: the tower's top is its end — nothing stands over the ball's floor)
   pillar.frustumCulled = false; scene.add(pillar); twin(pillar, pillarMat);
   const sGeo = wedgeGeo(), aI = inst(sGeo, 'aI', MAXI, 4), aC = inst(sGeo, 'aC', MAXI, 4), aF = inst(sGeo, 'aF', MAXI, 4), aR = inst(sGeo, 'aR', MAXI, 3);
-  const sliceMat = new THREE.ShaderMaterial({ vertexShader: SLICE_V, fragmentShader: SLICE_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uTime: G.uTime, uSpin: G.uSpin, uGrey: G.uGrey, uDay: G.uDay, uCaust: G.uCaust, uFog: G.uFog, uFogK: G.uFogK, uFogB: G.uFogB, uFogKB: G.uFogKB, uCaustB: G.uCaustB, uFogSeam: G.uFogSeam, uRing: { value: SHAPE.RO - SHAPE.RI }, uWidth: { value: SHAPE.RO * (WEDGE - 2 * MARGIN) / 2 } }, extensions: derivs, ...premul });
+  const sliceMat = new THREE.ShaderMaterial({ vertexShader: SLICE_V, fragmentShader: SLICE_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uTime: G.uTime, uSpin: G.uSpin, uGrey: G.uGrey, uDay: G.uDay, uCaust: G.uCaust, uFog: G.uFog, uFogK: G.uFogK, uFogS: G.uFogS, uFogSB: G.uFogSB, uFogB: G.uFogB, uFogKB: G.uFogKB, uCaustB: G.uCaustB, uFogSeam: G.uFogSeam, uRing: { value: SHAPE.RO - SHAPE.RI }, uWidth: { value: SHAPE.RO * (WEDGE - 2 * MARGIN) / 2 } }, extensions: derivs, ...premul });
   const slices = new THREE.Mesh(sGeo, sliceMat);
   slices.frustumCulled = false; sGeo.instanceCount = 0; scene.add(slices); twin(slices, sliceMat);
 
@@ -288,7 +293,7 @@ export function createNight(host, o = {}) {
   sparks.frustumCulled = false; scene.add(sparks); twin(sparks, sparkMat);
   const lGeo = quadGeo(), lP = inst(lGeo, 'aP', LIGHTS, 4), lQ = inst(lGeo, 'aQ', LIGHTS, 4), lC = inst(lGeo, 'aC', LIGHTS, 3);
   lGeo.instanceCount = LIGHTS;
-  const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uTime: G.uTime, uBloom: G.uBloom, uAspect: G.uAspect, uCover: G.uCover }, side: THREE.DoubleSide, ...addOpt });
+  const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uTime: G.uTime, uBloom: G.uBloom, uAspect: G.uAspect, uCover: G.uCover, uOnBed: { value: 0 } }, side: THREE.DoubleSide, ...addOpt });
   // THE BLAZE = NEON FIRE: the flame sprites (a fixed pool, flown in their shader) + the ribbon behind the ball
   const fGeo = quadGeo(), fO = inst(fGeo, 'aO', FLAMES, 3), fV = inst(fGeo, 'aV', FLAMES, 3), fT = inst(fGeo, 'aT', FLAMES, 4);
   for (let i = 0; i < FLAMES; i++) { fT.array[i * 4] = -100; fT.array[i * 4 + 1] = 1; }
@@ -669,6 +674,7 @@ export function createNight(host, o = {}) {
     // the ball
     const lift = ballLift(run, tau), by = -run.floor * SHAPE.H + SHAPE.R_BALL + lift;
     const bed = fin >= 0 && run.floor >= fin;   // (a finish: the ball is over the seabed itself)
+    lightMat.uniforms.uOnBed.value = bed ? 1 : 0;
     const fr = floorRec(run.floor), su = sliceUnder(run.a, fr.twist), solid = bed || !(((fr.gap | broken[run.floor % RING]) >> su) & 1);
     const raised = !bed && solid && ((((fr.red | (fr.m1 ? moversAt(fr, tick, RR) : 0)) >> su) & 1)) ? SHAPE.RISE : 0;
     ball.position.set(0, by + (lift < 0.02 ? raised : 0), SHAPE.RB); ball.updateMatrix(); ball.matrixWorld.copy(ball.matrix);
@@ -745,6 +751,7 @@ export function createNight(host, o = {}) {
     const AD = AREA_DAY[fa], FA = AREA_DAY[fk], FB = AREA_DAY[fn > fa ? fn : fa];
     G.uFog.value.set(FA[3], FA[4], FA[5]); G.uFogB.value.set(FB[3], FB[4], FB[5]);
     G.uFogK.value = FOG_K[fk]; G.uFogKB.value = FOG_K[fn > fa ? fn : fa];
+    G.uFogS.value = FOG_START[fk]; G.uFogSB.value = FOG_START[fn > fa ? fn : fa];
     G.uCaust.value = day && tier > 0 ? FA[9] : 0; G.uCaustB.value = day && tier > 0 ? FB[9] : 0;
     G.uFogSeam.value = -AREAS[fn > fa ? fn : fa].from * SHAPE.H + 0.5;   // (half a floor above the border's first floor)
     fogSnap = false;
@@ -771,7 +778,7 @@ export function createNight(host, o = {}) {
     const BO = breaks.out;
     skyU.uOpen.value = BO[0]; wallU.uLitT.value = BO[2]; wallU.uShafts.value = BO[3];
     S[ROOFA] += (BO[1] - S[ROOFA]) * Math.min(1, sec * 6); skyU.uGA.value = S[ROOFA];
-    if (staged) sparks.visible = false;
+    if (staged) { sparks.visible = false; if (state === 'made') shards.visible = false; }   // (… and THE BOTTOM's picture without the last floor's red shards: red is the death colour — never the subject of the WIN card)
     renderer.setRenderTarget(wallRT); renderer.render(wallScene, wallCam); renderer.setRenderTarget(null);
     renderer.render(scene, cam);
     if (bloom && tier === 2) bloom.render(scene, cam, TWINS, (day ? 0.4 : 1) * shotBloom);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
@@ -868,7 +875,7 @@ export function createNight(host, o = {}) {
     shot(runX, tauX, bw, bh, rect, o) {
       if (!w || !el.width || !el.height) return null;
       SV.set(S);
-      const st0 = state, sv0 = sparks.visible;
+      const st0 = state, sv0 = sparks.visible, sh0 = shards.visible;
       let fi = -1, f0 = 0;
       try {
         staged = true; shotZoom = o.zoom > 0 ? o.zoom : 1; shotBloom = o.bloom >= 0 ? o.bloom : 1;
@@ -888,7 +895,7 @@ export function createNight(host, o = {}) {
       } finally {
         if (fi >= 0) flash[fi] = f0;
         breaks.quiet(false);
-        S.set(SV); state = st0; sparks.visible = sv0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;
+        S.set(SV); state = st0; sparks.visible = sv0; shards.visible = sh0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;
       }
     },
     /** where things are on the screen — the page's own check: the ball (its centre + its size in px), its floor's line, the floors in sight under it */

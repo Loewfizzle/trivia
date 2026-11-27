@@ -203,7 +203,7 @@ export function createBreaks(X) {
   const rP = new Float32Array(rockN * 4), rS = new Float32Array(rockN * 3);
   for (let i = 0; i < rockN; i++) {
     // (round the tower's foot, behind + beside it — the front sector is the ball's)
-    const back = rockN - FRONT_ROCKS, a = (0.2 + 0.6 * (i + 0.5 * rnd()) / back) * 2 * Math.PI + Math.PI * 0.8, r = 1.35 + rnd() * 1.1, size = 0.1 + rnd() * 0.17;
+    const back = rockN - FRONT_ROCKS, a = (0.2 + 0.6 * (i + 0.5 * rnd()) / back) * 2 * Math.PI + Math.PI * 0.8, r = 1.3 + rnd() * 0.65, size = 0.1 + rnd() * 0.17;
     if (i >= back) { const j = i - back, fx = (j & 1 ? 1 : -1) * (0.35 + rnd() * 0.75) + (j === 4 ? 0.2 : 0), fz = SHAPE.RB + 0.75 + j * 0.42 + rnd() * 0.2, fs = 0.09 + rnd() * 0.13; rP.set([fx, fs * 0.3, fz, fs], i * 4); rS.set([0.8 + rnd() * 0.5, 0.7 + rnd() * 0.4, rnd() * 6.2832], i * 3); continue; }
     // (… and never in THE TRENCH's MOUTH — the cleft that runs from the tower toward the viewer: a rock there would hang in the air in SOLO)
     let x = Math.sin(a) * r;
@@ -284,7 +284,7 @@ export function createBreaks(X) {
     spSt = 1; spT = time; waterU.uSplashT.value = time; played++; spBub = time + 0.16; spWake = time + 3.2;
     const y = waterY;
     // the crown: drops thrown up + out in a cone (lit from above by night), spray, a ring of foam
-    for (let k = 0; k < (X.reduce ? 6 : share(34)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.01 + rnd() * 0.012, day ? 0.82 : 1, day ? 0.96 : 0.88, day ? 1 : 0.66); }
+    for (let k = 0; k < (X.reduce ? 6 : share(22)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.007 + rnd() * 0.007, day ? 0.5 : 0.6, day ? 0.64 : 0.54, day ? 0.68 : 0.42); }   // (F5A — the review: fewer, finer, under white — the crown was a clipped white core with hard bars)
     X.sparksDirty();
     for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.34 + rnd() * 0.14, 0.07, 0.26, 4, -5.5, 0, 0, 2, day ? 0.72 : 0.9, day ? 0.92 : 0.98, 1, 0.3); }   // (F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
     for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
@@ -307,7 +307,7 @@ export function createBreaks(X) {
       if (solo) shelf(k); else { sx = bx + Math.cos(a) * 0.3; sz = bz + Math.sin(a) * 0.3; svx = Math.cos(a) * o; svz = Math.sin(a) * o; }
       // (F5A — SOFT: many thin veils of lifted sand in the sand's own lit colour — never a few heavy dark blobs)
       // (a veil's light is its colour × its cover: piled up, the veils come to the dust's own colour — never to white)
-      puff(sx, y + 0.16, sz, svx, 0.35 + rnd() * 0.7, svz, 1.5 + rnd() * 0.9, 0.3, solo ? 0.82 : 1.0, k & 1, -0.12, 2.2, 0.05, 0.4, (day ? 0.115 : 0.04) * c, (day ? 0.118 : 0.036) * c, (day ? 0.098 : 0.07) * c, -0.42);
+      puff(sx, y + 0.16, sz, svx, 0.35 + rnd() * 0.7, svz, 1.5 + rnd() * 0.9, 0.3, solo ? 0.82 : 1.0, k & 1, -0.12, 2.2, 0.05, 0.4, (day ? 0.075 : 0.04) * c, (day ? 0.07 : 0.036) * c, (day ? 0.055 : 0.07) * c, day ? -0.3 : -0.42);
     }
     for (let k = 0; k < share(7); k++) {
       const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.2;
@@ -329,7 +329,7 @@ export function createBreaks(X) {
     puff(x, y, z, 0, 0, 0, 0.55, 0.35, 1.2, 2, 0, 0, 0, 0, r * 0.45, g * 0.45, b * 0.45, 0);
     for (let k = 0; k < share(30); k++) {
       const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u), v = 1.9 + rnd() * 1.1;   // (… a ball of stars about 1 across: all of it on a phone's screen)
-      puff(x, y, z, Math.cos(a) * s * v, u * v, Math.sin(a) * s * v * 0.6, 1.1 + rnd() * 0.5, 0.17, 0.045, 2, -0.9, 2.2, 0.03, 0, r * 1.8, g * 1.8, b * 1.8, 0);
+      puff(x, y, z, Math.cos(a) * s * v, u * v, Math.sin(a) * s * v * 0.6, 1.1 + rnd() * 0.5, 0.12, 0.035, 2, -0.9, 2.2, 0.03, 0, r * 1.15, g * 1.15, b * 1.15, 0);   // (F5A — the review: small hot points, never flat cream discs)
     }
     for (let k = 0; k < share(18); k++) { const a = rnd() * 6.2832, v = 1.3 + rnd() * 1.6; X.spark(x, y, z, Math.cos(a) * v, Math.sin(a) * v + 0.8, (rnd() - 0.5) * v * 0.6, 0.45 + rnd() * 0.45, 0.011 + rnd() * 0.01, r, g, b); }
     X.sparksDirty();
@@ -351,7 +351,7 @@ export function createBreaks(X) {
   }
   function crackOpen(bx, bz) {
     boSt = 2; boCT = time; bedBreak.value = time; played++;
-    for (let k = 0; k < share(10); k++) { shelf(k); puff(sx, bedY + 0.12, sz, svx * 0.6, 0.3 + rnd() * 0.6, svz * 0.6, 1.1 + rnd() * 0.7, 0.3, 0.82, k & 1, -0.2, 1.8, 0.05, 0.4, day ? 0.115 : 0.04, day ? 0.118 : 0.036, day ? 0.098 : 0.07, -0.42); }
+    for (let k = 0; k < share(10); k++) { shelf(k); puff(sx, bedY + 0.12, sz, svx * 0.6, 0.3 + rnd() * 0.6, svz * 0.6, 1.1 + rnd() * 0.7, 0.3, 0.82, k & 1, -0.2, 1.8, 0.05, 0.4, day ? 0.075 : 0.04, day ? 0.07 : 0.036, day ? 0.055 : 0.07, day ? -0.3 : -0.42); }
     X.kick(0.16, 0.7);
   }
 

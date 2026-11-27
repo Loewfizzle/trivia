@@ -44,7 +44,8 @@ export const SHOT_LIFT = 0.3;
  *  under the ball, the look's own dark (the stylesheet's --ff-dk: night · day) */
 // (F5A — THE LIGHTS WENT OUT = the ball with the dark edge CLOSING ABOVE IT: the dark comes down from the frame's top to `edge` of the
 //  frame's height over the ball — a soft violet line of light along its foot, as the game's own edge — and the sides close in round it)
-export const DARK = Object.freeze({ rx: 0.72, ry: 0.95, clear: 0.34, down: 0.2, a: 0.9, edge: 0.15, night: '3,0,10', day: '12,14,26' });
+// (the review: at 360 px the lit room said nothing — the dark comes down to within about half a ball of the ball + in from both sides)
+export const DARK = Object.freeze({ rx: 0.56, ry: 0.8, clear: 0.3, down: 0.1, a: 0.92, edge: 0.085, night: '3,0,10', day: '12,14,26' });
 /** the area's line is wrapped only when it is over its room by more than this (a line a few px too long is drawn a little narrower) */
 export const SIDE_FIT = 1.08;
 const NUMS = '"Chakra Petch", system-ui, sans-serif';

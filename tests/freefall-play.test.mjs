@@ -565,8 +565,13 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   // F5A — THE ROOF GRAIN: a small detail tile MADE IN CODE by the build script (no source, no credit), read the same way by the roof below + the deck
   { const u = new URL('../assets/freefall/roof/grain.webp', import.meta.url); assert.ok(statSync(u).size < 45000, `roof/grain.webp ships, small (${statSync(u).size} B)`); }
   assert.match(build, /def grain\(\):/, 'the grain tile is the build script\'s own');
-  assert.match(fx, /texture2D\(tGrain, ru \* 15\.0\)\.r - 0\.5\) \* 0\.62 \+ \(texture2D\(tGrain, vec2\(ru\.y, -ru\.x\) \* 5\.7 \+ 0\.31\)\.r - 0\.5\) \* 0\.38;\n {4}rf \*= 1\.0 \+ gr \* uGrain/, 'THE ROOF GRAIN: on the roof below, in as it comes close');
-  assert.match(bfx, /texture2D\(tGrain, ru \* 15\.0\)\.r - 0\.5\) \* 0\.62 \+ \(texture2D\(tGrain, vec2\(ru\.y, -ru\.x\) \* 5\.7 \+ 0\.31\)\.r - 0\.5\) \* 0\.38;\n {2}c \*= 1\.0 \+ gr \* uNear/, '… and on the deck: the same reading (one roof)');
+  assert.match(fx, /texture2D\(tGrain, ru \* 15\.0\)\.r - 0\.5\) \* 0\.5 \+ \(texture2D\(tGrain, vec2\(ru\.y, -ru\.x\) \* 5\.7 \+ 0\.31\)\.r - 0\.5\) \* 0\.5;\n {4}rf \*= 1\.0 \+ gr \* uGrain/, 'THE ROOF GRAIN: on the roof below, in as it comes close');
+  assert.match(bfx, /texture2D\(tGrain, ru \* 15\.0\)\.r - 0\.5\) \* 0\.5 \+ \(texture2D\(tGrain, vec2\(ru\.y, -ru\.x\) \* 5\.7 \+ 0\.31\)\.r - 0\.5\) \* 0\.5;\n {2}c \*= 1\.0 \+ gr \* uNear/, '… and on the deck: the same reading (one roof)');
+  // F5A's ADD-ON — THE DAY OFFICES FOG: the area's haze starts FOG_START of the way down (THE OFFICES alone), a deeper blue than its floors
+  assert.match(n, /export const FOG_START = Object\.freeze\(\[0, 0\.36, 0, 0, 0, 0, 0\]\);/, 'only THE OFFICES\' haze starts further down');
+  assert.match(fx.slice(fx.indexOf('export const PILLAR_F')) + read(`${FF}day-fx.js`), /hz = clamp\(\(far - fs\) \/ \(1\.0 - fs\), 0\.0, 1\.0\)/, 'the slices + the pillar read the haze\'s start');
+  // (the review) the bed thins out toward the shaft's far wall — never a ruler-straight line; the ball's halo fades out over the sand
+  assert.match(bfx, /float farFade\(vec2 xz\)/); assert.match(fx, /a \*= mix\(1\.0, smoothstep\(-0\.46, -0\.1, vQ\.y\), uOnBed\);/);
   assert.match(build, /ROOF_SKY = \(0\.505, 0\.472, 0\.130\)/); assert.match(n, /export const ROOF = Object\.freeze\(\{ cx: 0\.505, cy: 0\.472, sky: 0\.130, s0: 0\.92, s1: 0\.4, to: 34, tilt: 40, curl: 2\.2, far: 30, land: 38\.6 \}\);/, 'the same numbers as the build script measured');
   assert.match(build, /BURST = \['smoke_07', 'smoke_04', 'circle_05', 'circle_02', 'dirt_02', 'star_06', 'scorch_01'\]/, 'ONLY the sprites used'); assert.doesNotMatch(build, /glass-cracks\.png'\)|water-normal\.png'/, 'the cracks are drawn in code; the 4.6 MB water PNG is never read');
   const credits = read('assets/freefall/CREDITS.md');

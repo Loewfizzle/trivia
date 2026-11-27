@@ -13,7 +13,7 @@ export const BOARD = Object.freeze({
   w: 848, h: 448, band: 0.25,
   logoW: 0.6, logoX: 0.028, logoY: 0.045,
   city: Object.freeze({ x: 980, y: 262, w: 1420, h: 750 }),
-  towerBallX: 0.795, towerBallY: 0.33, towerW: 0.47, towerFade: 0.42,
+  towerBallX: 0.795, towerBallY: 0.42, towerW: 0.47, towerFade: 0.5,
   openCap: 0.56, openMaxW: 0.86,
 });
 const PINK = '#ff4fa8';
@@ -33,9 +33,12 @@ export function paintBoard(c, W, H, pics) {
   const o = off.getContext('2d');
   o.imageSmoothingQuality = 'high'; o.drawImage(pics.tower, 0, 0, off.width, off.height);
   o.globalCompositeOperation = 'destination-in';
-  let g = o.createLinearGradient(0, 0, off.width, 0);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(B.towerFade, 'rgba(0,0,0,1)'); g.addColorStop(0.9, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0.6)');
-  o.fillStyle = g; o.fillRect(0, 0, off.width, off.height);
+  // (the review: the tower stood on a bounded rooftop — a pasted screenshot. It MELTS into the city: a soft oval round the tower's own
+  //  column, the roof round it gone by the oval's edge)
+  o.save(); o.translate(off.width * pics.ball.x, off.height * 0.5); o.scale(1, 1.75);
+  let g = o.createRadialGradient(0, 0, off.width * 0.2, 0, 0, off.width * B.towerFade);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.55, 'rgba(0,0,0,0.8)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  o.fillStyle = g; o.fillRect(-off.width, -off.height, 2 * off.width, 2 * off.height); o.restore();
   c.drawImage(off, tx, ty);
   // (the words read on any city: a soft dark behind the lettering)
   const lw = W * B.logoW, lh = lw * pics.logo.height / pics.logo.width, lx = W * B.logoX, ly = H * B.logoY;
