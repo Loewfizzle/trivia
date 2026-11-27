@@ -500,6 +500,26 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd-fs-line b { font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: 0.06em; color: var(--c); text-shadow: 0 0 14px color-mix(in srgb, var(--c) 45%, transparent); overflow-wrap: anywhere; }
 .pd-fs-line span { font-family: var(--font-num); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: #fff; }
 .pd-fs-top li.is-open { cursor: pointer; }
+/* (THE END-BOARD SWITCH-ON — SCORE RUSH: "YOUR BEST n" under the moment, the other games' gold line; the shared block follows) */
+.pd-fs-best { margin-top: 8px; text-align: center; padding-left: 0.2em; font: 800 15px/1.2 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; white-space: nowrap; text-shadow: 0 0 10px rgba(255, 200, 60, 0.45), 0 1px 0 rgba(30, 14, 0, 0.9); }
+.pd-fs-best:empty { display: none; }
+.pd-fs-best.is-new { font-family: var(--font-display); font-weight: 900; letter-spacing: 0.1em; }
+/* (THE END-BOARD SWITCH-ON — SCORE RUSH + the block on ONE screen, nothing scrolls from 375 × 667: a SOLO run's frame drops its SOLO RUN ·
+   name · score line — the moment says it (the other games' solo ends show none either); a short screen tightens the gaps) */
+.pd-final .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
+.pd-final .final.has-eb.is-solo .winner { display: none; }
+.pd-final .final.has-eb .pd-fs { gap: 10px; }
+@media (max-height: 760px) {
+  .pd-final:has(.final.has-eb) { padding-top: calc(var(--safe-t) + 8px); }
+  .pd-final .final.has-eb { gap: 10px; }
+  .pd-final .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
+  .pd-final .final.has-eb .pd-fs { gap: 6px; }
+  .pd-final .final.has-eb .pd-fs-moment { padding: 8px 12px; }
+  .pd-final .final.has-eb .pd-fs-best { margin-top: 2px; }
+  /* (a MATCH: the WINNER line a step smaller — its 92-pt reserve given back — so the winning board + the block both fit) */
+  .pd-final .final.has-eb .winner { min-height: 0; }
+  .pd-final .final.has-eb .winner-title { font-size: 40px; }
+}
 
 /* ==================================================================================================================================
    PD-3 — THE NEON LOOK (night — body[data-look] ≠ day → the view sets .pd[data-look='neon']; day keeps the glass look above until PD-4).
@@ -712,6 +732,12 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-look='crayon'] .pd-final .winner-title { font-family: var(--pd-marker); font-weight: 400; color: var(--pd-ink); text-shadow: 2px 3px 0 color-mix(in srgb, var(--pd-ink) 14%, transparent); }
 .pd[data-look='crayon'] .pd-final .winner-title::before, .pd[data-look='crayon'] .pd-final .winner-title::after { display: none; }
 .pd[data-look='crayon'] .pd-final :is(.winner-name, .sheet-kicker, .rc-solo) { color: var(--pd-ink); }   /* (PD-6: + the solo XP line) */
+/* (THE END-BOARD SWITCH-ON — the shared block on the day's PAPER: its words in the paper's ink (the block's own colours are for a dark ground;
+   ≥ 4.5 : 1 on #fbf7ea) — the rank, the scores, the tick, the YOU line in a deep pink; the slim cards are the cards themselves) */
+.pd[data-look='crayon'] .pd-final .eb :is(.eb-tick, .eb-k, .eb-n, .eb-v, .eb-note) { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-final .eb-tick.is-on { color: var(--pd-ink); }
+.pd[data-look='crayon'] .pd-final :is(.eb-you, .eb-list li.is-me .eb-n) { color: #b0136f; }
+.pd[data-look='crayon'] .pd-final .pd-fs-best { color: #8a5a00; text-shadow: none; }
 /* the results rows: the slim cards lie straight on the paper (no dark row behind them); the place, the note + the score in ink */
 .pd[data-look='crayon'] .pd-final .lb-row { background: color-mix(in srgb, var(--pd-paper) 70%, transparent); border: 1.5px solid var(--pd-pencil-2); border-left: 4px solid var(--c); }
 .pd[data-look='crayon'] .pd-final .lb-row.lb-strip { background: none; border: 0; }

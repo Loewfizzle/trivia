@@ -126,7 +126,7 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /el\.classList\.toggle\('has-more', el\.scrollHeight - el\.clientHeight - el\.scrollTop > 6\)/);
   // (FRIENDS B — B4: the body shows 1st–3rd → the list from 4th; a body with NO podium says so; B2: OWN_VICTORY_SOUND skips the sting;
   //  the music waits for the frame (state.podium); the game's ACCENT on the frame)
-  assert.match(f, /const listRows0 = body && body\.dataset\.podium === 'all' \? \[\] : top3 \? rows\.slice\(3\) : rows;/);   // (HE4: a body with every place → no list)
+  assert.match(f, /const listRows0 = \(body && body\.dataset\.podium === 'all'\) \|\| \(eb && !ebSolo\) \? \[\] : top3 \? rows\.slice\(3\) : rows;/);   // (HE4: a body with every place → no list · THE END-BOARD SWITCH-ON: a match with the block → the block is the list)
   assert.match(f, /if \(!\(mod && mod\.OWN_VICTORY_SOUND\)\) pgSfx\('victory'\);/);
   assert.match(f, /setState\(\{ podium: g\.matchId \}\)/);
   assert.match(read('js/app.js'), /const podium = st\.game\.phase === 'final' && st\.podium === st\.game\.matchId;/);

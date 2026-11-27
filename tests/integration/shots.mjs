@@ -315,6 +315,9 @@ if (PAGE) {
       await q.close(); await p.close(); continue;
     }
     if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(Number(opt('js-wait', 400))); }
+    // (THE END-BOARD SWITCH-ON — --probe <expr> on a --page: the page's own numbers printed beside each shot, e.g. the end screens' no-scroll
+    //  proof: --probe "__ebEnd()" → PROBE <name> 375x667 {"scroll":0,…})
+    if (opt('probe', '')) console.log(`PROBE ${opt('name', 'page')} ${w}x${h} ${JSON.stringify(await p.evaluate(String(opt('probe', ''))).catch(e => ({ error: e.message })))}`);
     // (OC1 — --fps <ms> on a --page: the page's own frame pacing for that long (rAF intervals; --cpu N throttles first) → p50 / p95 / fps /
     //  long frames printed — a game screen's 60 fps check; --js can start the motion being judged)
     if (opt('fps', 0)) {

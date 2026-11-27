@@ -66,8 +66,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   }
   // (F5B — THE END-SCREEN BOARD, a per-game OPT-IN: a cartridge's END_BOARD = { b, word, avg } → ONE shared block (ui/end-board.js — lazy)
   //  under its body: solo = the board's top 3 (THE WORLD · a FRIENDS tick), a match = its own top 3. No END_BOARD = nothing here — the frame as it was)
+  //  THE END-BOARD SWITCH-ON (Nov 27): the cartridge's END_BOARD may say `on(game)` (false = not this match — PRISM DROP's SCORE RUSH only,
+  //  OVERCLOCK's QUICK only) + `match: false` (solo only — a body whose own podium IS the match's top 3: OVERCLOCK's 2-1-3)
   const ebSolo = !!(g && Object.keys(g.participants || {}).length === 1);
-  const eb = mod && mod.END_BOARD && g && (!ebSolo || (g.participants || {})[me]) ? h('div.final-eb') : null;
+  const ebCfg = mod && mod.END_BOARD, ebThis = (() => { try { return !!ebCfg && (typeof ebCfg.on !== 'function' || !!ebCfg.on(g)) && (ebSolo || ebCfg.match !== false); } catch { return false; } })();
+  const eb = ebThis && g && (!ebSolo || (g.participants || {})[me]) ? h('div.final-eb') : null;
   let ebH = null;
   if (eb) lazyImport(import('./end-board.js'), './end-board.js').then(m => { if (!gone) ebH = m.mountEndBoard(eb, mod.END_BOARD, { rows, players, me, solo: ebSolo, pubOf }); }).catch(() => eb.remove());
   const podium = h('div.podium');
@@ -191,11 +194,14 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   refresh();
   // (FRIENDS B — B4: a body that already shows the top three (OVERCLOCK's 2-1-3 podium, the console's own) → the results list starts at 4th; …
   const top3 = !body || body.dataset.podium !== 'none';
-  const listRows0 = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
+  // (THE END-BOARD SWITCH-ON: a MATCH with the block on → the block's TOP 3 + the YOU line from 4th down ARE the list — the console's own stays away)
+  const listRows0 = (body && body.dataset.podium === 'all') || (eb && !ebSolo) ? [] : top3 ? rows.slice(3) : rows;
   const listRows = allTied ? listRows0.map(r => ({ ...r, rank: '=' })) : listRows0;   // (B4: everyone level — '=' for all, nobody 01)
   // (CITY PART 2 — THE END NEON: a game with a NEON row + a `mode` ('SOLO' / 'MATCH') → the header "<GAME> · <MODE>" in its sign's colours — …
   const neonKick = mode != null && g && neonOf(g.id) ? finHeader(g.id, mode) : null;
-  const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : allTied ? { class: 'is-alltied' } : null,
+  // (THE END-BOARD SWITCH-ON — FREEFALL F5B's named call, now the block's: the personal-best / world-rank PLAQUES fold into YOUR BEST + the
+  //  block (css: .final.has-eb .rc-plaque) — the XP line stays; nothing scrolls)
+  const el = h('div.panel-full.final', { class: [solo ? 'is-solo' : allTied ? 'is-alltied' : '', eb ? 'has-eb' : ''].filter(Boolean).join(' ') || null },
     neonKick ? h('div.sheet-kicker.fn-kick', neonKick) : h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
       h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : allTied ? 'NOBODY TAKES FIRST' : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),

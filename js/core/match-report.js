@@ -436,6 +436,9 @@ function highriseExtra(game, uid, out) {
   const solo = Object.keys(game.participants || {}).length === 1;
   if (num(r.f) > 0) out.rec[solo ? 'highrise' : 'highrise-solo'] = towerScore(r.f, r.p, r.t);
   for (const k of String(r.ft || '').split(' ')) if (HI_FEATS[k]) (out.f ||= {})[HI_FEATS[k]] = 1;
+  // (THE END-BOARD SWITCH-ON, Nov 27 — THE AVERAGE, JAYWALK's JT2 + FREEFALL's: a SOLO run's FLOORS (the floor alone — never the tower's sort
+  //  number); core/progress.js#matchStep counts it only with `sv`, into pstats.av/highrise-solo — the last 14 played days, shown from 5 runs)
+  if (solo) out.av = { 'highrise-solo': Math.max(0, Math.floor(num(r.f))) };
 }
 
 // FREEFALL (F4A — JAYWALK's + HIGH RISE's rule): the floors of a run the SERVER replayed itself (`game.sv` — api/_lib/freefall.js#freefallSolo

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>End-screen board preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/vault.css">
+<link rel="stylesheet" href="/css/kit.css">
+<style>html, body { margin: 0; background: #07040f; } #stage { position: relative; height: 100dvh; overflow: hidden; }</style>
+<script>
+  // THE END-BOARD SWITCH-ON (Nov 27) — every opted-in game's END SCREEN, the REAL podium frame (ui/final.js) + the game's REAL body (its
+  // finalScene) + THE END-SCREEN BOARD (ui/end-board.js) — the board's read + YOUR TABLE answered here from a fixture; NEVER the live site:
+  //   ?game=jaywalk|highrise|prism|overclock · &mode=solo|match · &case=top|out|empty (solo: you in the top 3 · 12th · no rows) · &fr=1 (the
+  //   FRIENDS tick on) · &n=5 (a match's players; you are the n-th — &case=top: you win) · &look=night|day · &best=1 (a NEW BEST) · &nobest=1
+  //   (no best known) · &long=1 (12-letter names everywhere)
+  const Q = new URLSearchParams(location.search), CASE = Q.get('case') || 'out';
+  window.__ebFix = { world: [], table: [] };
+  try { sessionStorage.setItem('na:slot', 'ebp'); localStorage.setItem('na:ebp:me', JSON.stringify({ pid: 'pmeeeeeeeeee', profile: { bid: 'bme', n: 'BENNY', a: 'crown', c: 'magenta', x: 2400 } })); localStorage.setItem('ns:endb:fr', Q.get('fr') ? '1' : '0'); } catch { /* fine */ }
+  const realFetch = window.fetch.bind(window), json = d => new Response(JSON.stringify(d), { status: 200, headers: { 'content-type': 'application/json' } });
+  window.fetch = (u, o) => { const url = String((u && u.url) || u); if (url.includes('/api/board')) return Promise.resolve(json({ b: 'x', p: 'all', rows: window.__ebFix.world })); if (url.includes('/api/profile')) return Promise.resolve(json({ rows: window.__ebFix.table })); return realFetch(u, o); };
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+  import { setState } from '/js/store.js';
+  import { createFinal } from '/js/ui/final.js';
+  import { loadGame } from '/js/games/registry.js';
+  import { installEmblems } from '/js/ui/emblems.js';
+  import { h } from '/js/ui/dom.js';
+  const Q = new URLSearchParams(location.search), CASE = Q.get('case') || 'out', G = Q.get('game') || 'jaywalk', match = Q.get('mode') === 'match', look = Q.get('look') === 'day' ? 'day' : 'night', LONG = !!Q.get('long');
+  const SHEET = { jaywalk: ['jaywalk'], highrise: ['highrise-play'], prism: ['prism'], overclock: ['overclock'] }[G] || [];
+  await Promise.all(SHEET.map(s => new Promise(r => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `/css/${s}.css`; l.onload = l.onerror = r; document.head.append(l); })));
+  const stage = document.getElementById('stage'); document.body.dataset.look = look;
+  installEmblems();
+  await loadGame(G);
+  // ---- each game: its board, its score in board units, its fixture match
+  const tower = (f, p = 0, t = 0) => f * 1e11 + p * 1e7 + (1e7 - 1 - t);
+  const B = { jaywalk: 'jaywalk-solo', highrise: 'highrise-solo', prism: 'prism-rush', overclock: 'overclock-quick' }[G];
+  const AVG = G === 'jaywalk' || G === 'highrise';
+  const SC = { jaywalk: [212, 188, 171, 160, 88], highrise: [119, 96, 84, 70, 41], prism: [98450, 71200, 64010, 52300, 18240], overclock: [4120, 3650, 3310, 2900, 1480] }[G];
+  const bv = v => (G === 'highrise' ? tower(v, 9, 4000) : v);   // (the board's own value — HIGH RISE: the packed tower)
+  const nm = (n, i) => (LONG ? ['MAXIMILIANOS', 'BARTHOLOMEWS', 'CONSTANTINES', 'GWENDOLYNNES'][i % 4] : n);
+  const face = (id, n, c, a, v, av, rank) => ({ id, n, a, c, l: 12 + rank, rank, v: bv(v), ...(AVG ? { av } : {}) });
+  window.__ebFix.world = CASE === 'empty' ? [] : [face('b1', nm('MAXIMILIANOS', 0), 'green', 'ghost', SC[0], Math.round(SC[0] * 0.66), 1), face('b2', nm('DEX', 1), 'cyan', 'bolt', SC[1], Math.round(SC[1] * 0.6), 2),
+    CASE === 'top' ? face('bme', 'BENNY', 'magenta', 'crown', SC[2], Math.round(SC[2] * 0.5), 3) : face('b3', nm('LUNA', 2), 'yellow', 'moon', SC[2], null, 3),
+    ...Array.from({ length: 8 }, (_, i) => face(`bx${i}`, `PLAYER ${i + 4}`, 'violet', 'star', Math.round(SC[3] * (1 - i * 0.04)), 80, 4 + i)),
+    ...(CASE === 'top' ? [] : [face('bme', 'BENNY', 'magenta', 'crown', SC[4], Math.round(SC[4] * 0.7), 12)])];
+  window.__ebFix.table = [{ n: nm('DEX', 1), a: 'bolt', c: 'cyan', v: bv(SC[1]), ...(AVG ? { av: 120 } : {}) }, { n: 'BENNY', a: 'crown', c: 'magenta', v: bv(SC[4]), me: true, ...(AVG ? { av: 61 } : {}) }, { n: nm('OPAL', 3), a: 'heart', c: 'red', v: bv(Math.round(SC[4] * 0.6)), ...(AVG ? { av: null } : {}) }];
+  const N = match ? Math.max(2, Math.min(8, Number(Q.get('n')) || 5)) : 1;
+  const NAMES = [['me', 'BENNY', 'magenta', 'crown'], ['u2', 'DEX', 'cyan', 'bolt'], ['u3', 'LUNA', 'yellow', 'moon'], ['u4', 'MAXIMILIANOS', 'green', 'ghost'], ['u5', 'ZED', 'orange', 'star'], ['u6', 'KIT', 'violet', 'heart'], ['u7', 'OPAL', 'red', 'diamond'], ['u8', 'WREN', 'cyan', 'bolt']];
+  const players = Object.fromEntries(NAMES.slice(0, N).map(([u, name, color, avatar], i) => [u, { name: u === 'me' ? name : nm(name, i), color, avatar, pid: `p${u.padEnd(11, 'x')}` }]));
+  // (a match: you are the LAST — the YOU line from 4th down; &case=top: you win)
+  const others = Object.keys(players).filter(u => u !== 'me'), order = match ? (CASE === 'top' ? ['me', ...others] : [...others, 'me']) : ['me'];
+  const S = i => Math.max(3, Math.round(SC[0] * (1 - i * 0.17)));   // (this match's scores, best first)
+  const participants = Object.fromEntries(Object.keys(players).map(u => [u, true]));
+  let game, rows, kicker, modeW, extra = {};
+  if (G === 'jaywalk') {
+    const results = Object.fromEntries(order.map((u, i) => [u, { l: S(i), t: 4000 + i * 300, w: i % 2 ? 'water' : 'edge', e: 4000 + i * 300, sp: [520, 1180, 1900, 2700].slice(0, Math.floor(S(i) / 50)) }]));
+    game = { id: 'jaywalk', matchId: 'mprev', mode: match ? 'match' : 'solo', phase: 'final', participants, results, seed: 'prev' };
+    const V = await import('/js/games/jaywalk/victory.js'); rows = V.finalRows(game, 'ABCD'); kicker = match ? 'JAYWALK · MATCH' : 'JAYWALK · SOLO';
+    extra = { winnerLine: nm => `${nm} WENT THE FARTHEST` };
+  } else if (G === 'highrise') {
+    const results = Object.fromEntries(order.map((u, i) => [u, { f: S(i), p: 12 - i, s: 8 - i, t: 4000 + i * 300, w: ['miss', 'thin', 'slow'][i % 3] }]));
+    game = { id: 'highrise', matchId: 'mprev', mode: match ? 'match' : 'solo', phase: 'final', participants, results };
+    const L = await import('/js/games/highrise/logic.js'); rows = L.gameStandings(game).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(match ? { note: `${L.END_WORDS[results[r.uid].w]} · ${r.perfects} PERFECTS` } : {}) }));
+    kicker = match ? 'HIGH RISE · MATCH' : 'HIGH RISE · SOLO'; extra = { scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` };
+  } else if (G === 'prism') {
+    const results = Object.fromEntries(order.map((u, i) => [u, { sc: S(i), ln: 60 - i * 7, lv: 9 - i, mc: 6 - (i % 3) }]));
+    game = { id: 'prism', matchId: 'mprev', phase: 'final', participants, results, settings: { mode: 'rush' } };
+    const V = await import('/js/games/prism/victory.js'); rows = V.finalRows(game); kicker = 'SCORE RUSH · FINAL';
+    const { endMode } = await import('/js/ui/fin-neon.js'); modeW = endMode('prism', 'rush', !match); extra = { scoreLabel: 'PTS', winnerLine: nm => `${nm} TOPS THE SONG` };
+  } else if (G === 'overclock') {
+    const res = Object.fromEntries(order.map((u, i) => [u, { pts: S(i), ok: 5 }]));
+    game = { id: 'overclock', matchId: 'mprev', phase: 'final', participants, results: { 5: res }, settings: { mode: 'quick' }, total: 6, ci: 5, order: ['trivia', 'truefalse', 'trivia', 'truefalse', 'trivia', 'trivia'], phaseStartAt: 1 };
+    const L = await import('/js/games/overclock/logic.js'); rows = L.standings(game); kicker = 'OVERCLOCK · 6 CHALLENGES'; extra = { scoreLabel: 'PTS', winnerLine: nm => `${nm} RAN THE HOTTEST` };
+  }
+  // (the server's answer for this match, as profile/queue.js keeps it: YOUR BEST n · AVG n — &best=1 a NEW BEST · &nobest=1 none)
+  const mineV = (game.results.me || game.results[5].me || {}), myScore = G === 'jaywalk' ? mineV.l : G === 'highrise' ? mineV.f : G === 'prism' ? mineV.sc : mineV.pts;
+  // (solo: the XP line in — "TODAY'S SOLO XP DONE", the same one line as "+15 XP · SOLO RUN" without THE MOMENT's sheet)
+  try { const k = 'rc:ABCD_mprev', av = AVG ? { [B]: 61 } : undefined, sol = match || Q.get('noxp') ? {} : { so: { n: 5, max: 4 }, xp: { gain: 0 } }; sessionStorage.removeItem(k); if (!Q.get('nobest')) sessionStorage.setItem(k, JSON.stringify(Q.get('best') ? { pbs: [{ b: B, v: bv(myScore), prev: bv(Math.round(myScore * 0.8)) }], ...(av ? { av } : {}), ...sol } : { bests: { [B]: bv(Math.max(myScore, SC[2])) }, ...(av ? { av } : {}), ...sol })); } catch { /* fine */ }
+  setState({ code: 'ABCD', uid: 'me', players, rv: {}, meta: { hostId: 'me', status: 'playing' }, game, pub: {}, ...(G === 'prism' ? { live: { boards: { [order[0]]: { b: '' } } } } : {}) });   // (PRISM: the winner's published board — its well drawn in a match too)
+  globalThis.__nsPlayNow = { isSolo: () => !match, again: () => false, leave: () => false };
+  const final = createFinal({ game, rows, players, me: 'me', presence: {}, kicker, mode: modeW != null ? modeW : (match ? 'MATCH' : 'SOLO'), ...extra });
+  // (each game's own wrapper — the view's: the same selectors as the game)
+  if (G === 'jaywalk') { stage.classList.add('jw-stage'); stage.dataset.look = look; stage.append(h('div.jw-final', final.el)); }
+  else if (G === 'highrise') { stage.classList.add('hi-stage', 'is-final'); stage.dataset.look = look; stage.append(h('div.hi-final', final.el)); }
+  else if (G === 'prism') { stage.classList.add('pd'); stage.dataset.look = look === 'day' ? 'crayon' : 'neon'; stage.dataset.mode = 'rush'; stage.append(h('div.pd-final', final.el)); }
+  else if (G === 'overclock') { stage.classList.add('oc', 'oc-od'); const ov = h('div.oc-overlay', final.el); stage.append(ov); }
+  const painted = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  setTimeout(() => painted().then(() => { document.body.dataset.ready = '1'; }), 3600);   // (shots.mjs --page: the strips, the fonts, the crown are in)
+  window.__ebEnd = () => { const f = stage.querySelector('.final'), sc = f.closest('.pd-final') || f; return { scroll: Math.max(f.scrollHeight - f.clientHeight, sc.scrollHeight - sc.clientHeight), rows: stage.querySelectorAll('.eb-list li').length, you: (stage.querySelector('.eb-you') || {}).textContent || '', head: (stage.querySelector('.eb-head') || {}).textContent || '', plaques: stage.querySelectorAll('.rc-plaque').length, xp: (stage.querySelector('.rc-solo') || {}).textContent || '', list: stage.querySelectorAll('.final > .leaderboard li, .final > .leaderboard .lb-row').length, best: [...stage.querySelectorAll('.jw-fin-best, .hi-ec-best, .pd-fs-best, .oc-vic-best')].map(x => x.textContent).join(' | '), bar: (() => { const b = stage.querySelector('.final-bar'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), ebBottom: (() => { const b = stage.querySelector('.eb'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), footTop: (() => { const b = stage.querySelector('.final-actions'); return b ? Math.round(b.getBoundingClientRect().top) : 0; })(), vh: innerHeight }; };
+</script>
+</body>
+</html>

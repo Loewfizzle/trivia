@@ -51,5 +51,8 @@ export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, no
 /** SHARE: THE SHARE IMAGE (H4 — share.js: the frame the run ended on + the lanes + the cause line + THE SIGNAL) on the site's share kit */
 export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
 export { finalScene } from './victory.js';
+/** THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON, Nov 27 — ui/end-board.js, the podium's ONE shared block): solo = the board's TOP 3 (☐ FRIENDS
+ *  ONLY), a match = its own TOP 3 · LANES · the STORED AVERAGE (JT2) beside each best */
+export const END_BOARD = Object.freeze({ b: 'jaywalk-solo', word: 'LANES', avg: true });
 
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));

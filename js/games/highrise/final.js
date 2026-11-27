@@ -33,39 +33,8 @@ export function wouldLine(w, best = null) {
   return `WOULD COUNT · ${parts.join(' · ')}`;
 }
 
-/**
- * YOUR TABLE (JAYWALK's — victory.js#yourTable): you + the friends YOUR list names with a HIGH RISE best (the server's read: /api/profile
- * `table` — never a pid in the page), best first, as SLIM CARDS (ui/strip-board.js — stills + THE LIVE LANE), the floor at the right. Shown
- * only when a friend has a best; ≤ TABLE_ROWS rows — you always among them. EMPTY while counting is OFF (the board has no rows).
- */
-export const TABLE_ROWS = 4;
-export function tableRows(rows, max = TABLE_ROWS) {
-  const all = (rows || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, place: i + 1 }));
-  if (all.length < 2 || !all.some(r => !r.me)) return [];
-  const top = all.slice(0, max), me = all.find(r => r.me);
-  if (me && !top.includes(me)) top[top.length - 1] = me;
-  return top;
-}
-export function yourTable(el) {
-  const slot = h('div.hi-table');
-  el.append(slot);
-  Promise.all([
-    lazyImport(import('../../profile/api.js'), '../../profile/api.js').then(A => A.api('profile', { action: 'table', b: BOARD })),
-    lazyImport(import('../../ui/strip-board.js'), '../../ui/strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))),
-  ]).then(([d, SB]) => {
-    const rows = tableRows(d && d.rows);
-    if (!rows.length || !slot.isConnected) { slot.remove(); return; }
-    const strips = [], list = h('ol.hi-table-list', ...rows.map(r => {
-      const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null }, h('span.hi-table-n', String(r.place)), h('div.hi-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(floorOf(r.v))));   // (THE YOU ROW: the shared glow)
-    }));
-    list.style.setProperty('--hi-d', String(Math.max(...rows.map(r => num(floorOf(r.v)).length))));
-    slot.replaceChildren(h('div.hi-table-k', 'YOUR TABLE'), list);
-    const surface = SB.K.liveList(list, { label: 'highrise-table' });
-    strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
-    const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } }, 2000);
-  }).catch(() => slot.remove());
-}
+// (YOUR TABLE — the body's own friends table since S4B — is GONE (THE END-BOARD SWITCH-ON, Nov 27): the console's shared block
+//  (ui/end-board.js — index.js#END_BOARD) shows the board's top 3 under the ☐ FRIENDS ONLY tick — one block, never a second copy)
 
 /**
  * S4B — A MATCH's body (JAYWALK's: the frame's own WINNER line leads, the console lists EVERY place under this body as slim cards with
@@ -127,27 +96,33 @@ export function finalScene(el, game, state) {
   setTimeout(overBar, 0);   // (once the frame stands: YOUR TABLE sits right under the personal numbers — nothing between them)
   // YOUR BEST as the SERVER last told this phone (REVIEW FIX A — the owner's call: a COUNTED run raises it, a run that never counted
   //  never does — the test page's best, an unproven run, counting OFF): the server's answer below puts it right (NEW BEST from its record)
+  // (THE END-BOARD SWITCH-ON — "YOUR BEST n · AVG n": the AVG = your profile's STORED average off the room's mirror — profile/public.js, no
+  //  read; a dash under 5 runs; YOUR TABLE is gone from the body: the console's shared block — index.js#END_BOARD — under ☐ FRIENDS ONLY)
   const shownBest = cleanBest(ls.get(SRV_BEST_KEY));
-  EC.best(shownBest, false);
+  let answered = false, mirrorAv = null;
+  EC.best(shownBest, false, 0, null);
+  lazyImport(import('../../profile/public.js'), '../../profile/public.js').then(P => {
+    const av = ((P.pubOf(state && state.players && state.players[uid]) || {}).av || {})[BOARD];
+    if (av == null) return;
+    mirrorAv = av;
+    if (el.isConnected && !answered) EC.best(shownBest, false, 0, av);
+  }).catch(() => {});
   if (!code) return;
-  let tabled = false;
-  const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
-  setTimeout(table, 2200);
   // (THE REVIEW: the server's answer is shown WHATEVER the host's own row says — a podium row of 0 never hides it)
   lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
     const k = Q.matchKey(code, game.matchId);
     const show = o => {
       if (!o || !el.isConnected) return;
-      table();
       // THE SWITCH, OFF: the server judged the run, awarded nothing, and says what it WOULD have
       if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would, shownBest); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
       // counting ON: NEW BEST / YOUR BEST from the server's own record of this match
-      const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
+      const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD], av = o.av && BOARD in o.av ? o.av[BOARD] : mirrorAv;
+      if (pb || cur != null) answered = true;
       if (pb) {
         ls.set(SRV_BEST_KEY, floorOf(pb.v));
-        EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0);   // (NEW BEST only of a best that was BEATEN — a first counted run is YOUR BEST)
+        EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0, av);   // (NEW BEST only of a best that was BEATEN — a first counted run is YOUR BEST)
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('streak', { rate: 1.12 })).catch(() => {});
-      } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); EC.best(floorOf(cur), false); }
+      } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); EC.best(floorOf(cur), false, 0, av); }
     };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });

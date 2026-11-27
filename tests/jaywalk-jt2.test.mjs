@@ -91,7 +91,8 @@ test('THE BOARD\'s AVERAGE — shown from 5 runs (else null = a dash), one decim
 
 test('THE BOARD\'s AVERAGE — only JAYWALK turns it on (a record board MAY carry one); the numbers = board-avg.js\'s', () => {
   assert.deepEqual(boardDef('jaywalk-solo').avg, { days: AVG_DAYS, min: AVG_MIN });
-  for (const b of ['highrise-solo', 'prism-rush', 'overclock-quick', 'xp', 'daily']) assert.ok(!boardDef(b).avg, `${b}: no average`);
+  assert.deepEqual(boardDef('highrise-solo').avg, { days: AVG_DAYS, min: AVG_MIN }, 'THE END-BOARD SWITCH-ON (Nov 27): HIGH RISE too');
+  for (const b of ['prism-rush', 'overclock-quick', 'xp', 'daily']) assert.ok(!boardDef(b).avg, `${b}: no average`);
 });
 
 const jwSolo = (l, { sv = 1, bad = null } = {}) => ({ id: 'jaywalk', matchId: 'm1', phase: 'final', mode: 'solo', sv, participants: { u1: true }, settings: {}, results: { u1: { l, t: 600, w: 'car', e: 10, go: 1, ...(bad ? { bad } : {}) } } });

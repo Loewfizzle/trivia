@@ -212,20 +212,6 @@
 /* an UNPROVEN run's own end (no line to the board): the same body, two tubes at the foot */
 .jw-local-in { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: calc(env(safe-area-inset-top) + 72px) 18px calc(env(safe-area-inset-bottom) + 18px); }
 .jw-local-foot { display: grid; gap: 10px; }
-/* YOUR TABLE (the end screen) — THE POLISH PASS: ONE grid, RANK | CARD | SCORE. The block = the end screen's own column (the bar's edges:
-   .jw-fin's 12 px given back), centred, ≤ 440 at a desk; the rank + score columns are ONE width (--jw-side: the widest score's digits —
-   victory.js sets --jw-d) so every card is the same box, dead centre; scores right-aligned, the same gap on every row; the label centred on the
-   screen over the cards (the owner's correction, Nov 18 6:55 am) */
-.jw-table { justify-self: center; width: min(calc(100% + 24px), 440px); margin-top: 6px; }
-.jw-table-k { margin: 0 0 6px; padding-left: 0.28em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: center; }   /* (the owner, Nov 18 6:55 am: CENTRED like everything above it — the letter-spacing's tail given back) */
-.jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --jw-side: max(26px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }   /* (rem, never ch: the cards inherit nothing new; a digit of the 20 px numerals ≤ 12.8 px) */
-.jw-table-list li { display: grid; grid-template-columns: var(--jw-side) minmax(0, 1fr) var(--jw-side); align-items: center; column-gap: 8px; }
-.jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
-.jw-table-list li.is-me .jw-table-n { color: #ff8fe0; }
-/* (CITY H2 — YOUR ROW = THE YOU ROW: the shared breathing glow round YOUR card (ui/strip-board.js#markMine) — this table's own box is gone) */
-.jw-table-list li { position: relative; }
-.jw-table-card { min-width: 0; text-align: left; }   /* (the card's own alignment — .jw-fin's centred text never reaches its plate; its insides are the shared component's) */
-.jw-table-list li > b { text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
 
 /* ---------------------------------------------------------------- H4 — THE MATCH (view.js): the count, the ghosts' name tags, the live
    order, out → the cause words → Call the Winner → watching. transform / opacity only; nothing here covers the play. */
@@ -513,10 +499,6 @@
   font: 800 14px/1 var(--font-display); letter-spacing: 0.16em; color: #ffd6f0; text-shadow: 0 1px 0 rgba(20, 0, 14, 0.95), 0 0 3px rgba(20, 0, 14, 0.9), 0 0 14px rgba(255, 79, 196, 0.7); transition: opacity 0.25s ease; }
 .jw-pad.is-on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .jw-pad { transition: none; } }
-/* JT2 — THE BOARD's AVERAGE in YOUR TABLE: "AVG 225" under each best (a dash under 5 runs); the side columns room for it */
-.jw-table-list.has-av { --jw-side: max(48px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }
-.jw-table-list li > b { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.jw-table-av { font: 700 10px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
 .jw-fin-avg { margin-top: 6px; font: 800 14px/1 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; text-shadow: 0 1px 0 rgba(30, 14, 0, 0.9); }
 .jw-fin-avg:empty { display: none; }
 /* VARIETY A — THE TIMES OF DAY on the band (night.js sets data-tod / data-wx from daylook.js): the DAY picture GRADED in code (a still filter +
@@ -547,3 +529,30 @@
    eases in under a still of the picture before it. Both are gone once their fade ends (THE BLEND RULE: nothing stays over the canvas) */
 .jw-cover { position: absolute; inset: 0; pointer-events: none; background: #07060b; }
 .jw-fadelook { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+
+/* ---------------------------------------------------------------- THE END-BOARD SWITCH-ON (Nov 27 — docs/games/passes/endboard.md): the end
+   screen + THE END-SCREEN BOARD (ui/end-board.js — the console's shared block: .eb-*) on ONE screen, nothing scrolls from 375 × 667 — the
+   hero, the cause + the splits give the room (FREEFALL F5C's numbers); the block's rows never shrink below readable */
+.jw-final .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
+.jw-final .final.has-eb .jw-fin { gap: 6px; padding-top: 2px; }
+.jw-final .final.has-eb .jw-fin-n { margin-top: 0; }
+.jw-final .final.has-eb .jw-fin-n b { font-size: clamp(64px, 20vw, 84px); }
+.jw-final .final.has-eb .jw-sp-k { margin-bottom: 3px; }
+@media (max-height: 760px) {
+  .jw-final .final.has-eb { gap: 6px; }
+  .jw-final .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
+  .jw-final .final.has-eb .jw-fin-cause { line-height: 1; }
+  .jw-final .final.has-eb .jw-fin-n { gap: 0; }
+  .jw-final .final.has-eb .jw-fin { gap: 3px; }
+  .jw-final .final.has-eb .jw-fin-cause { font-size: 22px; }
+  .jw-final .final.has-eb .jw-fin-n b { font-size: 48px; }
+  .jw-final .final.has-eb .jw-fin-n > span { font-size: 12px; }
+  .jw-final .final.has-eb .jw-sp-k { margin-bottom: 1px; font-size: 10.5px; }
+  .jw-final .final.has-eb .jw-sp-row { padding-top: 2px; padding-bottom: 2px; }
+  .jw-final .final.has-eb .jw-sp-box { min-width: 64px; padding: 4px 6px 3px; gap: 1px; }
+  .jw-final .final.has-eb .jw-sp-t { font-size: 19px; }
+  /* (a NEW BEST's own line + the AVG under it: FREEFALL F5C's) */
+  .jw-final .final.has-eb .jw-fin-best { min-height: 0; }
+  .jw-final .final.has-eb .jw-fin[data-mode='solo'] .jw-fin-best.is-new { font-size: 18px; line-height: 1; }
+  .jw-final .final.has-eb .jw-fin-avg { margin-top: -1px; font-size: 12.5px; }
+}

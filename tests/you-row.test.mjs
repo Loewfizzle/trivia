@@ -17,7 +17,7 @@ test('THE YOU ROW: one helper, one CSS rule (opacity only, reduced motion steady
 });
 
 test('THE YOU ROW: every slim-card list marks YOUR strip through it — none keeps its own box / edge / tint', () => {
-  for (const [f, re] of [['js/board/view.js', /markMine\(strip\.el, mine\)/], ['js/screens/daily.js', /markMine\(strip\.el, !!r\.me\)/], ['js/games/jaywalk/victory.js', /SB\.m\.markMine\(st\.el, !!r\.me\)/], ['js/ui/strip-board.js', /markMine\(s\.el, row\.classList\.contains\('is-me'\)\)/]]) assert.match(read(f), re, f);
+  for (const [f, re] of [['js/board/view.js', /markMine\(strip\.el, mine\)/], ['js/screens/daily.js', /markMine\(strip\.el, !!r\.me\)/], ['js/ui/end-board.js', /SB\.m\.markMine\(st\.el, !!r\.me\)/], ['js/ui/strip-board.js', /markMine\(s\.el, row\.classList\.contains\('is-me'\)\)/]]) assert.match(read(f), re, f);
   assert.doesNotMatch(read('css/board.css'), /\.bd-row\.is-me::before|\.bd-row\.is-me \{ background/, 'THE BOARD: no pink left edge, no wash');
   assert.doesNotMatch(read('css/jaywalk.css'), /\.jw-table-list li\.is-me::before/, 'JAYWALK\'s YOUR TABLE: no box of its own');
   assert.doesNotMatch(read('css/daily.css'), /\.is-me \.dy-card \.vl-strip \{ box-shadow/, 'SCORES: no lit frame of its own');

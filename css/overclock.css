@@ -1923,3 +1923,17 @@
   .oc-dlsign .oc-sign-on { animation: none !important; opacity: 1 !important; }
   .oc-sb.is-longshot .oc-sb-row, .oc-dl-ord { transition: none; }
 }
+
+/* ---------------------------------------------------------------- THE END-BOARD SWITCH-ON (Nov 27 — docs/games/passes/endboard.md): a QUICK
+   run's SOLO end + THE END-SCREEN BOARD (ui/end-board.js — the console's shared block: .eb-*) on ONE screen, nothing scrolls from 375 × 667 —
+   OVERCLOCKED + the score give the room; the block's rows never shrink below readable */
+.oc-overlay .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
+.oc-overlay .final.has-eb .oc-vic { gap: 7px; }
+@media (max-height: 760px) {
+  .oc-overlay .final.has-eb { gap: 10px; }
+  .oc-overlay .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
+  .oc-overlay .final.has-eb .oc-vic { gap: 5px; }
+  .oc-overlay .final.has-eb .oc-vic-title { font-size: 34px; }
+  .oc-overlay .final.has-eb .oc-vic-solo { padding: 6px 0 2px; }
+  .oc-overlay .final.has-eb .oc-vic-solo-n { font-size: 72px; }
+}

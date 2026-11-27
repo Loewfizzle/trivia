@@ -170,5 +170,8 @@ export { daily } from './daily.js';
 // THE VICTORY BODY (OC2 — contract D8): the console's podium frame (ui/final.js) draws this inside itself — OVERCLOCKED, the neon-tube winner,
 // the podium on the slim cards, the award chips; SOLO's score. victory.js
 export { finalScene } from './victory.js';
+/** THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON, Nov 27 — ui/end-board.js): a QUICK run's SOLO end screen = BEST QUICK RUN's TOP 3 (☐ FRIENDS ONLY)
+ *  · POINTS · no AVG. A match keeps its own 2-1-3 podium (it IS the match's top 3 — `match: false`); STANDARD / MARATHON have no board: nothing */
+export const END_BOARD = Object.freeze({ b: 'overclock-quick', word: 'POINTS', match: false, on: g => !!(g && g.settings && g.settings.mode === 'quick') });
 
 // (THE CARTRIDGE PLUG's chat lock + BANNER_NAME + LOOKS: meta.js)

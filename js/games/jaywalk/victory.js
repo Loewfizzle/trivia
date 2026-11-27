@@ -2,7 +2,6 @@
 // The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { colorHex } from '../../config.js';
 import { createCourse } from './course.js';
 import { seedOf, standings } from './logic.js';
 import { causeLine, runLine, hitVehicle } from './causes.js';
@@ -21,6 +20,8 @@ function watchBest(Q) {
   Q.onOutcome((k, o) => { const pb = o && (o.pbs || []).find(x => x.b === BOARD), cur = o && (o.bests || {})[BOARD]; const v = pb ? pb.v : cur; if (v != null && Number(v) > (Number(getPref('best', '0')) || 0)) setPref('best', v); if (o && o.sp && o.gid === 'jaywalk') rememberBests(o.sp.b); });
 }
 const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
+/** "YOUR BEST 225" (THE END-BOARD SWITCH-ON: FREEFALL F5C's words — the AVG follows: "YOUR BEST 225 · AVG 180") */
+export const bestWords = n => `YOUR BEST ${num(n)}`;
 
 /** the body's pieces → { best(text, isNew) }. `note` = one quiet line under the lanes (an unproven run's NOT COUNTED) */
 export function buildEnd(el, { line, lanes, note = '', gold = false }) {
@@ -42,36 +43,8 @@ export function buildEnd(el, { line, lanes, note = '', gold = false }) {
   };
 }
 
-/** … */
-export const TABLE_ROWS = 4;
-export function tableRows(rows, max = TABLE_ROWS) {
-  const all = (rows || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, place: i + 1 }));
-  if (all.length < 2 || !all.some(r => !r.me)) return [];
-  const top = all.slice(0, max), me = all.find(r => r.me);
-  if (me && !top.includes(me)) top[top.length - 1] = me;
-  return top;
-}
-/** YOUR TABLE under the end screen's numbers (`me` = your colour — CITY H2: unused, YOUR card wears THE YOU ROW's house pink) — exported for e2e-jaywalk's re-ask */
-export function yourTable(el, me) {
-  const slot = h('div.jw-table');
-  el.append(slot);
-  Promise.all([
-    lazyImport(import('../../profile/api.js'), '../../profile/api.js').then(A => A.api('profile', { action: 'table', b: BOARD })),
-    lazyImport(import('../../ui/strip-board.js'), '../../ui/strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))),
-  ]).then(([d, SB]) => {
-    const rows = tableRows(d && d.rows);
-    if (!rows.length || !slot.isConnected) { slot.remove(); return; }
-    const strips = [], list = h('ol.jw-table-list', ...rows.map(r => {
-      const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v), 'av' in r ? h('small.jw-table-av', avgLabel(r.av)) : null));
-    }));
-    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length)))); if (rows.some(r => 'av' in r)) list.classList.add('has-av');
-    slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
-    const surface = SB.K.liveList(list, { label: 'jaywalk-table' });
-    strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
-    const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } }, 2000);
-  }).catch(() => slot.remove());
-}
+// (YOUR TABLE — the body's own friends table since H3 — is GONE (THE END-BOARD SWITCH-ON, Nov 27): the console's shared block
+//  (ui/end-board.js — index.js#END_BOARD) shows the board's top 3 under the ☐ FRIENDS ONLY tick — one block, never a second copy)
 
 /** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes. The course: a SOLO run's from its … */
 export function endOf(game, uid, code, courses = null) {
@@ -139,30 +112,36 @@ export function finalScene(el, game, state) {
   const E = endOf(game, uid, code);
   const known = Number(getPref('best', '0')) || 0;
   const B = buildEnd(el, { line: E.line, lanes: E.lanes, gold: E.ship });
-  if (known > 0) B.best(`YOUR BEST · ${num(known)}`);
+  // (THE END-BOARD SWITCH-ON — the block's shape, FREEFALL's words: "YOUR BEST n · AVG n" — the AVG = your profile's STORED average off the
+  //  room's mirror (profile/public.js — no read; a dash under 5 runs), the server's answer below puts both right)
+  let answered = false, mirrorAv = null;
+  if (known > 0) B.best(bestWords(known), false, avgLabel(null));
+  lazyImport(import('../../profile/public.js'), '../../profile/public.js').then(P => {
+    const av = ((P.pubOf(state && state.players && state.players[uid]) || {}).av || {})[BOARD];
+    if (av == null) return;
+    mirrorAv = av;
+    if (known > 0 && el.isConnected && !answered) B.best(bestWords(known), false, avgLabel(av));
+  }).catch(() => {});
   const SC = addSplits(el, game, uid);
-  if (!code) return;
-  // (YOUR TABLE: once the server has counted this run — its outcome — or a moment later, whichever comes first)
-  let tabled = false;
-  const p = ((state && state.players) || {})[uid], table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el, p && p.color != null ? colorHex(p.color) : ''); } };
-  setTimeout(table, 2200);
-  if (!(E.lanes > 0)) return;
+  // (YOUR TABLE is gone from the body: THE END-SCREEN BOARD — the console's shared block, index.js#END_BOARD — shows the board's top 3 under
+  //  the ☐ FRIENDS ONLY tick: everyone, or you + your friends)
+  if (!code || !(E.lanes > 0)) return;
   // NEW BEST / YOUR BEST — from the server's own answer for THIS match (it replayed the run); the phone only remembers the last one it was told
   lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
     const k = Q.matchKey(code, game.matchId);
     watchBest(Q);
     const show = o => {
       if (!o || !el.isConnected) return;
-      table();
       if (o.sp) SC.server(o.sp);
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
-      // (JT2 — THE BOARD's AVERAGE beside your best: the server's, after this run — from 5 counted solo runs; under that nothing is said)
-      const av = o.av && o.av[BOARD] != null ? avgLabel(o.av[BOARD]) : '';
+      // (JT2 — THE BOARD's AVERAGE beside your best: the server's, after this run — from 5 counted solo runs; a dash under that — else the mirror's)
+      const av = avgLabel(o.av && BOARD in o.av ? o.av[BOARD] : mirrorAv);
+      if (pb || cur != null) answered = true;
       if (pb) {
         setPref('best', pb.v);
         B.best(pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST', true, av);
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {});
-      } else if (cur != null) { setPref('best', cur); B.best(`YOUR BEST · ${num(cur)}`, false, av); }
+      } else if (cur != null) { setPref('best', cur); B.best(bestWords(cur), false, av); }
     };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });

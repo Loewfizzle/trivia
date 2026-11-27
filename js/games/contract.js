@@ -57,6 +57,7 @@ export const OPTIONAL = Object.freeze({
   AGAIN_LABEL: 'string',        // that button's word (default PLAY AGAIN) — JAYWALK: HOP AGAIN (META_KEYS; 4–14 letters)
   // (F5B — THE END-SCREEN BOARD: ui/end-board.js — the podium's ONE leaderboard block, OPT-IN)
   END_BOARD: 'object',          // { b: its board id, word: the score's word ('FLOORS'), avg: true = AVG beside BEST } — the podium shows the board's TOP 3 (THE WORLD · a FRIENDS tick) solo, the match's TOP 3 in a match
+  //   (THE END-BOARD SWITCH-ON: + on(game) → false = not this match (PRISM DROP: SCORE RUSH only · OVERCLOCK: QUICK only) · match: false = solo only — a body whose own podium IS the match's top 3)
 });
 /** what host.js passes to start() (tested) */
 export const START_ARGS = Object.freeze(['code', 'matchId', 'settings', 'participants', 'now', 'used']);
@@ -101,7 +102,7 @@ export function checkCartridge(id, mod, o = {}) {
   }
   if (Array.isArray(mod.OPTIONS)) for (const op of mod.OPTIONS) if (!op || !op.key || !(op.key in (mod.DEFAULT_SETTINGS || {}))) out.push(`${id}: OPTIONS row "${op && op.key}" has no DEFAULT_SETTINGS value`);
   if (mod.ACCENT != null && !/^#[0-9a-f]{6}$/i.test(String(mod.ACCENT))) out.push(`${id}: ACCENT — a #rrggbb colour (the end screen's frame)`);
-  if (mod.END_BOARD != null && !(mod.END_BOARD && typeof mod.END_BOARD.b === 'string' && /^[a-z0-9-]+$/.test(mod.END_BOARD.b) && /^[A-Z][A-Z ]{1,13}$/.test(String(mod.END_BOARD.word || '')))) out.push(`${id}: END_BOARD — { b: a board id (dashes), word: 2–14 capital letters, avg? }`);
+  if (mod.END_BOARD != null && !(mod.END_BOARD && typeof mod.END_BOARD.b === 'string' && /^[a-z0-9-]+$/.test(mod.END_BOARD.b) && /^[A-Z][A-Z ]{1,13}$/.test(String(mod.END_BOARD.word || '')) && (mod.END_BOARD.on == null || typeof mod.END_BOARD.on === 'function') && (mod.END_BOARD.match == null || typeof mod.END_BOARD.match === 'boolean'))) out.push(`${id}: END_BOARD — { b: a board id (dashes), word: 2–14 capital letters, avg?, on?(game), match? }`);
   if (mod.AGAIN_LABEL != null && !/^[A-Z][A-Z ]{3,13}$/.test(String(mod.AGAIN_LABEL))) out.push(`${id}: AGAIN_LABEL — 4–14 capital letters (the solo podium's first button)`);
   const sr = mod.SOLO_RUNS;   // (PD-6: a SOLO game's card tubes, 1–3; each mode one ONE player can play)
   if (Array.isArray(sr) && (mod.SOLO !== true || !sr.length || sr.length > 3 || sr.some(r => !r || typeof r.mode !== 'string' || typeof r.label !== 'string' || !r.label.trim() || r.label.length > 16 || (r.sub != null && String(r.sub).length > 24) || (typeof mod.cleanSettings === 'function' && mod.cleanSettings({ ...mod.DEFAULT_SETTINGS, mode: r.mode }, 1).mode !== r.mode)))) out.push(`${id}: SOLO_RUNS — SOLO only, 1–3 { mode (one-player), label ≤ 16, sub? ≤ 24 }`);

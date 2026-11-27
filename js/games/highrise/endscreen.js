@@ -20,6 +20,8 @@ const say = n => whole(n).toLocaleString('en-US');
 /** the header's words in their own neon: HIGH (hot pink) · RISE (cyan) · the mode (lavender) — one node, the frame's kicker or the card's top line */
 export const endHeader = (mode = 'solo') => finHeader('highrise', mode === 'match' ? 'MATCH' : 'SOLO');
 /** "66 PERFECTS · BEST STREAK 14" (1 PERFECT) */
+/** THE AVERAGE's words (JAYWALK's JT2 — core/board-avg.js): a number = "AVG 62" · anything else = fewer than 5 counted runs: "AVG —" */
+export const avgWords = avg => (avg == null || avg === '' || !Number.isFinite(Number(avg)) ? 'AVG —' : `AVG ${say(avg)}`);
 export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(perfects) === 1 ? '' : 'S'} · BEST STREAK ${say(streak)}`;
 
 /**
@@ -29,9 +31,9 @@ export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(
  *   isNew = this run beat it (NEW BEST — `was` > 0: NEW BEST · WAS n)
  */
 export function endCard({ header = '' } = {}) {
-  const cause = finLine(h('div.hi-ec-cause'), 'highrise'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), line = h('div.hi-ec-line');
+  const cause = finLine(h('div.hi-ec-cause'), 'highrise'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), avgL = h('div.hi-ec-avg'), line = h('div.hi-ec-line');
   const hd = header ? h('div.hi-ec-hd', endHeader(header)) : null;
-  const el = h('div.hi-ec', hd, cause, n, fl, bestL, line);
+  const el = h('div.hi-ec', hd, cause, n, fl, bestL, avgL, line);
   return {
     el,
     /** the card's own header says SOLO or MATCH (a cartridge's stage plays both) */
@@ -46,9 +48,12 @@ export function endCard({ header = '' } = {}) {
       fl.textContent = f === 1 ? 'FLOOR' : 'FLOORS';
       line.textContent = statsLine(perfects, streak);
     },
-    best(value, isNew, was = 0) {
-      const v = whole(value), nb = !!isNew && v > 0;
-      bestL.textContent = !v ? '' : nb ? (whole(was) > 0 ? `NEW BEST · WAS ${say(was)}` : 'NEW BEST') : `YOUR BEST · ${say(v)}`;
+    // (THE END-BOARD SWITCH-ON, Nov 27: `avg` given — the cartridge's body — = FREEFALL's words "YOUR BEST n · AVG n" (the STORED average,
+    //  a dash under 5 runs; under a NEW BEST on its own quiet line); no `avg` — the test page — = the card as it was: "YOUR BEST · n")
+    best(value, isNew, was = 0, avg) {
+      const v = whole(value), nb = !!isNew && v > 0, withAvg = avg !== undefined, av = withAvg && v ? avgWords(avg) : '';
+      bestL.textContent = !v ? '' : nb ? (whole(was) > 0 ? `NEW BEST · WAS ${say(was)}` : 'NEW BEST') : withAvg ? `YOUR BEST ${say(v)} · ${av}` : `YOUR BEST · ${say(v)}`;
+      avgL.textContent = nb ? av : '';
       bestL.classList.toggle('is-new', nb);
       el.classList.toggle('is-new', nb);
     },

@@ -288,19 +288,13 @@ test('HOW TO PLAY + YOUR TABLE: the rules IN ui/help.js since THE GO-LIVE PASS (
   assert.match(help, /const hub = id => \(globalThis\.__nsHelp \|\| \{\}\)\[id\];/); assert.match(help, /if \(hub\(id\)\) return hub\(id\)\(\);/, 'the hub stays for the next game being built');
   // THE BOOT BUDGET is never raised (CITY F freed the room JAYWALK's meta + help + tile took)
   assert.equal(JSON.parse(read('tests/integration/boot-budget.json')).moduleKB, 6500);
-  // YOUR TABLE: a table of one is nothing; you are always on it; best first; at most 4 rows
-  const { tableRows, TABLE_ROWS } = await import('../js/games/jaywalk/victory.js').catch(() => ({}));
-  const v = read('js/games/jaywalk/victory.js');
-  assert.match(v, /A\.api\('profile', \{ action: 'table', b: BOARD \}\)/); assert.match(v, /SB\.m\.stripFor\(SB\.K, r, \{ friend: !r\.me \}\)/, 'slim cards — the one strip system');
-  assert.match(v, /SB\.K\.liveList\(list, \{ label: 'jaywalk-table' \}\)/, 'THE LIVE LANE');
-  if (tableRows) {
-    assert.deepEqual(tableRows([{ v: 9, me: true }]), [], 'only you: no table');
-    assert.deepEqual(tableRows([]), []);
-    const rows = [{ v: 90, n: 'A' }, { v: 80, n: 'B' }, { v: 70, n: 'C' }, { v: 60, n: 'D' }, { v: 50, n: 'E' }, { v: 4, n: 'ME', me: true }];
-    const t = tableRows(rows);
-    assert.equal(t.length, TABLE_ROWS); assert.deepEqual(t.map(r => [r.n, r.place]), [['A', 1], ['B', 2], ['C', 3], ['ME', 6]], 'the top + YOU with your real place');
-    assert.deepEqual(tableRows([{ v: 9, me: true }, { v: 3, n: 'A' }]).map(r => r.place), [1, 2]);
-  }
+  // YOUR TABLE → THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON, Nov 27): the body's own table is gone — the console's shared block
+  //  (ui/end-board.js, index.js#END_BOARD) reads YOUR TABLE under the ☐ FRIENDS ONLY tick: the slim cards, THE LIVE LANE, one copy
+  const v = read('js/games/jaywalk/victory.js'), eb = read('js/ui/end-board.js');
+  assert.doesNotMatch(v, /action: 'table'|function yourTable/);
+  assert.match(read('js/games/jaywalk/index.js'), /export const END_BOARD = Object\.freeze\(\{ b: 'jaywalk-solo', word: 'LANES', avg: true \}\);/);
+  assert.match(eb, /A\.api\('profile', \{ action: 'table', b \}\)/); assert.match(eb, /SB\.m\.stripFor\(SB\.K, face\(r\), \{ friend: false \}\)/, 'slim cards — the one strip system');
+  assert.match(eb, /SB\.K\.liveList\(list, \{ label: 'end-board' \}\)/, 'THE LIVE LANE');
   const fr = read('api/_lib/friends.js');
   assert.match(fr, /const pids = \[pid, \.\.\.tablePids\(await node\(pid\), pid, null, now\)\];/, 'the server reads YOUR OWN friends list — never ids from the phone');
   assert.match(fr, /if \(!def \|\| def\.kind !== 'record'\) fail\(400, 'bad_board'\);/);

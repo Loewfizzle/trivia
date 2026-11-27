@@ -108,7 +108,7 @@ export function finalScene(el, game, state) {
           return;
         }
         const b = Object.entries(o.bests || {}).find(([k]) => k === 'overclock-quick');   // (CITY PART 1 — ONE BOARD: BEST QUICK RUN)
-        if (b) best.textContent = `YOUR BEST · ${fmtNum(b[1])}`;
+        if (b) best.textContent = `YOUR BEST ${fmtNum(b[1])}`;   // (THE END-BOARD SWITCH-ON: the block's words — "YOUR BEST n")
       };
       if (!k) return;
       show(Q.outcomeFor(k));

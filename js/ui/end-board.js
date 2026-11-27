@@ -1,6 +1,7 @@
 // THE END-SCREEN BOARD (F5B — the owner's FINAL SHAPE, Nov 27: docs/cartridge.md "THE END-SCREEN BOARD"): ONE shared leaderboard block for
 // the podium (ui/final.js mounts it under the game's body), PER-GAME OPT-IN — a cartridge's `END_BOARD = { b, word, avg }` (games/contract.js).
-// FREEFALL is the only game on; a cartridge without END_BOARD never loads this module (its end screen is exactly as it was).
+// ON (THE END-BOARD SWITCH-ON, Nov 27): FREEFALL · JAYWALK · HIGH RISE (+ AVG) · PRISM DROP (SCORE RUSH) · OVERCLOCK (QUICK, solo) — a
+// cartridge without END_BOARD never loads this module (its end screen is exactly as it was: NEON PAR, SLIPSTREAM, HOLD'EM).
 //   SOLO: the board's TOP 3 — everyone by default — under ONE header: the tick "☐ FRIENDS ONLY" (F5C — the owner, Nov 27: no "THE WORLD"
 //     heading; a drawn box + the words: no pill; unticked = everyone) that switches the rows to YOUR TABLE (you + your friends' bests — the server's /api/profile `table`). ONE remembered setting for every game
 //     (localStorage `ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world stays. Each row: the rank, the player's SLIM CARD
@@ -12,6 +13,7 @@
 // Prefix `eb-` (css/components.css). DOM + the lazy kits only; nothing here counts or writes anything.
 import { h } from './dom.js';
 import { lazyImport } from './lazy-import.js';
+import { boardDef, fmtValue } from '../core/boards.js';
 
 /** the remembered FRIENDS tick — ONE setting for every game */
 export const FRIENDS_KEY = 'ns:endb:fr';
@@ -23,8 +25,11 @@ const whole = n => Math.max(0, Math.round(Number(n) || 0));
 const num = n => whole(n).toLocaleString('en-US');
 /** PURE: 1 → 1ST · 2 → 2ND · 3 → 3RD · 12 → 12TH · 22 → 22ND */
 export function ordinal(n) { const v = whole(n), t = v % 100, u = v % 10; return `${v}${t >= 11 && t <= 13 ? 'TH' : u === 1 ? 'ST' : u === 2 ? 'ND' : u === 3 ? 'RD' : 'TH'}`; }
-/** PURE: the YOU line — "YOU · 12TH · 88 FLOORS" (no rank known: "YOU · 88 FLOORS") */
-export const youLine = (rank, v, word) => `YOU · ${rank > 0 ? `${ordinal(rank)} · ` : ''}${num(v)} ${word}`;
+/** PURE: a board value as the block prints it — the BOARD's own format (THE END-BOARD SWITCH-ON: HIGH RISE's board keeps a tower as ONE sort
+ *  number — core/boards.js fmt 'floor' prints its floor); a plain count = "1,234" (no board known: the number itself) */
+export const valText = (v, b) => { const d = b ? boardDef(b) : null; return d && d.fmt !== 'int' ? fmtValue(d, Number(v)) : num(v); };
+/** PURE: the YOU line — "YOU · 12TH · 88 FLOORS" (no rank known: "YOU · 88 FLOORS"); `b` = the board (its format) */
+export const youLine = (rank, v, word, b = null) => `YOU · ${rank > 0 ? `${ordinal(rank)} · ` : ''}${valText(v, b)} ${word}`;
 /** PURE: the rows the block shows from a ranked list (each { rank, v, me? }) → { top: the first TOP, you: your row when it is not among them } */
 export function pickRows(rows, n = TOP) {
   const all = (rows || []).filter(r => r && Number.isFinite(Number(r.v)));
@@ -54,9 +59,11 @@ function paintRows(list, rows, cfg, SB, AV, face) {
   list.replaceChildren(...rows.map(r => {
     const st = SB.m.stripFor(SB.K, face(r), { friend: false }); strips.push(st);
     return h('li', { class: r.me ? 'is-me' : null }, h('span.eb-n', String(r.rank)), h('div.eb-card', SB.m.markMine(st.el, !!r.me)),
-      h('b.eb-v', num(r.v), cfg.avg ? h('small.eb-av', AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)) : null));
+      h('b.eb-v', valText(r.v, cfg.b), cfg.avg ? h('small.eb-av', AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)) : null));
   }));
-  list.style.setProperty('--eb-d', String(Math.max(2, ...rows.map(r => num(r.v).length))));
+  const d = Math.max(2, ...rows.map(r => valText(r.v, cfg.b).length));
+  list.style.setProperty('--eb-d', String(d));
+  list.classList.toggle('is-wide', d >= 5);   // (THE END-BOARD SWITCH-ON: a 5+ character score — OVERCLOCK's 4,120, PRISM DROP's 98,450 — a smaller numeral, so a 12-letter name still fits its card)
   const surface = SB.K.liveList(list, { label: 'end-board' });
   strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
   return () => { try { surface.destroy(); } catch { /* fine */ } };
@@ -77,7 +84,7 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
     if (gone || !still()) return;   // (a newer choice — the tick turned again — paints instead)
     done();
     off = paintRows(list, top, cfg, SB, AV, face);
-    you.textContent = mine ? youLine(mine.rank, mine.v, word) : '';
+    you.textContent = mine ? youLine(mine.rank, mine.v, word, b) : '';
     el.classList.toggle('has-rows', top.length > 0);
   });
   if (!solo) {

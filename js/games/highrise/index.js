@@ -50,6 +50,9 @@ export function preload() {
 /** PLAY AGAIN after a solo run — the console's INSTANT AGAIN (games/kit/again.js): the next run as a match of its own, no walk inside */
 export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });
 export { finalScene } from './final.js';
+/** THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON, Nov 27 — ui/end-board.js, the podium's ONE shared block): solo = the board's TOP 3 (☐ FRIENDS
+ *  ONLY), a match = its own TOP 3 · FLOORS (the board's tower number prints its floor) · the STORED AVERAGE (core/board-avg.js — counts from Nov 27) */
+export const END_BOARD = Object.freeze({ b: 'highrise-solo', word: 'FLOORS', avg: true });
 /** SHARE (S5; REVIEW FIX B: THE POSTER — share.js: the band's pre-rendered hero shot, the floor, the cause) on the site's share kit; the console's
  *  universal footer shows SHARE for a cartridge with it (ui/final.js) — solo + match */
 export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));

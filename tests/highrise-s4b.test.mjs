@@ -11,13 +11,13 @@ const HI = 'js/games/highrise/';
 // ---- GROUP 0 — THE END SCREEN
 test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartridge\'s body) — the header, the cause, the floor + FLOORS, YOUR BEST · n, n PERFECTS · BEST STREAK n; nothing else', () => {
   const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), v = read(`${HI}view.js`);
-  assert.match(e, /const hd = header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null;\n  const el = h\('div\.hi-ec', hd, cause, n, fl, bestL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best · the stats line');
+  assert.match(e, /const hd = header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null;\n  const el = h\('div\.hi-ec', hd, cause, n, fl, bestL, avgL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best (· its AVG under a NEW BEST — THE END-BOARD SWITCH-ON) · the stats line');
   // (CITY PART 2 — THE END NEON: the header + the cause through the ONE shared builder, ui/fin-neon.js; the colours = metas.js NEON)
   assert.ok(e.includes("export const endHeader = (mode = 'solo') => finHeader('highrise', mode === 'match' ? 'MATCH' : 'SOLO');"), 'the header = THE END NEON\'s builder');
   assert.ok(e.includes("const cause = finLine(h('div.hi-ec-cause'), 'highrise')"), 'the cause = THE END NEON\'s line');
   assert.match(e, /fl\.textContent = f === 1 \? 'FLOOR' : 'FLOORS';/);
   assert.match(e, /export const statsLine = \(perfects, streak\) => `\$\{say\(perfects\)\} PERFECT\$\{whole\(perfects\) === 1 \? '' : 'S'\} · BEST STREAK \$\{say\(streak\)\}`;/);
-  assert.match(e, /bestL\.textContent = !v \? '' : nb \? \(whole\(was\) > 0 \? `NEW BEST · WAS \$\{say\(was\)\}` : 'NEW BEST'\) : `YOUR BEST · \$\{say\(v\)\}`;/, 'YOUR BEST · n — NEW BEST (· WAS n) when beaten — no line with no best');
+  assert.match(e, /bestL\.textContent = !v \? '' : nb \? \(whole\(was\) > 0 \? `NEW BEST · WAS \$\{say\(was\)\}` : 'NEW BEST'\) : withAvg \? `YOUR BEST \$\{say\(v\)\} · \$\{av\}` : `YOUR BEST · \$\{say\(v\)\}`;/,'YOUR BEST · n — NEW BEST (· WAS n) when beaten — no line with no best');
   assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';$/m); assert.ok(e.includes("import { finHeader, finLine } from '../../ui/fin-neon.js';")); assert.equal((e.match(/^import /gm) || []).length, 2, 'a view\'s helper: DOM only — no rules, no storage, no fetch');
   // ONE builder, two callers; the cartridge's header = the console frame's kicker
   assert.match(s, /const EC = endCard\(\{ header: MODE === 'solo' \? 'solo' : 'match' \}\), check = h\('div\.hi-check', \{ hidden: true \}\);/);
@@ -135,7 +135,7 @@ test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locall
   // THE CLOSE's REVIEW: the podium is never held for ever · NOT COUNTED when this phone's GO was refused · a first run is YOUR BEST, never NEW BEST · the stand-in view has the match's handles · a pressed altimeter row is never moved
   assert.ok(v.includes('performance.now() - finalSeen > FINAL_HOLD_MS') && /export const FINAL_HOLD_MS = 3000;/.test(v), 'a tower still climbing when the match is over: the podium after FINAL_HOLD_MS');
   assert.ok(v.includes("g.unproven || !haveGo || lateGo ? 'NOT COUNTED'"), 'OUT with no GO of this phone\'s (or one past the window — THE PROOF PASS): NOT COUNTED');
-  assert.ok(read('js/games/highrise/final.js').includes('EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0);'), 'the podium: NEW BEST only of a best that was beaten (the SERVER record — REVIEW FIX A)');
+  assert.ok(read('js/games/highrise/final.js').includes('EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0, av);'), 'the podium: NEW BEST only of a best that was beaten (the SERVER record — REVIEW FIX A)');
   assert.ok(/const NO_VIEW = \{ el: null, setRival\(\) \{\}, dimRivals\(\) \{\}, showRivals\(\) \{\},/.test(read('js/games/highrise/stage.js')), 'no WebGL: PLAY AGAIN never throws on a match handle');
   assert.ok(read('js/games/highrise/matchhud.js').includes('if ((key !== orderKey || more !== moreN) && !(heldAt && performance.now() - heldAt < 1500)) {'), 'NEVER RE-RENDER UNDER A FINGER: the altimeter\'s order waits while a row is pressed');
   assert.ok(v.includes("if (mine(g) && !goAsked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && now >= g.playAt - GO_EARLY_MS))) askGoMatch();") && v.includes('export const GO_EARLY_MS = 1800;'), 'each phone writes its GO in the count\'s last 2 s (the rules\' window)');

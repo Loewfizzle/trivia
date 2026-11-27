@@ -29,14 +29,15 @@ test('the rows: the TOP 3 + YOU only when you are not among them — the YOU lin
   assert.equal(EB.TOP, 3);
 });
 
-test('THE OPT-IN: ui/final.js mounts the block ONLY for a cartridge naming END_BOARD (lazy) — every other game\'s frame is unchanged; FREEFALL is the only game on', () => {
+test('THE OPT-IN: ui/final.js mounts the block ONLY for a cartridge naming END_BOARD (lazy) — every other game\'s frame is unchanged', () => {
   const f = read('js/ui/final.js');
-  assert.match(f, /const eb = mod && mod\.END_BOARD && /, 'the frame asks the cartridge');
+  assert.match(f, /const ebCfg = mod && mod\.END_BOARD, ebThis = /, 'the frame asks the cartridge');
+  assert.match(f, /const eb = ebThis && g && /);
   assert.match(f, /lazyImport\(import\('\.\/end-board\.js'\), '\.\/end-board\.js'\)/, 'loaded only then — never a static import');
   assert.doesNotMatch(f, /^import [^\n]*end-board/m);
   const on = readdirSync(new URL('../js/games/', import.meta.url), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(new URL(`../js/games/${d.name}/index.js`, import.meta.url)))
     .filter(d => /export const END_BOARD\b/.test(read(`js/games/${d.name}/index.js`))).map(d => d.name);
-  assert.deepEqual(on, ['freefall'], 'FREEFALL alone opts in');
+  assert.deepEqual(on.sort(), ['freefall', 'highrise', 'jaywalk', 'overclock', 'prism'], 'THE END-BOARD SWITCH-ON (Nov 27): the five playable solo games opt in — never HOLD\'EM');
   assert.match(read('js/games/freefall/index.js'), /export const END_BOARD = Object\.freeze\(\{ b: BOARD, word: 'FLOORS', avg: true \}\);/);
   assert.match(read('js/games/contract.js'), /END_BOARD: 'object',/, 'written into THE CONTRACT');
 });

@@ -19,6 +19,27 @@ const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 const rushOf = game => !!(game && game.settings && game.settings.mode === 'rush');
 const survOf = game => !!(game && game.settings && game.settings.mode === 'survival');   // (PD-2)
 const soloOf = game => !!(game && Object.keys(game.participants || {}).length === 1);
+// THE END-BOARD SWITCH-ON (Nov 27): SCORE RUSH's end screen carries THE END-SCREEN BOARD (index.js#END_BOARD — the console's shared block:
+// the board prism-rush's TOP 3 solo, the match's TOP 3 in a match) — so the body's own top-3 cards step aside there, and ONE line says
+// "YOUR BEST n" (no AVG on this board): the SERVER's best as it last told this phone (a counted room match's outcome — pbs / bests)
+const RUSH_BOARD = 'prism-rush', RUSH_BEST = 'pd:rush-best';
+const lsGet = k => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* this page only */ } };
+function rushBest(line, game, state) {
+  const code = state && state.code, show = (v, isNew = false) => { line.textContent = v > 0 ? (isNew ? `NEW BEST · ${fmtNum(v)}` : `YOUR BEST ${fmtNum(v)}`) : ''; line.classList.toggle('is-new', !!isNew && v > 0); };
+  show(lsGet(RUSH_BEST));
+  if (!code) return;
+  lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
+    const k = Q.matchKey(code, game.matchId);
+    const take = o => {
+      if (!o || !line.isConnected) return;
+      const pb = (o.pbs || []).find(x => x.b === RUSH_BOARD), cur = (o.bests || {})[RUSH_BOARD];
+      if (pb) { lsSet(RUSH_BEST, pb.v); show(Number(pb.v) || 0, pb.prev != null); } else if (cur != null) { lsSet(RUSH_BEST, cur); show(Number(cur) || 0); }
+    };
+    take(Q.outcomeFor(k));
+    const off = Q.onOutcome((kk, o) => { if (kk === k) take(o); }), iv = setInterval(() => { if (!line.isConnected) { clearInterval(iv); off(); } }, 3000);
+  }).catch(() => {});
+}
 const mmss = ms => { const s = Math.max(0, Math.round((ms || 0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 /** the line under a player on the podium */
@@ -66,15 +87,19 @@ export function finalScene(el, game, state) {
     const c = h('canvas.pd-fs-board', { 'aria-hidden': 'true' });
     // (PD-6 — THE SOLO PODIUM FITS: a solo run on a short screen (Safari with its toolbars) draws the board at 7-pt cells — 140 pt tall, not 160 —
     //  so the board, the slim card + its score line sit above the foot; read once here, never in a frame loop)
-    const short = soloOf(game) && typeof innerHeight === 'number' && innerHeight < 760;
+    // (THE END-BOARD SWITCH-ON: SCORE RUSH carries THE END-SCREEN BOARD under it — on a short screen a MATCH's winning board drops to 5-pt cells — a solo run keeps PD-6's 7)
+    const tall = typeof innerHeight === 'number' && innerHeight >= 760, short = soloOf(game) && !tall, rushEb = rushOf(game) && !tall;
     // (SKINS 1: the board in THE MATCH's skin — the match's counter on this phone's pool for its look (skins.js#skinOf): what the match was played in)
-    drawMini(c, str, null, { cell: short ? 7 : 8, skin: skinOf(game, document.body.dataset.look === 'day' ? 'day' : 'night', phoneOf(settings)) });
+    drawMini(c, str, null, { cell: short ? 7 : rushEb ? 5 : 8, skin: skinOf(game, document.body.dataset.look === 'day' ? 'day' : 'night', phoneOf(settings)) });
     moment.append(h('div.pd-fs-frame', c));
   }
   moment.append(h('div.pd-fs-line',
     h('small', soloOf(game) ? 'YOUR LAST BOARD' : 'THE WINNING BOARD'),
     h('b', w.name),
     h('span', momentLine(game, top.uid))));
+  // SCORE RUSH (THE END-BOARD SWITCH-ON): the shared block shows the top 3 — the body keeps its moment + YOUR BEST
+  const mine = !!(game.participants && game.participants[me]);
+  if (rushOf(game)) { el.dataset.eb = '1'; const best = h('div.pd-fs-best'); if (!(rows.length >= 2 && rows.every(r => r.rank === 1))) el.append(moment); if (mine) { el.append(best); rushBest(best, game, state); } return; }
   // the top 3 as the console's slim cards (the frame's list starts at 4th); a name → THE PLAYER PAGE
   const pick = rows.slice(0, 3);
   const list = leaderboard(pick, players, { me, stagger: 90 });

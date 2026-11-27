@@ -110,6 +110,9 @@
 .hi-ec-best { min-height: 20px; margin-top: 4px; padding-left: 0.2em; font: 800 16px/1.25 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; white-space: nowrap; text-shadow: 0 0 10px rgba(255, 200, 60, 0.45), 0 1px 0 rgba(30, 14, 0, 0.9); }
 .hi-ec-best.is-new { padding-left: 0.1em; font: 900 22px/1.1 var(--font-display); letter-spacing: 0.1em; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 14px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65); animation: hi-new 0.5s cubic-bezier(0.2, 1.7, 0.4, 1) both; }
 @keyframes hi-new { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
+/* (THE END-BOARD SWITCH-ON — the AVG under a NEW BEST: FREEFALL's .ff-ec-avg) */
+.hi-ec-avg { margin-top: -4px; padding-left: 0.2em; font: 700 12.5px/1.2 var(--font-ui); letter-spacing: 0.2em; color: #cfc8ea; white-space: nowrap; }
+.hi-ec-avg:empty { display: none; }
 .hi-ec-line { padding-left: 0.2em; font: 600 13px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); white-space: nowrap; }
 .hi-ec.is-made .hi-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--hi-w) * 0.07)); }   /* (gold: the shared .fn-line.is-gold) */
 /* THE END's FOOT — END-SCREEN STANDARD A (S2 FIX, the owner; css/components.css .final-bar is the app's — this page loads no ui/final.js):
@@ -263,15 +266,7 @@
 .hi-fin-would { min-height: 16px; margin: 0 0 8px; padding: 0 16px; box-sizing: border-box; max-width: 100%; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.35 var(--font-ui); letter-spacing: 0.08em; white-space: normal; text-wrap: balance; overflow-wrap: anywhere; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
 .hi-fin-would.is-off { color: #d9d4f2; }
 .hi-fin-would:empty { min-height: 0; }
-/* YOUR TABLE (JAYWALK's grid): the slim cards span the screen's 16 px gutters, centred; the rank + floor columns ONE width */
-.hi-table { justify-self: center; width: min(calc(100% + 24px), 440px); margin-top: 6px; }
-.hi-table-k { margin: 0 0 6px; padding-left: 0.28em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: center; }
-.hi-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --hi-side: max(26px, calc(var(--hi-d, 2) * 0.8rem + 2px)); }
-.hi-table-list li { position: relative; display: grid; grid-template-columns: var(--hi-side) minmax(0, 1fr) var(--hi-side); align-items: center; column-gap: 8px; }
-.hi-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
-.hi-table-list li.is-me .hi-table-n { color: #ff8fe0; }
-.hi-table-card { min-width: 0; text-align: left; }
-.hi-table-list li > b { text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
+/* (YOUR TABLE's rules are gone — THE END-BOARD SWITCH-ON: the shared block ui/end-board.js, css/components.css .eb-*) */
 @media (max-height: 740px) { .hi-leave { bottom: calc(env(safe-area-inset-bottom, 0px) + 116px); } }
 /* THE ON-PHONE TRACE (S4A FIX 2 — `?trace=1`: the end card's 5 worst frames, under the stats strip; ≥ 12 px, a dark plate so it reads over any sky) */
 .hi-trace { margin: 12px auto 0; width: min(100%, 368px); padding: 7px 9px 8px; border-radius: 6px; background: rgba(10, 7, 22, 0.8); color: #fff; text-align: left; font: 600 12px/1.4 var(--font-mono); letter-spacing: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -389,3 +384,25 @@
 /* (the pass's pixel test: every rival thing off — night.js#showRivals takes the tapes) */
 .hi-stage.no-rivals .hi-alt, .hi-stage.no-rivals .hi-rtags, .hi-stage.no-rivals .hi-ann, .hi-stage.no-rivals .hi-place { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .hi-ann-in, .hi-ann-in.is-out, .hi-outcard { animation: none; } .hi-rtag, .hi-roster, .hi-outcard { transition: none; } }
+
+/* ---------------------------------------------------------------- THE END-BOARD SWITCH-ON (Nov 27 — docs/games/passes/endboard.md): the end
+   screen + THE END-SCREEN BOARD (ui/end-board.js — the console's shared block: .eb-*) on ONE screen, nothing scrolls from 375 × 667 — the hero
+   + the cause give the room (FREEFALL F5C's numbers); the block's rows never shrink below readable. THE SWITCH's WOULD COUNT line is empty
+   since the go-live: its slot takes no room */
+.hi-final .final.has-eb .hi-fin-would:empty { display: none; }
+.hi-final .final.has-eb .rc-slot:not(:has(.rc > :not(.rc-plaque))) { display: none; }   /* (a results slot holding ONLY the folded plaques: no room, no gap — the XP line keeps it) */
+.hi-final .final.has-eb .hi-fin { gap: 6px; padding-top: 2px; }
+.hi-final .final.has-eb .hi-ec { gap: 6px; }
+.hi-final .final.has-eb .hi-ec-n { margin-top: 0; font-size: clamp(64px, calc(var(--hi-w, 390px) * 0.2), 84px); }
+@media (max-height: 760px) {
+  .hi-final .final.has-eb { gap: 9px; }
+  .hi-final .final.has-eb .rc { margin: 0; }   /* (the XP line right under the block) */
+  .hi-final .final.has-eb .hi-ec { gap: 5px; }
+  .hi-final .final.has-eb .hi-ec-cause { font-size: 28px; line-height: 1.04; }
+  .hi-final .final.has-eb .hi-ec-n { font-size: 72px; }
+  .hi-final .final.has-eb .hi-ec-fl { margin-top: -2px; font-size: 12px; }
+  .hi-final .final.has-eb .hi-ec-best { min-height: 0; margin-top: 0; font-size: 15px; }
+  .hi-final .final.has-eb .hi-ec-best.is-new { font-size: 18px; line-height: 1; }
+  .hi-final .final.has-eb .hi-ec-avg { margin-top: -1px; }
+  .hi-final .final.has-eb .hi-ec-line { font-size: 12px; }
+}

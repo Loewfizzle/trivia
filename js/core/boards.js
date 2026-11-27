@@ -20,7 +20,7 @@ export const GAME_BOARDS = {
   jaywalk: { records: [rec('jaywalk-solo', 'FARTHEST RUN', 'int', { short: 'LANES', avg: { days: 14, min: 5 } })], career: [] },   // (H3: the server's replay only · JT2: + the AVERAGE of the counted SOLO runs over the last 14 played days, from 5 runs — core/board-avg.js; never an import here: boards.js boots)
   // HIGH RISE (S4A — the server's replay only; written since THE GO-LIVE, Nov 20: api/_lib/highrise.js#HIGHRISE_COUNTS). Its value = a
   // tower as ONE sort number — the floor, then the perfects, then the earlier tick (js/games/highrise/logic.js#towerScore); fmt 'floor' shows the floor
-  highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS' })], career: [] },
+  highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS', avg: { days: 14, min: 5 } })], career: [] },   // (THE END-BOARD SWITCH-ON, Nov 27: + THE AVERAGE as JAYWALK's — a counted SOLO run's FLOORS, never the sort number; from this deploy)
   freefall: { records: [rec('freefall-solo', 'DEEPEST RUN', 'int', { short: 'FLOORS', avg: { days: 14, min: 5 } })], career: [] },   // (F4A — hidden; the AVERAGE as JAYWALK's: docs/freefall.md)
   // CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19: "the whole overclock board menus and categories is complicated and weird — simplify"):
   //  BEST QUICK RUN — a QUICK run of all six (`both`: the solo lane keeps the id — but THE FIX PASS S4: api/report.js writes it for ROOM matches
