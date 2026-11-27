@@ -29,6 +29,8 @@ export const youLine = (rank, v, word) => `YOU · ${rank > 0 ? `${ordinal(rank)}
 export function pickRows(rows, n = TOP) {
   const all = (rows || []).filter(r => r && Number.isFinite(Number(r.v)));
   const top = all.slice(0, n), me = all.find(r => r.me);
+  // (F5C — a SHARED place: ranked 3rd but 4th in the list → you take the last top slot that shares your place — never a "YOU · 3RD" line)
+  if (me && !top.includes(me) && me.rank > 0 && me.rank <= n) { const i = top.map(r => r.rank).lastIndexOf(me.rank); if (i >= 0) top[i] = me; }
   return { top, you: me && !top.includes(me) ? me : null };
 }
 

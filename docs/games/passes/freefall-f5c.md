@@ -8,7 +8,11 @@ stays OFF. Shots: `Downloads\NEON\freefall-f5c\` (end\, water\, mark\, match\, h
 | group | commit | what |
 | --- | --- | --- |
 | Step 0 | 6f9f1edc | the decisions in docs/games/plan.md (+ the lab export: no open FIX marks; the inbox: nothing addressed to F5C) |
-| 0 — F5B's LEFTOVERS | (this group) | the logo always · YOUR BEST n · AVG n · ☐ FRIENDS ONLY · the name on the test page's card · night under · day above · the day mark · the solo E2E's cause |
+| 0 — F5B's LEFTOVERS | 8a7ae3a4 | the logo always · YOUR BEST n · AVG n · ☐ FRIENDS ONLY · the name on the test page's card · night under · day above · the day mark · the solo E2E's cause |
+| 1 — THE MATCH PIECES | 9fc654fe | THE TIE-BREAK + its sims · the edge markers · RIVAL OUT · LAST ONE STANDING |
+| 2 + 3 — HOW TO PLAY · THE MIX + CREDITS | 98bc6c92 | RULES.freefall · the gains against JAYWALK's + the music's duck · the credits group |
+| the review's fixes | 846b75ba | see THE FRESH-EYES REVIEW |
+| the close | (the tagged commit) | a SHARED 3rd place in the block (the 8-phone E2E) · the final run · this log |
 
 ## GROUP 0 — F5B's LEFTOVERS
 1. **THE LOGO** — the cause: the lettering was asked for only when the end screen mounted, decoded `async`; a slow fetch (or F5B's 2× shots)
@@ -111,3 +115,45 @@ shows only where FREEFALL is playable (`isPlayable` — the owner's phone now, e
 | 5 | the edge markers | PARTIAL — orange over red floors weak; three stacked on one side | a full 2 px dark stroke · at most 2 lines a side (the nearest) (`match\after2\`) |
 | 6 | the match moments | PARTIAL — the card PASS; "MIA IS OUT" small + on top of the markers | the callout 21 – 26 px with the 2 px stroke, lifted to 60 % of the screen (`match\after2\`) |
 | 7 | HOW TO PLAY | PARTIAL — 11 rows, scrolls at 375 + 390 | 9 rows (the KEYBOARD row cut, the pause rows one), a one-line goal: whole at 390 × 844; at 375 × 667 the sheet scrolls about a line (the shared sheet does — as JAYWALK's) (`howto\a2\`) |
+
+## THE FINAL RUN (local, the Beelink)
+- Unit: 2,833 / 2,833 (`node --test tests/*.test.mjs`). THE BOOT: 188 B left (6500 KB, never raised — 83 B before this pass).
+- FREEFALL: the test page 172 / 172 · `--water` 8 / 8 · the share cards 255 / 255 · solo 64 / 64 · match 109 / 109 (the first run 108 / 109 →
+  a real find: a player SHARING the 3rd place but 4th in the list got a "YOU · 3RD" line — `ui/end-board.js#pickRows` now puts them in their
+  place's last slot, a unit case + the E2E's check say so).
+- The other games (shared end-screen code + the help + the credits changed): JAYWALK 122 / 122 · HIGH RISE 114 / 114 · PRISM DROP 67 / 67 ·
+  OVERCLOCK 69 / 69 (`e2e-oc-new`, N=4) · HOLD'EM 24 / 24 · smoke 28 / 28 (THE PAGES LOAD).
+- `/api` 76 / 78 — the SAME two JAYWALK reds F5B logged as pre-existing (`H6A` match report · THE PROOF PASS verified solo). Rules 101 / 106
+  on fresh emulators: five JAYWALK / HIGH RISE proof-node cases answer PERMISSION_DENIED — **not this pass**: `rules.test.mjs` reads only
+  itself + `database.rules.json`, both byte-identical to F5B's commit (106 / 106 this morning) → time-bound, like the two `/api` ones
+  (OPEN FOR BEN 7). Every server this pass started was stopped at its end.
+
+## OPEN FOR BEN
+1. **RE-PUBLISH: nothing** (no rules-file change; FREEFALL hidden, THE SWITCH off).
+2. **THE DAY WATER (floor 119) — the last code try is in, and it is better but NOT premium.** Fixed: the lavender (it was warm light
+   ADDED onto blue — the lamp streaks now replace the blue with brass), the snow (gone — a few glints ride the moving crests), the ice-rink
+   rim (the water sinks into the wall), the grey blue (ocean blue, deepest at the bottom). The fresh-eyes reviewer still read "code water"
+   (soft streak columns, a pattern). Per your Step 0 rule the next step is a texture, not more code — **THE GROK BRIEF:**
+   > *FREEFALL — one CC0 stylised water texture for a closed shaft's water surface seen from just above (the camera looks down at ~35°).*
+   > **Deliver:** ONE seamless, tileable **water NORMAL map** (2048 × 2048 PNG, OpenGL / +Y green) of gentle, ROUNDED swell — stylised
+   > game water (think a premium mobile game's pool / harbour, not photoreal ocean, not choppy): broad soft ripples 6–12 across the tile,
+   > no foam, no whitecaps, no tiny noise (it must read at phone size, 390 pt wide), AND its matching **height map** (16-bit greyscale) —
+   > the height lets the game place glints on the crests. **Licence: CC0 1.0** (public domain) — a source page that states CC0, its URL +
+   > the author in `notes.txt` (ambientCG / Poly Haven / 3DTextures / Kenney are fine; no CC BY, no "free for personal use").
+   > **Backup:** one more of the same, a little busier (12–20 ripples across). Put both in `Downloads\grok\freefall\water2\` with `notes.txt`.
+   > (The game draws the colour itself — ocean blue + the speakeasy's brass lamp streaks — so NO colour map is needed.)
+3. **THE SOLO E2E's "fixed seed":** the cartridge's seed IS the proof's (hash(code + match + the server's GO)) — a fixed one would be
+   refused by the judge. The cause is made certain instead: the test turns onto the red only on a floor the run's own tower says HAS red
+   (F5B's failure: a red-free floor — the bot bounced there until the darkness took it). The match E2E's own scripted red is unchanged.
+4. **THE CREDITS** show FREEFALL's group only where FREEFALL is playable (your phone now, everyone at the go-live) — the public sheet never
+   names a hidden game. Say if you want it public now.
+5. **Named calls, yours to overrule:** LAST ONE STANDING also fires when a rival FINISHED at the bottom and you're still falling (you're then
+   behind: "N FLOORS TO THE LEAD") · RIVAL OUT never for a finish / time's up · the edge markers flip sides only past ±0.2 (no flicker),
+   2 lines a side · the music ducks to 0.5 under the outs, the breakthroughs, the bottom + LAST ONE STANDING (not under THE BLAZE or a NEW
+   BEST) · HOW TO PLAY drops the KEYBOARD line (the arrows still spin) · the test page's AVG is always "—" (it counts nothing) · the mark's
+   day outline (#f0453c) shows only on a pale ground (the marks preview; the city's day sign can use it at go-live) · the whoosh +2 dB, the
+   bottom +1.5 dB, the shared arrival + NEW BEST at JAYWALK's own gains.
+6. **Not FREEFALL's (seen in passing):** PRISM DROP's + HOLD'EM's marks also wash out on a pale ground (the reviewer).
+7. **Rules 101 / 106 + `/api` 76 / 78 on the emulators — not FREEFALL's, time-bound:** the rules test + the rules file are byte-identical to
+   F5B's commit (106 / 106 this morning); the five failing are JAYWALK / HIGH RISE proof-node cases (PERMISSION_DENIED on a write — the
+   rules' server-time windows), the two `/api` ones F5B already sent to the JAYWALK chat. The next JAYWALK / HIGH RISE pass should look.

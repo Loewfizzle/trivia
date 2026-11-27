@@ -17,6 +17,10 @@ test('the rows: the TOP 3 + YOU only when you are not among them — the YOU lin
   const meOut = rows.map(r => ({ ...r, me: r.rank === 5 }));
   assert.equal(EB.pickRows(meOut).you.rank, 5);
   assert.deepEqual(EB.pickRows([]), { top: [], you: null });
+  // F5C — a SHARED 3rd place (the 8-phone match E2E): 4th in the list but ranked 3rd → in the top 3 (the last slot of that place), no YOU line
+  const tie = [{ uid: 'a', rank: 1, v: 60 }, { uid: 'b', rank: 2, v: 55 }, { uid: 'c', rank: 3, v: 50 }, { uid: 'me', rank: 3, v: 50, me: true }, { uid: 'e', rank: 5, v: 49 }];
+  assert.deepEqual(EB.pickRows(tie).top.map(r => r.uid), ['a', 'b', 'me']); assert.equal(EB.pickRows(tie).you, null);
+  assert.equal(EB.pickRows(tie.map(r => ({ ...r, me: r.uid === 'e' }))).you.uid, 'e', 'a 5th place still gets the line');
   assert.deepEqual(EB.pickRows([{ rank: 1, v: 'x' }, null, { rank: 2, v: 7 }]).top.map(r => r.v), [7], 'a row with no number is never shown');
   assert.equal(EB.youLine(12, 88, 'FLOORS'), 'YOU · 12TH · 88 FLOORS');
   assert.equal(EB.youLine(5, 49, 'FLOORS'), 'YOU · 5TH · 49 FLOORS');

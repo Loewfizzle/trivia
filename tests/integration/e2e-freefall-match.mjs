@@ -512,7 +512,9 @@ async function partB() {
   const want = J.st.map(r => NAMES[uids.indexOf(r.uid)]).join(' ');
   // (F5B — THE FINAL SHAPE: THIS MATCH's TOP 3 on every phone, in the ranking's order; a player 4th or lower reads "YOU · 5TH · 49 FLOORS")
   const top3 = want.split(' ').slice(0, 3).join(' '), ordN = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'TH' : ['TH', 'ST', 'ND', 'RD'][n % 10] || 'TH'}`;
-  ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker)) && pod.every(x => x.ebRows === 3 && x.order.slice(0, 3).join(' ') === top3), `the podium on all ${N} phones: THIS MATCH's TOP 3 in the ranking's order (${top3}) — ${pod.map(x => (x ? x.order.slice(0, 3).join(' ') : '—')).join(' | ')}`);
+  // (F5C — a SHARED place: a phone whose player shares the 3rd place but is 4th in the list sees ITSELF in that slot — ui/end-board.js#pickRows)
+  const topOf = i => { const t = J.st.slice(0, 3), me = J.st.find(q => q.uid === uids[i]); if (me && !t.includes(me) && me.rank <= 3) { const k = t.map(q => q.rank).lastIndexOf(me.rank); if (k >= 0) t[k] = me; } return t.map(q => NAMES[uids.indexOf(q.uid)]).join(' '); };
+  ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker)) && pod.every((x, i) => x.ebRows === 3 && x.order.slice(0, 3).join(' ') === topOf(i)), `the podium on all ${N} phones: THIS MATCH's TOP 3 in the ranking's order (${top3}; a shared 3rd place shows the phone's own player) — ${pod.map(x => (x ? x.order.slice(0, 3).join(' ') : '—')).join(' | ')}`);
   const yous = pod.map((x, i) => { const r = J.st.find(q => q.uid === uids[i]); return { want: r.rank >= 4 ? `YOU · ${ordN(r.rank)} · ${J.fin.results[uids[i]].f} FLOORS` : '', got: x.you }; });
   ok(yous.every(y => y.got === y.want) && pod.every(x => x.scroll <= 1), `… the YOU line from 4th down only (${yous.map(y => y.got || '—').join(' | ')}); nothing scrolls`);
   await H.shot(pages[0], 'eight-podium'); await H.shot(pages[3], 'eight-podium-2');
