@@ -1375,8 +1375,127 @@ async function watershot() {
   }
 }
 
+
+// FIX B — SPEED BY EXPERIMENT + G1 (`--fixb`): THE SPIKE RULE steps down only if it HELPS (a trial: back up + the rule rests when it does
+// not) · `?fps=2`'s BREAKDOWN (a real main-thread stall is named `busy`) · the A/B SWITCHES named on the line · SMOOTH MOTION (the tower drawn
+// at the real time — a virtual 120 Hz / jittered 60 Hz / 36 ms-stall clock) · a LOST CONTEXT in a match keeps every rival (+ a WATCH)
+async function fixb() {
+  const S = 'window.__ffPlay.state()';
+  const hit = (p, n, gap = 60) => p.evaluate(async (k, g) => { for (let i = 0; i < k; i++) { window.__ffPlay.hitch(40); await new Promise(r => setTimeout(r, g)); } }, n, gap);
+  // (1) the step does NOT help: the hitches go on at the same rate → back up to 2, and no more steps for the page
+  let t = await open(390, 844, 3, '?seed=fixb1&fps=1');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, `${S}.spike.play > 2500`, 20000);
+  await hit(t.p, 4);
+  let s = await st(t.p);
+  ok(s.tier === 1 && s.spike.trial === 2, `THE SPIKE RULE: 4 hitches → one tier down ON TRIAL (tier ${s.tier}, trial from ${s.spike.trial}, ${s.spike.rate.toFixed(2)} hitches/s before)`);
+  const rate = s.spike.rate;
+  for (let k = 0; k < 24 && !(await st(t.p)).spike.said; k++) { await hit(t.p, 1); await sleep(Math.max(80, 1000 / rate - 60)); }
+  await waitFor(t.p, `${S}.spike.said !== ''`, 15000);
+  s = await st(t.p);
+  ok(s.tier === 2 && s.spike.off && /NO HELP/.test(s.spike.said) && s.tierPath.join('') === '212', `… the trial: the stutter did not fall → BACK UP to tier 2, the rule rests for the page (${s.spike.said} · path ${s.tierPath.join('→')})`);
+  await hit(t.p, 6); s = await st(t.p);
+  ok(s.tier === 2 && s.tierPath.join('') === '212', `… and more hitches never step it down again (tier ${s.tier} · the full look kept)`);
+  ok(/spike off/.test(s.fpsLine) || /NO HELP/.test(s.fpsLine), `… the ?fps=1 line says so (${s.fpsLine.slice(0, 140)})`);
+  ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+  await t.close();
+  // (2) the step HELPS: no hitch in the trial → it stays on tier 1; never below 1 on spikes alone
+  t = await open(390, 844, 3, '?seed=fixb1&fps=1');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, `${S}.spike.play > 2500`, 20000);
+  await hit(t.p, 4);
+  await waitFor(t.p, `${S}.spike.said !== ''`, 25000);
+  s = await st(t.p);
+  ok(s.tier === 1 && /HELPED/.test(s.spike.said) && !s.spike.off, `THE SPIKE RULE: a quiet trial = it HELPED → tier 1 kept (${s.spike.said})`);
+  await hit(t.p, 8); s = await st(t.p);
+  ok(s.tier === 1 && s.tierPath.join('') === '21', `… never below tier 1 on spikes alone (tier ${s.tier}, path ${s.tierPath.join('→')})`);
+  await t.close();
+  // (3) ?fps=2 — THE BREAKDOWN: a real 45 ms block of the main thread (not our frame) is named `busy`; the long tasks are counted (Chromium)
+  t = await open(390, 844, 3, '?seed=fixb2&fps=2');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, `${S}.spike.play > 1500`, 20000);
+  for (let k = 0; k < 3; k++) { await t.p.evaluate(() => new Promise(r => setTimeout(() => { const e = performance.now() + 60; while (performance.now() < e); r(); }, 5))); await sleep(400); }
+  s = await st(t.p);
+  ok(s.brk && s.brk.kinds[1] >= 2, `?fps=2: a main thread held 60 ms by other work → named BUSY (ours ${s.brk && s.brk.kinds[0]} · busy ${s.brk && s.brk.kinds[1]} · gpu ${s.brk && s.brk.kinds[2]})`);
+  ok(s.brk && s.brk.long >= 2, `… the browser's long tasks counted (${s.brk && s.brk.long})`);
+  await waitFor(t.p, `/busy:/.test(${S}.fpsLine)`, 3000);
+  s = await st(t.p);
+  ok(/busy: ours [\d.]+ busy \d+ wait \d+/.test(s.fpsLine), `… the live line breaks the last hitch down (${s.fpsLine})`);
+  await auto(t.p, 'red'); await waitFor(t.p, `${S}.over && /WHY/.test(${S}.fpsLine)`, 30000);
+  s = await st(t.p);
+  ok(/WHY · busy \d+×/.test(s.fpsLine) && /ON A HITCH · ours [\d.]+ ms \(upd [\d.]+ · build [\d.]+ · submit [\d.]+\) · busy [\d.]+ · wait [\d.]+ · every frame ours [\d.]+ ms · long tasks \d+/.test(s.fpsLine), `… THE END-OF-RUN SUMMARY carries the breakdown + the top causes with floors: ${s.fpsLine.replace(/\n/g, ' ⏎ ')}`);
+  await shot(t.p, 'fixb-fps2-end.png');
+  await t.close();
+  // (4) THE A/B SWITCHES: named at the head of the line; the scene runs without each piece, no error (+ ?ghosts=0 in the bot room)
+  t = await open(390, 844, 3, '?seed=fixb3&fps=1&dpr=1.5&bloom=0&fx=0&wall=0&tier=1&smooth=0');
+  await start(t); await auto(t.p, 'play'); await sleep(2500);
+  s = await st(t.p);
+  ok(/^AB dpr 1\.5 · bloom 0 · fx 0 · wall 0 · tier 1 pinned · smooth 0 — /.test(s.fpsLine) && !s.info.bloom && s.info.dpr <= 1.5 && s.tier === 1 && !t.errs.length, `THE A/B SWITCHES named on the line (${s.fpsLine.slice(0, 90)} …) · bloom ${s.info.bloom} · dpr ${s.info.dpr} · ${t.errs.length} errors`);
+  await shot(t.p, 'fixb-ab-all-off.png');
+  await t.close();
+  t = await open(390, 844, 3, '?seed=fixb3&fps=1&mode=match&rivals=3&ghosts=0');
+  await start(t); await auto(t.p, 'play'); await sleep(2500);
+  s = await st(t.p);
+  const gm = await t.p.evaluate('window.__ffPlay.matchState()');
+  ok(/^AB ghosts 0 — /.test(s.fpsLine) && gm.ghosts.length === 3 && gm.layer.shown === 0 && !t.errs.length, `?ghosts=0: the rivals run (${gm.ghosts.length}) but none is drawn (shown ${gm.layer.shown}) · ${t.errs.length} errors`);
+  await t.close();
+  // (5) SMOOTH MOTION — the page on a VIRTUAL clock (performance.now + the frame's stamp), a held ArrowRight = a steady KEY_SPIN a tick:
+  //     the tower's drawn angle moves by the TRUE distance every frame at 120 Hz, at a jittered 60 Hz and through a 36 ms frame
+  const pace = async (q, steps) => {
+    const t2 = await open(390, 844, 3, `?seed=fixb4${q}`);
+    await start(t2); await sleep(1300);
+    await t2.p.keyboard.down('ArrowRight'); await sleep(120);
+    // (the clock swapped first; the stage's frame already asked of the REAL one lands, then asks the virtual one — then the steps)
+    await t2.p.evaluate(() => { const real = performance.now.bind(performance), vc = { real, v: real(), q: [] }; window.__vc = vc; performance.now = () => vc.v; window.requestAnimationFrame = cb => { vc.q.push(cb); return vc.q.length; }; });
+    await waitFor(t2.p, 'window.__vc.q.length > 0', 3000);
+    const out = await t2.p.evaluate(st2 => {
+      const vc = window.__vc; vc.v = vc.real();
+      const res = [];
+      for (const ms of st2) { vc.v += ms; const c = vc.q.splice(0); for (const f of c) f(vc.v); const d = window.__ffPlay.drawn(); res.push([ms, d[0], d[1], d[2], window.__ffPlay.state().over]); }
+      return res;
+    }, steps);
+    await t2.close();
+    const U = 2 * Math.PI / 4096, rows = [];
+    for (let i = 1; i < out.length; i++) {
+      if (out[i][4]) break;
+      let da = out[i][1] - out[i - 1][1]; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+      rows.push({ ms: out[i][0], units: da / U, want: 60 * out[i][0] / (1000 / 60), cam: out[i][2] - out[i - 1][2] });
+    }
+    return rows;
+  };
+  const judge = rows => { const skip = rows.slice(4), bad = skip.filter(r => Math.abs(r.units - r.want) > Math.max(12, r.want * 0.35)); return { n: skip.length, bad: bad.length, sample: skip.slice(0, 10).map(r => Math.round(r.units)).join(',') }; };
+  const hz120 = Array(90).fill(1000 / 120), jit60 = Array.from({ length: 90 }, (_, i) => (i % 3 === 2 ? 17 : 16)), stall = Array.from({ length: 50 }, (_, i) => (i === 25 ? 36 : 1000 / 60));
+  for (const [name, steps] of [['120 Hz', hz120], ['60 Hz in 1 ms stamps, drifting against the tick', jit60], ['60 Hz + one 36 ms frame', stall]]) {
+    const on = judge(await pace('', steps)), off = judge(await pace('&smooth=0', steps));
+    ok(on.n >= 30 && on.bad <= Math.ceil(on.n * 0.05), `SMOOTH MOTION · ${name}: the tower moves its TRUE distance every frame — ${on.n - on.bad} / ${on.n} frames within a tick's share (units a frame: ${on.sample})`);
+    if (name !== '60 Hz + one 36 ms frame') ok(off.bad > on.bad, `… ?smooth=0 (the old way) steps once a tick: ${off.bad} / ${off.n} frames off (${off.sample})`);
+  }
+  // (6) G1 — A LOST CONTEXT in a match: the new scene gets the 7 rivals + their names again; while WATCHING, the next frame adopts the watched run
+  t = await open(390, 844, 3, '?seed=look3&mode=match&rivals=7');
+  await start(t); await auto(t.p, 'play'); await sleep(2500);
+  const before = await t.p.evaluate('window.__ffPlay.matchState().layer');
+  await t.p.evaluate(() => window.__ffPlay.lose());
+  await waitFor(t.p, `${S}.rebuilds >= 1`, 8000); await sleep(400);
+  let m = await t.p.evaluate('window.__ffPlay.matchState()');
+  ok(m.layer.ghosts === 7 && m.layer.baked >= 1 && before.ghosts === 7, `G1 — a LOST CONTEXT mid-match: the NEW scene has all 7 rivals + their name tags baked again (before ${before.ghosts} · after ${m.layer.ghosts} rivals, ${m.layer.baked} name bake)`);
+  await auto(t.p, 'red'); await waitFor(t.p, `${S}.over`, 30000); await sleep(600);
+  m = await t.p.evaluate('window.__ffPlay.matchState()');
+  const deep = m.ghosts.filter(g => !g.over).sort((a, b) => b.floor - a.floor)[0];
+  if (deep) {
+    await t.p.evaluate(u => window.__ffPlay.watch(u), deep.uid); await sleep(1500);
+    await t.p.evaluate(() => window.__ffPlay.lose());
+    await waitFor(t.p, `${S}.rebuilds >= 2`, 8000); await sleep(700);
+    m = await t.p.evaluate('window.__ffPlay.matchState()');
+    const d = await t.p.evaluate(() => window.__ffPlay.drawn()), mine = (await st(t.p)).floor;
+    ok(m.watch === deep.uid && Math.abs(d[1] - m.watchFloor) < 2.5 && Math.abs(d[1] - mine) > 2, `… WATCHING through a lost context: the rebuilt scene shows the watched run (camera @${d[1].toFixed(1)} · watched floor ${m.watchFloor} · my dead floor ${mine})`);
+  } else ok(false, '… WATCHING through a lost context: no rival was still falling to watch');
+  ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+  await t.close();
+}
+
 if (LOOK) await look();
 else if (argv.includes('--watershot')) await watershot();
+else if (argv.includes('--fixb')) await fixb();
 else if (argv.includes('--contrast')) await contrast();
 else if (argv.includes('--stutters')) await stutters();
 else if (argv.includes('--perf8')) await perf8();
@@ -1386,7 +1505,7 @@ else if (argv.includes('--f3b')) await checks4();
 else if (argv.includes('--haze')) await haze(true);
 else if (argv.includes('--f4a')) await checks5();
 else if (argv.includes('--f4b')) await checks6();
-else { await checks1(); await checks2(); await checks3(); await checks4(); await checks5(); await checks6(); }
+else { await checks1(); await checks2(); await checks3(); await checks4(); await checks5(); await checks6(); await fixb(); }
 await b.close();
 console.log(`\n${checks} checks · ${fails.length} failed`);
 for (const f of fails) console.log('  ✗', f);

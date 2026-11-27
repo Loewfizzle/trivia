@@ -42,8 +42,10 @@ export const KEY_SPIN = 60;
 export const OWED_MAX = 8 * MAX_SPIN;
 /** a frame this long (after a run's first second) is a HITCH (`?fps=1` counts them) */
 export const HITCH_MS = 33;
-/** FIX A — THE SPIKE RULE: `n` hitches inside `span` ms → one tier down (at most `max` a run) */
-export const SPIKE = Object.freeze({ n: 4, span: 20000, max: 2 });
+/** FIX A — THE SPIKE RULE: `n` hitches inside `span` ms → one tier down · FIX B: only if it HELPS — the hitch rate over the next `trial` ms
+ *  of play (after `settle` ms) must fall to `helped` × the rate before, else the tier goes back up and the rule rests for the page; never
+ *  below tier `floor` on spikes alone */
+export const SPIKE = Object.freeze({ n: 4, span: 20000, trial: 10000, settle: 500, helped: 0.5, floor: 1 });
 /** FIX A — S12: the hint comes back after this long bouncing on floor 0 untouched */
 export const TEACH_MS = 2000;
 /** FIX A — the mid-run NEW BEST moment from this floor up */
@@ -72,7 +74,7 @@ function press(node, fn) {
   return node;
 }
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
-const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, skyIn: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
+const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, skyIn: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, submitAt: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
 
 export function createStage(app0, o = {}) {
   let app = app0, acIn = new AbortController();   // (the element the stage is mounted in — the cartridge moves a parked stage to its next view's: `moveTo`)
@@ -153,7 +155,7 @@ export function createStage(app0, o = {}) {
   const pin = o.tier == null ? null : Math.max(0, Math.min(2, o.tier));
   const noGL = () => h('p.ff-nogl', 'This browser can’t draw the game here (it has no WebGL).');
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0 }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0, ab: o.ab }); }
   catch { stage.append(noGL()); return null; }
   hook.view = view;
   const tierPath = [pin == null ? 2 : pin];
@@ -170,7 +172,7 @@ export function createStage(app0, o = {}) {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0 }); }
+    try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0, ab: o.ab }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -180,6 +182,9 @@ export function createStage(app0, o = {}) {
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
     view.reset(run); view.adopt(run, ev, fed); view.setBest(tapeFloor); view.pose(t0 == null && !starting ? 'open' : 'play', true);
+    // (FIX B — Grok's G1: the new scene gets the match's rivals again — they vanished after a lost context; a WATCH adopts the watched run next frame)
+    if (ghosts.length) { view.ghostNames(ghosts); view.ghosts(ghosts.length, gData); }
+    if (watchUid) wNew = true;
     hook.view = view; rebuilds++; last = 0; warmed = false;
     watchGL();
   }
@@ -300,7 +305,7 @@ export function createStage(app0, o = {}) {
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
-    held = false; countAt = 0; away = false; hitches = 0; cN.fill(0); cMax.fill(0); spikeN = 0; if (teach) teachOn(false); whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
+    held = false; countAt = 0; away = false; hitches = 0; cN.fill(0); cMax.fill(0); spikeK = 0; kN.fill(0); kSum.fill(0); kMax.fill(0); pSum.fill(0); allWork = 0; allN = 0; longN = 0; longMax = 0; if (teach) teachOn(false); whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
     if (!PAGE) note.textContent = '';
     worstMs = 0; hN = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
@@ -749,6 +754,7 @@ export function createStage(app0, o = {}) {
     last = now;
     if (document.visibilityState === 'hidden') return;
     const w0 = performance.now();
+    if (BRK) { pingGap = Math.max(pingMax, w0 - pingLast); }
     frameN++;
     if (!warmed && frameN > 2 && t0 == null) warmed = view.warm(run);
     if (frameN % 15 === 0) {   // (the console's GAME LOOK, read LIVE — four times a second; applied when no run is on: THE LOOK LOCK)
@@ -816,21 +822,39 @@ export function createStage(app0, o = {}) {
           R0 = WA.run; tauD = isOver(R0) ? R0.end : tw;
         }
       }
+      if (R0 === run) lead += spinAhead(tau);
       ghostsFrame(now, tauW, R0, tauD, lead);
-    }
+    } else lead += spinAhead(tau);
+    const wd = BRK ? performance.now() : 0;
     view.draw(R0, tauD, dt, lead);
     if (over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs(run.st === 'out' ? run.cause : run.st)) takeShot(tauD, lead);   // (F4B — THE SHARE CARD's frame: this very frame, a beat after the end — this phone's OWN run on screen, never a watched one)
+    if (BRK) { const we = performance.now(), sa = view.submitAt(); fBuild = sa > wd && sa < we ? sa - wd : we - wd; fSub = sa > wd && sa < we ? we - sa : 0; }   // (FIX B — `?fps=2`: the scene build · the render submit)
     // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
     if (R0.floor !== hudFloor) hudFloorNow(R0);
     const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);
     if (gap !== hudGap) hudDarkNow(gap, overD);
     const work = performance.now() - w0;
     tiers.sample(now, prevWork); prevWork = work;
+    if (t0 != null && !over && !held && now - t0 > 1000) trialTick(dt);
     if (pin == null && frameN % 10 === 0) tiers.tick(now);
     frames[frameK++ % 600] = dt;
     if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitchNow(dt, now);
     else if (t0 != null && !over && !held && dt > worstMs && now - t0 > 1000) worstMs = dt;
     if (fps && frameN % 30 === 0) fpsLine();
+    if (BRK) { qOurs = pUpd + pBuild + pSub; qGap = pingGap; pBuild = fBuild; pSub = fSub; pUpd = Math.max(0, work - fBuild - fSub); allWork += work; allN++; pingMax = 0; pingLast = performance.now(); }
+  }
+  // FIX B — SMOOTH MOTION THROUGH A MISSED FRAME (VIEW ONLY): the ball + the camera are drawn from the run's own clock (`tau`, a fraction into
+  // the tick) already; the TOWER's angle is the engine's at the last whole tick — it stepped once a tick (at a 120 Hz frame every other frame,
+  // and at 60 Hz whenever the frame's stamp jittered over a tick's edge). The view now draws it at the real time: the turn the next tick WILL
+  // make (the finger's owed turn + a held key, within MAX SPIN — exactly what settle() applies at that tick, before its landing) times the
+  // fraction of the tick gone. Nothing in the engine or the proof sees it. `?smooth=0` on the test page = the old way (A/B).
+  const SMOOTH = !(o.ab && o.ab.smooth === false);
+  function spinAhead(tau) {
+    if (!SMOOTH || t0 == null || held || spect || isOver(run) || tau < 1) return 0;
+    const f = tau - Math.floor(tau);
+    let d = owed + keyDir * KEY_SPIN;
+    if (d > MAX_SPIN) d = MAX_SPIN; else if (d < -MAX_SPIN) d = -MAX_SPIN;
+    return d * f;
   }
   // THE HITCH LOG (F3B — THE STUTTERS; HIGH RISE's): a frame over 33 ms in a run is counted AND NAMED — what one-off work landed just before
   // it: a picture's upload (`pic`), a sound's decode (`snd`), a band's bake (`band`), a tier step (`tier`), the HUD's own writes (`dom`);
@@ -841,23 +865,80 @@ export function createStage(app0, o = {}) {
   // FIX A — THE SPIKE RULE (the owner's iPhone: HITCH 16–19 a run, single 34 ms frames — the average never moved the tiers): SPIKE.n hitches
   // inside SPIKE.span ms step the tier down ONE (a run at most SPIKE.max steps); the tier left is held — the rule never steps back up to it
   // in the same page (kit/tiers.js#ask's `stay`), so it never flaps. A pinned tier (`?tier=`) is never touched.
-  const spikeAt = new Float64Array(SPIKE.n);
-  let spikeN = 0, spikeK = 0;
+  // FIX B — THE SPIKE RULE ONLY STEPS DOWN IF IT HELPS (the owner's iPhone: 2 → 1 → 0 and the stutter stayed): a step down opens a TRIAL —
+  // the hitches of the next SPIKE.trial ms of PLAY (the step's own stall skipped: SPIKE.settle) against the rate before it (the last
+  // SPIKE.span ms of play); not halved → the tier goes back up and the rule rests for the PAGE (the same phone, the same cause). Never below
+  // SPIKE.floor on spikes alone. The clocks are PLAY time (a run live, past its first second, not held) — a run's end pauses a trial.
+  const spikeAt = new Float64Array(SPIKE.n), hitPlay = new Float64Array(32);
+  let pingGap = 0, spikeK = 0, hitK = 0, playMs = 0, spikeOff = false, trialFrom = -1, trialRate = 0, trialMs = 0, trialHits = 0, spikeSaid = '';
   function hitchNow(dt, now) {
     const i = hN++ % HLOG, at = now - dt;
     hMs[i] = dt; hFloor[i] = run.floor;
     const w = hWhy[i] = at - view.lastWork() < 160 ? 1 : snd && snd.lastWork && at - snd.lastWork() < 160 ? 2 : at - BNR.lastBake() < 160 ? 3 : at - tierAt < 400 ? 4 : at - domAt < 120 ? 5 : 0;
     hitches++; if (dt > worstMs) worstMs = dt;
     cN[w]++; if (dt > cMax[w]) { cMax[w] = dt; cFl[w] = run.floor; }
+    if (BRK) breakdownNow(dt, i);
     if (w === 4 || pin != null) return;   // (a tier step's own stall never counts toward the next one)
+    hitPlay[hitK++ % 32] = playMs;
+    if (trialFrom >= 0) { if (trialMs >= SPIKE.settle) trialHits++; return; }
     spikeAt[spikeK++ % SPIKE.n] = now;
-    if (spikeK >= SPIKE.n && now - spikeAt[spikeK % SPIKE.n] <= SPIKE.span && spikeN < SPIKE.max && tiers.get() > 0) { spikeN++; spikeK = 0; tiers.ask(tiers.get() - 1, true); }
+    if (!spikeOff && spikeK >= SPIKE.n && now - spikeAt[spikeK % SPIKE.n] <= SPIKE.span && tiers.get() > SPIKE.floor) {
+      const span = Math.min(SPIKE.span, playMs) || 1;
+      let n = 0;
+      for (let k = 0; k < 32 && k < hitK; k++) if (hitPlay[(hitK - 1 - k) % 32] > playMs - span) n++;
+      trialFrom = tiers.get(); trialRate = n * 1000 / span; trialMs = 0; trialHits = 0; spikeK = 0;
+      tiers.ask(trialFrom - 1, true);
+    }
+  }
+  /** (FIX B) a frame of play: the trial's clock — its verdict once it has run SPIKE.settle + SPIKE.trial ms */
+  function trialTick(dt) {
+    playMs += dt;
+    if (trialFrom < 0) return;
+    trialMs += dt;
+    if (trialMs < SPIKE.settle + SPIKE.trial) return;
+    const rate = trialHits * 1000 / SPIKE.trial, helped = rate <= trialRate * SPIKE.helped;
+    spikeSaid = `spike ${trialFrom}→${trialFrom - 1}: ${trialRate.toFixed(2)}/s → ${rate.toFixed(2)}/s ${helped ? 'HELPED' : 'NO HELP → back'}`;
+    if (!helped) { spikeOff = true; tiers.set(trialFrom); }
+    trialFrom = -1; spikeK = 0;
   }
   /** `?fps=1`, the run over: what was left — the worst frame, the hitches, the top three causes with their floors */
   function runSummary() {
     const order = [0, 1, 2, 3, 4, 5].filter(k => cN[k]).sort((a, b) => cN[b] - cN[a] || cMax[b] - cMax[a]).slice(0, 3);
-    return `RUN · worst ${worstMs.toFixed(0)} ms · HITCH ${hitches}${order.map(k => ` · ${WHY[k]} ${cN[k]}× (${cMax[k].toFixed(0)} ms @${cFl[k]})`).join('')} · tier ${tierPath.join('→')}`;
+    return `${AB}RUN · worst ${worstMs.toFixed(0)} ms · HITCH ${hitches}${order.map(k => ` · ${WHY[k]} ${cN[k]}× (${cMax[k].toFixed(0)} ms @${cFl[k]})`).join('')} · tier ${tierPath.join('→')}${spikeSaid ? ` · ${spikeSaid}` : trialFrom >= 0 ? ' · spike trial on' : ''}${BRK ? `\n${breakdownLine()}` : ''}`;
   }
+  // FIX B — `?fps=2`: THE BREAKDOWN of every hitch — OUR work in the frame before the gap (the update · the scene build · the render submit),
+  // the main thread BUSY with something else in the gap (a 4 ms ping that could not run: the collector, Safari's own work), and the rest =
+  // WAITING with the thread free (the GPU / the compositor / the display). Each hitch is put in the biggest of the three: `ours` · `busy` ·
+  // `gpu`. Plus the browser's long tasks (PerformanceObserver — Chromium only; Safari says n/a). Records made once; nothing in a frame.
+  const BRK = o.fps === 2, KIND = ['ours', 'busy', 'gpu'];
+  const bOurs = new Float32Array(HLOG), bBusy = new Float32Array(HLOG), bWait = new Float32Array(HLOG), bKind = new Uint8Array(HLOG);
+  const kN = new Uint16Array(3), kSum = new Float32Array(3), kMax = new Float32Array(3), kFl = new Int32Array(3);
+  const pSum = new Float64Array(5);   // (over the hitches: upd · build · submit · busy · wait)
+  let fBuild = 0, fSub = 0, pUpd = 0, pBuild = 0, pSub = 0, allWork = 0, allN = 0, pingMax = 0, pingLast = 0, pingT = 0, longN = 0, longMax = 0, longOn = false, longObs = null;
+  if (BRK) {
+    const ping = () => { const t = performance.now(), g = t - pingLast; if (g > pingMax) pingMax = g; pingLast = t; };
+    pingLast = performance.now(); pingT = setInterval(ping, 4);
+    try { longObs = new PerformanceObserver(l => { for (const e of l.getEntries()) { longN++; if (e.duration > longMax) longMax = e.duration; } }); longObs.observe({ type: 'longtask', buffered: false }); longOn = true; } catch { longOn = false; }
+  }
+  function breakdownNow(dt, i) {
+    // (over the LAST TWO gaps: Chromium stamps a frame that waited behind a blocked thread with its old begin time — the long `dt` lands one frame later)
+    const o1 = pUpd + pBuild + pSub, ours = o1 > qOurs ? o1 : qOurs, busy = Math.max(0, (pingGap > qGap ? pingGap : qGap) - 4), wait = Math.max(0, dt - ours - busy);
+    const k = ours >= busy && ours >= wait - TICK_MS ? 0 : busy >= wait - TICK_MS ? 1 : 2;
+    bOurs[i] = ours; bBusy[i] = busy; bWait[i] = wait; bKind[i] = k;
+    kN[k]++; kSum[k] += dt; if (dt > kMax[k]) { kMax[k] = dt; kFl[k] = run.floor; }
+    pSum[0] += pUpd; pSum[1] += pBuild; pSum[2] += pSub; pSum[3] += busy; pSum[4] += wait;
+  }
+  function breakdownLine() {
+    const n = kN[0] + kN[1] + kN[2] || 1, f = v => (v / n).toFixed(1);
+    const order = [0, 1, 2].filter(k => kN[k]).sort((a, b) => kN[b] - kN[a]);
+    return `WHY${order.map(k => ` · ${KIND[k]} ${kN[k]}× (avg ${(kSum[k] / kN[k]).toFixed(0)}, ${kMax[k].toFixed(0)} ms @${kFl[k]})`).join('') || ' · no hitch'}\nON A HITCH · ours ${f(pSum[0] + pSum[1] + pSum[2])} ms (upd ${f(pSum[0])} · build ${f(pSum[1])} · submit ${f(pSum[2])}) · busy ${f(pSum[3])} · wait ${f(pSum[4])} · every frame ours ${(allWork / (allN || 1)).toFixed(1)} ms · long tasks ${longOn ? `${longN} (${longMax.toFixed(0)} ms)` : 'n/a'}`;
+  }
+  /** the live line's last hitch, broken down */
+  let qOurs = 0, qGap = 0;   // (the frame before's own work + its gap)
+  const lastBrk = () => { if (!hN) return ''; const i = (hN - 1) % HLOG; return ` · ${KIND[bKind[i]]}: ours ${bOurs[i].toFixed(1)} busy ${bBusy[i].toFixed(0)} wait ${bWait[i].toFixed(0)}`; };
+  // FIX B — THE A/B SWITCHES (the test page only: `o.ab` — `?dpr= · ?bloom=0 · ?fx=0 · ?wall=0 · ?ghosts=0 · ?tier= · ?smooth=0`), named at
+  // the head of every `?fps=` line so a screenshot says which were on
+  const AB = (() => { const a = o.ab || {}, s = [o.dpr ? `dpr ${o.dpr}` : '', a.bloom === false ? 'bloom 0' : '', a.fx === false ? 'fx 0' : '', a.wall === false ? 'wall 0' : '', a.ghosts === false ? 'ghosts 0' : '', pin != null ? `tier ${pin} pinned` : '', a.smooth === false ? 'smooth 0' : ''].filter(Boolean); return s.length ? `AB ${s.join(' · ')} — ` : ''; })();
   /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
   function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); BNR.dirty(); }
   /** a floor was passed: the big number, the area (YOUR BEST's line once it is beaten) */
@@ -887,7 +968,7 @@ export function createStage(app0, o = {}) {
     const n = Math.min(frameK, 120);
     for (let i = 0; i < n; i++) { const v = frames[(frameK - 1 - i + 6000) % 600]; sum += v; if (v > worst) worst = v; }
     const i = view.info();
-    fpsA.data = `${(1000 * n / sum).toFixed(0)} fps · worst ${worst.toFixed(0)} ms · HITCH ${hitches}${hitches ? ` (last: ${WHY[hWhy[(hN - 1) % HLOG]]} ${hMs[(hN - 1) % HLOG].toFixed(0)} ms @${hFloor[(hN - 1) % HLOG]})` : ''} · tier ${i.tier} @${i.dpr} · ${i.calls} calls · ${i.slices} slices`;
+    fpsA.data = `${AB}${(1000 * n / sum).toFixed(0)} fps · worst ${worst.toFixed(0)} ms · HITCH ${hitches}${hitches ? ` (last: ${WHY[hWhy[(hN - 1) % HLOG]]} ${hMs[(hN - 1) % HLOG].toFixed(0)} ms @${hFloor[(hN - 1) % HLOG]}${BRK ? lastBrk() : ''})` : ''} · tier ${i.tier} @${i.dpr}${trialFrom >= 0 ? ' (trial)' : spikeOff ? ' (spike off)' : ''} · ${i.calls} calls · ${i.slices} slices`;
   }
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
@@ -895,7 +976,7 @@ export function createStage(app0, o = {}) {
     ghosts: ghosts.map((g, i) => ({ uid: g.uid, name: g.name, floor: g.G.floor, over: g.G.over, end: g.G.end, lost: g.G.lost, held: g.G.held, moves: g.G.moves, bad: g.G.bad, a: g.G.a, y: g.G.y, phi: gData[i * GHOST_STRIDE], alpha: gData[i * GHOST_STRIDE + 5], near: gData[i * GHOST_STRIDE + 6] })) });
   Object.assign(hook, {
     matchState: matchInfo, watch: uid => watch(uid), simShift: n => { simShift = Math.max(0, Math.floor(n) || 0); }, simNear: v => { simNear = !!v; },
-    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookWant, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookWant, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), spike: { off: spikeOff, trial: trialFrom, rate: trialRate, ms: trialMs, hits: trialHits, said: spikeSaid, play: playMs }, fpsLine: fps ? fpsA.data : '', brk: BRK ? { kinds: Array.from(kN), sum: Array.from(pSum), long: longOn ? longN : -1 } : null, hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** (F4A — THE HAZE CHECK) where the middle of a slice's top face on the floor `df` under the ball's is on the screen ([x, y], 0 … 1) —
@@ -922,7 +1003,7 @@ export function createStage(app0, o = {}) {
     /** (F4B) THE SHARE CARD's frame of the last ended run on this phone (shot.js — null: none yet) */
     shot: () => lastShot(),
     frames: () => { const out = [], n = Math.min(frameK, 600); for (let i = n - 1; i >= 0; i--) out.push(frames[(frameK - 1 - i + 6000) % 600]); return out; },
-    setLook: l => setLook(l), setTier: t => tiers.set(t), lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
+    setLook: l => setLook(l), setTier: t => tiers.set(t), hitch: ms => hitchNow(ms, performance.now()), drawn: () => view.drawn ? Array.from(view.drawn()) : null, smoothOn: () => SMOOTH, lose: () => { const gl = view.el && (view.el.getContext('webgl2') || view.el.getContext('webgl')), x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; },
     stop() { cancelAnimationFrame(raf); },
   });
   if (o.hook) window[o.hook] = hook;
@@ -952,6 +1033,6 @@ export function createStage(app0, o = {}) {
     shot: () => shotFor(shotKey()),
     showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
-    destroy() { gone = true; unduck(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; unduck(); clearInterval(pingT); if (longObs) longObs.disconnect(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

@@ -46,8 +46,14 @@ const myName = () => {
   return '';
 };
 
+// FIX B — THE A/B SWITCHES (the speed hunt on the owner's iPhone; the test page only, never the cartridge): `?bloom=0` no glow pass ·
+// `?fx=0` no particles / fire / trails / sparks · `?wall=0` the shaft's wall a plain colour (its pass skipped) · `?ghosts=0` no rivals
+// drawn · `?smooth=0` the tower steps once a tick (the old way) — with `?dpr=` + `?tier=` (as before) + `?fps=2` (the breakdown)
+const off = k => Q.get(k) === '0';
+const AB = Object.freeze({ bloom: !off('bloom'), fx: !off('fx'), wall: !off('wall'), ghosts: !off('ghosts'), smooth: !off('smooth') });
+
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds) with the page's own pieces on (`page`): the SOUNDS
 // list, the note; YOUR BEST = this phone's (`ff:play:best`)
 try {
-  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest }, name: myName });
+  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '2' ? 2 : Q.get('fps') === '1' ? 1 : 0, ab: AB, tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest }, name: myName });
 } catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); }

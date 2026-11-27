@@ -367,6 +367,10 @@ export function createNight(host, o = {}) {
   const CAMY = 0, KICK = 1, SQUASH = 2, BLAZE = 3, TIME = 4, GH0 = 5, GH1 = 6, GT0 = 7, GT1 = 8, PITCH = 9, BACK = 10, BALLY = 11, PF = 12, PT = 13, OUTK = 14, BEST = 15, LANDT = 16, SHAKE = 17, LASTFLOOR = 18, ENDAGE = 19, ROOFA = 20;
   S[GH0] = S[GH1] = -1; S[PITCH] = POSE.play.pitch; S[BACK] = 1; S[BALLY] = POSE.play.ballY; S[BEST] = 0; S[LANDT] = -10; S[ROOFA] = 1;
   let poseFrom = POSE.play, poseTo = POSE.play, poseT0 = -1e9, state = 'live', tier = o.tier == null ? 2 : o.tier, bloom = null, day = o.look === 'day';
+  // FIX B — THE TEST PAGE's A/B SWITCHES (`o.ab` — play.js; the cartridge passes none: everything on) · the frame's own clocks for `?fps=2`
+  const AB = o.ab || {}, AB_BLOOM = AB.bloom !== false, AB_FX = AB.fx !== false, AB_WALL = AB.wall !== false, AB_GHOSTS = AB.ghosts !== false;
+  const plainC = new THREE.Color(), keepC = new THREE.Color(), drawnV = new Float64Array(3);
+  let subAt = 0;
   let shardN = 0, sparkN = 0, punchN = 0, flameN = 0, flameOwed = 0, emberOwed = 0, fxHave = 0, wK = -1, wA = 0, wB = 0, wS = 0, wR = 0, wC = 0, areaA = 0, moteKind = 0, moteA = 0, fogSnap = true;
   /** a FINISH's floor (match + daily: THE BOTTOM — no floor is drawn from there down: the seabed is the floor) · −1 = endless */
   let fin = -1, tauNow = 0;
@@ -514,7 +518,7 @@ export function createNight(host, o = {}) {
   }
   function setTier(t) {
     tier = t;
-    if (t === 2 && !bloom) { try { bloom = createBloom(renderer, G.uBloom); } catch { bloom = null; } }
+    if (t === 2 && !bloom && AB_BLOOM) { try { bloom = createBloom(renderer, G.uBloom); } catch { bloom = null; } }
     mGeo.instanceCount = MOTE_N[t];
     sized = false;
   }
@@ -775,11 +779,17 @@ export function createNight(host, o = {}) {
     skyU.uOpen.value = BO[0]; wallU.uLitT.value = BO[2]; wallU.uShafts.value = BO[3];
     S[ROOFA] += (BO[1] - S[ROOFA]) * Math.min(1, sec * 6); skyU.uGA.value = S[ROOFA];
     if (staged) { sparks.visible = false; if (state === 'made') shards.visible = false; }   // (… and THE BOTTOM's picture without the last floor's red shards: red is the death colour — never the subject of the WIN card)
-    renderer.setRenderTarget(wallRT); renderer.render(wallScene, wallCam); renderer.setRenderTarget(null);
+    if (!AB_FX) { sparks.visible = flames.visible = ribbon.visible = shards.visible = motes.visible = false; }
+    drawnV[0] = G.uSpin.value; drawnV[1] = S[CAMY]; drawnV[2] = ball.position.y;
+    subAt = performance.now();
+    renderer.setRenderTarget(wallRT);
+    if (AB_WALL) renderer.render(wallScene, wallCam);
+    else { const f = G.uFog.value, a0 = renderer.getClearAlpha(); renderer.getClearColor(keepC); plainC.setRGB(f.x, f.y, f.z); renderer.setClearColor(plainC, 1); renderer.clear(true, false, false); renderer.setClearColor(keepC, a0); }
+    renderer.setRenderTarget(null);
     renderer.render(scene, cam);
     if (bloom && tier === 2) bloom.render(scene, cam, TWINS, (day ? 0.4 : 1) * shotBloom);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
     // F4B — THE GHOSTS: over the finished picture, on its own depth (seen · x-ray where the tower hides them · the name tags on top)
-    if (ghostN > 0) {
+    if (ghostN > 0 && AB_GHOSTS) {
       V.copy(ball.position).project(cam);
       ghostLayer.place(ghostN, ghostData, w, hh, dpr, (V.x + 1) * 0.5 * w, (1 - V.y) * 0.5 * hh);
       ghostLayer.draw();
@@ -912,6 +922,7 @@ export function createNight(host, o = {}) {
     tapeInfo: () => ({ col: [tapeU.uCol.value.r, tapeU.uCol.value.g, tapeU.uCol.value.b], dark: tapeU.uDark.value, on: tape.visible }),
     /** the last time a picture landed (a frame after it may be a long one: the stage's hitch counter names it) */
     lastWork: () => workAt,
+    submitAt: () => subAt, drawn: () => drawnV,
     destroy() {
       gone = true;
       ro.disconnect();
