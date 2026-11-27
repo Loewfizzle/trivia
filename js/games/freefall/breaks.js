@@ -1,14 +1,4 @@
-// FREEFALL — THE BREAKTHROUGHS (F3B — docs/freefall.md "THE BREAKTHROUGHS"): THE SKYLIGHT (floor 40, the rooftop → the offices) · THE
-// SPLASHDOWN (floor 120, the speakeasy → under the harbor) · THE BOTTOM (floor 200 — the seabed; SOLO: it cracks open into THE TRENCH ·
-// MATCH + DAILY: their finish). A VIEW ONLY: the rules never change, the clock never stops, no slow motion — the pieces read the run's
-// EVENTS (the `area` event's tick is the tick the ball leaves the floor above) and the run's own clock, and play at full speed.
-// The pieces are REAL 3D, in the ONE scene night.js owns (their shaders: break-fx.js), each drawn only while its floor is near:
-//   · a pane that breaks (the skylight's glass · the seabed) = ONE instanced mesh of the triangles it breaks into (fractureGeo) — intact
-//     at rest, the cracks along its own break lines, then the pieces fly in the shader
-//   · the skylight's frame + neon tubes (instanced boxes), the roof's deck round it · the water (a normal-mapped plane) · the seabed + rocks
-//   · THE SPRITES: a FIXED pool of GPU particles (dust, foam, bubbles, plankton, sediment, a firework's stars) — the tiers trim how many
-//     are shed, never the look's shape; the sparks ride night.js's own streak pool
-// ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): update() + the emitters write into typed arrays made once; no object is made in a frame.
+// FREEFALL — THE BREAKTHROUGHS (F3B — docs/freefall.md "THE BREAKTHROUGHS"): THE SKYLIGHT (floor 40, the rooftop → the offices) · THE (→ §1, docs/freefall.md MODULE NOTES)
 import * as THREE from 'three';
 import { HIT_TICKS, CRACK, BURST_V, BURST_F, FRACT_V, GLASS_F, FRAME_V, FRAME_F, DECK_V, DECK_F, WATER_V, WATER_F, SEABED_V, SEABED_F, CHUNK_F, ROCK_V, ROCK_F, RSHADOW_V, RSHADOW_F, RAYS_V, RAYS_F } from './break-fx.js';
 

@@ -345,3 +345,81 @@ Above `ownerPhone` (HE8):
  *  only a convenience: the dealer's start checks the host is the owner itself (api/_lib/holdem-store.js#startOpen) and refuses everyone else.
  *  Nobody else's lists, signs, THE BOARD or the city change. `playable: true` later simply opens it to all. */
 ```
+
+## js/screens/harbor/boats.js
+
+(moved FREEFALL FIX A, Nov 27 — the boot's byte room for FREEFALL's go-live)
+
+```js
+// CITY 2.0 — THE HARBOR, Part 5: THE BOATS (docs/harbor/passes/part-5.md#the-boats). Each sails on the clock (core/harbor-boats.js: the
+// routes, pure + tested). 8b2 Group 3 — THE BOATS IN 3D: every boat is a real MODEL now (boat-models.js on boat3d.js's kit) in
+// the Harbor's own camera, posed by its heading, so it TURNS on the water (bow, three-quarter, side and stern views all true):
+//
+//   ROSIE      the riverboat: a white hull over a broad navy boot-top + a gold pinstripe (9a), three decks of arched windows, the pilothouse, twin black
+//              stacks with feathered crowns + a gold band, the stern PADDLEWHEEL under its red hood with her name (the wheel
+//              turns live — between her back and front: you see it from astern, it hides behind her from ahead), flagstaffs +
+//              pennants, lifebuoys; at night every window warm and STRINGS OF BULBS from the bow staff over the stacks to the
+//              stern staff (a scheme hook: set({ rosie: 'valentine' }) — 11c's dinner cruise; 'parade' — 11b's lit boat parade;
+//              set({ chase }) — Part 10's chase along the strings); coal smoke off her stacks while she's under way
+//   THE TAXI   a yellow water taxi with its checker band, zipping across in front of the pier head, bow up
+//   THE TUG    (night) red + black, its fender at the bow, the wheelhouse high, the stack, the towing lights on the mast
+//   THE FISHING TUG  the tug's build in white + green; its bow lantern at the stem while it's out in the dark
+//   SAILBOATS  (day) a white sloop, main + jib on the leeward side, cambered, heeling in the real wind; they TACK through it
+//
+// THE CACHE: each boat's look is rendered into a sprite keyed by its heading (½° Rosie, 1° the rest), its view angle (the
+// perspective shifts as it crosses: x / z in steps of 0.012), its depth, the tones + the scheme — a boat sailing straight costs
+// a blit; it re-renders only when the key changes (a turn: a few times a second). Live per frame: the bob, Rosie's wheel, the
+// bulbs while they chase, the running lights (green starboard / red port on the TRUE heading: the side facing us), the smoke,
+// the noon steam plume, the lantern, the blackout's dark glass (f.power), the wakes (curving with the turn) and the
+// REFLECTIONS (the same sprites, mirrored about each boat's waterline through water.reflect; the taxi's own per frame).
+```
+
+## js/screens/harbor/moon.js
+
+(moved FREEFALL FIX A, Nov 27 — the boot's byte room for FREEFALL's go-live)
+
+```js
+// CITY 2.0 — THE HARBOR, Part 6a: THE MOON, THE SUN'S HAZE, THE AURORA — the art (the real timing, path and phase are core/sky.js's
+// + the framing harbor/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor/passes/part-6a.md.
+//   THE MOON    THE REAL MOON (the owner: "the craters look off"): a PHOTOGRAPHIC map of the near side — assets/moon-near.jpg, an
+//               orthographic disc made from NASA's CGI Moon Kit (LRO LROC WAC colour mosaic, lroc_color_poles_2k; NASA Scientific
+//               Visualization Studio, svs.gsfc.nasa.gov/4720, public domain), 256 px grayscale. The maria (the man in the moon),
+//               the bright highlands, Tycho's rays — no drawn craters. Lit per pixel (Lommel–Seeliger: the full moon's flat even
+//               light, a quarter's gentle fall toward the soft terminator), turned to the player's REAL SKY (moonSky: the
+//               lunar north from the ecliptic pole, the bright limb toward the real sun — tilted at moonrise, upside down in
+//               the south). Loaded lazily; missing / blocked → the old crafted texture below (the fallback, same orientation).
+//               The fallback: the near side's maria where they really are (Imbrium, Serenitatis, Tranquillitatis,
+//               Crisium, Fecunditatis, Nectaris, Nubium, Humorum, the Ocean of Storms, Frigoris), bright Tycho with its rays,
+//               Copernicus, Kepler, Aristarchus, a field of craterlets; its REAL PHASE with a soft terminator; EARTHSHINE on the
+//               crescent's dark part (the maria faintly there); a big AMBER MOONRISE (bigger + amber low, shrinking to silver
+//               as it climbs; the harvest moon stays amber longer; a supermoon a touch bigger); a wide soft gaussian glow
+//               (wider in haze), a tight corona in clear air and a faint 22° HALO only under a cirrostratus veil, never across
+//               the tagline (SP); a lunar eclipse (the real dates) turns it copper-red
+//   THE SUN     (harbor/sun.js draws the disc) + the golden hour's haze: the low sun's warm air along the horizon
+//   THE AURORA  slow curtains of rays — a sharp green lower border fading up through teal into violet and red (a storm night:
+//               higher, redder, brighter) — rendered small a few times a second and drawn as one soft image
+```
+
+## js/screens/harbor/jets.js
+
+(moved FREEFALL FIX A, Nov 27 — the boot's byte room for FREEFALL's go-live)
+
+```js
+// CITY 2.0 — THE HARBOR, PART 6b → Oct 25: THE JETS — ONE stealth fighter shared by the TR-3B's CHASE, THE AIR SHOW (a diamond of four,
+// smoke on), THE MISSING MAN (a finger-four, #3 pulling up and away) and THE SURPRISE FLYBY (docs/harbor/passes/the-tr-3bs-music-the-f-22-no-traffic.md; plan.md "THE JETS →
+// AN F-22 RAPTOR-STYLE STEALTH FIGHTER": the F-16s "look too cartoonish — they need to look like modern, real, menacing flying death
+// machines"). Seen from below + the side as they cross. Realism at phone size comes from SILHOUETTE + SHADING:
+//   THE AIRFRAME   the angular FACETED body — a chined forebody with a hard light / dark edge along it, the long gold-tinted bubble canopy,
+//                  the raked parallelogram INTAKES, the DIAMOND wing seen from just below, the big diamond stabilators, TWIN CANTED
+//                  TAILS, the 2-D vectoring nozzles with SERRATED edges; INTERNAL weapons bays (their sawtooth doors closed on the
+//                  belly — nothing hangs outside); dark GUNMETAL grey with real specular highlights (the sun along the spine + the chine,
+//                  a hot spot on the canopy, a sheen across the fin) and per-panel shading (no flat fills, no thick outlines);
+//                  low-visibility grey USAF markings (a grey-on-grey star-and-bar, the fin's flash); a sprite per (size, light), cached
+//   THE AFTERBURNER (live, additive) a tapered plume from the nozzle with MACH DIAMONDS — 5 evenly spaced shock nodes: white-hot at
+//                  the nozzle, then blue-white, violet, orange, a dim orange — crisp rhombi with a tight glow, flickering a touch; at night
+//                  a soft glow round the whole plume (dimmer by day, still read); HEAT HAZE behind the engines (a shimmer of pale blobs)
+//   MOTION BLUR    (live) on full burn the airframe streaks: two fainter copies trail it by a hair
+//   THE LIGHTS     at night: the formation strips (the forebody's chine, the aft fuselage, the fin's tip), the near wingtip's nav light
+//                  (green flying right: its starboard side is ours; red flying left), a white tail light, the beacon on the spine
+//   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
+```

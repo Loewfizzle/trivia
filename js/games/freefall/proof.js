@@ -1,16 +1,4 @@
-// FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; HIGH RISE's `hr` node is the pattern: js/games/highrise/proof.js). PURE — the
-// phone, the host's director and the SERVER run this file. A run is counted ONLY from its PROOF NODE:
-//   rooms/{CODE}/ff/{matchId}/{uid} = { go (the SERVER's time, written ONCE at GO — the seed is picked from it: logic.js#seedOf; tick 0 =
-//     go + START_LEAD_MS), c/{i} = { s: that chunk of THE PACKED INPUT LOG (replay.js#packLog's own text, cut between two events), at: the
-//     SERVER's time it ARRIVED } (append only, i 0 … 9999, ≤ 400 chars), h/{0 … 2} (a HOLD's way back — the SERVER's time the 3 · 2 · 1
-//     began: the run goes on RESUME_LEAD_MS after it, at the hold's own tick), e { f, t, w } (the run's end, once — a SIGNAL for the
-//     host's step: never read as a score), k (Call the Winner — F4B's match) }
-// THE INPUT LOG = the ticks the tower's angle CHANGED at (never a tick it stood still) + THE HOLDS (solo only), packed.
-// WHAT GOES UP WHEN (the writer): an entry is FINAL — the engine can never change or drop it again — once a landing at or after its tick
-//   is decided (engine.js#turn: a later move counts after it), once the run is held at or after it, or once the run is over. Only final
-//   events are sent: a landing comes every 0.6 s at most, so nothing waits long.
-// THE JUDGE (judgeNode) = the chunks → the log + its clock → THE SPEED CHECK both ways + THE DROPPED SIGNAL + THE HOLDS' own clock →
-//   replay.js#judgeRun (the SAME engine the phone ran). A phone's claimed floor is never read — there is no field the judge takes one from.
+// FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; HIGH RISE's `hr` node is the pattern: js/games/highrise/proof.js). PURE — the (→ §1, docs/freefall.md MODULE NOTES)
 import { judgeRun, unpackLog, isHold, packMove } from './replay.js';
 import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX, MODES } from './tuning.js';
 import { seedOf } from './logic.js';
@@ -191,10 +179,7 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     if (holds > frozen) return { why: 'pause', tick: holdTicks[frozen], events: drop ? drop.events : events };   // (… or before the silence that is still open: late moves are no part of a pause that was never granted)
     // (events past a hold whose way back was never stamped: no clock — the run counts up to that hold)
     if (k.s1 >= base.length) return { why: 'hold', tick: holdTicks[base.length - 1], seg: base.length };
-    // (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's
-    //  HIGH): the way back's stamp is not the moment the run went on — the phone got no answer, went on by its own clock, and the write
-    //  landed when the line was back: the events past that hold have no clock they can be held to → the run is CUT at that hold, as with
-    //  no stamp at all. Nothing is gained by it: the part before the hold was checked on its own segment's clock.)
+    // (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's (→ §2, docs/freefall.md MODULE NOTES)
     if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) return k.s1 > 0 ? { why: 'hold', tick: holdTicks[k.s1 - 1], seg: k.s1 } : { why: 'ahead' };
     const now = runTick(k.at);
     if (k.t0 >= now - CLOCK.behind) drop = null;   // (on the clock — a drop before it is settled)

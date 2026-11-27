@@ -1,12 +1,4 @@
-// FREEFALL — THE CARTRIDGE (F4A — docs/freefall.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md; HIGH RISE's
-// S4A cartridge is the pattern). BEING BUILT — HIDDEN: config.js GAMES `playable: false` + `preview` = THE OWNER'S LIVE TEST only (his
-// phone's PLAY shelf / his room's list: FREEFALL · TEST); nobody else is offered it, a start from another phone is refused. NOTHING COUNTS:
-// THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS) is OFF — the server judges the run and answers what it WOULD award.
-// F4A = THE SOLO RUN: the stage (stage.js — the SAME module /freefall-play mounts) in the console's frame, the proof written as you play
-// (view.js → rooms/{CODE}/ff/{matchId}/{uid}), the end screen's body (final.js), PLAY AGAIN = the console's INSTANT AGAIN.
-// F4B = THE MATCH (2 … 8 players — a room THE OWNER hosts while the game is hidden; docs/freefall.md "THE MATCH"; HIGH RISE's is the
-// pattern): the SAME tower for everyone (THE FIRST GO), each player's own proof node, the rivals' GHOSTS + THE DEPTH RAIL, out = Call the
-// Winner + WATCH THE LEADER, THE FINISH at THE BOTTOM (floor 200), the 3:00 cap, the podium, REMATCH; the server replays every player's run.
+// FREEFALL — THE CARTRIDGE (F4A — docs/freefall.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md; HIGH RISE's (→ §1, docs/freefall.md MODULE NOTES)
 import { createGame, nextStep, nextRun } from './director.js';
 import { gameStandings } from './logic.js';
 import { nightBonus as bonus, MATCH_MAX } from './match.js';

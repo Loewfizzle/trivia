@@ -1,16 +1,4 @@
-// FREEFALL — THE TOWER (F1 — docs/freefall.md "THE TOWER" · "FAIR BY CONSTRUCTION"): a floor = a ring of 12 slices round the pillar —
-// SAFE · GAP · RED — and its TWIST (its rotation offset). buildFloor(seed, i) is a PURE FUNCTION of (seed, floor index): any floor, in any
-// order, on the phone or the server, is the same floor. Difficulty lives HERE and nowhere else (the bounce + the fall never change).
-// FAIR BY CONSTRUCTION — every rule below is checked while a floor is BUILT (a red slice that would break one is simply not laid), and
-// proved again from the outside by tests/freefall-tower.test.mjs over 2,000+ seeds:
-//   · ≥ 1 gap · ≥ 3 safe slices · red ≤ 8 of 12 · floors 0–9 have NO red · F5B: floors 40 + 120 (gen.blind — under the skylight + the water) have NO red · red sits beside a gap only from floor 40
-//   · in the early areas (floors < 120 — `belowUntil`) every slice straight below a gap (twists counted) is never red
-//   · THE FALL WINDOW: from any point of any gap, a human-paced spin (the reaction, then ≤ 1 turn a second) reaches a SAFE or GAP point of
-//     the floor below before the landing — and below the early areas the escape a floor asks for RAMPS in over 40 floors (reachAt)
-//   · NO ISLAND: from every safe slice a gap can be reached by human-paced hops (no stretch of safe slices walled in by red runs too long
-//     to cross inside one bounce) — nobody is ever left bouncing for the darkness
-//   · floor 0: the slice under the ball at the start (A = 0) is SAFE — a run never starts by falling
-// PURE: no DOM, never Math.random / Date; integers + Math.floor / Math.imul only (the one import outside the folder: the integer hash).
+// FREEFALL — THE TOWER (F1 — docs/freefall.md "THE TOWER" · "FAIR BY CONSTRUCTION"): a floor = a ring of 12 slices round the pillar — (→ §1, docs/freefall.md MODULE NOTES)
 import { hashString } from '../../core/rng.js';
 import { TURN, SLICES, BALL, SAFE, GAP, RED, RULE_SETS, RULES_DEFAULT, rampOf } from './tuning.js';
 
@@ -185,16 +173,7 @@ function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   return red;
 }
 
-// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ gen.move.from — solo; a match / a daily ends ON floor 200 and never lands there).
-// A trench floor has up to TWO red slices that MOVE (one from the first lap, by the lap's chance; two from lap `gen.move.two`): each walks
-// back and forth along its own TRACK (2 … gen.move.max solid slices side by side), one slice every `pace` ticks — its slice is a PURE
-// FUNCTION of (seed, floor, tick). FAIR BY CONSTRUCTION, at EVERY tick (every stand of every mover is checked while the floor is built):
-//   · a track never holds a slice STRAIGHT BELOW A GAP of the floor above (twists counted) — a ball that comes through a gap never
-//     meets the moving red on its landing, at whatever tick it falls (every fall window)
-//   · wherever the movers stand, the floor still has ≥ safeMin safe slices, NO ISLAND holds and THE FALL WINDOW holds
-//   · a mover only ever steps to the slice NEXT to it (it is seen coming for `pace` ticks); two tracks never share a slice
-// At most ONE static red slice lies inside a track — it is UN-LAID (it is the one that moves now: the red count stays what it was);
-// a track of safe slices only ADDS one red to the floor. A mover = ONE integer: its track's first slice | its length << 4 | its phase << 8.
+// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ gen.move.from — solo; a match / a daily ends ON floor 200 and never lands there). (→ §2, docs/freefall.md MODULE NOTES)
 
 /** the slices of a floor (`twist`) that lie straight below a gap of the floor above (`gapUp` / `twistUp`) — any shared point counts → a 12-bit mask */
 export function underGaps(twist, gapUp, twistUp) {

@@ -1,26 +1,4 @@
-// FREEFALL — THE GAME's SCREEN (F4A — docs/freefall.md "THE CARTRIDGE" · "THE PROOF"; HIGH RISE's view.js is the pattern): THE STAGE
-// (stage.js — the SAME run loop, scene, HUD + sounds /freefall-play mounts) in the console's frame, and everything a run WRITES — which
-// the stage never does itself:
-//   · GO: the proof node's first value (the SERVER's time), read back → the seed (logic.js#seedOf) + tick 0 (= GO + proof.js#START_LEAD_MS):
-//     the run is on the server's clock. The first DRAG is the start (the opening stands on a stand-in tower: the real floors take their
-//     place as the tower spins up — stage.js#WHIP_MS)
-//   · THE PROOF: the input log's FINAL events in chunks, every 250 ms while there are new ones — c/{i} = { s, at: the SERVER's time }; at
-//     the end the last chunk, then `e` (a signal: the host's step ends the match on it — never read as a score)
-//   · THE HOLD (solo — the page hidden / the phone locked): the hold is a logged event (it goes up as the page hides); the way back is
-//     STAMPED — h/{i} = the SERVER's time the 3 · 2 · 1 began, the run goes on RESUME_LEAD_MS after it. No stamp (no line) → the count is
-//     run again (stage.js#RESUME_TRIES), then the run goes on and SAYS it is not counted past the pause (the judge counts it up to that hold)
-//   · THE END = the console's podium frame (ui/final.js) with this game's body (final.js); PLAY AGAIN = the console's INSTANT AGAIN (the
-//     scene kept warm), back on THE OPENING
-//   · an UNPROVEN run (GO refused / unanswered / answered too late: no signal, the rules not yet re-published) still PLAYS — on a seed of its
-//     own, never counted — SAYS SO for as long as it is on, and ends on the stage's own card (NOT COUNTED — NO LINE TO THE BOARD)
-//   · a refresh mid-run: the run can not be taken back up (its clock ran on) — its end is written from the node as it stands
-// F4A = THE SOLO RUN.
-// F4B — THE MATCH (docs/freefall.md "THE MATCH"; HIGH RISE's view.js is the pattern): 3 · 2 · 1 · GO — every phone writes its own GO (a
-// TRANSACTION, never applied locally); THE FIRST GO among the proof nodes picks the seed + tick 0 for everyone (match.js#startOf: THE
-// NODES ARE THE TRUTH); the same chunks as a solo run; the RIVALS = everyone's proof nodes through the same engine (ghosts.js — the stage
-// steps + draws them: the ghosts, THE DEPTH RAIL, the edge markers); OUT = the cause's words for a moment → Call the Winner (the match
-// kit's — your own node's `k`) → WATCH THE LEADER (a tap = the next player); THE FINISH = THE BOTTOM (floor 200) or the 3:00 cap; the
-// podium comes with the host's step. One life, NO holds: a hidden page runs on. A late joiner (not a participant) WATCHES from the start.
+// FREEFALL — THE GAME's SCREEN (F4A — docs/freefall.md "THE CARTRIDGE" · "THE PROOF"; HIGH RISE's view.js is the pattern): THE STAGE (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
@@ -208,19 +186,13 @@ export function createView() {
     return new Promise(res => {
       const t = setTimeout(() => res(0), STAMP_WAIT_MS);
       const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); });
-      // F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own chunk (the hold + every move before it) must have ARRIVED — the SERVER's
-      // stamp on it — within GRANT_PHONE_MS of the hold (the judge's bound is CLOCK.grant: the phone keeps a margin). The server's copy of
-      // the chunks is read (it answers behind the writes still queued). Not there / too late → −1: no pause was granted — no stamp is
-      // written, the count is not run again, the run goes on and SAYS it is not counted past the pause
+      // F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own chunk (the hold + every move before it) must have ARRIVED — the SERVER's (→ §2, docs/freefall.md MODULE NOTES)
       granted(i, holdSrv).then(ok => { if (ok === false) { clearTimeout(t); res(-1); return null; } return stamp(); }).catch(() => { clearTimeout(t); res(0); });
     });
   }
   /** → true (the i-th hold's chunk was stamped in time) | false (it was not — or it is not there); rejects = no answer (the line) */
   function granted(i, held) {
-    // THE FRESH-EYES REVIEW (HIGH): this phone's mirror answers a read from its LOCAL view — a chunk still in the air is there with the
-    // phone's own guess of its time (a hold chunk queued behind a dead line read as "stamped 1 ms after the hold"). The chunk is asked
-    // about only once its WRITE IS ACKNOWLEDGED (the writer's `acked` covers the hold's event): then its `at` is the server's own. Not
-    // acknowledged in this count's time = no answer — the count runs again (stage.js#RESUME_TRIES), then the run goes on, NOT COUNTED PAST THE PAUSE.
+    // THE FRESH-EYES REVIEW (HIGH): this phone's mirror answers a read from its LOCAL view — a chunk still in the air is there with the (→ §3, docs/freefall.md MODULE NOTES)
     const need = holdN, from = performance.now();
     const read = () => dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
       const T = chunkTimes(snap.val());
@@ -403,10 +375,7 @@ ${sub}`;
       const rows = feedRivals(g, runs || {});
       if (outRes || !mine(g) || missed) afterOut(g, runs, rows);
     }
-    // THE PODIUM for everyone (the host's step) — once this player's own end has been SEEN (the stage's end hold, the finish's moment); a
-    // watcher, a refresh on it: at once. Never held for ever — a ball still falling when the match is over (its chunks did not arrive)
-    // gets the podium after FINAL_HOLD_MS. THE CONSOLE FIX: never over a live proven run of this phone's own; never for a match the room
-    // has left (the router holds this screen); and it waits for a rival's run still LIVE — the host's `final` came early — the cap ends that wait
+    // THE PODIUM for everyone (the host's step) — once this player's own end has been SEEN (the stage's end hold, the finish's moment); a (→ §4, docs/freefall.md MODULE NOTES)
     const RH = globalThis.__nsRunHold;
     if (g.phase === 'final' && !final && !runLive() && !(RH && RH.on)) {
       if (!finalSeen) finalSeen = performance.now();

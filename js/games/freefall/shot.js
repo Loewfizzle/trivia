@@ -1,8 +1,4 @@
-// FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE SHARE CARD"; HIGH RISE S5's shot.js is the pattern): the picture of the moment a
-// run ended (the red's burst round the ball · the darkness on the ball · the seabed's impact, gold · the bell), kept on THIS phone until
-// the next run. The stage takes it (stage.js — a beat after the end, per cause; F5A: the picture is STAGED — the moment a beat BEFORE the
-// end, drawn once more for the card alone: night.js#shot, the numbers below), the share card draws it (share.js). Pure state + numbers:
-// no DOM, no fetch, nothing that counts.
+// FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE SHARE CARD"; HIGH RISE S5's shot.js is the pattern): the picture of the moment a (→ §1, docs/freefall.md MODULE NOTES)
 
 let held = null;
 /** keep this run's frame — { key, canvas (THE BOX's size: the picture round the ball), cause, made, floor, blazes, look } — the one before

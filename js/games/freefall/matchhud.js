@@ -1,9 +1,4 @@
-// FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE DEPTH RAIL" · "THE MATCH"): the DOM over the scene in a match — 3 · 2 · 1 + the
-// names · THE DEPTH RAIL (a thin glowing rail at the right edge: everyone's dot by depth, mine larger, out = a crossed dot, THE BOTTOM
-// marked at its foot — HIGH RISE's altimeter turned upside down) · THE EDGE MARKERS (F5C — the owner: a rival five floors below / two above:
-// "MIA ↓12" ONE line each, bigger, in the player's own colour, at the screen's EDGE on the side of the tower they really are — left or
-// right; below → the lower band, above → the upper band; never stacked small text at the bottom centre) · the last half minute's clock · the OUT card · the WATCHING line. WRITTEN ONLY WHEN SOMETHING CHANGES (a dot
-// moves by ONE transform; a marker's words are set only when they differ) — never in a frame that changed nothing; no pills.
+// FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE DEPTH RAIL" · "THE MATCH"): the DOM over the scene in a match — 3 · 2 · 1 + the (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 import { MODES } from './tuning.js';
 import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS } from './ghosts.js';

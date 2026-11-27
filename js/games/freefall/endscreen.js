@@ -1,16 +1,4 @@
-// FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2; F4B — THE LOGO HEADER: docs/freefall.md "THE END SCREEN"; HIGH RISE's
-// endscreen.js is the pattern). ONE builder for the test page's own card and the cartridge's body inside the console's podium frame — top
-// to bottom (the owner's approved mock, Nov 26):
-//   THE HEADER = THE LOGO — title-05's lettering (the opening's own WebP, its alpha) centred, ~58 % of the card's width (≈ 226 pt at 390 —
-//     never under 210: the script must read) + the mode under it in small teal caps (SOLO · MATCH; DAILY later). In the cartridge the logo
-//     sits in the console frame's own header slot (view.js puts `endLogo` there); the test page's card wears it itself.
-//   the CAUSE — big neon words, up to two lines, in FREEFALL's TEAL (the colour IS the letter); YOU HIT THE BOTTOM = GOLD.
-//     NEVER RED: red is danger on the tower and nothing else, anywhere.
-//   THE FLOOR NUMBER, huge — the one WHITE hero, a hot-pink glow — and FLOORS under it
-//   YOUR BEST 88 · AVG 62 in gold (F5C: a NEW BEST = NEW BEST · 141, celebrated — the AVG then on its own quiet line) + ONE small line:
-//     12 BOUNCES · 3 BLAZES · BEST RUN 9
-// THE TABLE's slot follows (YOUR TABLE — final.js); THE FOOT is the caller's (the console's universal footer · the page's own copy of it:
-// PLAY AGAIN · SHARE | HOME). No stats strip, no pills. A VIEW's helper: DOM only — no rules, no storage, no fetch.
+// FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2; F4B — THE LOGO HEADER: docs/freefall.md "THE END SCREEN"; HIGH RISE's (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 
 /** FREEFALL's ACCENT = title-05's colours (F3 — the owner, Nov 26: docs/games/plan.md "FREEFALL — F3"; replaces F2's ultraviolet + lime): HOT PINK + ELECTRIC TEAL */

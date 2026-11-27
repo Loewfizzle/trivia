@@ -1,7 +1,4 @@
-// FREEFALL — THE BREAKTHROUGHS' SHADERS (F3B — docs/freefall.md "THE BREAKTHROUGHS"; breaks.js builds the pieces, night.js owns the ONE
-// scene). GLSL text only: no three.js, nothing runs here. A VIEW's: the rules never read any of it. Everything is written in LINEAR light
-// and ends in three's own colour-space chunk; every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn) and
-// reads `uDay` (ONE scene, both looks). A picture's rows: `uFlip…` = 1 when its top row is at t = 0 (an ImageBitmap) — the scene's rule.
+// FREEFALL — THE BREAKTHROUGHS' SHADERS (F3B — docs/freefall.md "THE BREAKTHROUGHS"; breaks.js builds the pieces, night.js owns the ONE (→ §1, docs/freefall.md MODULE NOTES)
 
 /** the breakthroughs' moments on the rules' clock: the ball leaves the floor above at the `area` event's tick — it meets the surface
  *  `HIT_TICKS` later (the skylight's glass, the water) · the cracks race out at `CRACK` world units a second */
@@ -14,11 +11,7 @@ const HASH = /* glsl */`
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }`;
 
-// ---- THE SPRITES (a FIXED pool of quads, flown HERE — the tiers trim how many are shed, never the pool): dust + foam + mist (soft
-// clouds), plankton + sediment + a firework's stars (a soft dot), bubbles (a ring), sand + spray (specks), a glint, the impact's burst —
-// Kenney's Particle Pack (assets/freefall/fx/burst.webp: 4 × 2 cells). A sprite = its start (aO), its throw (aV), aT (its birth, its
-// life, its size at birth → at its end), aK (its cell, its gravity, its drag, a seed), aM (how far it swirls, its spin), aC (its
-// colour + how much it COVERS: 1 = a cloud that hides what is behind it, 0 = pure added light).
+// ---- THE SPRITES (a FIXED pool of quads, flown HERE — the tiers trim how many are shed, never the pool): dust + foam + mist (soft (→ §2, docs/freefall.md MODULE NOTES)
 export const BURST_V = /* glsl */`
 attribute vec3 aO, aV;
 attribute vec4 aT, aK, aC;
@@ -65,11 +58,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- A PANE THAT BREAKS (the skylight's glass · the seabed that cracks open): ONE instanced mesh of TRIANGLES — the pieces it will break
-// into, laid out once round the point of impact (breaks.js#fractureGeo). At rest they ARE the pane (one draw call, intact); the CRACKS are
-// drawn along the very lines it will break on (a piece's own edges — its barycentric coordinates), racing out from the impact; then each
-// piece flies: its throw, its tumble, gravity — nothing is stepped on the CPU. aP0 · aP1 · aP2 = a piece's corners in the pane's plane,
-// aV its throw, aR its tumble (axis + spin), aD (the delay before it lets go — the crack front reaches it —, a seed).
+// ---- A PANE THAT BREAKS (the skylight's glass · the seabed that cracks open): ONE instanced mesh of TRIANGLES — the pieces it will break (→ §3, docs/freefall.md MODULE NOTES)
 export const FRACT_V = /* glsl */`
 attribute vec3 aB, aP0, aP1, aP2, aV;
 attribute vec4 aR;
@@ -239,19 +228,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets
-// (Downloads\NEON\freefall\ff-water-target-night.png · -day.png; docs/freefall.md "THE WATER"): everything is worked out HERE, in the
-// shader — Water 001's normal map is no longer read (two layers of it read as crinkled foil / an oil slick on the phone).
-//   · THE SWELL: four long, slow waves on a warped ground (their slopes) — large, smooth, slow; flatter with distance
-//   · NIGHT: deep TEAL-NAVY, a soft lift toward the far edge; the speakeasy's own lights as long BROKEN VERTICAL STREAKS — a streak's
-//     colour is the COLUMN of the wall painting above it (the mirrored ray's angle on the shaft's cylinder, read soft down the whole
-//     column: amber under a lamp, pink / violet under a neon strip), broken into dashes by the swell, fading with distance from the wall;
-//     small pink / cyan glints; a few glowing cyan PLANKTON specks. NEVER the tower's floors mirrored (gold floors in dark water were
-//     the BROWN blob) — the ball alone: a soft pink-white streak of light.
-//   · DAY (F5C): a saturated OCEAN BLUE deepest at the bottom of the screen, AMBER streaks under the wall lamps (NIGHT's way), a few glints
-//     riding the swell's crests, the far edge sinking softly into the wall, foam round the pillar only, the ball's soft pink glow.
-// The plunge: a RING WAVE runs out from the impact; then THE WATERLINE sweeps up the screen (uLine, a wavy line in screen space — the
-// camera dips under) and below it the plane is gone: the world under the surface shows (unchanged).
+// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets (→ §4, docs/freefall.md MODULE NOTES)
 export const WATER_V = 'varying vec3 vW; varying vec4 vClip; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vClip = projectionMatrix * viewMatrix * w; gl_Position = vClip; }';
 export const WATER_F = /* glsl */`
 uniform sampler2D tWall;

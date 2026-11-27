@@ -1294,3 +1294,601 @@ true` · `FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the 
 `assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`; **the CITY chat installs the sign + THE BILLBOARD**). THE DAILY (later, the
 dailies chat): three tries all day, the best counts; **THE PAUSE IS ALLOWED in a daily** (the owner, Nov 26 — "THE PAUSE IN DAILIES",
 above). Open questions for the owner: `docs/games/passes/freefall-f5a.md` "OPEN FOR BEN".
+
+## MODULE NOTES (moved FREEFALL FIX A, Nov 27)
+
+The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the cartridge carries code, not history (THE FIX PASS PART A, Group 0 — the review's M3: FREEFALL's budget line had 1.4 KB left). Each moved block keeps its FIRST line in the code, marked `(→ §n, docs/freefall.md MODULE NOTES)`; §n counts per module. A pass that changes the code next to a block updates it here (and keeps the code's own comment short).
+
+### js/games/freefall/bakedtext.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — THE BAKED NUMBER (F2 — docs/freefall.md "THE BAKED HUD"; HIGH RISE's bakedtext.js, its S5 EFFECTS REBUILD): a glowing number
+// repainted at every floor makes the browser re-rasterise its text-shadow's blur — the owner's iPhone A/B in HIGH RISE named it the
+// first cost over the game. SAME LOOK, no blur in play: each digit is drawn WITH ITS GLOW ONCE (from the number's own computed style —
+// its font, colour, every text-shadow: the CSS stays the one source of the look, the gold included) into a small bitmap; a floor then
+// only COPIES the 1 – 3 digits' bitmaps into ONE canvas over the number (drawImage — no blur, no text layout). The digit boxes
+// underneath keep the layout + the reading (aria-label) with transparent, shadowless text. A style change (gold, a resize) picks another
+// baked set; the plain + the gold one are WARMED behind the opening (stage.js) — nothing is baked in a live frame.
+// DOM + canvas only — no rules, nothing counts.
+```
+
+### js/games/freefall/banner.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE ARRIVAL BANNERS (F3 — docs/freefall.md "THE ARRIVAL BANNERS"): on reaching an area a band crosses the screen — "THE
+// SPEAKEASY" big, "FLOOR 80" under it — for 1.6 s. F3B (the owner): the band lies UNDER THE BIG NUMBER (it never covers a floor below the
+// ball), and THE BOTTOM's is GOLD ("YOU HIT THE BOTTOM"). NIGHT = a dark band between two thin pink rules, white words in a pink glow;
+// DAY = a frosted pale band, navy words (the stylesheet: .ff-banner — the CSS is the one source of the look).
+// BAKED TEXT (bakedtext.js's way — HIGH RISE's lesson): a band's two lines are drawn WITH THEIR GLOW ONCE into a canvas of its own.
+// F3B — THE STUTTERS: EVERY band of a run is its OWN NODE, built + baked BEHIND THE OPENING (the stage prepares the areas' six + the
+// trench's first lap at a restart; they are KEPT — the next run builds nothing) and kept PAINTED (a node at rest is all but clear, never
+// hidden: its layer is already on the GPU). AN ARRIVAL TOUCHES NO DOM: it runs one Web Animations one-shot (opacity + transform) on the
+// band's own node — no text written, no class turned, no canvas swapped, nothing laid out. Only a later trench lap's band (281 · …) is
+// built in a run, between two arrivals. The words stay in each node for the bake's measure (transparent under the canvas); a reader
+// hears the arrival from the list's own live line, written a moment AFTER the band is up. DOM + canvas only — no rules, nothing counts.
+```
+
+### js/games/freefall/best.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — YOUR BEST (F2 — docs/freefall.md "YOUR BEST"; HIGH RISE's best.js pattern): PURE (no DOM, no storage — the page hands the
+// numbers in). YOUR BEST = a GOLD TAPE round the tower at your best floor (night.js#setBest — in sight when you are within nine floors
+// of it) + the line at the top of the screen. The landing that takes the ball PAST it (the floors passed = best + 1) is the crossing:
+// NEW BEST, once a run. A first-ever run has no best: no tape, no line. (F2: the best is THIS PHONE's — nothing counts yet.)
+```
+
+### js/games/freefall/break-fx.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — THE BREAKTHROUGHS' SHADERS (F3B — docs/freefall.md "THE BREAKTHROUGHS"; breaks.js builds the pieces, night.js owns the ONE
+// scene). GLSL text only: no three.js, nothing runs here. A VIEW's: the rules never read any of it. Everything is written in LINEAR light
+// and ends in three's own colour-space chunk; every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn) and
+// reads `uDay` (ONE scene, both looks). A picture's rows: `uFlip…` = 1 when its top row is at t = 0 (an ImageBitmap) — the scene's rule.
+```
+
+**§2** (above `export const BURST_V = /* glsl */'`)
+
+```js
+// ---- THE SPRITES (a FIXED pool of quads, flown HERE — the tiers trim how many are shed, never the pool): dust + foam + mist (soft
+// clouds), plankton + sediment + a firework's stars (a soft dot), bubbles (a ring), sand + spray (specks), a glint, the impact's burst —
+// Kenney's Particle Pack (assets/freefall/fx/burst.webp: 4 × 2 cells). A sprite = its start (aO), its throw (aV), aT (its birth, its
+// life, its size at birth → at its end), aK (its cell, its gravity, its drag, a seed), aM (how far it swirls, its spin), aC (its
+// colour + how much it COVERS: 1 = a cloud that hides what is behind it, 0 = pure added light).
+```
+
+**§3** (above `export const FRACT_V = /* glsl */'`)
+
+```js
+// ---- A PANE THAT BREAKS (the skylight's glass · the seabed that cracks open): ONE instanced mesh of TRIANGLES — the pieces it will break
+// into, laid out once round the point of impact (breaks.js#fractureGeo). At rest they ARE the pane (one draw call, intact); the CRACKS are
+// drawn along the very lines it will break on (a piece's own edges — its barycentric coordinates), racing out from the impact; then each
+// piece flies: its throw, its tumble, gravity — nothing is stepped on the CPU. aP0 · aP1 · aP2 = a piece's corners in the pane's plane,
+// aV its throw, aR its tumble (axis + spin), aD (the delay before it lets go — the crack front reaches it —, a seed).
+```
+
+**§4** (above `export const WATER_V = 'varying vec3 vW; varying vec4 vClip; void main`)
+
+```js
+// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets
+// (Downloads\NEON\freefall\ff-water-target-night.png · -day.png; docs/freefall.md "THE WATER"): everything is worked out HERE, in the
+// shader — Water 001's normal map is no longer read (two layers of it read as crinkled foil / an oil slick on the phone).
+//   · THE SWELL: four long, slow waves on a warped ground (their slopes) — large, smooth, slow; flatter with distance
+//   · NIGHT: deep TEAL-NAVY, a soft lift toward the far edge; the speakeasy's own lights as long BROKEN VERTICAL STREAKS — a streak's
+//     colour is the COLUMN of the wall painting above it (the mirrored ray's angle on the shaft's cylinder, read soft down the whole
+//     column: amber under a lamp, pink / violet under a neon strip), broken into dashes by the swell, fading with distance from the wall;
+//     small pink / cyan glints; a few glowing cyan PLANKTON specks. NEVER the tower's floors mirrored (gold floors in dark water were
+//     the BROWN blob) — the ball alone: a soft pink-white streak of light.
+//   · DAY (F5C): a saturated OCEAN BLUE deepest at the bottom of the screen, AMBER streaks under the wall lamps (NIGHT's way), a few glints
+//     riding the swell's crests, the far edge sinking softly into the wall, foam round the pillar only, the ball's soft pink glow.
+// The plunge: a RING WAVE runs out from the impact; then THE WATERLINE sweeps up the screen (uLine, a wavy line in screen space — the
+// camera dips under) and below it the plane is gone: the world under the surface shows (unchanged).
+```
+
+### js/games/freefall/breaks.js
+
+**§1** (above `import * as THREE from 'three';`)
+
+```js
+// FREEFALL — THE BREAKTHROUGHS (F3B — docs/freefall.md "THE BREAKTHROUGHS"): THE SKYLIGHT (floor 40, the rooftop → the offices) · THE
+// SPLASHDOWN (floor 120, the speakeasy → under the harbor) · THE BOTTOM (floor 200 — the seabed; SOLO: it cracks open into THE TRENCH ·
+// MATCH + DAILY: their finish). A VIEW ONLY: the rules never change, the clock never stops, no slow motion — the pieces read the run's
+// EVENTS (the `area` event's tick is the tick the ball leaves the floor above) and the run's own clock, and play at full speed.
+// The pieces are REAL 3D, in the ONE scene night.js owns (their shaders: break-fx.js), each drawn only while its floor is near:
+//   · a pane that breaks (the skylight's glass · the seabed) = ONE instanced mesh of the triangles it breaks into (fractureGeo) — intact
+//     at rest, the cracks along its own break lines, then the pieces fly in the shader
+//   · the skylight's frame + neon tubes (instanced boxes), the roof's deck round it · the water (a normal-mapped plane) · the seabed + rocks
+//   · THE SPRITES: a FIXED pool of GPU particles (dust, foam, bubbles, plankton, sediment, a firework's stars) — the tiers trim how many
+//     are shed, never the look's shape; the sparks ride night.js's own streak pool
+// ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): update() + the emitters write into typed arrays made once; no object is made in a frame.
+```
+
+### js/games/freefall/day-fx.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — docs/freefall.md "THE DAY LOOK"; night.js builds the ONE scene both looks share, night-fx.js
+// holds the materials — each reads `uDay` and takes the piece below for its day half). GLSL text only: no three.js, nothing runs here.
+// The owner's targets: Downloads\NEON\freefall\ff-day.png (UNDER THE HARBOR by day) + freefall-mocks-day.jpg. Everything is written in
+// LINEAR light (a hex colour is its linear value here).
+```
+
+### js/games/freefall/director.js
+
+**§1** (above `import { cleanSettings } from './meta.js';`)
+
+```js
+// FREEFALL — THE DIRECTOR (F4A — docs/freefall.md "THE CARTRIDGE"; HIGH RISE's S4A director is the pattern): the PURE host step. THE GAME
+// FRAME: id, matchId, participants, phase (+ phaseStartAt). THE 3 S RULE: every patch here moves `phase` — a step never needs to land twice.
+// The host holds no private state: any phone that becomes host continues from the database (the proof nodes).
+// F4B — THE MATCH (2 … 8 players, ONE ball each down the SAME tower — HIGH RISE's director is the pattern): count (3 · 2 · 1) → play → final.
+//   · GO: every phone writes its proof node's `go` in the count's last 2 s; THE FIRST GO (core/proof.js#firstGo — final the moment it
+//     lands) picks the seed + sets tick 0 (that time + match.js#GO_LEAD_MS) for everyone. The step count → play writes them into the game.
+//     No GO anywhere (no signal, the rules not published) → the match plays UNPROVEN: a seed of its own, never counted.
+//   · THE END: every player's run has ended — their node says `e`; a player gone silent (a dead phone) is waited for: online →
+//     IDLE_OUT_MS (the darkness has ended that run by then), offline → + DROP_WAIT_MS (THE DROPPED SIGNAL) — or the 3:00 cap + a grace.
+//     The results are THE JUDGE's replay of each player's log (proof.js#judgeMatch), never their claim.
+// F4A — THE SOLO RUN: no count — `play` from the start; the run's
+// own clock starts at the PLAYER's GO (their proof node's server timestamp — the seed is picked from it: logic.js#seedOf, never game.seed).
+// THE END: the player's node says `e` (written once, right behind the last chunk — a SIGNAL: the result is THE JUDGE's replay of the
+// node, proof.js#judgeSolo — never a number the phone claims).
+```
+
+### js/games/freefall/endscreen.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2; F4B — THE LOGO HEADER: docs/freefall.md "THE END SCREEN"; HIGH RISE's
+// endscreen.js is the pattern). ONE builder for the test page's own card and the cartridge's body inside the console's podium frame — top
+// to bottom (the owner's approved mock, Nov 26):
+//   THE HEADER = THE LOGO — title-05's lettering (the opening's own WebP, its alpha) centred, ~58 % of the card's width (≈ 226 pt at 390 —
+//     never under 210: the script must read) + the mode under it in small teal caps (SOLO · MATCH; DAILY later). In the cartridge the logo
+//     sits in the console frame's own header slot (view.js puts `endLogo` there); the test page's card wears it itself.
+//   the CAUSE — big neon words, up to two lines, in FREEFALL's TEAL (the colour IS the letter); YOU HIT THE BOTTOM = GOLD.
+//     NEVER RED: red is danger on the tower and nothing else, anywhere.
+//   THE FLOOR NUMBER, huge — the one WHITE hero, a hot-pink glow — and FLOORS under it
+//   YOUR BEST 88 · AVG 62 in gold (F5C: a NEW BEST = NEW BEST · 141, celebrated — the AVG then on its own quiet line) + ONE small line:
+//     12 BOUNCES · 3 BLAZES · BEST RUN 9
+// THE TABLE's slot follows (YOUR TABLE — final.js); THE FOOT is the caller's (the console's universal footer · the page's own copy of it:
+// PLAY AGAIN · SHARE | HOME). No stats strip, no pills. A VIEW's helper: DOM only — no rules, no storage, no fetch.
+```
+
+### js/games/freefall/engine.js
+
+**§1** (above `import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR`)
+
+```js
+// FREEFALL — THE ENGINE (F1 — docs/freefall.md "THE ENGINE"): THE ONE RULE — the same seed + the same INPUT LOG = the exact same run on
+// any phone and on the server (REPLAY = LIVE). FIXED-STEP TICKS (tuning.js#TICK_HZ = 60 a second); THE ONLY INPUT is THE INPUT LOG: the
+// tower's angle A at the ticks it changed — [{ t, a }], the ticks rising, A held between. The run is EVENT-DRIVEN (HIGH RISE's way): it is
+// a sequence of LANDING TICKS — on a landing the slice under the ball AT THAT TICK decides (SAFE → a bounce · GAP → a fall · RED → out);
+// between two landings only THE DARKNESS moves, at ticks the engine knows exactly — stepTo jumps from one to the next (a judge's replay
+// costs one step a landing, not one a tick). The phone's live run and the server's judge run THIS code.
+// PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
+```
+
+### js/games/freefall/final.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE END SCREEN's BODY in the cartridge (F4A · F4B — docs/freefall.md "THE END SCREEN"; HIGH RISE's final.js is the pattern):
+// the BODY inside the console's podium frame (ui/final.js owns the frame: its header slot — THE LOGO, put there by view.js —, the XP box,
+// THE UNIVERSAL FOOTER: PLAY AGAIN · SHARE | HOME · a match: REMATCH · ROOM | SHARE). ONE builder with the test page's card (endscreen.js):
+// F5B — THE FINAL SHAPE (the owner, Nov 27 — docs/freefall.md "THE END SCREENS"): SOLO = the logo · SOLO (the frame's header — view.js) ·
+// the CAUSE · THE FLOOR NUMBER + FLOORS · "YOUR BEST · n · AVG n" (a NEW BEST: the AVG on its own line) · THE END-SCREEN BOARD (the
+// console's shared block — ui/end-board.js, FREEFALL's END_BOARD: the world's top 3 / YOUR TABLE) · the universal foot. A MATCH = the logo
+// · MATCH · the cause · the number + FLOORS · YOUR BEST · AVG · the match's TOP 3 (the same block) + "YOU · 5TH · 49 FLOORS" from 4th down ·
+// REMATCH · ROOM | SHARE. No WOULD COUNT line (it took room; the server's answer is kept on the body's `data-would` for the checks), no
+// stats line, no per-player cause line. Everything from THE JUDGE's own row (director.js), then the SERVER's answer for this match
+// (profile/queue.js's outcome — counting ON: NEW BEST / YOUR BEST + AVG). /api down = just the floor.
+// THE SHARE CARD is DRAWN + ENCODED while the end screen is read (share.js — the picture alone at the tap). No pills, no emoji, no dev text.
+```
+
+### js/games/freefall/ghost-fx.js
+
+**§1** (above `import * as THREE from 'three';`)
+
+```js
+// FREEFALL — THE GHOSTS' LAYER (F4B — docs/freefall.md "THE GHOSTS"): what a rival LOOKS like on my tower. Its own small scene, drawn
+// AFTER the picture (and its bloom) over the SAME depth buffer:
+//   · THE BALLS — ONE instanced sphere, see-through, in the player's colour: a bright rim, a faint fill, and a DARK outer edge (it reads on
+//     pearl / gold / lavender day floors and on the water as on the night's neon)
+//   · X-RAY — the SAME instances drawn again where the tower HIDES them (the depth test turned round): a soft outline + a faint fill on
+//     top — a ghost behind a floor or the pillar is never lost
+//   · THE NAME TAGS — ONE instanced quad over everything, each a row of an atlas BAKED ONCE at the screen's own sharpness (full 3×): the
+//     name in the player's colour on a dark rim; set to whole device pixels (crisp), pushed away from MY ball, stacked when two would overlap
+//   · near MY ball (≈ a floor) a ghost fades to an OUTLINE with no tag — my own ball is always on top (it wrote the depth)
+// ZERO GARBAGE IN PLAY: `place()` writes typed arrays made once; the atlas is baked at the count (never in a run, unless a name changes).
+```
+
+### js/games/freefall/ghosts.js
+
+**§1** (above `import { createRun, stepTo, setAngle, isOver } from './engine.js';`)
+
+```js
+// FREEFALL — THE GHOSTS (F4B — docs/freefall.md "THE GHOSTS"; JAYWALK's ghosts.js is the pattern: STEPPED conf → run). PURE (no DOM, no
+// three.js, no clock of its own). In a match everyone falls down the SAME tower, so a rival = their own input log through the SAME engine:
+// their proof node's chunks (rooms/{CODE}/ff/{matchId}/{uid}/c — each chunk read ONCE as it lands).
+//   · THE CONFIRMED RUN (`conf`): their LANDED moves, in order, stepped to the tick of the last one — nothing assumed.
+//   · THE DRAWN RUN (`run`): from the confirmed run on to THE WORLD's TICK with their tower's ANGLE HELD (no new move assumed), the ball
+//     bouncing / falling by the rules. A step that would take them OUT — or over THE FINISH — is NOT taken until their own end (`e`)
+//     says so: a ghost never dies on this screen and stands up again when a late chunk lands.
+//   · A LATE CHUNK = A QUICK CATCH-UP ARC, never a teleport: when confirmed news moves where they are drawn, the old place is eased into
+//     the new one (CATCH_MS + a little per floor, ≤ CATCH_MAX_MS).
+//   · WHERE THEY ARE DRAWN: on their REAL floor, over the SAME slice — at the world angle (the ball's angle − their tower's) + MY tower's:
+//     `ghostPhi`. They turn with MY tower. They never collide with anything.
+// And what a player SEES of them beside the ball itself: THE DEPTH RAIL (everyone's dot by depth), THE EDGE MARKERS (a ghost more than
+// MARK_FLOORS below / MARK_UP above: "MIA ↓12" / "↑3"), WATCH THE LEADER (after an out — a delayed, exact playback: `createWatch`).
+// ZERO GARBAGE IN PLAY: stepGhost + the rows fill kept records; a run's state is copied field by field (never a new object a frame).
+```
+
+### js/games/freefall/index.js
+
+**§1** (above `import { createGame, nextStep, nextRun } from './director.js';`)
+
+```js
+// FREEFALL — THE CARTRIDGE (F4A — docs/freefall.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md; HIGH RISE's
+// S4A cartridge is the pattern). BEING BUILT — HIDDEN: config.js GAMES `playable: false` + `preview` = THE OWNER'S LIVE TEST only (his
+// phone's PLAY shelf / his room's list: FREEFALL · TEST); nobody else is offered it, a start from another phone is refused. NOTHING COUNTS:
+// THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS) is OFF — the server judges the run and answers what it WOULD award.
+// F4A = THE SOLO RUN: the stage (stage.js — the SAME module /freefall-play mounts) in the console's frame, the proof written as you play
+// (view.js → rooms/{CODE}/ff/{matchId}/{uid}), the end screen's body (final.js), PLAY AGAIN = the console's INSTANT AGAIN.
+// F4B = THE MATCH (2 … 8 players — a room THE OWNER hosts while the game is hidden; docs/freefall.md "THE MATCH"; HIGH RISE's is the
+// pattern): the SAME tower for everyone (THE FIRST GO), each player's own proof node, the rivals' GHOSTS + THE DEPTH RAIL, out = Call the
+// Winner + WATCH THE LEADER, THE FINISH at THE BOTTOM (floor 200), the 3:00 cap, the podium, REMATCH; the server replays every player's run.
+```
+
+### js/games/freefall/match.js
+
+**§1** (above `import { CALL_MS, callBonus } from '../../core/playlist.js';`)
+
+```js
+// FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE MATCH"; HIGH RISE's match.js is the pattern, JAYWALK's start number for number):
+// ONE ball each down the SAME tower (THE FIRST GO's seed, the server's time), 2 … 8 players; ONE life, NO holds (a hidden page runs on);
+// THE FINISH = THE BOTTOM (floor 200: MADE IT) or the 3:00 cap, whichever first; the deepest wins, then the earlier tick. The results are
+// REPLAYED from each player's own input log (the proof node rooms/{CODE}/ff/{matchId}/{uid}) — never a number a phone claims.
+// PURE (no DOM, no clock) — the phones, the host's director AND the server agree. Its own module: logic.js stays what THE LAB loads.
+```
+
+### js/games/freefall/matchhud.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE DEPTH RAIL" · "THE MATCH"): the DOM over the scene in a match — 3 · 2 · 1 + the
+// names · THE DEPTH RAIL (a thin glowing rail at the right edge: everyone's dot by depth, mine larger, out = a crossed dot, THE BOTTOM
+// marked at its foot — HIGH RISE's altimeter turned upside down) · THE EDGE MARKERS (F5C — the owner: a rival five floors below / two above:
+// "MIA ↓12" ONE line each, bigger, in the player's own colour, at the screen's EDGE on the side of the tower they really are — left or
+// right; below → the lower band, above → the upper band; never stacked small text at the bottom centre) · the last half minute's clock · the OUT card · the WATCHING line. WRITTEN ONLY WHEN SOMETHING CHANGES (a dot
+// moves by ONE transform; a marker's words are set only when they differ) — never in a frame that changed nothing; no pills.
+```
+
+### js/games/freefall/night-fx.js
+
+**§1** (above `import * as THREE from 'three';`)
+
+```js
+// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT LOOK · F3: every material reads `uDay` and takes its day half from day-fx.js —
+// docs/freefall.md "THE NIGHT LOOK" + "THE DAY LOOK"; night.js builds the ONE scene both looks share). HIGH RISE's way
+// (js/games/highrise/night-fx.js): three.js core only — no add-on, no post-processing library; everything is written in LINEAR light and
+// ends in three's own colour-space chunk. Every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn).
+```
+
+**§2** (above `export const WALL_V = /* glsl */'`)
+
+```js
+// ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each
+// pixel's ray meets THE WALL — a cylinder round the tower's axis, seen from outside through its near side (the far inside face) — and
+// reads the area's painted wall there (seamless: it wraps round the shaft and repeats down it). Two walls cross-fade BY DEPTH at the seam
+// between two areas (the next area's wall is seen coming up from below). THE ROOFTOP has no wall: the open night sky + JAYWALK's
+// skyline painting on the horizon. THE GLOW rises from the shaft's bottom (pink → violet); THE DARKNESS: above its line the wall is out.
+```
+
+**§3** (above `export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy;`)
+
+```js
+// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL RESOLUTION (the add-on, Nov 26 — the owner: JAYWALK's skyline stretched round the
+// compass in the half-res pass was blurry, blocky windows). A screen-filling quad over the half-res wall, drawn ONLY while the rooftop is
+// on screen (the opening + floors 0–39): each pixel's ray reads the 3072 × 1024 panorama (a 360° picture; mipmaps + anisotropy; it
+// repeats on u — u = 0 and u = 1 match) — shown across uSpanAz of the compass so a texel is never stretched past ~1.3 screen pixels on a
+// phone at 3×; the city's horizon near eye level from the top floor, the buildings in the lower part — ONE horizon height for both looks;
+// it rises a little as the ball goes down (uRise: the ball sinks between the buildings). Under its foot: by night the dark roof + the
+// glow, by day the open air + soft clouds. Where the next area's wall begins (the seam, a world height) it fades out: the wall is under
+// it. THE DARKNESS reads here as on the walls (above its line: the lights out · by day THE STORM CLOUD). A red pixel leans to pink.
+```
+
+**§4** (above `export const SLICE_V = /* glsl */'`)
+
+```js
+// ---- THE SLICES: ONE instanced mesh for every solid slice in sight. A slice = a wedge of the ring (aE = its own coordinates: across the
+// wedge −1 … 1 · from the pillar 0 … 1 out to the rim · the face: 0 top, 1 the outer wall, 2 a cut side · down the wall 0 … 1).
+// Per slice: aI = (its angle on the floor, its floor's height, how far it stands PROUD — red only —, its kind: 0 safe · 1 red · 2 red
+// that MOVES) · aC = (its colour, its alpha) · aF = (a white flash, a red WARNING — the moving red steps here next —, cracked, it flies
+// outward: a floor just passed).
+```
+
+**§5** (above `export const LIGHT_V = /* glsl */'`)
+
+```js
+// ---- THE LIGHTS (one instanced quad, added light): aP = (its place, its half size) · aQ = (its kind, its strength, stretch up — a
+// trail's length —, a seed) · aC its colour. Kinds: 0 a round glow (the ball's halo) · 1 THE TRAIL (a flame rising from the ball: wide
+// at its foot, a point at its tip, flickering) · 2 THE MARK on the floor (flat: where the ball's centre comes down — a hot point in a
+// thin ring) · 3 a PUNCH (flat: a ring of light running out from a shatter; aQ.z = its age 0 … 1)
+```
+
+**§6** (above `export const FLAME_V = /* glsl */'`)
+
+```js
+// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke),
+// flown HERE (a flame = its start, its drift, (its birth, its life, its size, its seed)): it swells as it ages, swirls off its line
+// (a curl of sines by its own seed), turns from flame to smoke, cools down the ramp. Light that covers a little (the bands stay). A FIXED pool: the tiers trim how
+// many are lit at once, never the pool.
+```
+
+### js/games/freefall/night.js
+
+**§1** (above `import * as THREE from 'three';`)
+
+```js
+// FREEFALL — THE SCENE: THE NIGHT LOOK (F2) + THE DAY LOOK (F3 — ONE scene, a LOOK: `setLook('day' | 'night')`, read LIVE; every material
+// carries `uDay` — night-fx.js + day-fx.js; docs/freefall.md "THE NIGHT LOOK" · "THE DAY LOOK"): the tower on three.js 0.160 (the page's import map, its
+// READABLE build — HIGH RISE's LAG RULES 7) with our own shaders (night-fx.js): the slices in ONE instanced mesh (only the floors in
+// sight), the pillar, the ball + its lights, THE BLAZE's trail, a shatter's shards + sparks, YOUR BEST's gold tape, THE SHAFT behind it
+// all (the area's painted wall, drawn at half resolution), the half-res bloom (tier 2).
+// A VIEW: it reads the run + its EVENTS (engine.js) and eases the ball between two landings itself — it never writes them; the rules
+// never import it. ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): a frame makes no objects — the instances are written into typed arrays
+// made once, the floors in sight live in a ring of records written INTO (tower-gen.js#floorInto), every uniform is a kept object.
+```
+
+**§2** (above `const fa = areaIndex(run.floor), fn = fa + 1 < AREAS.length && AREAS[f`)
+
+```js
+// THE LOOK's own (F3 — by day): the haze the tower fades into (the ball's area's — it eases across a border), THE CAUSTICS on the slices
+// UNDER THE HARBOR (tier 0: on the wall only), THE MOTES (bubbles · drifting particles · dust — the area's kind fades out, the next in)
+// F4A — THE HAZE FOLLOWS THE FLOOR, never the clock (the owner's phone: by day the floors 1–3 floors past the splashdown were ~20 %
+// less colourful + brighter — the old area's haze, eased over a second, still lay on the new area's floors): the border in sight
+// splits the tower — the floors above it fade into THEIR area's haze, the floors below it into theirs (as the palettes: a floor wears
+// its own area's). Full colour + contrast from the frame the ball goes through.
+```
+
+### js/games/freefall/proof.js
+
+**§1** (above `import { judgeRun, unpackLog, isHold, packMove } from './replay.js';`)
+
+```js
+// FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; HIGH RISE's `hr` node is the pattern: js/games/highrise/proof.js). PURE — the
+// phone, the host's director and the SERVER run this file. A run is counted ONLY from its PROOF NODE:
+//   rooms/{CODE}/ff/{matchId}/{uid} = { go (the SERVER's time, written ONCE at GO — the seed is picked from it: logic.js#seedOf; tick 0 =
+//     go + START_LEAD_MS), c/{i} = { s: that chunk of THE PACKED INPUT LOG (replay.js#packLog's own text, cut between two events), at: the
+//     SERVER's time it ARRIVED } (append only, i 0 … 9999, ≤ 400 chars), h/{0 … 2} (a HOLD's way back — the SERVER's time the 3 · 2 · 1
+//     began: the run goes on RESUME_LEAD_MS after it, at the hold's own tick), e { f, t, w } (the run's end, once — a SIGNAL for the
+//     host's step: never read as a score), k (Call the Winner — F4B's match) }
+// THE INPUT LOG = the ticks the tower's angle CHANGED at (never a tick it stood still) + THE HOLDS (solo only), packed.
+// WHAT GOES UP WHEN (the writer): an entry is FINAL — the engine can never change or drop it again — once a landing at or after its tick
+//   is decided (engine.js#turn: a later move counts after it), once the run is held at or after it, or once the run is over. Only final
+//   events are sent: a landing comes every 0.6 s at most, so nothing waits long.
+// THE JUDGE (judgeNode) = the chunks → the log + its clock → THE SPEED CHECK both ways + THE DROPPED SIGNAL + THE HOLDS' own clock →
+//   replay.js#judgeRun (the SAME engine the phone ran). A phone's claimed floor is never read — there is no field the judge takes one from.
+```
+
+**§2** (above `if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) retu`)
+
+```js
+// (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's
+//  HIGH): the way back's stamp is not the moment the run went on — the phone got no answer, went on by its own clock, and the write
+//  landed when the line was back: the events past that hold have no clock they can be held to → the run is CUT at that hold, as with
+//  no stamp at all. Nothing is gained by it: the part before the hold was checked on its own segment's clock.)
+```
+
+### js/games/freefall/replay.js
+
+**§1** (above `/** ONE move as the packed log writes it — after the event at tick 'pt`)
+
+```js
+// ---- THE PACKED LOG (F4's run node): event after event, no separator between them —
+//   A MOVE:  [ '.' + the ticks since the event before (base 36) ]  — left out when it is 1 (a drag logs tick after tick); the first event counts from tick −1
+//            '+' | '-'                                             — the way the tower turned
+//            the units it turned (base 36, 1 … 2048)               — the SHORTEST way from the angle before
+//   A HOLD (F2):  '!' + the ticks since the event before (base 36; "0" = at the tick of the move before it)
+// ".c+2r+1k-3.a-z" = tick 11: +99 · tick 12: +56 · tick 13: −3 · tick 23: −35. "…-z!4+5" = … a hold at tick 27, then tick 28: +5.
+// CANONICAL: packLog(unpackLog(s)) === s, nothing else unpacks.
+```
+
+### js/games/freefall/shot.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE SHARE CARD"; HIGH RISE S5's shot.js is the pattern): the picture of the moment a
+// run ended (the red's burst round the ball · the darkness on the ball · the seabed's impact, gold · the bell), kept on THIS phone until
+// the next run. The stage takes it (stage.js — a beat after the end, per cause; F5A: the picture is STAGED — the moment a beat BEFORE the
+// end, drawn once more for the card alone: night.js#shot, the numbers below), the share card draws it (share.js). Pure state + numbers:
+// no DOM, no fetch, nothing that counts.
+```
+
+### js/games/freefall/sounds.js
+
+**§1** (above `/** a sound: 'file' in audio/<dir>/, played at 'rate', 'gain' into the`)
+
+```js
+// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — all CC0; two are JAYWALK's).
+// PURE, no imports (the unit tests read it; sfx.js plays it): every sound, its words in the SOUNDS list, its file + folder, its gain into
+// the limiter, its PRIORITY. THE PICKS ARE THE OWNER's (take A of each).
+// THE TRIGGERS (cuesOf — the engine's events → the sounds):
+//   bounce       every landing on solid ground — SOFT, the note as recorded, never the same twice (± 1.5 dB)
+//   whoosh + THE NOTE UP ITS SCALE   every CLEAN fall through a gap: the bounce's one note pitch-shifted in code, a step higher each
+//                clean floor in a row (do re mi so la do′ re′ mi′ — holding at the top), back to the first note after a bounce
+//   blaze        THE BLAZE lights · shatter  a slice shatters · crack (the crash, short + high + quiet)  the landing right after a
+//   shatter came down on red (saved) · crash  out on red · lights-out  out in the dark · bottom  THE FINISH (ready for F3)
+//   area-arrive  the ball enters an area · new-best  the fall that passes YOUR BEST   (the stage's: it knows the best)
+//   F3B — THE BREAKTHROUGHS: skylight (floor 40: the glass breaks) · splashdown (floor 120: the plunge) · bottom (floor 200: the ball hits
+//   the seabed — SOLO too now) take the place of the arrival's sound on those three floors, each timed to the moment the ball gets there;
+//   fireworks = a finish, softly, right after bottom (the stage's — F5A: in both looks, by day behind the bubbles + the sun rays)
+```
+
+### js/games/freefall/stage.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST PAGE"; HIGH RISE's stage.js is the pattern): the run loop on the pure engine, the
+// scene (night.js — F3: BOTH LOOKS, the shared DAY / NIGHT read live), the HUD, THE OPENING, THE HOLD, YOUR BEST, the sounds' cues, the end card — ONE module: the test page mounts
+// it (play.js) and — F4A — the cartridge mounts the same one (view.js). It COUNTS NOTHING itself: no /api, no profile, no report, no
+// database — the page hands it a best to read + write (this phone's); the cartridge hands it its hooks (`o.go` the GO → the seed + tick 0 ·
+// `o.resume` a hold's way back, stamped · `o.onFrame` / `o.onOver` / `o.onEnd` / `o.onHide` — what a run WRITES is the view's: view.js).
+//   · THE RUN: tick 0 = the START (the first drag — after ≤ 0.6 s for the sounds' decode: THE SOUND SYNC); the RULES never read the
+//     clock — the stage turns it into ticks. FAIR INPUT: a move counts at the tick of its own EVENT TIME (pointermove's timeStamp, each
+//     coalesced sample at its own) — 60 Hz and 120 Hz phones are equal. THE DRAG is 1 : 1 (the ring under the ball moves as far as the
+//     finger — F1's scale, the owner's phone check); MAX SPIN's rest is offered again tick by tick (≤ 8 ticks owed).
+//   · THE HOLD (SOLO — engine.js#hold): the page hidden / the phone locked = the run is HELD (a logged event the judge replays); back =
+//     a 3 · 2 · 1, then on — EXACTLY where it was (F3 — THE HOLD = EXACT RESUME: the ball at the same point of its flight, the tower at
+//     the same angle; nothing the finger does while PAUSED or in the count counts). A mode with no hold left (a match: none) runs on behind the hidden page.
+//   · ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): a live frame makes no objects of its own — the HUD writes only what changed, the
+//     big number is BAKED (bakedtext.js), the cues are constants; what is left is what a LANDING makes (the engine's events, a sound's source).
+```
+
+**§2** (above `const art = (name, w) => new URL('../../../assets/freefall/title/${nam`)
+
+```js
+// THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube
+// sign + its dropping ball are gone). THE GLINT (.ff-glint): a band of light swept across the lettering, MASKED TO THE LETTERING's
+// OWN ALPHA (the mask = the very file the <img> picked — no second download), a 4-point star on the last letter as it leaves — CSS
+// only (transform + opacity), running only while the opening waits
+```
+
+**§3** (above `const linkIco = id => { const i = h('i.ff-link-i', { 'aria-hidden': 't`)
+
+```js
+// (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
+// F4B — THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — ui/final.js's, copied here: this page loads no
+// console): the PLAY AGAIN bar, then the quiet links SHARE | HOME with the SAME drawn icons. The page's SHARE hands the phone's own share
+// sheet THE PICTURE ALONE (F5B — card.js + send.js, the cartridge's own: no line, no link, no server — NOTHING COUNTS here)
+```
+
+### js/games/freefall/tower-gen.js
+
+**§1** (above `import { hashString } from '../../core/rng.js';`)
+
+```js
+// FREEFALL — THE TOWER (F1 — docs/freefall.md "THE TOWER" · "FAIR BY CONSTRUCTION"): a floor = a ring of 12 slices round the pillar —
+// SAFE · GAP · RED — and its TWIST (its rotation offset). buildFloor(seed, i) is a PURE FUNCTION of (seed, floor index): any floor, in any
+// order, on the phone or the server, is the same floor. Difficulty lives HERE and nowhere else (the bounce + the fall never change).
+// FAIR BY CONSTRUCTION — every rule below is checked while a floor is BUILT (a red slice that would break one is simply not laid), and
+// proved again from the outside by tests/freefall-tower.test.mjs over 2,000+ seeds:
+//   · ≥ 1 gap · ≥ 3 safe slices · red ≤ 8 of 12 · floors 0–9 have NO red · F5B: floors 40 + 120 (gen.blind — under the skylight + the water) have NO red · red sits beside a gap only from floor 40
+//   · in the early areas (floors < 120 — `belowUntil`) every slice straight below a gap (twists counted) is never red
+//   · THE FALL WINDOW: from any point of any gap, a human-paced spin (the reaction, then ≤ 1 turn a second) reaches a SAFE or GAP point of
+//     the floor below before the landing — and below the early areas the escape a floor asks for RAMPS in over 40 floors (reachAt)
+//   · NO ISLAND: from every safe slice a gap can be reached by human-paced hops (no stretch of safe slices walled in by red runs too long
+//     to cross inside one bounce) — nobody is ever left bouncing for the darkness
+//   · floor 0: the slice under the ball at the start (A = 0) is SAFE — a run never starts by falling
+// PURE: no DOM, never Math.random / Date; integers + Math.floor / Math.imul only (the one import outside the folder: the integer hash).
+```
+
+**§2** (above ``)
+
+```js
+// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ gen.move.from — solo; a match / a daily ends ON floor 200 and never lands there).
+// A trench floor has up to TWO red slices that MOVE (one from the first lap, by the lap's chance; two from lap `gen.move.two`): each walks
+// back and forth along its own TRACK (2 … gen.move.max solid slices side by side), one slice every `pace` ticks — its slice is a PURE
+// FUNCTION of (seed, floor, tick). FAIR BY CONSTRUCTION, at EVERY tick (every stand of every mover is checked while the floor is built):
+//   · a track never holds a slice STRAIGHT BELOW A GAP of the floor above (twists counted) — a ball that comes through a gap never
+//     meets the moving red on its landing, at whatever tick it falls (every fall window)
+//   · wherever the movers stand, the floor still has ≥ safeMin safe slices, NO ISLAND holds and THE FALL WINDOW holds
+//   · a mover only ever steps to the slice NEXT to it (it is seen coming for `pace` ticks); two tracks never share a slice
+// At most ONE static red slice lies inside a track — it is UN-LAID (it is the one that moves now: the red count stays what it was);
+// a track of safe slices only ADDS one red to the floor. A mover = ONE integer: its track's first slice | its length << 4 | its phase << 8.
+```
+
+### js/games/freefall/tuning.js
+
+**§1** (above ``)
+
+```js
+// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — docs/freefall.md "THE NUMBERS" · "THE RULE-SET TABLE"): EVERY NUMBER OF THE RULES lives
+// HERE, in ONE table — HIGH RISE's rules.js pattern (docs/highrise.md "THE RULE-SET TABLE"). A RULE SET = one row; today's only one is
+// "classic" (set by the bot sims — docs/games/passes/freefall-f1.md "THE TUNING"). A run is played on ONE rule set and RECORDS it
+// (engine.js: `run.rules`, the judge's answer); THE JUDGE replays a log on the set it names and REFUSES one it does not know — so a future
+// tuning is a NEW row, and every run ever recorded still replays to the tick on the row it was played on.
+// PURE, no imports, no DOM. THE RULES' MATH IS CROSS-ENGINE SAFE: integers and + − × % + Math.floor / Math.imul only — never a float,
+// never Math.sin / cos / pow / sqrt, never Date / Math.random / performance (the phone's run and the server's replay must agree landing
+// for landing). The view may use anything.
+```
+
+**§2** (above `dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3, paceDeep: 160, easeFro`)
+
+```js
+// (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW
+//  the darkness; now a stopped ball has 6 s and it is always in sight. F3B — THE DARKNESS EASES WITH DEPTH, the owner Nov 26: floors
+//  0–100 EXACTLY as F3 built them (a floor every 120 ticks: 6 s stopped), a straight line over floors 100–160, a floor every 160 ticks
+//  from floor 160 on (8 s stopped — THE DEEP + THE TRENCH: the stall budget follows the layout's difficulty). Nothing was ever recorded:
+//  no new row.)
+```
+
+### js/games/freefall/view.js
+
+**§1** (above `import { h } from '../../ui/dom.js';`)
+
+```js
+// FREEFALL — THE GAME's SCREEN (F4A — docs/freefall.md "THE CARTRIDGE" · "THE PROOF"; HIGH RISE's view.js is the pattern): THE STAGE
+// (stage.js — the SAME run loop, scene, HUD + sounds /freefall-play mounts) in the console's frame, and everything a run WRITES — which
+// the stage never does itself:
+//   · GO: the proof node's first value (the SERVER's time), read back → the seed (logic.js#seedOf) + tick 0 (= GO + proof.js#START_LEAD_MS):
+//     the run is on the server's clock. The first DRAG is the start (the opening stands on a stand-in tower: the real floors take their
+//     place as the tower spins up — stage.js#WHIP_MS)
+//   · THE PROOF: the input log's FINAL events in chunks, every 250 ms while there are new ones — c/{i} = { s, at: the SERVER's time }; at
+//     the end the last chunk, then `e` (a signal: the host's step ends the match on it — never read as a score)
+//   · THE HOLD (solo — the page hidden / the phone locked): the hold is a logged event (it goes up as the page hides); the way back is
+//     STAMPED — h/{i} = the SERVER's time the 3 · 2 · 1 began, the run goes on RESUME_LEAD_MS after it. No stamp (no line) → the count is
+//     run again (stage.js#RESUME_TRIES), then the run goes on and SAYS it is not counted past the pause (the judge counts it up to that hold)
+//   · THE END = the console's podium frame (ui/final.js) with this game's body (final.js); PLAY AGAIN = the console's INSTANT AGAIN (the
+//     scene kept warm), back on THE OPENING
+//   · an UNPROVEN run (GO refused / unanswered / answered too late: no signal, the rules not yet re-published) still PLAYS — on a seed of its
+//     own, never counted — SAYS SO for as long as it is on, and ends on the stage's own card (NOT COUNTED — NO LINE TO THE BOARD)
+//   · a refresh mid-run: the run can not be taken back up (its clock ran on) — its end is written from the node as it stands
+// F4A = THE SOLO RUN.
+// F4B — THE MATCH (docs/freefall.md "THE MATCH"; HIGH RISE's view.js is the pattern): 3 · 2 · 1 · GO — every phone writes its own GO (a
+// TRANSACTION, never applied locally); THE FIRST GO among the proof nodes picks the seed + tick 0 for everyone (match.js#startOf: THE
+// NODES ARE THE TRUTH); the same chunks as a solo run; the RIVALS = everyone's proof nodes through the same engine (ghosts.js — the stage
+// steps + draws them: the ghosts, THE DEPTH RAIL, the edge markers); OUT = the cause's words for a moment → Call the Winner (the match
+// kit's — your own node's `k`) → WATCH THE LEADER (a tap = the next player); THE FINISH = THE BOTTOM (floor 200) or the 3:00 cap; the
+// podium comes with the host's step. One life, NO holds: a hidden page runs on. A late joiner (not a participant) WATCHES from the start.
+```
+
+**§2** (above `granted(i, holdSrv).then(ok => { if (ok === false) { clearTimeout(t); `)
+
+```js
+// F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own chunk (the hold + every move before it) must have ARRIVED — the SERVER's
+// stamp on it — within GRANT_PHONE_MS of the hold (the judge's bound is CLOCK.grant: the phone keeps a margin). The server's copy of
+// the chunks is read (it answers behind the writes still queued). Not there / too late → −1: no pause was granted — no stamp is
+// written, the count is not run again, the run goes on and SAYS it is not counted past the pause
+```
+
+**§3** (above `const need = holdN, from = performance.now();`)
+
+```js
+// THE FRESH-EYES REVIEW (HIGH): this phone's mirror answers a read from its LOCAL view — a chunk still in the air is there with the
+// phone's own guess of its time (a hold chunk queued behind a dead line read as "stamped 1 ms after the hold"). The chunk is asked
+// about only once its WRITE IS ACKNOWLEDGED (the writer's `acked` covers the hold's event): then its `at` is the server's own. Not
+// acknowledged in this count's time = no answer — the count runs again (stage.js#RESUME_TRIES), then the run goes on, NOT COUNTED PAST THE PAUSE.
+```
+
+**§4** (above `const RH = globalThis.__nsRunHold;`)
+
+```js
+// THE PODIUM for everyone (the host's step) — once this player's own end has been SEEN (the stage's end hold, the finish's moment); a
+// watcher, a refresh on it: at once. Never held for ever — a ball still falling when the match is over (its chunks did not arrive)
+// gets the podium after FINAL_HOLD_MS. THE CONSOLE FIX: never over a live proven run of this phone's own; never for a match the room
+// has left (the router holds this screen); and it waits for a rival's run still LIVE — the host's `final` came early — the cap ends that wait
+```
+

@@ -1,11 +1,4 @@
-// FREEFALL — THE BAKED NUMBER (F2 — docs/freefall.md "THE BAKED HUD"; HIGH RISE's bakedtext.js, its S5 EFFECTS REBUILD): a glowing number
-// repainted at every floor makes the browser re-rasterise its text-shadow's blur — the owner's iPhone A/B in HIGH RISE named it the
-// first cost over the game. SAME LOOK, no blur in play: each digit is drawn WITH ITS GLOW ONCE (from the number's own computed style —
-// its font, colour, every text-shadow: the CSS stays the one source of the look, the gold included) into a small bitmap; a floor then
-// only COPIES the 1 – 3 digits' bitmaps into ONE canvas over the number (drawImage — no blur, no text layout). The digit boxes
-// underneath keep the layout + the reading (aria-label) with transparent, shadowless text. A style change (gold, a resize) picks another
-// baked set; the plain + the gold one are WARMED behind the opening (stage.js) — nothing is baked in a live frame.
-// DOM + canvas only — no rules, nothing counts.
+// FREEFALL — THE BAKED NUMBER (F2 — docs/freefall.md "THE BAKED HUD"; HIGH RISE's bakedtext.js, its S5 EFFECTS REBUILD): a glowing number (→ §1, docs/freefall.md MODULE NOTES)
 
 /** "rgb(255, 0, 0) 0px 0px 14px, rgba(…) 0px 3px 0px" → [{ color, x, y, blur }] (the computed style's own order: the FIRST on top) */
 export function parseShadows(s) {

@@ -1,20 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 6b → Oct 25: THE JETS — ONE stealth fighter shared by the TR-3B's CHASE, THE AIR SHOW (a diamond of four,
-// smoke on), THE MISSING MAN (a finger-four, #3 pulling up and away) and THE SURPRISE FLYBY (docs/harbor/passes/the-tr-3bs-music-the-f-22-no-traffic.md; plan.md "THE JETS →
-// AN F-22 RAPTOR-STYLE STEALTH FIGHTER": the F-16s "look too cartoonish — they need to look like modern, real, menacing flying death
-// machines"). Seen from below + the side as they cross. Realism at phone size comes from SILHOUETTE + SHADING:
-//   THE AIRFRAME   the angular FACETED body — a chined forebody with a hard light / dark edge along it, the long gold-tinted bubble canopy,
-//                  the raked parallelogram INTAKES, the DIAMOND wing seen from just below, the big diamond stabilators, TWIN CANTED
-//                  TAILS, the 2-D vectoring nozzles with SERRATED edges; INTERNAL weapons bays (their sawtooth doors closed on the
-//                  belly — nothing hangs outside); dark GUNMETAL grey with real specular highlights (the sun along the spine + the chine,
-//                  a hot spot on the canopy, a sheen across the fin) and per-panel shading (no flat fills, no thick outlines);
-//                  low-visibility grey USAF markings (a grey-on-grey star-and-bar, the fin's flash); a sprite per (size, light), cached
-//   THE AFTERBURNER (live, additive) a tapered plume from the nozzle with MACH DIAMONDS — 5 evenly spaced shock nodes: white-hot at
-//                  the nozzle, then blue-white, violet, orange, a dim orange — crisp rhombi with a tight glow, flickering a touch; at night
-//                  a soft glow round the whole plume (dimmer by day, still read); HEAT HAZE behind the engines (a shimmer of pale blobs)
-//   MOTION BLUR    (live) on full burn the airframe streaks: two fainter copies trail it by a hair
-//   THE LIGHTS     at night: the formation strips (the forebody's chine, the aft fuselage, the fin's tip), the near wingtip's nav light
-//                  (green flying right: its starboard side is ours; red flying left), a white tail light, the beacon on the spine
-//   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/jets.js" — moved FREEFALL FIX A, THE BOOT's BYTE ROOM)
 import { safeCtx } from '../../ui/canvas-safe.js';
 import * as SR from './sight-react.js';
 import { FORMATIONS } from '../../core/harbor-legend.js';

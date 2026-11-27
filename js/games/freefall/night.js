@@ -1,11 +1,4 @@
-// FREEFALL — THE SCENE: THE NIGHT LOOK (F2) + THE DAY LOOK (F3 — ONE scene, a LOOK: `setLook('day' | 'night')`, read LIVE; every material
-// carries `uDay` — night-fx.js + day-fx.js; docs/freefall.md "THE NIGHT LOOK" · "THE DAY LOOK"): the tower on three.js 0.160 (the page's import map, its
-// READABLE build — HIGH RISE's LAG RULES 7) with our own shaders (night-fx.js): the slices in ONE instanced mesh (only the floors in
-// sight), the pillar, the ball + its lights, THE BLAZE's trail, a shatter's shards + sparks, YOUR BEST's gold tape, THE SHAFT behind it
-// all (the area's painted wall, drawn at half resolution), the half-res bloom (tier 2).
-// A VIEW: it reads the run + its EVENTS (engine.js) and eases the ball between two landings itself — it never writes them; the rules
-// never import it. ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): a frame makes no objects — the instances are written into typed arrays
-// made once, the floors in sight live in a ring of records written INTO (tower-gen.js#floorInto), every uniform is a kept object.
+// FREEFALL — THE SCENE: THE NIGHT LOOK (F2) + THE DAY LOOK (F3 — ONE scene, a LOOK: `setLook('day' | 'night')`, read LIVE; every material (→ §1, docs/freefall.md MODULE NOTES)
 import * as THREE from 'three';
 import { TURN, SLICES, AREAS, FIRST, FALL, RULE_SETS, RULES_DEFAULT } from './tuning.js';
 import { floorInto, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
@@ -748,12 +741,7 @@ export function createNight(host, o = {}) {
     tape.visible = best > 0 && best >= run.floor && best <= run.floor + BELOW;
     if (tape.visible) { tape.position.y = -best * SHAPE.H - 0.045; tape.updateMatrix(); tape.matrixWorld.copy(tape.matrix); tapeU.uGlow.value = 0.85 + 0.15 * Math.sin(time * 3); }
 
-    // THE LOOK's own (F3 — by day): the haze the tower fades into (the ball's area's — it eases across a border), THE CAUSTICS on the slices
-    // UNDER THE HARBOR (tier 0: on the wall only), THE MOTES (bubbles · drifting particles · dust — the area's kind fades out, the next in)
-    // F4A — THE HAZE FOLLOWS THE FLOOR, never the clock (the owner's phone: by day the floors 1–3 floors past the splashdown were ~20 %
-    // less colourful + brighter — the old area's haze, eased over a second, still lay on the new area's floors): the border in sight
-    // splits the tower — the floors above it fade into THEIR area's haze, the floors below it into theirs (as the palettes: a floor wears
-    // its own area's). Full colour + contrast from the frame the ball goes through.
+    // THE LOOK's own (F3 — by day): the haze the tower fades into (the ball's area's — it eases across a border), THE CAUSTICS on the slices (→ §2, docs/freefall.md MODULE NOTES)
     const fa = areaIndex(run.floor), fn = fa + 1 < AREAS.length && AREAS[fa + 1].from <= run.floor + BELOW + 1 ? fa + 1 : fa, fk = fn > fa ? fa : fa > 0 ? fa - 1 : fa;
     const AD = AREA_DAY[fa], FA = AREA_DAY[fk], FB = AREA_DAY[fn > fa ? fn : fa];
     G.uFog.value.set(FA[3], FA[4], FA[5]); G.uFogB.value.set(FB[3], FB[4], FB[5]);

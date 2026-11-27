@@ -1,14 +1,4 @@
-// FREEFALL — THE END SCREEN's BODY in the cartridge (F4A · F4B — docs/freefall.md "THE END SCREEN"; HIGH RISE's final.js is the pattern):
-// the BODY inside the console's podium frame (ui/final.js owns the frame: its header slot — THE LOGO, put there by view.js —, the XP box,
-// THE UNIVERSAL FOOTER: PLAY AGAIN · SHARE | HOME · a match: REMATCH · ROOM | SHARE). ONE builder with the test page's card (endscreen.js):
-// F5B — THE FINAL SHAPE (the owner, Nov 27 — docs/freefall.md "THE END SCREENS"): SOLO = the logo · SOLO (the frame's header — view.js) ·
-// the CAUSE · THE FLOOR NUMBER + FLOORS · "YOUR BEST · n · AVG n" (a NEW BEST: the AVG on its own line) · THE END-SCREEN BOARD (the
-// console's shared block — ui/end-board.js, FREEFALL's END_BOARD: the world's top 3 / YOUR TABLE) · the universal foot. A MATCH = the logo
-// · MATCH · the cause · the number + FLOORS · YOUR BEST · AVG · the match's TOP 3 (the same block) + "YOU · 5TH · 49 FLOORS" from 4th down ·
-// REMATCH · ROOM | SHARE. No WOULD COUNT line (it took room; the server's answer is kept on the body's `data-would` for the checks), no
-// stats line, no per-player cause line. Everything from THE JUDGE's own row (director.js), then the SERVER's answer for this match
-// (profile/queue.js's outcome — counting ON: NEW BEST / YOUR BEST + AVG). /api down = just the floor.
-// THE SHARE CARD is DRAWN + ENCODED while the end screen is read (share.js — the picture alone at the tap). No pills, no emoji, no dev text.
+// FREEFALL — THE END SCREEN's BODY in the cartridge (F4A · F4B — docs/freefall.md "THE END SCREEN"; HIGH RISE's final.js is the pattern): (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { END_WORDS, gameStandings } from './logic.js';

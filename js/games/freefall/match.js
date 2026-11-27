@@ -1,8 +1,4 @@
-// FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE MATCH"; HIGH RISE's match.js is the pattern, JAYWALK's start number for number):
-// ONE ball each down the SAME tower (THE FIRST GO's seed, the server's time), 2 … 8 players; ONE life, NO holds (a hidden page runs on);
-// THE FINISH = THE BOTTOM (floor 200: MADE IT) or the 3:00 cap, whichever first; the deepest wins, then the earlier tick. The results are
-// REPLAYED from each player's own input log (the proof node rooms/{CODE}/ff/{matchId}/{uid}) — never a number a phone claims.
-// PURE (no DOM, no clock) — the phones, the host's director AND the server agree. Its own module: logic.js stays what THE LAB loads.
+// FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE MATCH"; HIGH RISE's match.js is the pattern, JAYWALK's start number for number): (→ §1, docs/freefall.md MODULE NOTES)
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { TICK_HZ, MODES } from './tuning.js';
 import { seedOf, gameStandings } from './logic.js';

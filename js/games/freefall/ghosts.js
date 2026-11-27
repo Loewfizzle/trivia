@@ -1,17 +1,4 @@
-// FREEFALL — THE GHOSTS (F4B — docs/freefall.md "THE GHOSTS"; JAYWALK's ghosts.js is the pattern: STEPPED conf → run). PURE (no DOM, no
-// three.js, no clock of its own). In a match everyone falls down the SAME tower, so a rival = their own input log through the SAME engine:
-// their proof node's chunks (rooms/{CODE}/ff/{matchId}/{uid}/c — each chunk read ONCE as it lands).
-//   · THE CONFIRMED RUN (`conf`): their LANDED moves, in order, stepped to the tick of the last one — nothing assumed.
-//   · THE DRAWN RUN (`run`): from the confirmed run on to THE WORLD's TICK with their tower's ANGLE HELD (no new move assumed), the ball
-//     bouncing / falling by the rules. A step that would take them OUT — or over THE FINISH — is NOT taken until their own end (`e`)
-//     says so: a ghost never dies on this screen and stands up again when a late chunk lands.
-//   · A LATE CHUNK = A QUICK CATCH-UP ARC, never a teleport: when confirmed news moves where they are drawn, the old place is eased into
-//     the new one (CATCH_MS + a little per floor, ≤ CATCH_MAX_MS).
-//   · WHERE THEY ARE DRAWN: on their REAL floor, over the SAME slice — at the world angle (the ball's angle − their tower's) + MY tower's:
-//     `ghostPhi`. They turn with MY tower. They never collide with anything.
-// And what a player SEES of them beside the ball itself: THE DEPTH RAIL (everyone's dot by depth), THE EDGE MARKERS (a ghost more than
-// MARK_FLOORS below / MARK_UP above: "MIA ↓12" / "↑3"), WATCH THE LEADER (after an out — a delayed, exact playback: `createWatch`).
-// ZERO GARBAGE IN PLAY: stepGhost + the rows fill kept records; a run's state is copied field by field (never a new object a frame).
+// FREEFALL — THE GHOSTS (F4B — docs/freefall.md "THE GHOSTS"; JAYWALK's ghosts.js is the pattern: STEPPED conf → run). PURE (no DOM, no (→ §1, docs/freefall.md MODULE NOTES)
 import { createRun, stepTo, setAngle, isOver } from './engine.js';
 import { TURN, BALL, MODES } from './tuning.js';
 import { wrap, angDiff } from './tower-gen.js';

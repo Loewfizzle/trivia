@@ -1,17 +1,4 @@
-// FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST PAGE"; HIGH RISE's stage.js is the pattern): the run loop on the pure engine, the
-// scene (night.js — F3: BOTH LOOKS, the shared DAY / NIGHT read live), the HUD, THE OPENING, THE HOLD, YOUR BEST, the sounds' cues, the end card — ONE module: the test page mounts
-// it (play.js) and — F4A — the cartridge mounts the same one (view.js). It COUNTS NOTHING itself: no /api, no profile, no report, no
-// database — the page hands it a best to read + write (this phone's); the cartridge hands it its hooks (`o.go` the GO → the seed + tick 0 ·
-// `o.resume` a hold's way back, stamped · `o.onFrame` / `o.onOver` / `o.onEnd` / `o.onHide` — what a run WRITES is the view's: view.js).
-//   · THE RUN: tick 0 = the START (the first drag — after ≤ 0.6 s for the sounds' decode: THE SOUND SYNC); the RULES never read the
-//     clock — the stage turns it into ticks. FAIR INPUT: a move counts at the tick of its own EVENT TIME (pointermove's timeStamp, each
-//     coalesced sample at its own) — 60 Hz and 120 Hz phones are equal. THE DRAG is 1 : 1 (the ring under the ball moves as far as the
-//     finger — F1's scale, the owner's phone check); MAX SPIN's rest is offered again tick by tick (≤ 8 ticks owed).
-//   · THE HOLD (SOLO — engine.js#hold): the page hidden / the phone locked = the run is HELD (a logged event the judge replays); back =
-//     a 3 · 2 · 1, then on — EXACTLY where it was (F3 — THE HOLD = EXACT RESUME: the ball at the same point of its flight, the tower at
-//     the same angle; nothing the finger does while PAUSED or in the count counts). A mode with no hold left (a match: none) runs on behind the hidden page.
-//   · ZERO GARBAGE IN PLAY (HIGH RISE's LAG RULES): a live frame makes no objects of its own — the HUD writes only what changed, the
-//     big number is BAKED (bakedtext.js), the cues are constants; what is left is what a LANDING makes (the engine's events, a sound's source).
+// FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST PAGE"; HIGH RISE's stage.js is the pattern): the run loop on the pure engine, the (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
@@ -110,10 +97,7 @@ export function createStage(app0, o = {}) {
   const BNR = createBanner();
   // F4B — THE MATCH's HUD (matchhud.js): 3 · 2 · 1 + the names, THE DEPTH RAIL, the edge markers, the OUT card, the WATCHING line
   const MH = createMatchHud();
-  // THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube
-  // sign + its dropping ball are gone). THE GLINT (.ff-glint): a band of light swept across the lettering, MASKED TO THE LETTERING's
-  // OWN ALPHA (the mask = the very file the <img> picked — no second download), a 4-point star on the last letter as it leaves — CSS
-  // only (transform + opacity), running only while the opening waits
+  // THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube (→ §2, docs/freefall.md MODULE NOTES)
   const art = (name, w) => new URL(`../../../assets/freefall/title/${name}-${w}.webp?v=${FF_ART_REV}`, import.meta.url).href;
   const sizesOf = k => `min(${Math.round(k * 100)}vw, ${Math.round(k * 60)}vh)`;   // (the stage's column: min(100vw, 60dvh) wide)
   const glint = h('i.ff-glint', { 'aria-hidden': 'true' }), star = h('i.ff-star', { 'aria-hidden': 'true' });
@@ -131,10 +115,7 @@ export function createStage(app0, o = {}) {
   warmLogo();   // (F5C — THE LOGO ALWAYS SHOWS: fetched + decoded during play, painted in the end screen's first frame — the cartridge's podium too)
   const again = h('button.ff-again', { type: 'button' }, h('span.ff-again-i'), h('span.ff-again-t', 'PLAY AGAIN'));
   again.firstChild.innerHTML = ICON_AGAIN;
-  // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`)
-  // F4B — THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — ui/final.js's, copied here: this page loads no
-  // console): the PLAY AGAIN bar, then the quiet links SHARE | HOME with the SAME drawn icons. The page's SHARE hands the phone's own share
-  // sheet THE PICTURE ALONE (F5B — card.js + send.js, the cartridge's own: no line, no link, no server — NOTHING COUNTS here)
+  // (the cartridge's own card — an UNPROVEN run's, a run with no signal — has the console's way out: `o.onLeave`) (→ §3, docs/freefall.md MODULE NOTES)
   const linkIco = id => { const i = h('i.ff-link-i', { 'aria-hidden': 'true' }); i.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${id === 'share' ? '<path d="M12 15V3.8"/><path d="M7.6 8 12 3.6 16.4 8"/><path d="M5 12.5v6.5h14v-6.5"/>' : '<path d="M3.8 11.2 12 4l8.2 7.2"/><path d="M6.3 9.4V20h11.4V9.4"/><path d="M10 20v-5.2h4V20"/>'}</svg>`; return i; };
   const shareT = h('span', 'SHARE'), share = h('button.ff-link.ff-share', { type: 'button' }, linkIco('share'), shareT);
   const city = o.onLeave ? h('button.ff-link.ff-city', { type: 'button' }, linkIco('home'), h('span', o.leaveWords || 'BACK')) : h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'));

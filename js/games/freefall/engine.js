@@ -1,10 +1,4 @@
-// FREEFALL — THE ENGINE (F1 — docs/freefall.md "THE ENGINE"): THE ONE RULE — the same seed + the same INPUT LOG = the exact same run on
-// any phone and on the server (REPLAY = LIVE). FIXED-STEP TICKS (tuning.js#TICK_HZ = 60 a second); THE ONLY INPUT is THE INPUT LOG: the
-// tower's angle A at the ticks it changed — [{ t, a }], the ticks rising, A held between. The run is EVENT-DRIVEN (HIGH RISE's way): it is
-// a sequence of LANDING TICKS — on a landing the slice under the ball AT THAT TICK decides (SAFE → a bounce · GAP → a fall · RED → out);
-// between two landings only THE DARKNESS moves, at ticks the engine knows exactly — stepTo jumps from one to the next (a judge's replay
-// costs one step a landing, not one a tick). The phone's live run and the server's judge run THIS code.
-// PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
+// FREEFALL — THE ENGINE (F1 — docs/freefall.md "THE ENGINE"): THE ONE RULE — the same seed + the same INPUT LOG = the exact same run on (→ §1, docs/freefall.md MODULE NOTES)
 import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, RULE_SETS, RULES_DEFAULT, ruleSet, isRuleRow, AREAS, darkPaceAt } from './tuning.js';
 import { seedHash, floorInto, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { areaIndex } from './logic.js';

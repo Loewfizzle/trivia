@@ -1,11 +1,4 @@
-// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — docs/freefall.md "THE NUMBERS" · "THE RULE-SET TABLE"): EVERY NUMBER OF THE RULES lives
-// HERE, in ONE table — HIGH RISE's rules.js pattern (docs/highrise.md "THE RULE-SET TABLE"). A RULE SET = one row; today's only one is
-// "classic" (set by the bot sims — docs/games/passes/freefall-f1.md "THE TUNING"). A run is played on ONE rule set and RECORDS it
-// (engine.js: `run.rules`, the judge's answer); THE JUDGE replays a log on the set it names and REFUSES one it does not know — so a future
-// tuning is a NEW row, and every run ever recorded still replays to the tick on the row it was played on.
-// PURE, no imports, no DOM. THE RULES' MATH IS CROSS-ENGINE SAFE: integers and + − × % + Math.floor / Math.imul only — never a float,
-// never Math.sin / cos / pow / sqrt, never Date / Math.random / performance (the phone's run and the server's replay must agree landing
-// for landing). The view may use anything.
+// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — docs/freefall.md "THE NUMBERS" · "THE RULE-SET TABLE"): EVERY NUMBER OF THE RULES lives (→ §1, docs/freefall.md MODULE NOTES)
 
 /** THE FIXED STEP: the rules count TICKS, never milliseconds — 60 a second. (The view turns its clock into ticks; the rules never read one.) */
 export const TICK_HZ = 60;
@@ -93,11 +86,7 @@ export const RULE_SETS = Object.freeze({
     first: 18, bounce: 36, fall: 18,
     blaze: 3,
     shatterSafe: true,
-    // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW
-    //  the darkness; now a stopped ball has 6 s and it is always in sight. F3B — THE DARKNESS EASES WITH DEPTH, the owner Nov 26: floors
-    //  0–100 EXACTLY as F3 built them (a floor every 120 ticks: 6 s stopped), a straight line over floors 100–160, a floor every 160 ticks
-    //  from floor 160 on (8 s stopped — THE DEEP + THE TRENCH: the stall budget follows the layout's difficulty). Nothing was ever recorded:
-    //  no new row.)
+    // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW (→ §2, docs/freefall.md MODULE NOTES)
     dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 },
     human: { react: 12, spin: 68 },
     gen: {

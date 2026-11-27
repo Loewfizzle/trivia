@@ -1,17 +1,4 @@
-// FREEFALL — THE DIRECTOR (F4A — docs/freefall.md "THE CARTRIDGE"; HIGH RISE's S4A director is the pattern): the PURE host step. THE GAME
-// FRAME: id, matchId, participants, phase (+ phaseStartAt). THE 3 S RULE: every patch here moves `phase` — a step never needs to land twice.
-// The host holds no private state: any phone that becomes host continues from the database (the proof nodes).
-// F4B — THE MATCH (2 … 8 players, ONE ball each down the SAME tower — HIGH RISE's director is the pattern): count (3 · 2 · 1) → play → final.
-//   · GO: every phone writes its proof node's `go` in the count's last 2 s; THE FIRST GO (core/proof.js#firstGo — final the moment it
-//     lands) picks the seed + sets tick 0 (that time + match.js#GO_LEAD_MS) for everyone. The step count → play writes them into the game.
-//     No GO anywhere (no signal, the rules not published) → the match plays UNPROVEN: a seed of its own, never counted.
-//   · THE END: every player's run has ended — their node says `e`; a player gone silent (a dead phone) is waited for: online →
-//     IDLE_OUT_MS (the darkness has ended that run by then), offline → + DROP_WAIT_MS (THE DROPPED SIGNAL) — or the 3:00 cap + a grace.
-//     The results are THE JUDGE's replay of each player's log (proof.js#judgeMatch), never their claim.
-// F4A — THE SOLO RUN: no count — `play` from the start; the run's
-// own clock starts at the PLAYER's GO (their proof node's server timestamp — the seed is picked from it: logic.js#seedOf, never game.seed).
-// THE END: the player's node says `e` (written once, right behind the last chunk — a SIGNAL: the result is THE JUDGE's replay of the
-// node, proof.js#judgeSolo — never a number the phone claims).
+// FREEFALL — THE DIRECTOR (F4A — docs/freefall.md "THE CARTRIDGE"; HIGH RISE's S4A director is the pattern): the PURE host step. THE GAME (→ §1, docs/freefall.md MODULE NOTES)
 import { cleanSettings } from './meta.js';
 import { modeOf, seedOf } from './logic.js';
 import { judgeSolo, judgeMatch } from './proof.js';

@@ -1,7 +1,4 @@
-// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT LOOK · F3: every material reads `uDay` and takes its day half from day-fx.js —
-// docs/freefall.md "THE NIGHT LOOK" + "THE DAY LOOK"; night.js builds the ONE scene both looks share). HIGH RISE's way
-// (js/games/highrise/night-fx.js): three.js core only — no add-on, no post-processing library; everything is written in LINEAR light and
-// ends in three's own colour-space chunk. Every material carries `uBloom` (1 = the bloom pass: only what GIVES light is drawn).
+// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT LOOK · F3: every material reads `uDay` and takes its day half from day-fx.js — (→ §1, docs/freefall.md MODULE NOTES)
 import * as THREE from 'three';
 import { CAUST, NOISE, DAY_WALLS, DAY_MAIN, DAY_SLICE } from './day-fx.js';
 
@@ -15,11 +12,7 @@ vec3 fire(float h) {
   return mix(c, vec3(1.0, 1.0, 0.92), smoothstep(0.74, 0.95, h));                           // → white
 }`;
 
-// ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each
-// pixel's ray meets THE WALL — a cylinder round the tower's axis, seen from outside through its near side (the far inside face) — and
-// reads the area's painted wall there (seamless: it wraps round the shaft and repeats down it). Two walls cross-fade BY DEPTH at the seam
-// between two areas (the next area's wall is seen coming up from below). THE ROOFTOP has no wall: the open night sky + JAYWALK's
-// skyline painting on the horizon. THE GLOW rises from the shaft's bottom (pink → violet); THE DARKNESS: above its line the wall is out.
+// ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each (→ §2, docs/freefall.md MODULE NOTES)
 export const WALL_V = /* glsl */`
 varying vec2 vS;
 void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9999, 1.0); }`;
@@ -125,14 +118,7 @@ void main() {
   // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
   gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
 }`;
-// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL RESOLUTION (the add-on, Nov 26 — the owner: JAYWALK's skyline stretched round the
-// compass in the half-res pass was blurry, blocky windows). A screen-filling quad over the half-res wall, drawn ONLY while the rooftop is
-// on screen (the opening + floors 0–39): each pixel's ray reads the 3072 × 1024 panorama (a 360° picture; mipmaps + anisotropy; it
-// repeats on u — u = 0 and u = 1 match) — shown across uSpanAz of the compass so a texel is never stretched past ~1.3 screen pixels on a
-// phone at 3×; the city's horizon near eye level from the top floor, the buildings in the lower part — ONE horizon height for both looks;
-// it rises a little as the ball goes down (uRise: the ball sinks between the buildings). Under its foot: by night the dark roof + the
-// glow, by day the open air + soft clouds. Where the next area's wall begins (the seam, a world height) it fades out: the wall is under
-// it. THE DARKNESS reads here as on the walls (above its line: the lights out · by day THE STORM CLOUD). A red pixel leans to pink.
+// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL RESOLUTION (the add-on, Nov 26 — the owner: JAYWALK's skyline stretched round the (→ §3, docs/freefall.md MODULE NOTES)
 export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9998, 1.0); }';
 export const SKY_F = /* glsl */`
 uniform sampler2D tPano, tRoof, tCity, tGrain;
@@ -222,11 +208,7 @@ void main() {
 export const COPY_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }';
 export const COPY_F = 'precision highp float; uniform sampler2D tMap; uniform float uBloom; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb * (1.0 - uBloom), 1.0); }';
 
-// ---- THE SLICES: ONE instanced mesh for every solid slice in sight. A slice = a wedge of the ring (aE = its own coordinates: across the
-// wedge −1 … 1 · from the pillar 0 … 1 out to the rim · the face: 0 top, 1 the outer wall, 2 a cut side · down the wall 0 … 1).
-// Per slice: aI = (its angle on the floor, its floor's height, how far it stands PROUD — red only —, its kind: 0 safe · 1 red · 2 red
-// that MOVES) · aC = (its colour, its alpha) · aF = (a white flash, a red WARNING — the moving red steps here next —, cracked, it flies
-// outward: a floor just passed).
+// ---- THE SLICES: ONE instanced mesh for every solid slice in sight. A slice = a wedge of the ring (aE = its own coordinates: across the (→ §4, docs/freefall.md MODULE NOTES)
 export const SLICE_V = /* glsl */`
 attribute vec4 aE, aI, aC, aF;
 attribute vec3 aR;
@@ -425,10 +407,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE LIGHTS (one instanced quad, added light): aP = (its place, its half size) · aQ = (its kind, its strength, stretch up — a
-// trail's length —, a seed) · aC its colour. Kinds: 0 a round glow (the ball's halo) · 1 THE TRAIL (a flame rising from the ball: wide
-// at its foot, a point at its tip, flickering) · 2 THE MARK on the floor (flat: where the ball's centre comes down — a hot point in a
-// thin ring) · 3 a PUNCH (flat: a ring of light running out from a shatter; aQ.z = its age 0 … 1)
+// ---- THE LIGHTS (one instanced quad, added light): aP = (its place, its half size) · aQ = (its kind, its strength, stretch up — a (→ §5, docs/freefall.md MODULE NOTES)
 export const LIGHT_V = /* glsl */`
 attribute vec4 aP, aQ;
 attribute vec3 aC;
@@ -487,10 +466,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke),
-// flown HERE (a flame = its start, its drift, (its birth, its life, its size, its seed)): it swells as it ages, swirls off its line
-// (a curl of sines by its own seed), turns from flame to smoke, cools down the ramp. Light that covers a little (the bands stay). A FIXED pool: the tiers trim how
-// many are lit at once, never the pool.
+// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke), (→ §6, docs/freefall.md MODULE NOTES)
 export const FLAME_V = /* glsl */`
 attribute vec3 aO, aV;
 attribute vec4 aT;

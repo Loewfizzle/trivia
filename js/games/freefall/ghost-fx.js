@@ -1,13 +1,4 @@
-// FREEFALL — THE GHOSTS' LAYER (F4B — docs/freefall.md "THE GHOSTS"): what a rival LOOKS like on my tower. Its own small scene, drawn
-// AFTER the picture (and its bloom) over the SAME depth buffer:
-//   · THE BALLS — ONE instanced sphere, see-through, in the player's colour: a bright rim, a faint fill, and a DARK outer edge (it reads on
-//     pearl / gold / lavender day floors and on the water as on the night's neon)
-//   · X-RAY — the SAME instances drawn again where the tower HIDES them (the depth test turned round): a soft outline + a faint fill on
-//     top — a ghost behind a floor or the pillar is never lost
-//   · THE NAME TAGS — ONE instanced quad over everything, each a row of an atlas BAKED ONCE at the screen's own sharpness (full 3×): the
-//     name in the player's colour on a dark rim; set to whole device pixels (crisp), pushed away from MY ball, stacked when two would overlap
-//   · near MY ball (≈ a floor) a ghost fades to an OUTLINE with no tag — my own ball is always on top (it wrote the depth)
-// ZERO GARBAGE IN PLAY: `place()` writes typed arrays made once; the atlas is baked at the count (never in a run, unless a name changes).
+// FREEFALL — THE GHOSTS' LAYER (F4B — docs/freefall.md "THE GHOSTS"): what a rival LOOKS like on my tower. Its own small scene, drawn (→ §1, docs/freefall.md MODULE NOTES)
 import * as THREE from 'three';
 
 /** the most ghosts a match shows (8 players: 7 rivals — the test page's bot room may ask for 8) */

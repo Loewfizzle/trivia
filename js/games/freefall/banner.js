@@ -1,14 +1,4 @@
-// FREEFALL — THE ARRIVAL BANNERS (F3 — docs/freefall.md "THE ARRIVAL BANNERS"): on reaching an area a band crosses the screen — "THE
-// SPEAKEASY" big, "FLOOR 80" under it — for 1.6 s. F3B (the owner): the band lies UNDER THE BIG NUMBER (it never covers a floor below the
-// ball), and THE BOTTOM's is GOLD ("YOU HIT THE BOTTOM"). NIGHT = a dark band between two thin pink rules, white words in a pink glow;
-// DAY = a frosted pale band, navy words (the stylesheet: .ff-banner — the CSS is the one source of the look).
-// BAKED TEXT (bakedtext.js's way — HIGH RISE's lesson): a band's two lines are drawn WITH THEIR GLOW ONCE into a canvas of its own.
-// F3B — THE STUTTERS: EVERY band of a run is its OWN NODE, built + baked BEHIND THE OPENING (the stage prepares the areas' six + the
-// trench's first lap at a restart; they are KEPT — the next run builds nothing) and kept PAINTED (a node at rest is all but clear, never
-// hidden: its layer is already on the GPU). AN ARRIVAL TOUCHES NO DOM: it runs one Web Animations one-shot (opacity + transform) on the
-// band's own node — no text written, no class turned, no canvas swapped, nothing laid out. Only a later trench lap's band (281 · …) is
-// built in a run, between two arrivals. The words stay in each node for the bake's measure (transparent under the canvas); a reader
-// hears the arrival from the list's own live line, written a moment AFTER the band is up. DOM + canvas only — no rules, nothing counts.
+// FREEFALL — THE ARRIVAL BANNERS (F3 — docs/freefall.md "THE ARRIVAL BANNERS"): on reaching an area a band crosses the screen — "THE (→ §1, docs/freefall.md MODULE NOTES)
 import { h } from '../../ui/dom.js';
 import { parseShadows } from './bakedtext.js';
 

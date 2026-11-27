@@ -1,16 +1,4 @@
-// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — all CC0; two are JAYWALK's).
-// PURE, no imports (the unit tests read it; sfx.js plays it): every sound, its words in the SOUNDS list, its file + folder, its gain into
-// the limiter, its PRIORITY. THE PICKS ARE THE OWNER's (take A of each).
-// THE TRIGGERS (cuesOf — the engine's events → the sounds):
-//   bounce       every landing on solid ground — SOFT, the note as recorded, never the same twice (± 1.5 dB)
-//   whoosh + THE NOTE UP ITS SCALE   every CLEAN fall through a gap: the bounce's one note pitch-shifted in code, a step higher each
-//                clean floor in a row (do re mi so la do′ re′ mi′ — holding at the top), back to the first note after a bounce
-//   blaze        THE BLAZE lights · shatter  a slice shatters · crack (the crash, short + high + quiet)  the landing right after a
-//   shatter came down on red (saved) · crash  out on red · lights-out  out in the dark · bottom  THE FINISH (ready for F3)
-//   area-arrive  the ball enters an area · new-best  the fall that passes YOUR BEST   (the stage's: it knows the best)
-//   F3B — THE BREAKTHROUGHS: skylight (floor 40: the glass breaks) · splashdown (floor 120: the plunge) · bottom (floor 200: the ball hits
-//   the seabed — SOLO too now) take the place of the arrival's sound on those three floors, each timed to the moment the ball gets there;
-//   fireworks = a finish, softly, right after bottom (the stage's — F5A: in both looks, by day behind the bubbles + the sun rays)
+// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — all CC0; two are JAYWALK's). (→ §1, docs/freefall.md MODULE NOTES)
 /** a sound: `file` in audio/<dir>/, played at `rate`, `gain` into the limiter, its priority; `play` = it sounds in a run today */
 const snd = (id, label, dir, gain, pri, play = true, more = null) => Object.freeze({ id, label, file: id, dir, rate: 1, gain, pri, play, ...more });
 export const SOUNDS = Object.freeze([

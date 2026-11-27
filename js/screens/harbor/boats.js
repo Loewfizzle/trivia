@@ -1,24 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 5: THE BOATS (docs/harbor/passes/part-5.md#the-boats). Each sails on the clock (core/harbor-boats.js: the
-// routes, pure + tested). 8b2 Group 3 — THE BOATS IN 3D: every boat is a real MODEL now (boat-models.js on boat3d.js's kit) in
-// the Harbor's own camera, posed by its heading, so it TURNS on the water (bow, three-quarter, side and stern views all true):
-//
-//   ROSIE      the riverboat: a white hull over a broad navy boot-top + a gold pinstripe (9a), three decks of arched windows, the pilothouse, twin black
-//              stacks with feathered crowns + a gold band, the stern PADDLEWHEEL under its red hood with her name (the wheel
-//              turns live — between her back and front: you see it from astern, it hides behind her from ahead), flagstaffs +
-//              pennants, lifebuoys; at night every window warm and STRINGS OF BULBS from the bow staff over the stacks to the
-//              stern staff (a scheme hook: set({ rosie: 'valentine' }) — 11c's dinner cruise; 'parade' — 11b's lit boat parade;
-//              set({ chase }) — Part 10's chase along the strings); coal smoke off her stacks while she's under way
-//   THE TAXI   a yellow water taxi with its checker band, zipping across in front of the pier head, bow up
-//   THE TUG    (night) red + black, its fender at the bow, the wheelhouse high, the stack, the towing lights on the mast
-//   THE FISHING TUG  the tug's build in white + green; its bow lantern at the stem while it's out in the dark
-//   SAILBOATS  (day) a white sloop, main + jib on the leeward side, cambered, heeling in the real wind; they TACK through it
-//
-// THE CACHE: each boat's look is rendered into a sprite keyed by its heading (½° Rosie, 1° the rest), its view angle (the
-// perspective shifts as it crosses: x / z in steps of 0.012), its depth, the tones + the scheme — a boat sailing straight costs
-// a blit; it re-renders only when the key changes (a turn: a few times a second). Live per frame: the bob, Rosie's wheel, the
-// bulbs while they chase, the running lights (green starboard / red port on the TRUE heading: the side facing us), the smoke,
-// the noon steam plume, the lantern, the blackout's dark glass (f.power), the wakes (curving with the turn) and the
-// REFLECTIONS (the same sprites, mirrored about each boat's waterline through water.reflect; the taxi's own per frame).
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/boats.js" — moved FREEFALL FIX A, THE BOOT's BYTE ROOM)
 import { project } from '../../core/harbor-layout.js';
 import { boatRoutes, boatAt, cycleOf } from '../../core/harbor-boats.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';

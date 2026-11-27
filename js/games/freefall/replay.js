@@ -110,13 +110,7 @@ export function judgeRun(input) {
   return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, bounces: r.bounces, shatters: r.shatters, blazes: r.blazes, bestRun: r.bestRun, moves: r.moves, feats: r.feats, ...(r.holds ? { holds: r.holds } : {}), ...(live ? { over: r.over } : {}) };
 }
 
-// ---- THE PACKED LOG (F4's run node): event after event, no separator between them —
-//   A MOVE:  [ '.' + the ticks since the event before (base 36) ]  — left out when it is 1 (a drag logs tick after tick); the first event counts from tick −1
-//            '+' | '-'                                             — the way the tower turned
-//            the units it turned (base 36, 1 … 2048)               — the SHORTEST way from the angle before
-//   A HOLD (F2):  '!' + the ticks since the event before (base 36; "0" = at the tick of the move before it)
-// ".c+2r+1k-3.a-z" = tick 11: +99 · tick 12: +56 · tick 13: −3 · tick 23: −35. "…-z!4+5" = … a hold at tick 27, then tick 28: +5.
-// CANONICAL: packLog(unpackLog(s)) === s, nothing else unpacks.
+// ---- THE PACKED LOG (F4's run node): event after event, no separator between them — (→ §1, docs/freefall.md MODULE NOTES)
 /** ONE move as the packed log writes it — after the event at tick `pt` (the angle before: `pa`); F4A: the proof's chunks are cut from the same text (proof.js) */
 export const packMove = (pt, pa, t, a) => { const gap = t - pt, d = angDiff(a, pa); return (gap === 1 ? '' : `.${gap.toString(36)}`) + (d < 0 ? `-${(-d).toString(36)}` : `+${d.toString(36)}`); };
 export function packLog(log) {

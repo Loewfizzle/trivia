@@ -1,22 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE MOON, THE SUN'S HAZE, THE AURORA — the art (the real timing, path and phase are core/sky.js's
-// + the framing harbor/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor/passes/part-6a.md.
-//   THE MOON    THE REAL MOON (the owner: "the craters look off"): a PHOTOGRAPHIC map of the near side — assets/moon-near.jpg, an
-//               orthographic disc made from NASA's CGI Moon Kit (LRO LROC WAC colour mosaic, lroc_color_poles_2k; NASA Scientific
-//               Visualization Studio, svs.gsfc.nasa.gov/4720, public domain), 256 px grayscale. The maria (the man in the moon),
-//               the bright highlands, Tycho's rays — no drawn craters. Lit per pixel (Lommel–Seeliger: the full moon's flat even
-//               light, a quarter's gentle fall toward the soft terminator), turned to the player's REAL SKY (moonSky: the
-//               lunar north from the ecliptic pole, the bright limb toward the real sun — tilted at moonrise, upside down in
-//               the south). Loaded lazily; missing / blocked → the old crafted texture below (the fallback, same orientation).
-//               The fallback: the near side's maria where they really are (Imbrium, Serenitatis, Tranquillitatis,
-//               Crisium, Fecunditatis, Nectaris, Nubium, Humorum, the Ocean of Storms, Frigoris), bright Tycho with its rays,
-//               Copernicus, Kepler, Aristarchus, a field of craterlets; its REAL PHASE with a soft terminator; EARTHSHINE on the
-//               crescent's dark part (the maria faintly there); a big AMBER MOONRISE (bigger + amber low, shrinking to silver
-//               as it climbs; the harvest moon stays amber longer; a supermoon a touch bigger); a wide soft gaussian glow
-//               (wider in haze), a tight corona in clear air and a faint 22° HALO only under a cirrostratus veil, never across
-//               the tagline (SP); a lunar eclipse (the real dates) turns it copper-red
-//   THE SUN     (harbor/sun.js draws the disc) + the golden hour's haze: the low sun's warm air along the horizon
-//   THE AURORA  slow curtains of rays — a sharp green lower border fading up through teal into violet and red (a storm night:
-//               higher, redder, brighter) — rendered small a few times a second and drawn as one soft image
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/moon.js" — moved FREEFALL FIX A, THE BOOT's BYTE ROOM)
 import { moonLook } from '../../core/harbor-sky.js';
 import { safeCtx, ctx2d } from '../../ui/canvas-safe.js';
 

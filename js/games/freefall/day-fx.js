@@ -1,7 +1,4 @@
-// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — docs/freefall.md "THE DAY LOOK"; night.js builds the ONE scene both looks share, night-fx.js
-// holds the materials — each reads `uDay` and takes the piece below for its day half). GLSL text only: no three.js, nothing runs here.
-// The owner's targets: Downloads\NEON\freefall\ff-day.png (UNDER THE HARBOR by day) + freefall-mocks-day.jpg. Everything is written in
-// LINEAR light (a hex colour is its linear value here).
+// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — docs/freefall.md "THE DAY LOOK"; night.js builds the ONE scene both looks share, night-fx.js (→ §1, docs/freefall.md MODULE NOTES)
 
 /** THE CAUSTICS (the shader's own — ff-caustics.png is not used): the bright net where ripples of light cross, moving */
 export const CAUST = /* glsl */`
