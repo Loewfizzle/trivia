@@ -230,20 +230,23 @@ void main() {
 
 // ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets (→ §4, docs/freefall.md MODULE NOTES)
 export const WATER_V = 'varying vec3 vW; varying vec4 vClip; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vClip = projectionMatrix * viewMatrix * w; gl_Position = vClip; }';
+/** FIX A — the ripple map's slopes were stretched × RIP_K when it was baked (scripts/build-freefall-assets.py#RIP_K) */
+export const RIP_K = 10;
 export const WATER_F = /* glsl */`
-uniform sampler2D tWall;
-uniform float uHaveW, uTileW, uTime, uDay, uBloom, uRW, uRP, uSplashT, uLine;
+uniform sampler2D tWall, tRip;
+uniform float uHaveW, uTileW, uTime, uDay, uBloom, uRW, uRP, uRO, uSplashT, uLine, uHaveR;
 uniform vec3 uBall;
 uniform vec2 uImpact;
 varying vec3 vW; varying vec4 vClip;
 ${HASH}
-/** THE SWELL: four long, slow waves on a warped ground → its slopes (x: across the screen · y: toward the viewer) */
+/** THE SWELL (FIX A — the owner's targets: Grok's mock B by day, its night recolour): Grok's soft ripple map, two layers scrolling slowly
+ *  against each other → the surface's slopes (x: across the screen · y: toward the viewer); a faint wave of its own until the map lands */
 vec2 swell(vec2 p, float t) {
+  vec2 a = texture2D(tRip, p * 1.15 + vec2(t * 0.024, t * 0.014)).xy - 0.5;
+  vec2 b = texture2D(tRip, p * 3.4 + vec2(-t * 0.034, t * 0.022) + 0.37).xy - 0.5;
+  vec2 g = (a + b * 0.75) * (32.0 / ${RIP_K}.0) * uHaveR;
   vec2 q = p + 0.32 * vec2(sin(p.y * 0.83 + t * 0.29), cos(p.x * 0.71 - t * 0.23));
-  vec2 g = vec2(0.12, 1.0) * cos((q.x * 0.12 + q.y) * 2.1 + t * 0.9);
-  g += vec2(-0.34, 0.94) * 0.6 * cos((q.y * 0.94 - q.x * 0.34) * 3.3 - t * 1.15);
-  g += vec2(0.8, 0.6) * 0.5 * cos((q.x * 0.8 + q.y * 0.6) * 1.3 + t * 0.5);
-  g += vec2(-0.2, 0.98) * 0.3 * cos((q.y * 0.98 - q.x * 0.2) * 5.4 + t * 1.6);
+  g += (1.0 - 0.75 * uHaveR) * (vec2(0.12, 1.0) * cos((q.x * 0.12 + q.y) * 2.1 + t * 0.9) + vec2(0.8, 0.6) * 0.5 * cos((q.x * 0.8 + q.y * 0.6) * 1.3 + t * 0.5));
   return g;
 }
 /** small lights lying on the surface, one to a cell (\`keep\` of the cells have one) → x = how lit this point is · y = that cell's own dice */
@@ -252,14 +255,6 @@ vec2 speck(vec2 p, float keep, vec2 stretch, float rad) {
   float h = h21(c), h2 = h21(c + 17.3);
   float d = length((f - vec2(0.25 + 0.5 * h2, 0.25 + 0.5 * fract(h * 57.3))) * stretch);
   return vec2(step(h, keep) * (1.0 - smoothstep(rad * 0.3, rad, d)), h2);
-}
-/** the day's ripple LINES: the zero lines of a slow, smooth field — thin (a pixel and a half at any distance), few, moving */
-float lines(vec2 p, float t) {
-  vec2 q = p + 0.5 * vec2(sin(p.y * 0.7 + t * 0.3), cos(p.x * 0.6 - t * 0.26));
-  float a = sin(q.x * 3.4 + t * 0.35) + sin(q.y * 1.7 - t * 0.3) + sin((q.x * 1.3 - q.y * 1.5) * 1.3 + t * 0.22) - 0.35;
-  float w = fwidth(a);
-  // (the review: hairline closed loops read as scratches on glass — soft strokes two or three pixels wide, broken into arcs that come + go)
-  return (1.0 - smoothstep(w * 0.8, w * 2.6 + 0.004, abs(a))) * smoothstep(0.36, 0.6, vn2(q * 0.85 + 7.0));
 }
 void main() {
   float r = length(vW.xz);
@@ -271,8 +266,13 @@ void main() {
   vec3 toCam = cameraPosition - vW;
   float dist = length(toCam);
   vec3 V = toCam / dist;
-  float far = clamp((dist - 3.2) / 5.5, 0.0, 1.0), graze = 1.0 - V.y;   // (graze: 0 = looking straight down · 1 = along the surface)
-  vec2 g = swell(vW.xz, uTime) * mix(1.0, 0.4, far);                    // (flatter with distance: far ripples are finer than a pixel)
+  float far = clamp((dist - 3.2) / 5.5, 0.0, 1.0);
+  vec2 g = swell(vW.xz, uTime) * mix(1.0, 0.55, far);                    // (calmer with distance: far ripples are finer than a pixel)
+  // THE RINGS where the tower meets the water: soft rings running out from the floor's edge, dying as they go
+  vec2 rd = vW.xz / max(r, 1e-4);
+  float rEnv = smoothstep(uRO * 0.86, uRO * 1.04, r) * exp(-max(r - uRO, 0.0) * 1.5), rPh = r * 15.0 - uTime * 1.5 + 0.6 * sin(atan(vW.x, vW.z) * 3.0 + uTime * 0.4);
+  g += rd * sin(rPh) * rEnv * 1.3;
+  float ringHi = pow(max(cos(rPh), 0.0), 3.0) * rEnv;
   // THE RING WAVE of the plunge: rings running out from the impact, dying as they go
   float dI = length(vW.xz - uImpact), age = uTime - uSplashT, ring = 0.0;
   if (age > 0.0 && age < 3.0) {
@@ -280,89 +280,69 @@ void main() {
     ring = cos(ph) * env;
     g += normalize(vW.xz - uImpact + 1e-4) * sin(ph) * env * 2.2;
   }
-  // where the mirrored ray (off the surface at rest) meets the shaft's wall: a streak of light runs from that point of the wall toward the viewer
+  // the surface's light: the swells' faces toward the far wall catch the shaft's light (a broad sheen), their crests a hot glint
+  float face = g.y + 0.35 * g.x, sheen = smoothstep(0.25, 1.5, face), crest = smoothstep(0.9, 1.9, face + 0.5 * ringHi);
+  float sy = clamp(ndc.y * 0.5 + 0.5, 0.0, 1.0);   // (0 = the bottom of the screen · 1 = its top)
+  // where the mirrored ray (off the surface at rest) meets the shaft's wall: the wall's lamps over this point
   vec2 Rh = -V.xz;
   float a = dot(Rh, Rh), b = dot(vW.xz, Rh), cc = r * r - uRW * uRW, tt = (-b + sqrt(max(0.0, b * b - a * cc))) / max(a, 1e-5);
   vec2 hit = vW.xz + Rh * tt;
   float s = length(Rh) * tt;                    // (how far out from the wall's foot this point lies)
-  float lit = step(vW.y, uBall.y);
-  vec2 tb = vW.xz - uBall.xz;
-  // the ball's own light: a soft streak from under it toward the viewer + a pool
-  float lane = exp(-pow((tb.x + g.x * 0.03 * (1.0 + max(tb.y, 0.0))) / 0.12, 2.0)) * smoothstep(-0.25, 0.35, tb.y) * exp(-max(tb.y, 0.0) / 1.7) * lit;
-  float pool = exp(-dot(tb, tb) / 0.55) * lit;
+  float u = atan(hit.x, -hit.y) * 0.15915494 * uTileW + g.x * (0.006 + 0.01 * s);
+  float bias = 5.0 - clamp(log2(fwidth(u) * 1024.0 + 1e-4), -3.0, 5.0);
+  float v1 = mix(0.125, 0.155, uDay), v2 = mix(0.375, 0.345, uDay);
+  vec3 c1 = texture2D(tWall, vec2(u, v1), bias).rgb, c2 = texture2D(tWall, vec2(u, v2), bias).rgb;
+  c1 *= c1; c2 *= c2;
+  float l1 = dot(c1, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c1.r - c1.b) / (c1.r + c1.b + 1e-4));
+  float l2 = dot(c2, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c2.r - c2.b) / (c2.r + c2.b + 1e-4));
+  float lamp = smoothstep(mix(0.05, 0.16, uDay), mix(0.2, 0.32, uDay), max(l1, l2)) * uHaveW;
+  // THE LAMP COLUMN: straight down the middle from the tower toward the viewer, the far wall's own lamp — broken up by the waves
+  float cw = 0.055 + 0.006 * max(vW.z, 0.0), cx = vW.x + g.x * 0.04 + 0.02 * sin(vW.z * 13.0 + uTime);
+  float colm = exp(-cx * cx / (cw * cw)) * smoothstep(uRO * 0.7, uRO * 1.3, vW.z) * exp(-max(vW.z - uRO, 0.0) / 2.4);
+  // (the waves cut a lamp's light into bright flecks: lit on the faces toward the light, dark between)
+  float bands = 0.5 + 0.5 * sin(vW.z * 21.0 + g.y * 3.6 - uTime * 1.1);
+  float brk = smoothstep(0.42, 0.88, bands) * (0.6 + 0.4 * smoothstep(-0.3, 0.8, face));
+  float hc = h21(vec2(floor(u * 32.0), 7.0));
+  float streak = lamp * lamp * lamp * smoothstep(0.45, 0.85, bands) * exp(-s / (1.0 + 1.2 * hc)) * smoothstep(0.0, 0.2, s);
+  float amber = smoothstep(0.12, 0.65, min(colm * brk * 1.3 + streak * 0.5, 1.0));   // (a faint amber over the blue reads BROWN: bright flecks only)
   vec3 col, glow = vec3(0.0);
+  vec2 tb = vW.xz - uBall.xz;
+  float pool = exp(-dot(tb, tb) / 0.4) * step(vW.y, uBall.y);
   if (uDay < 0.5) {
-    // ---- NIGHT: deep teal-navy, lifting toward the far edge; the swell's own soft light + shade
-    col = mix(vec3(0.004, 0.024, 0.066), vec3(0.014, 0.135, 0.26), smoothstep(0.16, 0.68, graze));
-    col *= 1.0 + 0.16 * g.y + 0.1 * g.x + 0.3 * (vn2(vW.xz * 0.9 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5);
-    // THE STREAKS: the wall's own column of light over this point (the painting, read soft all the way down the column)
-    float u = atan(hit.x, -hit.y) * 0.15915494 * uTileW + (g.x * (0.004 + 0.007 * s) + 0.006 * sin(s * 4.3 + uTime * 0.6) * min(s, 2.0));
-    // (read at ONE softness on every phone — mip 5, whatever the screen's sharpness: the bias takes the screen's own step back out —, down
-    //  two rows of the painting: a lamp + a neon strip are each a soft bell ≈ 0.1 high (measured: scratch col.py in the pass log). The bell's
-    //  4th power is its HEART — a thin streak, a third of the lamp's own width. TWO clean inks: a warm column = a lamp's pale amber · a
-    //  cool one = neon leaning to violet, as it does in dark water — never the painting's mixed fringe, never a neon slab brighter than a lamp)
-    float bias = 5.0 - clamp(log2(fwidth(u) * 1024.0 + 1e-4), -3.0, 5.0);
-    vec3 c1 = texture2D(tWall, vec2(u, 0.125), bias).rgb, c2 = texture2D(tWall, vec2(u, 0.375), bias).rgb, lamp = (c1 * c1 + c2 * c2) * 0.5;
-    float warm = clamp((lamp.r - lamp.b) / (lamp.r + lamp.b + 1e-4) * 2.0, 0.0, 1.0), lum = min(dot(lamp, vec3(3.4)), 1.15);
-    lum *= lum; lum *= lum;
-    lamp = mix(vec3(0.62, 0.26, 1.3), vec3(1.0, 0.8, 0.46), warm) * lum * uHaveW;
-    // … broken into dashes by the swell — whole at the wall's foot, more broken the farther out
-    float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
-    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 2.8);
-    vec3 st = min(lamp * 0.42, vec3(0.5)) * streak;
-    col += st; glow += st * 0.3;
-    // the ball: a soft pink-white streak
-vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.12 * smoothstep(0.15, 0.9, dash) + pool * 0.04);
-    col += bl; glow += bl * 0.3;
-    // small pink / cyan GLINTS — short dashes that come + go
-    vec2 gl = speck(vW.xz * 6.0 + 3.7, 0.22, vec2(1.0, 2.6), 0.13);
-    vec3 gc = mix(vec3(1.0, 0.35, 0.8), vec3(0.35, 0.9, 1.0), step(0.5, fract(gl.y * 7.0))) * gl.x * pow(0.5 + 0.5 * sin(uTime * 1.7 + gl.y * 50.0), 6.0) * 0.5 * (1.0 - far);
-    // glowing cyan PLANKTON: a few specks riding the swell, breathing slowly
-    // (round ON THE SCREEN: a dot lying on the surface is seen squashed by the view's own slant — drawn that much longer toward the viewer)
+    // ---- NIGHT (Claude's recolour of mock B): dark teal, its swells lit teal, the amber column, a few pink / violet / cyan glints, plankton
+    col = mix(vec3(0.002, 0.016, 0.03), vec3(0.008, 0.075, 0.1), smoothstep(0.05, 0.85, sy));
+    col *= 0.9 + 0.36 * sheen;
+    col += vec3(0.012, 0.13, 0.14) * sheen * sheen + vec3(0.06, 0.34, 0.34) * crest * 0.4;
+    col += vec3(0.02, 0.14, 0.15) * ringHi * 0.8;
+    col = mix(col, vec3(1.0, 0.62, 0.24), min(amber * 1.05, 0.92));
+    col += vec3(0.4, 0.26, 0.08) * amber * amber;
+    glow += vec3(0.5, 0.26, 0.06) * amber * 0.35;
+    vec2 gl = speck(vW.xz * 5.0 + g * 0.1 + 3.7, 0.12, vec2(1.0, max(V.y, 0.3) * 2.0), 0.14);
+    vec3 gc = mix(mix(vec3(1.0, 0.3, 0.75), vec3(0.62, 0.35, 1.0), step(0.33, fract(gl.y * 7.0))), vec3(0.3, 0.9, 1.0), step(0.66, fract(gl.y * 7.0)));
+    gc *= gl.x * pow(0.5 + 0.5 * sin(uTime * 1.7 + gl.y * 50.0), 6.0) * (0.35 + 0.65 * crest) * (1.0 - far) * 0.7;
+    // glowing cyan PLANKTON: a few specks riding the swell, breathing slowly (round ON THE SCREEN: drawn longer toward the viewer)
     vec2 pk = speck((vW.xz + g * 0.03) * 3.4 + vec2(uTime * 0.02, 0.0), 0.5, vec2(1.0, V.y), 0.055);
     vec3 pc = vec3(0.22, 0.9, 1.0) * pk.x * (0.35 + 0.65 * fract(pk.y * 13.7)) * (0.6 + 0.4 * sin(uTime * 0.9 + pk.y * 40.0));
     col += gc + pc; glow += (gc + pc) * 0.6;
-    col = min(col, vec3(0.62));                 // (LINEAR light — a reflection in dark water stays a soft one: never a white blotch)
+    col = mix(col, vec3(1.0, 0.45, 0.8), pool * pool * 0.12);
+    col = min(col, vec3(0.9));
   } else {
-    // ---- DAY (F5C — THE LAST CODE TRY, the owner's iPhone, Nov 27: F5B's reflections were LAVENDER BLURS — the column read mixed the
-    // painting's pink neon tubes + its brick into the blue —, the white flecks read as SNOW, the far foam as an ICE-RINK rim, the blue greyish).
-    // Now: a saturated OCEAN BLUE, deepest at the bottom of the screen · the reflections = AMBER / BRASS streaks under the wall lamps ONLY
-    // (NIGHT's method: the lamp's column, its heart, broken into dashes by the swell — warm + bright gated, never the neon or the brick) ·
-    // a FEW small glints that ride the moving swell's crests and blink · the far edge sinks softly into the wall (no pale band)
-    float sy = clamp(ndc.y * 0.5 + 0.5, 0.0, 1.0);   // (0 = the bottom of the screen · 1 = its top)
-    col = mix(vec3(0.0, 0.012, 0.1), vec3(0.0, 0.095, 0.37), smoothstep(0.0, 0.55, sy));   // (the review: the bottom deeper still)
-    col = mix(col, vec3(0.004, 0.16, 0.5), smoothstep(0.45, 0.85, sy));
-    col *= 1.0 + 0.16 * g.y + 0.08 * g.x + 0.14 * (vn2(vW.xz * 0.9 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5);
-    col += vec3(0.0, 0.03, 0.06) * smoothstep(0.4, 1.2, g.y);   // (the swell's tops catch a little more sky)
-    // THE LAMPS' STREAKS: the wall's column over this point, read soft (mip 5) along the painting's two lamp rows (v 0.155 · 0.345 — the
-    // day painting's globes, measured); a lamp = WARM + BRIGHT (the brick is warm but dark; the neon is bright but cool) → its heart
-    float u = atan(hit.x, -hit.y) * 0.15915494 * uTileW + (g.x * (0.004 + 0.007 * s) + 0.006 * sin(s * 4.3 + uTime * 0.6) * min(s, 2.0));
-    float bias = 5.0 - clamp(log2(fwidth(u) * 1024.0 + 1e-4), -3.0, 5.0);
-    vec3 c1 = texture2D(tWall, vec2(u, 0.155), bias).rgb, c2 = texture2D(tWall, vec2(u, 0.345), bias).rgb;
-    c1 *= c1; c2 *= c2;   // (≈ linear, as NIGHT reads it)
-    float l1 = dot(c1, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c1.r - c1.b) / (c1.r + c1.b + 1e-4));
-    float l2 = dot(c2, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c2.r - c2.b) / (c2.r + c2.b + 1e-4));
-    float heart = smoothstep(0.16, 0.32, max(l1, l2)); heart *= heart;   // (measured at mip 5: the lamps 0.25 – 0.37 · the brick 0.06 – 0.16)
-    // (the review — "evenly spaced, same-length dashes in neat columns": each lamp's column has its OWN length, strength + dash rhythm — a
-    //  dice of the column it reads (its place on the wall, 32 a turn))
-    float hc = h21(vec2(floor(u * 32.0), 7.0)), hk = h21(vec2(floor(u * 32.0), 11.0));
-    float dash = 0.5 + 0.5 * sin(s * (6.2 + 3.0 * hk) + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
-    float streak = mix(1.0, smoothstep(0.18 + 0.06 * s + 0.12 * hc, 0.95, dash), smoothstep(0.1 + 0.3 * hc, 1.1, s)) * exp(-s / (1.7 + 1.8 * hc)) * (0.65 + 0.35 * hk);
-    // (light ADDED onto deep blue goes grey-lavender — that was F5B's wash: the streak's heart REPLACES the blue with brass, a hot core in it)
-    float k = min(heart * streak * 1.1, 0.88) * uHaveW;
-    col = mix(col, vec3(0.95, 0.5, 0.12), k);
-    col += vec3(0.35, 0.22, 0.06) * k * k;
-    glow += vec3(0.5, 0.28, 0.06) * k * 0.3;
-    // SUN GLINTS — few + small, only on the swell's moving crests, each a short blink (never a static dot: they ride the waves)
-    float crestM = smoothstep(0.75, 1.35, g.y + 0.35 * g.x);
-    vec2 sp = speck(vW.xz * 8.0 + g * 0.18 + vec2(0.0, uTime * 0.12), 0.24, vec2(1.0, max(V.y, 0.25) * 2.2), 0.13);
-    float glint = sp.x * crestM * pow(0.5 + 0.5 * sin(uTime * 3.1 + sp.y * 60.0), 8.0) * (1.0 - 0.5 * far);
-    col = mix(col, vec3(1.0, 0.95, 0.82), min(glint * 0.9, 0.8));
-    // (no ripple LINES by day: the review — thin wandering hairlines read as stray vector strokes; the swell's light + shade carry it)
-    // the ball: a small hot-pink pool + a thin pink streak (F5C: a wide pale pink over the blue was a LAVENDER column)
-    col = mix(col, vec3(1.0, 0.25, 0.62), pool * pool * 0.3);
-    col = mix(col, vec3(1.0, 0.3, 0.66), lane * lane * 0.22 * smoothstep(0.15, 0.9, dash));
-    col = min(col, vec3(0.86));                 // (never a clipped white area: the brightest a glint may be)
+    // ---- DAY (Grok's mock B): a saturated ocean blue deepening toward the bottom of the screen, real swells (their faces lit sky-blue),
+    // the warm amber lamp column breaking up on the waves, small white glints on the crests
+    col = mix(vec3(0.002, 0.03, 0.17), vec3(0.01, 0.12, 0.5), smoothstep(0.0, 0.6, sy));
+    col = mix(col, vec3(0.02, 0.2, 0.6), smoothstep(0.5, 0.9, sy));
+    col *= 0.9 + 0.36 * sheen;
+    col += vec3(0.04, 0.2, 0.42) * sheen * sheen + vec3(0.25, 0.5, 0.75) * crest * 0.3;
+    col += vec3(0.1, 0.3, 0.5) * ringHi * 0.7;
+    col = mix(col, vec3(1.0, 0.66, 0.24), min(amber * 1.1, 0.95));
+    col += vec3(0.5, 0.36, 0.12) * amber * amber;
+    glow += vec3(0.5, 0.28, 0.06) * amber * 0.3;
+    // SUN GLINTS — small, only on the moving crests, each a short blink (never a static dot: they ride the waves)
+    vec2 sp = speck(vW.xz * 7.0 + g * 0.16 + vec2(0.0, uTime * 0.1), 0.5, vec2(1.0, max(V.y, 0.25) * 2.2), 0.13);
+    float glint = sp.x * smoothstep(0.5, 1.5, face) * pow(0.5 + 0.5 * sin(uTime * 3.1 + sp.y * 60.0), 6.0) * (1.0 - 0.5 * far);
+    col = mix(col, vec3(1.0, 0.97, 0.9), min(glint, 0.85));
+    col = mix(col, vec3(1.0, 0.25, 0.62), pool * pool * 0.25);
+    col = min(col, vec3(0.9));
   }
   // THE FOAM: a soft line where the water meets the wall + round the pillar (by night only a faint pale edge)
   float ang = atan(vW.x, -vW.z), fe = vn2(vec2(ang * 9.0, uTime * 0.25)) * 0.16 + 0.04 * sin(ang * 31.0 + uTime * 0.8);

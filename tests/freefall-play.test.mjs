@@ -483,7 +483,7 @@ test('THE AREA PALETTES (F3 — DEPTH-RELATIVE: a floor wears its OWN area\'s co
   assert.ok(inR(hue(PALETTES[2].a), 32, 46) && inR(hue(PALETTES[2].b), 30, 46) && inR(hue(PALETTES[2].rim), 40, 56) && hsl(PALETTES[2].rim)[2] > hsl(PALETTES[2].a)[2] + 0.15, 'THE SPEAKEASY (F3B): BRASS GOLD — warm neon gold faces, brighter gold rims');
   assert.deepEqual(GOLD_AREAS, [2], 'the gold floors: YOUR BEST\'s gold tape turns white with a dark edge there');
   assert.ok(inR(hue(PALETTES[3].a), 165, 185) && inR(hue(PALETTES[3].b), 180, 195), 'UNDER THE HARBOR: teal + aqua');
-  assert.ok(inR(hue(PALETTES[4].a), 235, 255) && hsl(PALETTES[4].a)[2] < 0.35 && inR(hue(PALETTES[4].rim), 265, 285) && hsl(PALETTES[4].rim)[2] > 0.6, 'THE DEEP: dark indigo, glowing ultraviolet rims');
+  assert.ok(inR(hue(PALETTES[4].a), 235, 255) && hsl(PALETTES[4].a)[2] < 0.55 && inR(hue(PALETTES[4].rim), 265, 285) && hsl(PALETTES[4].rim)[2] > 0.6, 'THE DEEP: indigo (FIX A — S13: lifted, a safe slice reads against the wall), glowing ultraviolet rims');
   // BY DAY — CLEARLY COLOURED (the owner's add-on, Nov 26: never near-white ice everywhere): each area's faces a pastel of 35–55 % saturation,
   // its rim a brighter (more saturated, no lighter) version of that colour; five clearly different towers; the rooftop cool — never peach.
   // F3B (the owner): UNDER THE HARBOR = PEARL (about 15 % saturation — contrast by LIGHTNESS against the teal water) with bright cyan rims;
@@ -558,7 +558,7 @@ test('THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): ONE ramp whit
   assert.match(fx, /float body = mix\(fl, sm, smoothstep\(0\.4, 1\.0, k\)\)/, 'a flame turns to smoke as it ages');
   assert.doesNotMatch(fx.slice(fx.indexOf('export const FLAME_V'), fx.indexOf('// ---- THE SHARDS')), /arc|bolt|lightning/i, 'no electric arcs');
   // the sprites: ONLY the four used, CC0, read straight out of the archive
-  assert.deepEqual(readdirSync(new URL('../assets/freefall/fx/', import.meta.url)).sort(), ['blaze.webp', 'burst.webp', 'sand-normal.webp', 'sand.webp'], 'THE BLAZE\'s atlas + F3B\'s: the breakthroughs\' sprites, the water\'s normal map, the seabed\'s sand');
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/fx/', import.meta.url)).sort(), ['blaze.webp', 'burst.webp', 'sand-normal.webp', 'sand.webp', 'water-normal.webp'], 'THE BLAZE\'s atlas + F3B\'s: the breakthroughs\' sprites, the water\'s normal map, the seabed\'s sand');
   assert.ok(statSync(new URL('../assets/freefall/fx/blaze.webp', import.meta.url)).size < 30000, 'the atlas is small');
   const build = read('scripts/build-freefall-assets.py');
   assert.match(build, /SPRITES = \['flame_01', 'flame_03', 'fire_01', 'smoke_01'\]/); assert.doesNotMatch(build, /extractall|\.extract\(/, 'nothing is unpacked to disk');
@@ -598,7 +598,8 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   // (the review) the bed thins out toward the shaft's far wall — never a ruler-straight line; the ball's halo fades out over the sand
   assert.match(bfx, /float farFade\(vec2 xz\)/); assert.match(fx, /a \*= mix\(1\.0, smoothstep\(-0\.46, -0\.1, vQ\.y\), uOnBed\);/);
   assert.match(build, /ROOF_SKY = \(0\.505, 0\.472, 0\.130\)/); assert.match(n, /export const ROOF = Object\.freeze\(\{ cx: 0\.505, cy: 0\.472, sky: 0\.130, s0: 0\.92, s1: 0\.4, to: 34, tilt: 40, curl: 2\.2, far: 30, land: 38\.6 \}\);/, 'the same numbers as the build script measured');
-  assert.match(build, /BURST = \['smoke_07', 'smoke_04', 'circle_05', 'circle_02', 'dirt_02', 'star_06', 'scorch_01'\]/, 'ONLY the sprites used'); assert.doesNotMatch(build, /glass-cracks\.png'\)|water-normal\.png'/, 'the cracks are drawn in code; the 4.6 MB water PNG is never read');
+  assert.match(build, /BURST = \['smoke_07', 'smoke_04', 'circle_05', 'circle_02', 'dirt_02', 'star_06', 'scorch_01'\]/, 'ONLY the sprites used'); assert.doesNotMatch(build, /glass-cracks\.png'\)|'breakthroughs', '[^']*water/, 'the cracks are drawn in code; the 4.6 MB Water 001 PNG is never read (FIX A: the 2048² ripple map is baked to 512²)');
+  assert.ok(statSync(new URL('../assets/freefall/fx/water-normal.webp', import.meta.url)).size < 40000, 'FIX A — THE WATER ripple map is small');
   const credits = read('assets/freefall/CREDITS.md');
   for (const w of ['Ground 055 S', 'ambientCG', 'Particle Pack', 'roof/below-night.webp']) assert.ok(credits.includes(w), `the credits name ${w}`);
   // THE ROOF BELOW: no fog wash — only a light distance haze far out; the roof is shut until the skylight breaks
@@ -624,8 +625,14 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   // of light as broken streaks, plankton; by day turquoise + thin lines + foam. Never the normal map, never the tower's floors mirrored.
   const wf = bfx.slice(bfx.indexOf('export const WATER_F'), bfx.indexOf('// ---- THE SEABED'));
   assert.match(wf, /vec2 swell\(vec2 p, float t\)/, 'THE SWELL: long, slow waves — worked out in the shader');
-  assert.match(wf, /texture2D\(tWall, vec2\(u, 0\.125\), bias\)/, 'a streak = the wall painting\'s own column of light, read soft');
-  assert.match(wf, /float lines\(vec2 p, float t\)/, 'the day\'s thin ripple lines'); assert.match(wf, /THE FOAM/, 'the foam line at the wall + round the pillar');
+  assert.match(wf, /texture2D\(tWall, vec2\(u, v1\), bias\)/, 'a streak = the wall painting\'s own column of light, read soft');
+  assert.match(wf, /THE FOAM/, 'the foam line at the wall + round the pillar');
+  // FIX A — THE WATER (the owner's targets: Grok's mock B by day + its night recolour): ONE ripple path for both looks — Grok's ripple map, two
+  // layers scrolled; the rings where the tower meets the water; the amber LAMP COLUMN broken by the waves; no thin ripple lines
+  assert.match(wf, /texture2D\(tRip, p \* 1\.15 \+ vec2\(t \* 0\.024, t \* 0\.014\)\)/, 'the ripple map, its first layer');
+  assert.match(wf, /\(32\.0 \/ \$\{RIP_K\}\.0\) \* uHaveR/, 'the baked stretch taken back out (build-freefall-assets.py#RIP_K)');
+  assert.match(wf, /THE RINGS where the tower meets the water/); assert.match(wf, /THE LAMP COLUMN/);
+  assert.doesNotMatch(wf, /float lines\(/, 'no thin ripple lines (the review: stray vector strokes)');
   assert.doesNotMatch(wf, /tN\b|uRingC|uFaceC|uFloorY/, 'no normal map (crinkled foil), no floors mirrored (the brown blob)');
   assert.match(wf, /gl_FragColor = vec4\(col, 1\.0\);/, 'the surface hides what is under it');
   // (F5A — THE DAY CELEBRATION: a finish celebrates in BOTH looks — by night the firework, by day a burst of bubbles + the sun rays)

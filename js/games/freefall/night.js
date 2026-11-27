@@ -247,7 +247,7 @@ export function createNight(host, o = {}) {
   const cityNow = () => (day ? picture('city-day', ROOF_URL[1][1], 3) : picture('city', ROOF_URL[0][1], 3));
   // THE BREAKTHROUGHS' textures (F3B): the sprites, the seabed's sand (F5A: the water is worked out in its shader — Water 001's normal map is gone)
   const fxUrl = name => new URL(`../../../assets/freefall/fx/${name}.webp?v=${FF_ART_REV}`, import.meta.url).href;
-  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), grain: picture('grain', new URL(`../../../assets/freefall/roof/grain.webp?v=${FF_ART_REV}`, import.meta.url).href, true), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true) };
+  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), grain: picture('grain', new URL(`../../../assets/freefall/roof/grain.webp?v=${FF_ART_REV}`, import.meta.url).href, true), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true), rip: picture('water-normal', fxUrl('water-normal'), true) };
   // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run): a picture's first upload mid-run was a long frame — EVERY picture of the look on
   // screen is asked for behind the opening (the four walls, the panorama, the roof below + its city; the breakthroughs' textures above):
   // nothing is decoded or uploaded while a run is on (a look that turns mid-run asks for its own set at once)
@@ -905,6 +905,8 @@ export function createNight(host, o = {}) {
     },
     /** the screen y (0 … 1) of the TOP of the ball at the top of a bounce on its floor, in the PLAY pose — the HUD must end above it */
     apexY(run) { place(pcam, POSE.play.pitch, 1, POSE.play.ballY, run.floor, 0); return proj(0, -run.floor * SHAPE.H + 2 * SHAPE.R_BALL + SHAPE.HOP, SHAPE.RB, pcam)[1]; },
+    /** FIX A — THE TITLE's FIRST LOOK: the look's panorama + the roof below + its city are in (the opening holds dark until then) */
+    skyIn: () => !!(skyNow().have && roofNow().have && cityNow().have),
     info: () => ({ breaks: breaks.info(), landed, roof: [S[ROOFA], skyU.uGW.value, skyU.uHaveR.value, skyU.uHaveC.value], look: day ? 'day' : 'night', motes: motes.visible ? mGeo.instanceCount : 0, moteKind, caust: S[CAMY] * SHAPE.H > -G.uFogSeam.value ? G.uCaustB.value : G.uCaust.value, fog: [G.uFog.value.x, G.uFog.value.y, G.uFog.value.z, G.uFogB.value.x, G.uFogB.value.y, G.uFogB.value.z, G.uFogSeam.value, G.uFogK.value, G.uFogKB.value], flames: FLAMES, fx: fxTex.have, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
     /** YOUR BEST's tape as it is drawn (the checks): its colour, its dark edge */
     tapeInfo: () => ({ col: [tapeU.uCol.value.r, tapeU.uCol.value.g, tapeU.uCol.value.b], dark: tapeU.uDark.value, on: tape.visible }),

@@ -50,7 +50,7 @@ export const CALL_AFTER_MS = OUT_SHOW_MS + 400, WATCH_AFTER_MS = OUT_SHOW_MS + 5
 
 // (the pass's own checks — tests/integration/e2e-freefall.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
-const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } } };
+const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* this page only */ } } };
 
 // THE SCENE STAYS WARM over PLAY AGAIN (the console's INSTANT AGAIN remounts the view): the stage is parked a moment, the next mount takes
 // it back (its WebGL context, its programs, its pictures, its decoded sounds) — anything else frees it at once. The stage is ONE object
@@ -62,7 +62,8 @@ const lookNow = () => (typeof document !== 'undefined' && document.body && docum
 const drv = {
   hook: TEST ? '__ffStage' : '',
   lookNow,
-  lookLock: () => (cur && cur.lookLock ? cur.lookLock() : null),   // (THE LOOK LOCK: a match's look = the host's stamp, game.look)
+  lookLock: () => (cur && cur.lookLock ? cur.lookLock() : null),
+  said: { seen: s => ls.get('ff:last') === s, keep: s => ls.set('ff:last', s) },   // (FIX A — S14: LAST ONE STANDING once a match, a refresh too)   // (THE LOOK LOCK: a match's look = the host's stamp, game.look)
   // YOUR BEST: the SERVER's — the best it last told this phone (a counted run's answer) — once counting is ON; while THE SWITCH is OFF this
   // phone's own (the test page's). A run on this stage never writes it.
   best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), write() {} },

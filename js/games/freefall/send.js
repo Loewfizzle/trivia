@@ -63,12 +63,18 @@ export function sendPicture(r) {
  * prepPicture(make) → { warm(), ready() → bool, send() → promise } — `make()` (async → a canvas, or null) runs at warm(): the PNG is kept, so
  * the tap reaches the share sheet with nothing left to wait for. ONE send at a time (a double tap = 'busy'); a failed build is tried again.
  */
+/** FIX A — THE END SCREEN SETTLES FIRST (the owner's iPhone: a 176 ms freeze as it came up): warm() draws the card on an IDLE moment WARM_MS
+ *  after it is asked (at the latest WARM_MAX_MS), encodes it a frame after the drawing — still long before a thumb reaches SHARE (a tap
+ *  before then builds it at once, the same promise) */
+export const WARM_MS = 450, WARM_MAX_MS = 1200;
+const idle = fn => setTimeout(() => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: WARM_MAX_MS - WARM_MS }) : aFrame().then(fn)), WARM_MS);
+const aFrame = () => new Promise(r => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(() => setTimeout(r, 0)) : setTimeout(r, 16)));
 export function prepPicture(make) {
   let p = null, got = null, busy = false;
-  const build = () => (p ||= Promise.resolve().then(make).then(cv => (cv ? pngOf(cv) : null)).catch(e => { console.warn('[freefall share] build', e); return null; }).then(r => { if (r) got = r; else p = null; return r; }));
+  const build = () => (p ||= Promise.resolve().then(make).then(cv => (cv ? aFrame().then(() => pngOf(cv)) : null)).catch(e => { console.warn('[freefall share] build', e); return null; }).then(r => { if (r) got = r; else p = null; return r; }));
   const done = x => { busy = false; return x; };
   return {
-    warm() { build(); },
+    warm() { idle(build); },
     ready: () => !!got,
     send() {
       if (busy) return Promise.resolve('busy');

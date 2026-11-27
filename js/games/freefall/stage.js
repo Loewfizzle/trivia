@@ -14,7 +14,7 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard, warmLogo } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
-import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, outWords, lastWords, lastStanding, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
 import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX, stagingOf } from './shot.js';
@@ -42,6 +42,14 @@ export const KEY_SPIN = 60;
 export const OWED_MAX = 8 * MAX_SPIN;
 /** a frame this long (after a run's first second) is a HITCH (`?fps=1` counts them) */
 export const HITCH_MS = 33;
+/** FIX A — THE SPIKE RULE: `n` hitches inside `span` ms → one tier down (at most `max` a run) */
+export const SPIKE = Object.freeze({ n: 4, span: 20000, max: 2 });
+/** FIX A — S12: the hint comes back after this long bouncing on floor 0 untouched */
+export const TEACH_MS = 2000;
+/** FIX A — the mid-run NEW BEST moment from this floor up */
+export const NEW_BEST_FROM = 10;
+/** FIX A — the opening's dark hold waits at most this long for the rooftop's pictures */
+export const DIM_MAX_MS = 1600;
 /** THE LOOK before the sun rule has answered (it is a lazy module): the phone's own clock — day from 7 to 19 (HIGH RISE's guess) */
 export const guessLook = hour => (hour >= 7 && hour < 19 ? 'day' : 'night');
 /** AUTO asks the sun again this often */
@@ -64,7 +72,7 @@ function press(node, fn) {
   return node;
 }
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
-const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
+const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, skyIn: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
 
 export function createStage(app0, o = {}) {
   let app = app0, acIn = new AbortController();   // (the element the stage is mounted in — the cartridge moves a parked stage to its next view's: `moveTo`)
@@ -96,7 +104,7 @@ export function createStage(app0, o = {}) {
   // THE ARRIVAL BANNERS (banner.js): a band across the foot of the screen on reaching an area — its text BAKED ahead of the arrival
   const BNR = createBanner();
   // F4B — THE MATCH's HUD (matchhud.js): 3 · 2 · 1 + the names, THE DEPTH RAIL, the edge markers, the OUT card, the WATCHING line
-  const MH = createMatchHud();
+  const MH = createMatchHud({ busy: () => BNR.showing() });
   // THE OPENING's TITLE (F3 — title-05, the owner's pick): Grok's lettering + its tagline, two pictures over the LIVE tower (the F2 tube (→ §2, docs/freefall.md MODULE NOTES)
   const art = (name, w) => new URL(`../../../assets/freefall/title/${name}-${w}.webp?v=${FF_ART_REV}`, import.meta.url).href;
   const sizesOf = k => `min(${Math.round(k * 100)}vw, ${Math.round(k * 60)}vh)`;   // (the stage's column: min(100vw, 60dvh) wide)
@@ -132,6 +140,10 @@ export function createStage(app0, o = {}) {
   });
   const stage = h('div.ff-stage.is-open', { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
   app.replaceChildren(stage);
+  // FIX A — THE TITLE's GREY FLASH (the owner's iPhone): the opening holds DARK until the rooftop's pictures are in (≤ DIM_MAX_MS), then fades in
+  let dimming = true;
+  const dimFrom = performance.now();
+  stage.classList.add('is-dim');
   const hook = { ends: [], view: null, sfx: null, auto: null };
   // (the page installs the shared engine itself; in the console it is running long since)
   Promise.all([PAGE ? lazyImport(import('../../audio/engine.js'), '../../audio/engine.js') : null, lazyImport(import('./sfx.js'), './sfx.js')])
@@ -277,8 +289,10 @@ export function createStage(app0, o = {}) {
   }
   function unduck() { clearTimeout(duckT); if (duckUntil) { duckUntil = 0; if (o.duck) { try { o.duck(false); } catch { /* polish */ } } } }
   let momentsAt = Infinity, lastSaid = false;
+  // (FIX A — S14: LAST ONE STANDING is said ONCE a match — a refresh does not say it again: the cartridge keeps the match's seed, `o.said`)
+  const saidSeen = () => !!(o.said && o.said.seen(seed)), saidKeep = () => { if (o.said) o.said.keep(seed); };
   let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
-  const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [], marks = { up: [], down: [] };
+  const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [];
   const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, me: true };
   let watchUid = '', WA = null, evW = [], wfed = 0, wNew = false, rowsDirty = true, simNear = false, watchDelay = WATCH_DELAY;
   const UNIT = 2 * Math.PI / TURN;
@@ -286,7 +300,7 @@ export function createStage(app0, o = {}) {
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
-    held = false; countAt = 0; away = false; hitches = 0; whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
+    held = false; countAt = 0; away = false; hitches = 0; cN.fill(0); cMax.fill(0); spikeN = 0; if (teach) teachOn(false); whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
     if (!PAGE) note.textContent = '';
     worstMs = 0; hN = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
@@ -339,6 +353,7 @@ export function createStage(app0, o = {}) {
     if (starting || t0 != null || shown) return;
     starting = true; startN++;
     stage.classList.remove('is-open'); stage.classList.add('is-starting');
+    turnAt = performance.now(); if (!pre && MODE !== 'match') teachOn(true);   // (S12: a TAP started it — the hint stays until the tower turns)
     view.pose('play');
     if (!warmed) warmed = view.warm(run);
     awakeAt = performance.now(); awake(true);   // (taken IN the touch — where iOS lets a context wake)
@@ -384,9 +399,14 @@ export function createStage(app0, o = {}) {
   function settle(T) {
     for (let t = Math.max(run.mt + 1, run.ll + 1, 0); t <= T && owed !== 0 && !isOver(run); t++) { owed -= turn(run, t, owed, ev); if (owed !== 0) clamped++; }
   }
+  // FIX A — S12 THE TAPPER: a run started by a TAP (no drag) keeps the thumb-sweep hint + DRAG TO SPIN up until the tower is turned (or floor 1
+  // is passed); a ball left bouncing TEACH_MS on floor 0 untouched brings it back. No rules change — a class on the stage (`is-teach`).
+  let teach = false, turnAt = 0;
+  function teachOn(on) { teach = on; stage.classList.toggle('is-teach', on); }
   /** FAIR INPUT: a move counts at the tick of its own EVENT TIME (pointermove's timeStamp → the nearest tick) — never "the next frame" */
   function move(ts, units) {
     if (!units || shown || held) return;
+    turnAt = performance.now(); if (teach) teachOn(false);
     if (t0 == null) { if (starting) pre += units; return; }
     if (isOver(run)) return;
     const T = tickOf(ts, t0);
@@ -481,7 +501,7 @@ export function createStage(app0, o = {}) {
     stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting', 'is-gold'); stage.classList.add('is-live');
     view.pose('play'); prepBanner(0);
     starting = false; soundsBtn.hidden = true; note.hidden = !runNote;
-    t0 = Number(A.t0) || performance.now(); momentsAt = performance.now() + MOMENTS_QUIET_MS; lastSaid = false;
+    t0 = Number(A.t0) || performance.now(); momentsAt = performance.now() + MOMENTS_QUIET_MS; lastSaid = saidSeen();
     awakeAt = performance.now(); awake(true);
     if (!spect && A.log && A.log.length) {   // (a rejoin mid-run: this player's own moves so far, then on from now — unseen + unheard)
       for (let i = 0; i < A.log.length; i++) setAngle(run, A.log[i].t, A.log[i].a, ev);
@@ -509,9 +529,8 @@ export function createStage(app0, o = {}) {
     rowsDirty = false; domAt = performance.now();
     if (!spect) { meRow.floor = run.floor; meRow.over = isOver(run); meRow.end = !meRow.over ? '' : run.st === 'made' ? 'made' : run.st === 'cap' ? 'cap' : 'out'; }
     MH.rail(rows);
-    MH.marks(edgeMarks(rows, R0.floor, marks));
     // F5C — LAST ONE STANDING (3+ players, every rival over, me still falling): once a match — JAYWALK's card + its sound
-    if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
+    if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; saidKeep(); MH.last(lastWords(lead, madeAhead(rows))); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
     for (let i = 0; i < rows.length; i++) if (!rows[i].over) n++;
     if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`; }   // (FIX A — N13: never "0 PLAYING")
@@ -612,9 +631,10 @@ export function createStage(app0, o = {}) {
       if (e.e === 'made' && snd && !reduceM) snd.playCues(FIREWORK_CUES);   // (reduced motion: no celebration is drawn — none is heard. F5A: by DAY too — the burst of bubbles + the sun rays have the same soft fireworks)
       if (e.e === 'fall' && !fromRun && crossedBest(best, e.floor)) {
         // THE CROSSING (once a run): NEW BEST — the number turns gold for the rest of the run
-        newBest = true; stage.classList.add('is-gold'); BN.dirty();
-        say('NEW BEST', 'is-gold', 3, 1300, now);
-        if (snd) snd.play(CUE_NEW_BEST.id);
+        // (FIX A: the MOMENT — gold, the call, its sound — only from floor NEW_BEST_FROM: a tiny best no longer flashes over the number at
+        //  floor 2; the best is kept + the end card says NEW BEST as always)
+        newBest = true;
+        if (e.floor >= NEW_BEST_FROM) { stage.classList.add('is-gold'); BN.dirty(); say('NEW BEST', 'is-gold', 3, 1300, now); if (snd) snd.play(CUE_NEW_BEST.id); }
       }
     }
   }
@@ -644,11 +664,13 @@ export function createStage(app0, o = {}) {
     const card = { floor: res.floor, blazes: res.blazes, cause: res.cause, made: res.made, mode: MODE === 'solo' ? 'solo' : MODE, name };
     picKit().then(([S, C]) => { if (n !== startN) return; pic = S.prepPicture(() => (n === startN ? C.cardFor(card, shot) : null)); pic.warm(); }, () => {});
   }
+  // (FIX A: a BUSY state from the tap until the share settles — never a dead second while the phone's sheet comes up)
+  const shareBusy = p => { share.classList.add('is-busy'); const slow = setTimeout(() => { shareT.textContent = 'SHARING…'; }, 250); Promise.resolve(p).finally(() => { clearTimeout(slow); shareT.textContent = 'SHARE'; share.classList.remove('is-busy'); }); };
   const sharePage = () => {
-    if (!shown || end.hidden) return;
-    if (pic) { pic.send(); return; }   // (ready: the share sheet in this very turn)
+    if (!shown || end.hidden || share.classList.contains('is-busy')) return;
+    if (pic) { shareBusy(pic.send()); return; }   // (ready: the share sheet in this very turn)
     const n = startN;
-    picKit().then(() => { if (n === startN && pic) pic.send(); }, () => {});
+    shareBusy(picKit().then(() => (n === startN && pic ? pic.send() : null), () => {}));
   };
   press(share, sharePage);
   if (o.onLeave) press(city, () => { city.classList.add('is-busy'); Promise.resolve(o.onLeave()).then(null, () => city.classList.remove('is-busy')); });
@@ -734,6 +756,8 @@ export function createStage(app0, o = {}) {
       if (L) { if (cleanLk(L) !== lookT) forceLook(L); } else setLook(o.lookNow ? o.lookNow() : lookWant);
     }
     if (lookT !== lookSeen) lookNow();
+    if (dimming && (frameN & 3) === 0 && (view.skyIn() || now - dimFrom > DIM_MAX_MS || t0 != null || starting)) { dimming = false; stage.classList.remove('is-dim'); }
+    if (frameN % 15 === 0 && !teach && t0 != null && MODE !== 'match' && run.floor === 0 && !isOver(run) && !held && now - turnAt > TEACH_MS) teachOn(true);
     let tau = FIRST;   // (THE OPENING: the ball rests on floor 0)
     if (t0 != null) {
       if (held) {
@@ -812,17 +836,34 @@ export function createStage(app0, o = {}) {
   // it: a picture's upload (`pic`), a sound's decode (`snd`), a band's bake (`band`), a tier step (`tier`), the HUD's own writes (`dom`);
   // else `frame`. The last 24, in records made once.
   const HLOG = 24, hMs = new Float32Array(HLOG), hFloor = new Int32Array(HLOG), hWhy = new Uint8Array(HLOG), WHY = ['frame', 'pic', 'snd', 'band', 'tier', 'dom'];
+  // (FIX A — the run's own tally, a cause each: how many · the worst · its floor — `?fps=1`'s END-OF-RUN SUMMARY reads it)
+  const cN = new Uint16Array(6), cMax = new Float32Array(6), cFl = new Int32Array(6);
+  // FIX A — THE SPIKE RULE (the owner's iPhone: HITCH 16–19 a run, single 34 ms frames — the average never moved the tiers): SPIKE.n hitches
+  // inside SPIKE.span ms step the tier down ONE (a run at most SPIKE.max steps); the tier left is held — the rule never steps back up to it
+  // in the same page (kit/tiers.js#ask's `stay`), so it never flaps. A pinned tier (`?tier=`) is never touched.
+  const spikeAt = new Float64Array(SPIKE.n);
+  let spikeN = 0, spikeK = 0;
   function hitchNow(dt, now) {
     const i = hN++ % HLOG, at = now - dt;
     hMs[i] = dt; hFloor[i] = run.floor;
-    hWhy[i] = at - view.lastWork() < 160 ? 1 : snd && snd.lastWork && at - snd.lastWork() < 160 ? 2 : at - BNR.lastBake() < 160 ? 3 : at - tierAt < 400 ? 4 : at - domAt < 120 ? 5 : 0;
+    const w = hWhy[i] = at - view.lastWork() < 160 ? 1 : snd && snd.lastWork && at - snd.lastWork() < 160 ? 2 : at - BNR.lastBake() < 160 ? 3 : at - tierAt < 400 ? 4 : at - domAt < 120 ? 5 : 0;
     hitches++; if (dt > worstMs) worstMs = dt;
+    cN[w]++; if (dt > cMax[w]) { cMax[w] = dt; cFl[w] = run.floor; }
+    if (w === 4 || pin != null) return;   // (a tier step's own stall never counts toward the next one)
+    spikeAt[spikeK++ % SPIKE.n] = now;
+    if (spikeK >= SPIKE.n && now - spikeAt[spikeK % SPIKE.n] <= SPIKE.span && spikeN < SPIKE.max && tiers.get() > 0) { spikeN++; spikeK = 0; tiers.ask(tiers.get() - 1, true); }
+  }
+  /** `?fps=1`, the run over: what was left — the worst frame, the hitches, the top three causes with their floors */
+  function runSummary() {
+    const order = [0, 1, 2, 3, 4, 5].filter(k => cN[k]).sort((a, b) => cN[b] - cN[a] || cMax[b] - cMax[a]).slice(0, 3);
+    return `RUN · worst ${worstMs.toFixed(0)} ms · HITCH ${hitches}${order.map(k => ` · ${WHY[k]} ${cN[k]}× (${cMax[k].toFixed(0)} ms @${cFl[k]})`).join('')} · tier ${tierPath.join('→')}`;
   }
   /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
   function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); BNR.dirty(); }
   /** a floor was passed: the big number, the area (YOUR BEST's line once it is beaten) */
   function hudFloorNow(R = run) {
     hudFloor = R.floor; setNum(hudFloor); rowsDirty = true;
+    if (teach && hudFloor >= 1) teachOn(false);
     const a = areaOf(hudFloor).name, ink = areaOf(Math.max(0, hudFloor - INK_LAG)).id;
     if (a !== hudArea) hudArea = a;
     if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; domAt = performance.now(); }   // (`data-area` = the area whose WALL is behind the top of the screen — THE REVIEW: it changes INK_LAG floors after a border, as the wall does: the day's inks + THE DARKNESS's look read it)
@@ -841,6 +882,7 @@ export function createStage(app0, o = {}) {
   function countLine(c) { countShown = c; holdN.textContent = String(c); }
   /** `?fps=1`: the last 120 frames, twice a second */
   function fpsLine() {
+    if (t0 != null && isOver(run) && !spect) { const t = runSummary(); if (fpsA.data !== t) fpsA.data = t; return; }   // (FIX A: the END-OF-RUN SUMMARY stays up on the end screen)
     let sum = 0, worst = 0;
     const n = Math.min(frameK, 120);
     for (let i = 0; i < n; i++) { const v = frames[(frameK - 1 - i + 6000) % 600]; sum += v; if (v > worst) worst = v; }

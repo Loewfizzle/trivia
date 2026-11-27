@@ -419,6 +419,30 @@ def breaks():
     print(f'  the breakthroughs\' textures: {total / 1024:.0f} KB')
 
 
+RIP_K = 10   # (break-fx.js#RIP_K reads the same number)
+
+
+def water():
+    """FIX A — THE WATER's ripple map: Grok's water-normal.png (a soft, seamless large-ripple normal map, OpenGL +Y up — the delivery's
+    HANDOFF.md) at 512² (a soft map: nothing finer than a 512th of it is in it) — break-fx.js#WATER_F scrolls two layers of it slowly.
+    water-surface.png is NOT used (the owner's call: the colours are the shader's, by look)"""
+    im = Image.open(os.path.join(SRC, 'water', 'water-normal.png')).convert('RGB')
+    assert im.size[0] == im.size[1] and im.size[0] >= 512, im.size
+    # (its slopes are gentle — ±0.09 — so 8 bits gave the shader ~20 steps: terraces. Stretched × RIP_K around the middle: the shader
+    #  divides by the same RIP_K — break-fx.js#RIP_K)
+    a = np.asarray(im, np.float32)
+    a[..., :2] = np.clip(127.5 + (a[..., :2] - 127.5) * RIP_K, 0, 255)
+    big = Image.fromarray(np.uint8(np.round(a)), 'RGB')
+    small = big.resize((512, 512), Image.BOX if im.size[0] % 512 == 0 else Image.LANCZOS)
+    out = os.path.join(OUT_F, 'water-normal.webp')
+    small.save(out, 'WEBP', quality=88, method=6)
+    lr, tb, ix, iy = seam(Image.open(out).convert('RGB'))
+    print(f'  water/water-normal.png ({im.size[0]}²) → {os.path.relpath(out, ROOT)}  512²  {kb(out)}  seam left|right {lr:.1f} (inside: {ix:.1f}) · top|bottom {tb:.1f} (inside: {iy:.1f})')
+    assert lr < 2.5 * ix + 6 and tb < 2.5 * iy + 6, 'the water map no longer tiles'
+
+
+if want('water'):
+    print('THE WATER (the ripple map)'); water()
 if want('walls'):
     print('THE WALLS'); walls()
 if want('sfx'):

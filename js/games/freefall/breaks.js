@@ -155,7 +155,8 @@ export function createBreaks(X) {
   const W = X.wallU;
   // (F5A — THE WATER SURFACE: worked out in its shader — the wall's own painting is all it reads; its ripple LINES need the derivatives)
   const waterU = { tWall: W.tA, uHaveW: W.uHaveA, uTileW: W.uTileA, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uRW: { value: SHAPE.RW }, uRP: { value: SHAPE.RI },
-    uSplashT: { value: 1e9 }, uLine: { value: -2 }, uBall: { value: new THREE.Vector3() }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) } };
+    uSplashT: { value: 1e9 }, uLine: { value: -2 }, uBall: { value: new THREE.Vector3() }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) }, uRO: { value: SHAPE.RO },
+    tRip: { value: null }, uHaveR: { value: 0 } };   // (FIX A — THE WATER's ripple map: Grok's water-normal, two layers scrolled)
   const waterMat = new THREE.ShaderMaterial({ vertexShader: WATER_V, fragmentShader: WATER_F, uniforms: waterU, extensions: derivs, ...blend });
   const water = add(new THREE.Mesh(plane(22), waterMat), 1.5, waterMat);
   water.position.set(0, waterY, 0);
@@ -404,7 +405,7 @@ export function createBreaks(X) {
     }
     const spNear = spSt < 2 && camY > 104 && camY < 128;   // (asked AFTER the sweep's own step: the plane is gone in the very frame the camera is under)
     water.visible = spNear;
-    if (spNear) waterU.uBall.value.set(bx, by, bz);
+    if (spNear) { waterU.uBall.value.set(bx, by, bz); if (waterU.uHaveR.value !== pics.rip.have) { waterU.tRip.value = pics.rip.tex; waterU.uHaveR.value = pics.rip.have; } }
     // THE WAKE under the surface: by night glowing cyan PLANKTON swirls where the ball has just been; by day a trail of small bubbles
     if (spSt > 0 && now < spWake && !X.reduce) {
       const rate = (day ? 14 : 26) * tierK * (now < spT + 1.6 || !day ? 1 : 0);

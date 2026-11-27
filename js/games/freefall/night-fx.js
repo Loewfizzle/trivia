@@ -148,13 +148,14 @@ void main() {
   float lit = smoothstep(uDarkY + 0.9, uDarkY - 0.25, hitY);
   vec3 col;
   if (uDay > 0.5) {
-    p = mix(mix(vec3(0.62, 0.84, 0.98), vec3(0.13, 0.42, 0.9), smoothstep(0.9, 0.0, v)), p, uHave);
+    // (FIX A — THE GREY FLASH: until the painting lands, a soft gradient in its OWN colours — measured: the top · the bright middle · the skyline)
+    p = mix(mix(mix(vec3(0.001, 0.179, 0.662), vec3(0.234, 0.666, 0.97), smoothstep(0.0, 0.5, v)), vec3(0.027, 0.081, 0.163), smoothstep(0.55, 0.95, v)), p, uHave);
     // under the painting's foot: the open air the tower stands in — a pale haze, soft clouds drifting through it
     col = mix(p, mix(vec3(0.6, 0.84, 0.98), vec3(0.86, 0.95, 1.0), smoothstep(1.0, 2.8, v)), smoothstep(0.88, 1.02, v));
     float cl = fbm(vec2(az * 1.6 + uTime * 0.012, v * 2.2 - uTime * 0.004));
     col = mix(col, vec3(1.0), smoothstep(0.5, 0.8, cl) * 0.6 * smoothstep(1.02, 1.6, v));
   } else {
-    p = mix(mix(vec3(0.035, 0.01, 0.08), vec3(0.003, 0.002, 0.016), smoothstep(0.9, 0.0, v)), p * 1.2, uHave);
+    p = mix(mix(mix(vec3(0.0, 0.0, 0.011), vec3(0.008, 0.01, 0.14), smoothstep(0.0, 0.5, v)), vec3(0.013, 0.012, 0.075), smoothstep(0.55, 0.95, v)), p * 1.2, uHave);
     // under its foot: the dark roof; the glow from below (eased with the walls')
     col = mix(p, vec3(0.012, 0.004, 0.035), smoothstep(0.86, 1.02, v));
     float deep = uBallY - hitY;
@@ -178,7 +179,7 @@ void main() {
     //  city stands beside its own mirror image)
     vec3 ct2 = pow(texture2D(tCity, vec2(ru.y * 2.34 + 0.37, ru.x * 2.34 + 0.11)).rgb, vec3(2.2));
     ct = mix(ct, ct2, smoothstep(0.44, 0.56, vnoise(ru * 2.7 + 5.0)));
-    vec3 flat_ = mix(vec3(0.016, 0.012, 0.04), vec3(0.3, 0.33, 0.38), uDay);
+    vec3 flat_ = mix(vec3(0.016, 0.012, 0.04), vec3(0.027, 0.045, 0.075), uDay);   // (FIX A: the city's own mean by day — never a grey slab under the sky)
     // F5A — THE ROOF GRAIN (floors 36 – 39 by day looked soft: the painting was made at 1024 + enlarged): a fine concrete-grain DETAIL
     // tile laid over the roof as it comes close (uGrain) — two readings of it, a fine one + a coarser one turned (no tile shows), as light
     // + shade about the painting's own colour; its mipmaps let it go with distance. The same reading as the deck's (DECK_F): one roof.

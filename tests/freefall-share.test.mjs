@@ -60,7 +60,7 @@ test('THE STAGE + THE SCENE: ONE small hook each — the frame JUST DRAWN is cop
     const S = SHOTS;
     assert.deepEqual(S.stagingOf('red'), { before: 9, zoom: S.SHOT_ZOOM.red, bloom: S.SHOT_BLOOM.red, glow: S.SHOT_GLOW, alive: true }, 'the red: 150 ms before the hit, the slice glowing');
     assert.ok(S.SHOT_BEFORE.red >= 9 && S.SHOT_BEFORE.red <= 15, 'a beat BEFORE the end: 150 – 250 ms'); assert.equal(S.SHOT_BEFORE.dark, S.SHOT_BEFORE.red);
-    assert.deepEqual([S.stagingOf('made').before, S.stagingOf('made').zoom, S.stagingOf('made').alive, S.stagingOf('made').glow], [0, 1, false, 0], 'THE BOTTOM: the impact itself, the finish\'s own pose');
+    assert.deepEqual([S.stagingOf('made').before, S.stagingOf('made').zoom, S.stagingOf('made').alive, S.stagingOf('made').glow], [0, 1.14, false, 0], 'THE BOTTOM (FIX A — N3: pulled back a little): the impact itself, the finish\'s own pose');
     assert.ok(S.SHOT_BLOOM.made <= 0.35, 'THE BOTTOM\'s bloom is kept LOW (the night gold card was a white blob)');
     assert.ok(S.SHOT_ZOOM.red > 1.2 && S.SHOT_ZOOM.red < 1.6, 'zoomed out a little: 2 – 3 floors of context');
     assert.deepEqual(S.stagingOf('constructor'), S.stagingOf('cap'), 'an unknown cause: the bell\'s');
@@ -196,7 +196,7 @@ test('F5B — THE SHARE PAYLOAD (the real send.js, a stub share sheet): exactly 
     // prepPicture: warm → ready → the send is in the same turn
     calls.length = 0;
     const P = S.prepPicture(() => ({ width: 9, height: 9, toBlob: (cb, type) => cb(new Blob([new Uint8Array([1])], { type })) }));
-    assert.equal(P.ready(), false); P.warm(); for (let i = 0; i < 20 && !P.ready(); i++) await new Promise(res => setTimeout(res, 5));
+    assert.equal(P.ready(), false); P.warm(); for (let i = 0; i < 200 && !P.ready(); i++) await new Promise(res => setTimeout(res, 10));   // (FIX A: warm() waits for the end screen to settle — WARM_MS, then an idle moment)
     assert.equal(P.ready(), true, 'ready while the end screen is read');
     const q = P.send(); assert.equal(calls.length, 1, 'a ready picture: the share sheet in the tap\'s own turn'); assert.equal(await q, 'shared');
     assert.deepEqual(Object.keys(calls[0]), ['files']);
@@ -217,6 +217,6 @@ test('F5B — THE TEST PAGE shares THE PICTURE too (card.js + send.js, LAZY — 
   assert.ok(st.includes("Promise.all([lazyImport(import('./send.js'), './send.js'), lazyImport(import('./card.js'), './card.js')])"), 'the page\'s picture kit is LAZY');
   assert.doesNotMatch(st, /^import [^\n]*(card|send)\.js/m);
   assert.doesNotMatch(st, /navigator\.share|clipboard/, 'the stage shares through send.js alone — no line, no link');
-  assert.ok(st.includes('if (pic) { pic.send(); return; }'), 'a ready picture: the share sheet in the tap\'s own turn');
+  assert.ok(st.includes('if (pic) { shareBusy(pic.send()); return; }'), 'a ready picture: the share sheet in the tap\'s own turn');
   assert.ok(existsSync(new URL('../tests/integration/freefall-share.mjs', import.meta.url)), 'the browser half');
 });

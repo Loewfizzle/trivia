@@ -22,7 +22,7 @@ uniform float uDay, uXray;
 varying vec3 vN, vW, vC; varying vec2 vK;
 void main() {
   vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
-  float nv = max(dot(N, V), 0.0), rim = pow(1.0 - nv, 2.4), edge = 1.0 - smoothstep(mix(0.0, 0.14, uDay), mix(0.2, 0.36, uDay), nv);   // (by day the dark edge is a real RIM: a yellow ghost on the speakeasy's gold, a white one on the harbor's pearl)
+  float nv = max(dot(N, V), 0.0), rim = pow(1.0 - nv, 2.4), edge = 1.0 - smoothstep(mix(0.0, 0.2, uDay), mix(0.2, 0.46, uDay), nv);   // (FIX A: a wider dark rim by day)   // (by day the dark edge is a real RIM: a yellow ghost on the speakeasy's gold, a white one on the harbor's pearl)
   // the ring: the player's colour, white-hot along its middle · the fill: a faint tint of it · the very edge: DARK (the day's contrast)
   float ring = smoothstep(0.18, 0.5, rim) * (1.0 - edge * 0.85);
   vec3 col = mix(vC * 0.9, mix(vC, vec3(1.0), 0.45), ring);
@@ -127,8 +127,9 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       let sx = (V.x + 1) * 0.5 * w, sy = (1 - V.y) * 0.5 * h - TAG_H * 0.5 - 2;
       // away from MY ball: a tag that would lie on it steps to the side its ghost is on
       if (Math.abs(sx - ballX) < 58 && Math.abs(sy - ballY) < 44) sx += (sx >= ballX ? 1 : -1) * (58 - Math.abs(sx - ballX));
-      // stacked when two would overlap (the ghosts start on the same slice)
-      for (let j = 0; j < tagged; j++) if (Math.abs(tx[j] - sx) < TAG_W * 0.62 && Math.abs(ty[j] - sy) < TAG_H * 0.8) sy = ty[j] - TAG_H * 0.8;
+      // stacked when two would overlap (the ghosts start on the same slice) — FIX A: asked again until it clears EVERY tag placed (one pass
+      // could push it onto a third), a full tag's height apart: never two tags over each other
+      for (let pass = 0, hit = true; hit && pass < GHOSTS_MAX; pass++) { hit = false; for (let j = 0; j < tagged; j++) if (Math.abs(tx[j] - sx) < TAG_W * 0.66 && Math.abs(ty[j] - sy) < TAG_H * 0.92) { sy = ty[j] - TAG_H * 0.95; hit = true; } }
       tx[tagged] = sx; ty[tagged] = sy; tagged++;
       const px = Math.round(sx * dpr) / dpr, py = Math.round(sy * dpr) / dpr;
       T[i * 3] = px / w * 2 - 1; T[i * 3 + 1] = 1 - py / h * 2; T[i * 3 + 2] = row + 0.79;

@@ -1359,7 +1359,21 @@ async function contrast() {
   console.log('CONTRAST', JSON.stringify(rows.map(([l, n, r]) => [l, n, +r.num.worst.toFixed(2), +r.num.med.toFixed(2), +r.num.gold.toFixed(2), +r.best.worst.toFixed(2), +r.best.med.toFixed(2)])));
 }
 
+// FIX A — THE WATER beside the owner's two targets: standing on floor 119, both looks (`--watershot [--looks=day]`): water-<look>-<n>.png
+async function watershot() {
+  for (const lk of LOOKS) {
+    const t = await open(390, 844, 3, `?seed=look2&tier=2&floor=117&look=${lk}`);
+    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(t.p, 'safe');
+    for (let k = 0; k < 3; k++) { await sleep(k ? 900 : 1200); await shot(t.p, `water-${lk}-${k}.png`); }
+    ok(!t.errs.length, `THE WATER · ${lk}: shot on floor ${(await st(t.p)).floor} (${t.errs.join(' | ') || 'no error'})`);
+    await t.close();
+  }
+}
+
 if (LOOK) await look();
+else if (argv.includes('--watershot')) await watershot();
 else if (argv.includes('--contrast')) await contrast();
 else if (argv.includes('--stutters')) await stutters();
 else if (argv.includes('--perf8')) await perf8();

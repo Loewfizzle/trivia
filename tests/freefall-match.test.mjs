@@ -289,8 +289,16 @@ test('F5C — THE MATCH MOMENTS (PURE — ghosts.js): RIVAL OUT\'s words + its q
   assert.equal(G.lastStanding([riv(62), riv(40), riv(30)]), null, 'a watcher (no row of mine)');
   assert.equal(G.lastWords(23), '+23 FLOORS AHEAD · KEEP FALLING'); assert.equal(G.lastWords(1), '+1 FLOOR AHEAD · KEEP FALLING');
   assert.equal(G.lastWords(-12), '12 FLOORS TO THE LEAD · KEEP FALLING'); assert.equal(G.lastWords(0), 'LEVEL WITH THE LEAD · KEEP FALLING');
+  // FIX A — S14: a rival who HIT THE BOTTOM can not be caught — the words say so; the lead is measured to the rivals who did NOT finish
+  const made = (f, name) => ({ me: false, over: true, floor: f, end: 'made', name });
+  assert.equal(G.lastStanding([me(150), made(200, 'mia'), riv(120)]), 30, 'the lead to the deepest rival that did NOT finish');
+  assert.equal(G.lastStanding([me(150), made(200, 'mia'), made(200, 'kai')]), 0, 'every rival finished: still a number (the words carry it)');
+  assert.deepEqual(G.madeAhead([me(150), made(200, 'mia'), riv(120)]), { name: 'MIA', n: 1 });
+  assert.equal(G.madeAhead([me(150), riv(120), riv(100)]), null);
+  assert.equal(G.lastWords(30, G.madeAhead([me(150), made(200, 'mia'), riv(120)])), 'MIA HIT THE BOTTOM · KEEP FALLING FOR 2ND');
+  assert.equal(G.lastWords(0, G.madeAhead([me(150), made(200, 'mia'), made(200, 'kai'), riv(9)])), '2 RIVALS HIT THE BOTTOM · KEEP FALLING FOR 3RD');
   // the stage: a rival's run that ended OUT (never a finish / time's up), past the quiet start; LAST ONE STANDING once a match
   const st = readFileSync(new URL('../js/games/freefall/stage.js', import.meta.url), 'utf8');
   assert.ok(st.includes("if (!row.over && G.over && G.end === 'out' && now >= momentsAt) { MH.callout(outWords(row.name || 'A RIVAL'), row.hex || '#fff'); if (snd) snd.play('out-drop'); }"));
-  assert.ok(st.includes("if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; MH.last(lastWords(lead)); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }"));
+  assert.ok(st.includes("if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; saidKeep(); MH.last(lastWords(lead, madeAhead(rows))); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }"));
 });

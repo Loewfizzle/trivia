@@ -159,13 +159,21 @@ export const OUT_CALL_MS = 1500, OUT_CALL_MAX = 2;
 /** LAST ONE STANDING: a match of at least this many players (me included) · the card's time (JAYWALK's LAST_MS) */
 export const LAST_MIN_PLAYERS = 3, LAST_CARD_MS = 2600;
 /** LAST ONE STANDING's line (lead = my floors − the deepest rival's): "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD · KEEP FALLING" */
-export const lastWords = lead => (lead > 0 ? `+${lead} ${lead === 1 ? 'FLOOR' : 'FLOORS'} AHEAD · KEEP FALLING` : lead === 0 ? 'LEVEL WITH THE LEAD · KEEP FALLING' : `${-lead} ${lead === -1 ? 'FLOOR' : 'FLOORS'} TO THE LEAD · KEEP FALLING`);
+export const lastWords = (lead, made = null) => (made ? `${made.name} HIT THE BOTTOM · KEEP FALLING FOR ${ORD[made.n] || `${made.n + 1}TH`}`
+  : lead > 0 ? `+${lead} ${lead === 1 ? 'FLOOR' : 'FLOORS'} AHEAD · KEEP FALLING` : lead === 0 ? 'LEVEL WITH THE LEAD · KEEP FALLING' : `${-lead} ${lead === -1 ? 'FLOOR' : 'FLOORS'} TO THE LEAD · KEEP FALLING`);
+const ORD = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'];
+/** FIX A — S14: the rivals who HIT THE BOTTOM (floor 200 — the lead can not be taken from them) → { name: the first of them, n: how many } · null = none */
+export function madeAhead(rows) {
+  let n = 0, name = '';
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; if (!r.me && r.end === 'made') { if (!n) name = String(r.name || 'A RIVAL').toUpperCase(); n++; } }
+  return n ? { name: n > 1 ? `${n} RIVALS` : name, n } : null;
+}
 /** LAST ONE STANDING (PURE): rows { me, over, floor } → my lead over the deepest rival when I'm the LAST still falling in a match of
  *  LAST_MIN_PLAYERS or more · null = not (yet) */
 export function lastStanding(rows) {
   let me = null, n = 0, deep = -Infinity;
-  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over) return null; if (r.floor > deep) deep = r.floor; }
-  return me && !me.over && n >= LAST_MIN_PLAYERS ? me.floor - deep : null;
+  for (let i = 0; i < rows.length; i++) { const r = rows[i]; n++; if (r.me) { me = r; continue; } if (!r.over) return null; if (r.end !== 'made' && r.floor > deep) deep = r.floor; }   // (FIX A — S14: the lead is measured to the rivals who did NOT finish)
+  return me && !me.over && n >= LAST_MIN_PLAYERS ? (deep === -Infinity ? 0 : me.floor - deep) : null;
 }
 /** an edge marker's words: "MIA ↓12" (deeper than me) · "MIA ↑3" (above me) */
 export const markText = (name, df) => `${name} ${df > 0 ? '↓' : '↑'}${Math.abs(df)}`;

@@ -81,9 +81,11 @@ test('THE ICON = "A · THE TOWER": a cyan isometric stack + the pink slab droppi
   assert.equal((markSvg({ id: 'jaywalk' }).match(/stroke-width:7;/g) || []).length, MARKS.jaywalk.tubes.length, 'every other mark keeps the house width');
   // (FREEFALL F5A: its mark names its own width too — 6 — and ONE of its tubes a width of its own: the thin core flame)
   for (const [id, mk] of Object.entries(MARKS)) if (id !== 'highrise' && id !== 'freefall') assert.equal(mk.w, undefined, `${id}: no width of its own`);
-  assert.equal(MARKS.freefall.w, 6); assert.equal(MARKS.freefall.tubes.length, 5);
+  assert.equal(MARKS.freefall.w, 6); assert.equal(MARKS.freefall.tubes.length, 6);
   const ff = markSvg({ id: 'freefall' });
-  assert.equal((ff.match(/stroke-width:6;/g) || []).length, 4, 'FREEFALL: the floor, the two flames, the ball at 6'); assert.equal((ff.match(/stroke-width:4;/g) || []).length, 1, '… its core flame thin');
+  // (FREEFALL FIX A — THE MARK D: the ring floor's BACK edge first, thinner — 4.5 —, the flames + core + ball, then its FRONT edge at 6)
+  assert.equal((ff.match(/stroke-width:6;/g) || []).length, 4, 'FREEFALL: the two flames, the ball, the front edge of the ring at 6'); assert.equal((ff.match(/stroke-width:4;/g) || []).length, 1, '… its core flame thin');
+  assert.equal((ff.match(/stroke-width:4\.5;/g) || []).length, 1, '… the back edge of the ring thinner'); assert.ok(ff.indexOf('#7d3fb8') < ff.indexOf('#fff0e0') && ff.indexOf('#fff0e0') < ff.indexOf('#c35bff'), 'the back edge under the ball, the front edge over it');
   for (const [id, mk] of Object.entries(MARKS)) if (id !== 'freefall') for (const t of mk.tubes) assert.equal(t.w, undefined, `${id}: no tube with a width of its own`);
 });
 

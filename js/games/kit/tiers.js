@@ -119,7 +119,7 @@ export function createTiers({ apply, initial = 2, max = 2, window = 120, minSamp
     },
     set(t) { pend = 0; set(t); }, get: () => tier, capped: () => capped,
     /** (LAST MILE) a step asked from outside: at once on a quiet screen (or with no `quiet`), else at the next quiet moment · what waits (-1 = nothing) */
-    ask(t) { if (quiet && !quiet()) { pend = 6; pendTo = t; } else { pend = 0; set(t); } },
+    ask(t, stay = false) { if (stay) failed = Math.max(0, Math.min(max, t)) + 1; if (quiet && !quiet()) { pend = 6; pendTo = t; } else { pend = 0; set(t); } },   // (FREEFALL FIX A — `stay`: the tier above is marked failed: the rule never steps back up to it — no flapping; nobody else passes it)
     /** the caller KNOWS the moment is quiet (a new run's start line — it may last less than a frame): the waiting step is made now */
     flush(now) { if (pend) { const k = pend; pend = 0; commit(k, now, pendP50, pendDrop, pendTo); } },
     pending: () => (!pend ? -1 : pend === 1 ? probeFrom : pend === 2 ? spFrom : pend === 5 ? Math.min(max, tier + 1) : pend === 6 ? Math.max(0, Math.min(max, pendTo)) : Math.max(0, tier - 1)),
