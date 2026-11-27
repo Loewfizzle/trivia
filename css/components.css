@@ -688,6 +688,7 @@ body[data-look='day'] .fn-line.has-day.is-gold.fn-line, body[data-look='day'] .f
 /* tabs show each game's lobby artwork; the selected one lights up in its colour */
 .help-tab:has(svg) { padding: 3px; aspect-ratio: 1; min-height: 44px; overflow: hidden; background: #05060f; }
 .help-tab svg { display: block; width: 100%; height: 100%; opacity: 0.5; transition: opacity 0.15s; }
+.help-ic { display: block; width: 100%; height: 100%; padding: 5px; box-sizing: border-box; }   /* (ONE ICON PER GAME, Nov 27: the game's NEON MARK — ui/mark-svg.js, the PLAY sheet's — a little air round it) */
 .help-tab[aria-selected='true']:has(svg) { background: #05060f; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px var(--accent-glow); }
 .help-tab[aria-selected='true'] svg { opacity: 1; }
 .help-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }

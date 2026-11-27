@@ -143,6 +143,8 @@ const SCENE = {
   'pn-highrise': ['2026-11-10T20:30', { act: 'card', game: 'highrise' }], 'pn-highrise-day': ['2026-11-10T13:30', { act: 'card', game: 'highrise' }],
   'hr-help': ['2026-11-10T20:30', { act: 'help', game: 'highrise' }], 'hr-help-day': ['2026-11-10T13:30', { act: 'help', game: 'highrise' }], 'hr-help-end': ['2026-11-10T20:30', { act: 'help', game: 'highrise', end: true }],
   // (FREEFALL F5C: HOW TO PLAY on its tab — the city's night + day behind the sheet)
+  // (THE END-BOARD SWITCH-ON — ONE ICON PER GAME: HOW TO PLAY's tabs = the neon marks; PRISM DROP's + HOLD'EM's tab night + day)
+  'pd-help': ['2026-11-10T20:30', { act: 'help', game: 'prism' }], 'pd-help-day': ['2026-11-10T13:30', { act: 'help', game: 'prism' }], 'he-help': ['2026-11-10T20:30', { act: 'help', game: 'holdem' }],
   'ff-help': ['2026-11-10T20:30', { act: 'help', game: 'freefall' }], 'ff-help-day': ['2026-11-10T13:30', { act: 'help', game: 'freefall' }], 'ff-help-end': ['2026-11-10T20:30', { act: 'help', game: 'freefall', end: true }],
   // (PD-6 — THE SOLO PODIUM FITS: the podium AS IT LANDS (no scroll) — Safari WITH its toolbars = --sizes 390x650,402x690,430x746 (no --safe):
   //  PRISM DROP's solo (night + day, SCORE RUSH + SURVIVAL), OVERCLOCK's solo, a ROOM OF ONE (HOST → play alone); the multiplayer podium untouched)

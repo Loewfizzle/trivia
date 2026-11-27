@@ -32,7 +32,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the five playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
 | `docs/highrise.md` | **HIGH RISE** (LIVE since THE GO-LIVE, Nov 20 — the rules, the two looks, the cartridge + THE MATCH, THE SWITCH ON, THE SIGN HOLD (lifted, CITY PART 1), THE POSTER share card; every pass indexed there) |
-| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5C, Nov 27: THE HIDDEN CARTRIDGE (owner-only: solo + THE MATCH), THE PROOF (`ff`), the judge + THE TIE-BREAK, THE SWITCH OFF, the board + AVG, the cards, SHARE = the picture only, the FINAL SHAPE end screens, the match moments, HOW TO PLAY, THE MIX; the test page /freefall-play; the review → the fix pass → go-live next) |
+| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5C, Nov 27: THE HIDDEN CARTRIDGE (owner-only), THE PROOF (`ff`), the judge + THE TIE-BREAK, THE SWITCH OFF, the board + AVG, the cards, SHARE, the end screens, HOW TO PLAY; the test page /freefall-play; the review → the fix pass → go-live next) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | three of the five dailies (+ docs/jaywalk.md · docs/highrise.md "THE DAILY") (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -41,6 +41,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   final tests; it builds only OPEN entries addressed to its pass (or its game's earlier / next pass) as its next group and marks each
   '✓ done <time> (<commit>)'; an entry that arrives after the final tests started stays OPEN, is named in the summary, and the game's next
   pass builds it. Never edit or delete others' entries. Rules at the top of that file.
+  THE INBOX WRITE RULE: re-read ADDONS.md IMMEDIATELY before writing; APPEND only; never write back a copy read earlier.
 - **NEVER STOP TO ASK (the owner is on his phone):** obvious + established-pattern calls → do + name them; a genuinely new owner call → skip it,
   list it under OPEN FOR BEN + the inbox; finish, push, notify.
 - **No build step** — except the boot bundle, generated at deploy (docs/harbor.md THE FIRST-VISIT BUNDLE); nothing else is built. Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
@@ -110,7 +111,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE TAP WATCH (`ui/tapwatch.js`): EVERY TAP ACTS on its press + lift (`data-press` + `PRESS_IMPLICIT`); a Safari-gesture control = `data-gesture`, acted in the lift; never re-render under a finger; a fling-stop never acts; `:hover` only in `@media (hover: hover)` → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
-- THE END-SCREEN BOARD: ONE shared leaderboard block (`ui/end-board.js`), a per-game OPT-IN (`END_BOARD`) — never a game's own copy → docs/cartridge.md.
+- THE END-SCREEN BOARD: ONE shared block (`ui/end-board.js`), a per-game OPT-IN (`END_BOARD` — on: every playable solo game but HOLD'EM), in the game's accent — never a game's own copy → docs/cartridge.md.
 - THE GAMES LIST ORDER (`core/game-order.js`) · THE END NEON (ONE builder: `ui/fin-neon.js`; `metas.js` NEON) · GAME VOTES (`rooms/{CODE}/gv/{uid}` — suggestions, the host picks) → docs/cartridge.md (moved Nov 25).
 
 **Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))

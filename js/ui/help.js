@@ -1,5 +1,5 @@
 // "How to play" sheet: rules for every game, one tab each (the title, the lobby, the settings sheet — mid-game too).
-import { gameArtSvg } from './game-art.js';
+import { markSvg } from './mark-svg.js';   // (ONE ICON PER GAME — the owner, Nov 27: the tabs wear each game's NEON MARK, the PLAY sheet's; game-art.js = the big posters only)
 import { h } from './dom.js';
 import { openSheet } from './sheet.js';
 import { GAMES } from '../config.js';
@@ -522,7 +522,7 @@ export function openHelp(gameId, frame = null) {
     content.scrollTop = 0;
   };
   for (const g of GAMES.filter(x => x.playable || x.id === current)) {
-    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id] || g.name.slice(0, 2)));
+    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, markSvg(g) ? h('span.help-ic', { html: markSvg(g, 'help-mark'), 'aria-hidden': 'true' }) : TAB[g.id] || g.name.slice(0, 2)));
   }
   // (THE SHEET; the game's name = its small line)
   const cleanup = () => { sheet = null; document.body.classList.remove('help-open'); };

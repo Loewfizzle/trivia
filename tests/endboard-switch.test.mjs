@@ -91,3 +91,14 @@ test('THE ADD-ONS (the owner, Nov 27): EACH END SCREEN STAYS ITS GAME\'S OWN —
   assert.doesNotMatch(v, /splitsCard|addSplits/); assert.doesNotMatch(vw, /splitsCard\(/);
   assert.match(vw, /keepOwnSplits\(matchId, run\.sp\)/); assert.match(read('js/games/jaywalk/daily-run.js'), /splitsCard\(sp\)/, 'the DAILY\'s end card keeps its splits');
 });
+
+test('ONE ICON PER GAME (the inbox, Nov 27 8:36 am): HOW TO PLAY\'s tabs = each game\'s NEON MARK (ui/mark-svg.js — the PLAY sheet\'s); game-art.js = the big posters only (the game card\'s 120-pt art)', () => {
+  const help = read('js/ui/help.js');
+  assert.ok(help.includes("import { markSvg } from './mark-svg.js';") && !/gameArtSvg|game-art\.js'/.test(help.replace(/\/\/[^\n]*/g, '')), 'help.js: the marks, never the posters');
+  assert.match(help, /h\('span\.help-ic', \{ html: markSvg\(g, 'help-mark'\), 'aria-hidden': 'true' \}\)/);
+  const users = ['js/screens/title-taps.js', 'js/ui/help.js', 'js/screens/room-city.js', 'js/board/view.js'].filter(f => /gameArtSvg\(/.test(read(f)));
+  assert.deepEqual(users, ['js/screens/title-taps.js'], 'the one big-poster place: the game card sheet');
+  assert.match(read('js/screens/title-taps.js'), /const art = gameArtSvg\(g\.id\) \|\| h\('i\.nd-pv-mark', \{ html: markSvg\(g\) \}\);/, 'its fallback = the mark');
+  assert.match(read('js/screens/title-taps.js'), /row\(\{ icon: markSvg\(g\)/, 'the PLAY shelf: the marks'); assert.match(read('js/screens/room-city.js'), /html: markSvg\(g\)/, 'PICK A GAME: the marks');
+  assert.match(read('CLAUDE.md'), /THE INBOX WRITE RULE: re-read ADDONS\.md IMMEDIATELY before writing; APPEND only; never write back a copy read earlier\./);
+});
