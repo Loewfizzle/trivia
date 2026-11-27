@@ -13,8 +13,6 @@
   needed (`Downloads/grok/freefall/rooftop/notes-roof-below.txt`).
 - `fx/burst.webp` — THE BREAKTHROUGHS' sprites: `smoke_07`, `smoke_04`, `circle_05`, `circle_02`, `dirt_02`, `star_06`, `scorch_01` from the same **Particle Pack** by Kenney Vleugels
   (kenney.nl), CC0 1.0; seven of its sprites, greyscale, in one atlas.
-- `fx/water-normal.webp` — THE SPLASHDOWN's water: **Water 001** (its normal map) by 3DTextures.me (Katsukagi / Joao Paulo), CC0 1.0 —
-  https://3dtextures.me/2017/12/28/water-001/ ; 512 px.
 - `fx/sand.webp` · `fx/sand-normal.webp` — THE BOTTOM's seabed: **Ground 055 S** (colour + normal) by ambientCG (Lennart Demes), CC0 1.0 —
   https://ambientcg.com/view?id=Ground055S ; 1024 px.
 

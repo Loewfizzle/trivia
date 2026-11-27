@@ -158,9 +158,10 @@ export function createBreaks(X) {
   // ---- THE WATER
   const waterY = -BREAK_FLOORS.splash * SHAPE.H + WATER.up;
   const W = X.wallU;
-  const waterU = { tN: { value: null }, uHaveN: { value: 0 }, uFlipN: { value: 0 }, tWall: W.tA, uHaveW: W.uHaveA, uFlipW: W.uFlipA, uTileW: W.uTileA, uTintW: W.uTintA, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uRW: { value: SHAPE.RW },
-    uSplashT: { value: 1e9 }, uLine: { value: -2 }, uFloorY: { value: -(BREAK_FLOORS.splash - 1) * SHAPE.H }, uRingC: { value: new THREE.Vector3() }, uFaceC: { value: new THREE.Vector3() }, uBall: { value: new THREE.Vector3() }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) } };
-  const waterMat = new THREE.ShaderMaterial({ vertexShader: WATER_V, fragmentShader: WATER_F, uniforms: waterU, ...blend });
+  // (F5A — THE WATER SURFACE: worked out in its shader — the wall's own painting is all it reads; its ripple LINES need the derivatives)
+  const waterU = { tWall: W.tA, uHaveW: W.uHaveA, uTileW: W.uTileA, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uRW: { value: SHAPE.RW }, uRP: { value: SHAPE.RI },
+    uSplashT: { value: 1e9 }, uLine: { value: -2 }, uBall: { value: new THREE.Vector3() }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) } };
+  const waterMat = new THREE.ShaderMaterial({ vertexShader: WATER_V, fragmentShader: WATER_F, uniforms: waterU, extensions: derivs, ...blend });
   const water = add(new THREE.Mesh(plane(22), waterMat), 1.5, waterMat);
   water.position.set(0, waterY, 0);
 
@@ -260,7 +261,7 @@ export function createBreaks(X) {
     // the crown: drops thrown up + out in a cone (lit from above by night), spray, a ring of foam
     for (let k = 0; k < (X.reduce ? 6 : share(34)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.01 + rnd() * 0.012, day ? 0.82 : 1, day ? 0.96 : 0.88, day ? 1 : 0.66); }
     X.sparksDirty();
-    for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.05, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.34 + rnd() * 0.14, 0.1, 0.3, 4, -5.5, 0, 0, 2, 0.9, 0.98, 1, 0.3); }
+    for (let k = 0; k < share(9); k++) { const a = rnd() * 6.2832, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.15, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.34 + rnd() * 0.14, 0.07, 0.26, 4, -5.5, 0, 0, 2, day ? 0.72 : 0.9, day ? 0.92 : 0.98, 1, 0.3); }   // (F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
     for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, 0.5, 0.56, 0.6, 0.28); }
     X.kick(0.32, 0.5);
   }
@@ -315,9 +316,7 @@ export function createBreaks(X) {
   /** the look turned: the colours the water + the bed mirror */
   function setLook(d) {
     day = !!d;
-    const P = X.PAL, sp = P[2], dp = P[4];
-    const c = X.lin(day ? sp.dayRim : sp.rim); waterU.uRingC.value.set(c[0], c[1], c[2]);
-    const f = X.lin(day ? sp.day : sp.b); waterU.uFaceC.value.set(f[0], f[1], f[2]);
+    const dp = X.PAL[4];
     const b = X.lin(day ? dp.dayRim : dp.rim); bedRim.value.set(b[0], b[1], b[2]);
   }
 
@@ -368,11 +367,7 @@ export function createBreaks(X) {
     }
     const spNear = spSt < 2 && camY > 104 && camY < 128;   // (asked AFTER the sweep's own step: the plane is gone in the very frame the camera is under)
     water.visible = spNear;
-    if (spNear) {
-      const n = pics.water;
-      waterU.tN.value = n.tex; waterU.uHaveN.value = n.have; waterU.uFlipN.value = n.flip;
-      waterU.uBall.value.set(bx, by, bz);
-    }
+    if (spNear) waterU.uBall.value.set(bx, by, bz);
     // THE WAKE under the surface: by night glowing cyan PLANKTON swirls where the ball has just been; by day a trail of small bubbles
     if (spSt > 0 && now < spWake && !X.reduce) {
       const rate = (day ? 14 : 26) * tierK * (now < spT + 1.6 || !day ? 1 : 0);

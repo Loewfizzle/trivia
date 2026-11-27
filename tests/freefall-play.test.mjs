@@ -533,7 +533,7 @@ test('THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): ONE ramp whit
   assert.match(fx, /float body = mix\(fl, sm, smoothstep\(0\.4, 1\.0, k\)\)/, 'a flame turns to smoke as it ages');
   assert.doesNotMatch(fx.slice(fx.indexOf('export const FLAME_V'), fx.indexOf('// ---- THE SHARDS')), /arc|bolt|lightning/i, 'no electric arcs');
   // the sprites: ONLY the four used, CC0, read straight out of the archive
-  assert.deepEqual(readdirSync(new URL('../assets/freefall/fx/', import.meta.url)).sort(), ['blaze.webp', 'burst.webp', 'sand-normal.webp', 'sand.webp', 'water-normal.webp'], 'THE BLAZE\'s atlas + F3B\'s: the breakthroughs\' sprites, the water\'s normal map, the seabed\'s sand');
+  assert.deepEqual(readdirSync(new URL('../assets/freefall/fx/', import.meta.url)).sort(), ['blaze.webp', 'burst.webp', 'sand-normal.webp', 'sand.webp'], 'THE BLAZE\'s atlas + F3B\'s: the breakthroughs\' sprites, the water\'s normal map, the seabed\'s sand');
   assert.ok(statSync(new URL('../assets/freefall/fx/blaze.webp', import.meta.url)).size < 30000, 'the atlas is small');
   const build = read('scripts/build-freefall-assets.py');
   assert.match(build, /SPRITES = \['flame_01', 'flame_03', 'fire_01', 'smoke_01'\]/); assert.doesNotMatch(build, /extractall|\.extract\(/, 'nothing is unpacked to disk');
@@ -560,12 +560,12 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   const B = await import('../js/games/freefall/break-fx.js');
   assert.deepEqual([B.HIT_TICKS, B.CRACK], [8, 11], 'the ball meets the glass / the water 8 ticks after it leaves the floor above');
   // the pictures: small, the look's own; the skylight's place = the build script's measure
-  for (const [f, max] of [['roof/below-night.webp', 260000], ['roof/below-day.webp', 340000], ['roof/city-night.webp', 80000], ['roof/city-day.webp', 90000], ['fx/burst.webp', 40000], ['fx/water-normal.webp', 40000], ['fx/sand.webp', 40000], ['fx/sand-normal.webp', 200000]]) { const u = new URL(`../assets/freefall/${f}`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < max, `${f} ships, small (${existsSync(u) ? statSync(u).size : 0} B)`); }
+  for (const [f, max] of [['roof/below-night.webp', 260000], ['roof/below-day.webp', 340000], ['roof/city-night.webp', 80000], ['roof/city-day.webp', 90000], ['fx/burst.webp', 40000], ['fx/sand.webp', 40000], ['fx/sand-normal.webp', 200000]]) { const u = new URL(`../assets/freefall/${f}`, import.meta.url); assert.ok(existsSync(u) && statSync(u).size < max, `${f} ships, small (${existsSync(u) ? statSync(u).size : 0} B)`); }
   assert.deepEqual(readdirSync(new URL('../assets/freefall/roof/', import.meta.url)).sort(), ['below-day.webp', 'below-night.webp', 'city-day.webp', 'city-night.webp']);
   assert.match(build, /ROOF_SKY = \(0\.505, 0\.472, 0\.130\)/); assert.match(n, /export const ROOF = Object\.freeze\(\{ cx: 0\.505, cy: 0\.472, sky: 0\.130, s0: 0\.92, s1: 0\.4, to: 34, tilt: 40, curl: 2\.2, far: 30, land: 38\.6 \}\);/, 'the same numbers as the build script measured');
   assert.match(build, /BURST = \['smoke_07', 'smoke_04', 'circle_05', 'circle_02', 'dirt_02', 'star_06', 'scorch_01'\]/, 'ONLY the sprites used'); assert.doesNotMatch(build, /glass-cracks\.png'\)|water-normal\.png'/, 'the cracks are drawn in code; the 4.6 MB water PNG is never read');
   const credits = read('assets/freefall/CREDITS.md');
-  for (const w of ['Water 001', '3DTextures.me', 'Ground 055 S', 'ambientCG', 'Particle Pack', 'roof/below-night.webp']) assert.ok(credits.includes(w), `the credits name ${w}`);
+  for (const w of ['Ground 055 S', 'ambientCG', 'Particle Pack', 'roof/below-night.webp']) assert.ok(credits.includes(w), `the credits name ${w}`);
   // THE ROOF BELOW: no fog wash — only a light distance haze far out; the roof is shut until the skylight breaks
   const sky = fx.slice(fx.indexOf('export const SKY_F'), fx.indexOf('export const COPY_V'));
   assert.match(sky, /g = mix\(g, hz, smoothstep\(0\.7, 2\.6, q\.y\) \* mix\(0\.75, 0\.6, uDay\)\);/, 'the haze begins well past the roof\'s far edge');
@@ -584,7 +584,15 @@ test('F3B — THE ROOF BELOW + THE BREAKTHROUGHS (static): a VIEW only (the rule
   assert.match(bk, /fractureGeo\(H, 0, SHAPE\.RB, 12, \[0\.2, 0\.55, 1\], 0x51f15e, 1\.7\)/, 'the glass: 60 pieces laid out round the ball\'s own point of impact');
   assert.match(bfx, /float e = min\(vB\.x, min\(vB\.y, vB\.z\)\), ew = fwidth\(e\) \* 1\.4 \+ 0\.0015, line = 1\.0 - smoothstep\(0\.0, ew \* 1\.5, e\);/, 'the cracks are drawn IN CODE along the lines the pane breaks on');
   assert.doesNotMatch(bk + bfx + n, /glass-cracks|chandelier/i, 'no crack picture, no chandelier');
-  assert.match(bfx, /if \(ndc\.y < wl\) discard;/, 'THE WATERLINE: under it the plane is gone'); assert.match(bfx, /vec3 nm = mix\(vec3\(0\.0, 0\.0, 1\.0\), normalize\(n1 \+ n2\), uHaveN\);/, 'a real normal-mapped water plane');
+  assert.match(bfx, /if \(ndc\.y < wl\) discard;/, 'THE WATERLINE: under it the plane is gone');
+  // F5A — THE WATER SURFACE REBUILT (the owner's two targets): worked out in its shader — THE SWELL (long slow waves), the wall's own COLUMN
+  // of light as broken streaks, plankton; by day turquoise + thin lines + foam. Never the normal map, never the tower's floors mirrored.
+  const wf = bfx.slice(bfx.indexOf('export const WATER_F'), bfx.indexOf('// ---- THE SEABED'));
+  assert.match(wf, /vec2 swell\(vec2 p, float t\)/, 'THE SWELL: long, slow waves — worked out in the shader');
+  assert.match(wf, /texture2D\(tWall, vec2\(u, 0\.125\), bias\)/, 'a streak = the wall painting\'s own column of light, read soft');
+  assert.match(wf, /float lines\(vec2 p, float t\)/, 'the day\'s thin ripple lines'); assert.match(wf, /THE FOAM/, 'the foam line at the wall + round the pillar');
+  assert.doesNotMatch(wf, /tN\b|uRingC|uFaceC|uFloorY/, 'no normal map (crinkled foil), no floors mirrored (the brown blob)');
+  assert.match(wf, /gl_FragColor = vec4\(col, 1\.0\);/, 'the surface hides what is under it');
   assert.match(bk, /if \(fin === BREAK_FLOORS\.bottom && !day && !X\.reduce\) \{ fwAt = time \+ 0\.9; fwN = 0; \}/, 'the firework: a FINISH by night only');
   // ZERO GARBAGE in the new frame code
   const BUILDS = [[/=>/, 'an arrow function'], [/\bfunction\b/, 'an inner function'], [/\.\.\./, 'a spread'], [/`/, 'a template string'], [/[=(,:?]\s*\[/, 'a list'], [/[=(,:?]\s*\{/, 'a record'], [/\bnew\s+[A-Z]/, 'a new object'], [/\.(map|filter|slice|concat|flatMap|reduce|split|join|keys|values|entries|toFixed|toString|padStart)\(/, 'a list- / string-making call'], [/\bfor\s*\([^)]*\bof\b/, 'a for … of']];

@@ -230,19 +230,50 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft, NORMAL-MAPPED (Water 001, two layers scrolling against each
-// other), mirroring what stands over it — the area's own WALL (the mirrored ray meets the shaft's cylinder: the speakeasy's light), the
-// tower's lit rings + the ball (rippling streaks: the neon by night). The plunge: a RING WAVE runs out from the impact; then THE
-// WATERLINE sweeps up the screen (uLine, a wavy line in screen space — the camera dips under) and below it the plane is gone: the world
-// under the surface shows.
+// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets
+// (Downloads\NEON\freefall\ff-water-target-night.png · -day.png; docs/freefall.md "THE WATER"): everything is worked out HERE, in the
+// shader — Water 001's normal map is no longer read (two layers of it read as crinkled foil / an oil slick on the phone).
+//   · THE SWELL: four long, slow waves on a warped ground (their slopes) — large, smooth, slow; flatter with distance
+//   · NIGHT: deep TEAL-NAVY, a soft lift toward the far edge; the speakeasy's own lights as long BROKEN VERTICAL STREAKS — a streak's
+//     colour is the COLUMN of the wall painting above it (the mirrored ray's angle on the shaft's cylinder, read soft down the whole
+//     column: amber under a lamp, pink / violet under a neon strip), broken into dashes by the swell, fading with distance from the wall;
+//     small pink / cyan glints; a few glowing cyan PLANKTON specks. NEVER the tower's floors mirrored (gold floors in dark water were
+//     the BROWN blob) — the ball alone: a soft pink-white streak of light.
+//   · DAY: video-game water — bright TURQUOISE, a soft pale lift at the far edge (never a clipped white rim), thin + few moving ripple
+//     LINES, sun sparkles near the far edge, a soft FOAM line at the wall + round the pillar, the ball's soft pink glow.
+// The plunge: a RING WAVE runs out from the impact; then THE WATERLINE sweeps up the screen (uLine, a wavy line in screen space — the
+// camera dips under) and below it the plane is gone: the world under the surface shows (unchanged).
 export const WATER_V = 'varying vec3 vW; varying vec4 vClip; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vClip = projectionMatrix * viewMatrix * w; gl_Position = vClip; }';
 export const WATER_F = /* glsl */`
-uniform sampler2D tN, tWall;
-uniform float uHaveN, uFlipN, uHaveW, uFlipW, uTileW, uTime, uDay, uBloom, uRW, uSplashT, uLine, uFloorY;
-uniform vec3 uTintW, uRingC, uFaceC, uBall;
+uniform sampler2D tWall;
+uniform float uHaveW, uTileW, uTime, uDay, uBloom, uRW, uRP, uSplashT, uLine;
+uniform vec3 uBall;
 uniform vec2 uImpact;
 varying vec3 vW; varying vec4 vClip;
-vec3 nrm(vec2 uv) { return texture2D(tN, vec2(uv.x, mix(1.0 - uv.y, uv.y, uFlipN))).xyz * 2.0 - 1.0; }
+${HASH}
+/** THE SWELL: four long, slow waves on a warped ground → its slopes (x: across the screen · y: toward the viewer) */
+vec2 swell(vec2 p, float t) {
+  vec2 q = p + 0.32 * vec2(sin(p.y * 0.83 + t * 0.29), cos(p.x * 0.71 - t * 0.23));
+  vec2 g = vec2(0.12, 1.0) * cos((q.x * 0.12 + q.y) * 2.1 + t * 0.9);
+  g += vec2(-0.34, 0.94) * 0.6 * cos((q.y * 0.94 - q.x * 0.34) * 3.3 - t * 1.15);
+  g += vec2(0.8, 0.6) * 0.5 * cos((q.x * 0.8 + q.y * 0.6) * 1.3 + t * 0.5);
+  g += vec2(-0.2, 0.98) * 0.3 * cos((q.y * 0.98 - q.x * 0.2) * 5.4 + t * 1.6);
+  return g;
+}
+/** small lights lying on the surface, one to a cell (\`keep\` of the cells have one) → x = how lit this point is · y = that cell's own dice */
+vec2 speck(vec2 p, float keep, vec2 stretch, float rad) {
+  vec2 c = floor(p), f = p - c;
+  float h = h21(c), h2 = h21(c + 17.3);
+  float d = length((f - vec2(0.25 + 0.5 * h2, 0.25 + 0.5 * fract(h * 57.3))) * stretch);
+  return vec2(step(h, keep) * (1.0 - smoothstep(rad * 0.3, rad, d)), h2);
+}
+/** the day's ripple LINES: the zero lines of a slow, smooth field — thin (a pixel and a half at any distance), few, moving */
+float lines(vec2 p, float t) {
+  vec2 q = p + 0.5 * vec2(sin(p.y * 0.7 + t * 0.3), cos(p.x * 0.6 - t * 0.26));
+  float a = sin(q.x * 3.4 + t * 0.35) + sin(q.y * 1.7 - t * 0.3) + sin((q.x * 1.3 - q.y * 1.5) * 1.3 + t * 0.22) - 0.35;
+  float w = fwidth(a);
+  return 1.0 - smoothstep(w * 0.5, w * 1.5 + 0.003, abs(a));
+}
 void main() {
   float r = length(vW.xz);
   if (vW.z < 0.0 && r > uRW) discard;          // (its far shore is the shaft's wall)
@@ -250,52 +281,87 @@ void main() {
   vec2 ndc = vClip.xy / vClip.w;
   float wl = uLine + 0.035 * sin(ndc.x * 9.0 + uTime * 7.0) + 0.02 * sin(ndc.x * 23.0 - uTime * 11.0);
   if (ndc.y < wl) discard;
-  vec3 V = normalize(cameraPosition - vW);
-  vec3 n1 = nrm(vW.xz * 0.27 + vec2(uTime * 0.021, uTime * 0.013)), n2 = nrm(vW.xz * 0.43 - vec2(uTime * 0.017, -uTime * 0.024));
-  vec3 nm = mix(vec3(0.0, 0.0, 1.0), normalize(n1 + n2), uHaveN);
+  vec3 toCam = cameraPosition - vW;
+  float dist = length(toCam);
+  vec3 V = toCam / dist;
+  float far = clamp((dist - 3.2) / 5.5, 0.0, 1.0), graze = 1.0 - V.y;   // (graze: 0 = looking straight down · 1 = along the surface)
+  vec2 g = swell(vW.xz, uTime) * mix(1.0, 0.4, far);                    // (flatter with distance: far ripples are finer than a pixel)
   // THE RING WAVE of the plunge: rings running out from the impact, dying as they go
   float dI = length(vW.xz - uImpact), age = uTime - uSplashT, ring = 0.0;
   if (age > 0.0 && age < 3.0) {
     float ph = dI * 9.0 - age * 13.0, env = exp(-dI * 0.55) * exp(-age * 1.1) * smoothstep(0.0, 0.25, age * 5.0 - dI);
     ring = cos(ph) * env;
-    nm.xy += normalize(vW.xz - uImpact + 1e-4) * sin(ph) * env * 1.6;
+    g += normalize(vW.xz - uImpact + 1e-4) * sin(ph) * env * 2.2;
   }
-  // (the fresh-eyes review: by day the ripples lie flatter — a calm sunlit surface, never a slate of blotches)
-  // (… and flatter with distance, both looks: far ripples are finer than a pixel — left sharp they flicker between a lamp and the dark)
-  float bump = mix(0.8, 0.42, uDay) * mix(1.0, 0.3, clamp((length(cameraPosition - vW) - 2.5) / 5.0, 0.0, 1.0));
-  vec3 N = normalize(vec3(nm.x * bump, 1.0, nm.y * bump));
-  float nv = max(dot(N, V), 0.0), fres = 0.06 + 0.94 * pow(1.0 - nv, 4.0);
-  vec3 R = reflect(-V, N);
-  R.y = abs(R.y) + 0.02;
-  // what it mirrors — the wall of the room above (the mirrored ray meets the shaft's cylinder)
-  float a = dot(R.xz, R.xz), b = dot(vW.xz, R.xz), cc = dot(vW.xz, vW.xz) - uRW * uRW, t = (-b + sqrt(max(0.0, b * b - a * cc))) / max(a, 1e-5);
-  vec3 hit = vW + R * t;
-  vec2 wu = vec2(atan(hit.x, -hit.z) * 0.15915494, hit.y / (6.2831853 * uRW)) * uTileW;
-  vec3 wall = pow(texture2D(tWall, vec2(wu.x, mix(wu.y, 1.0 - wu.y, uFlipW))).rgb, vec3(2.2)) * uTintW * uHaveW;
-  wall *= exp(-max(0.0, hit.y - vW.y) / 9.0);
-  // (… and by day the open daylight of the room lies on it as well: the water is never darker than what stands round it)
-  vec3 refl = wall * mix(1.6, 1.15, uDay) + vec3(0.2, 0.36, 0.42) * uDay;
-  // … the tower's rings over it (three floors of them): their lit rims, as rippling streaks
-  for (int j = 0; j < 3; j++) {
-    float fy = uFloorY + float(j), tt = (fy - vW.y) / R.y;
-    vec3 p = vW + R * tt;
-    float pr = length(p.xz), on = smoothstep(0.12, 0.3, pr) * (1.0 - smoothstep(0.86, 1.06, pr));   // (soft edges: a mirror image in moving water)
-    refl = mix(refl, uFaceC * 0.42 + uRingC * (0.12 + 0.75 * exp(-(1.0 - pr) / 0.07)), on * (0.85 - 0.22 * float(j)));
+  // where the mirrored ray (off the surface at rest) meets the shaft's wall: a streak of light runs from that point of the wall toward the viewer
+  vec2 Rh = -V.xz;
+  float a = dot(Rh, Rh), b = dot(vW.xz, Rh), cc = r * r - uRW * uRW, tt = (-b + sqrt(max(0.0, b * b - a * cc))) / max(a, 1e-5);
+  vec2 hit = vW.xz + Rh * tt;
+  float s = length(Rh) * tt;                    // (how far out from the wall's foot this point lies)
+  float lit = step(vW.y, uBall.y);
+  vec2 tb = vW.xz - uBall.xz;
+  // the ball's own light: a soft streak from under it toward the viewer + a pool
+  float lane = exp(-pow((tb.x + g.x * 0.03 * (1.0 + max(tb.y, 0.0))) / 0.12, 2.0)) * smoothstep(-0.25, 0.35, tb.y) * exp(-max(tb.y, 0.0) / 1.7) * lit;
+  float pool = exp(-dot(tb, tb) / 0.55) * lit;
+  vec3 col, glow = vec3(0.0);
+  if (uDay < 0.5) {
+    // ---- NIGHT: deep teal-navy, lifting toward the far edge; the swell's own soft light + shade
+    col = mix(vec3(0.004, 0.024, 0.066), vec3(0.014, 0.135, 0.26), smoothstep(0.16, 0.68, graze));
+    col *= 1.0 + 0.16 * g.y + 0.1 * g.x + 0.3 * (vn2(vW.xz * 0.9 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5);
+    // THE STREAKS: the wall's own column of light over this point (the painting, read soft all the way down the column)
+    float u = atan(hit.x, -hit.y) * 0.15915494 * uTileW + (g.x * (0.004 + 0.007 * s) + 0.006 * sin(s * 4.3 + uTime * 0.6) * min(s, 2.0));
+    // (read at ONE softness on every phone — mip 5, whatever the screen's sharpness: the bias takes the screen's own step back out —, down
+    //  two rows of the painting: a lamp + a neon strip are each a soft bell ≈ 0.1 high (measured: scratch col.py in the pass log). The bell's
+    //  4th power is its HEART — a thin streak, a third of the lamp's own width. TWO clean inks: a warm column = a lamp's pale amber · a
+    //  cool one = neon leaning to violet, as it does in dark water — never the painting's mixed fringe, never a neon slab brighter than a lamp)
+    float bias = 5.0 - clamp(log2(fwidth(u) * 1024.0 + 1e-4), -3.0, 5.0);
+    vec3 c1 = texture2D(tWall, vec2(u, 0.125), bias).rgb, c2 = texture2D(tWall, vec2(u, 0.375), bias).rgb, lamp = (c1 * c1 + c2 * c2) * 0.5;
+    float warm = clamp((lamp.r - lamp.b) / (lamp.r + lamp.b + 1e-4) * 2.0, 0.0, 1.0), lum = min(dot(lamp, vec3(3.4)), 1.15);
+    lum *= lum; lum *= lum;
+    lamp = mix(vec3(0.62, 0.26, 1.3), vec3(1.0, 0.8, 0.46), warm) * lum * uHaveW;
+    // … broken into dashes by the swell — whole at the wall's foot, more broken the farther out
+    float dash = 0.5 + 0.5 * sin(s * 7.6 + g.y * 2.4 + sin(u * 25.13) * 0.7 - uTime * 0.7) * (0.75 + 0.25 * sin(s * 2.9 - uTime * 0.31 + u * 9.0));
+    float streak = mix(1.0, smoothstep(0.12 + 0.05 * s, 0.95, dash), smoothstep(0.15, 1.1, s)) * exp(-s / 3.6);
+    vec3 st = min(lamp * 0.42, vec3(0.5)) * streak;
+    col += st; glow += st * 0.3;
+    // the ball: a soft pink-white streak
+vec3 bl = vec3(1.0, 0.55, 0.82) * (lane * 0.2 * smoothstep(0.15, 0.9, dash) + pool * 0.07);
+    col += bl; glow += bl * 0.3;
+    // small pink / cyan GLINTS — short dashes that come + go
+    vec2 gl = speck(vW.xz * 6.0 + 3.7, 0.22, vec2(1.0, 2.6), 0.13);
+    vec3 gc = mix(vec3(1.0, 0.35, 0.8), vec3(0.35, 0.9, 1.0), step(0.5, fract(gl.y * 7.0))) * gl.x * pow(0.5 + 0.5 * sin(uTime * 1.7 + gl.y * 50.0), 6.0) * 0.5 * (1.0 - far);
+    // glowing cyan PLANKTON: a few specks riding the swell, breathing slowly
+    // (round ON THE SCREEN: a dot lying on the surface is seen squashed by the view's own slant — drawn that much longer toward the viewer)
+    vec2 pk = speck((vW.xz + g * 0.03) * 3.4 + vec2(uTime * 0.02, 0.0), 0.5, vec2(1.0, V.y), 0.055);
+    vec3 pc = vec3(0.22, 0.9, 1.0) * pk.x * (0.35 + 0.65 * fract(pk.y * 13.7)) * (0.6 + 0.4 * sin(uTime * 0.9 + pk.y * 40.0));
+    col += gc + pc; glow += (gc + pc) * 0.6;
+    col = min(col, vec3(0.62));                 // (LINEAR light — a reflection in dark water stays a soft one: never a white blotch)
+  } else {
+    // ---- DAY: bright turquoise, paler toward the far edge (a soft lift — never a clipped white rim)
+    col = mix(vec3(0.02, 0.37, 0.62), vec3(0.1, 0.66, 0.8), smoothstep(0.12, 0.5, graze));
+    col = mix(col, vec3(0.4, 0.85, 0.9), smoothstep(0.5, 0.8, graze));
+    col *= 1.0 + 0.09 * g.y;
+    // thin, few, moving ripple LINES
+    col = mix(col, vec3(0.8, 1.0, 1.0), lines(vW.xz * 1.9, uTime) * 0.42 * (1.0 - 0.7 * far));
+    // sun SPARKLES near the far edge
+    vec2 sp = speck(vW.xz * 7.0 + g * 0.1, 0.4, vec2(1.0, 2.2), 0.28);
+    col += vec3(1.0) * sp.x * pow(0.5 + 0.5 * sin(uTime * 2.6 + sp.y * 60.0), 5.0) * smoothstep(0.42, 0.7, graze) * 0.7;
+    // the ball: its soft pink glow + a pale streak of light
+    col = mix(col, vec3(1.0, 0.72, 0.9), pool * 0.45);
+    col = mix(col, vec3(0.8, 0.97, 1.0), lane * 0.34);
   }
-  // … and the ball: its light on the water
-  vec3 tb = normalize(uBall - vW);
-  refl += vec3(1.0, 0.62, 0.8) * pow(max(dot(R, tb), 0.0), 160.0) * 0.16 * step(vW.y, uBall.y);   // (a small pink gleam — never a white lump)
-  vec3 deep = mix(vec3(0.003, 0.012, 0.022), vec3(0.03, 0.24, 0.3), uDay);
-  vec3 col = mix(deep, refl, clamp(fres * 1.5 + mix(0.2, 0.34, uDay), 0.0, 1.0));
-  col = min(col, vec3(mix(0.24, 1.0, uDay)));   // (LINEAR light — by night a mirror image stays a dim one: never a white shore, never a blown-out lump)
-  col += mix(vec3(0.5, 0.95, 1.0), vec3(1.0), 0.5) * max(ring, 0.0) * 0.5;                    // the ring's crest catches the light
-  col += vec3(1.0) * pow(max(dot(R, normalize(vec3(-0.25, 0.9, 0.35))), 0.0), 180.0) * 0.4;      // a lamp's sparkle
-  col = min(col, vec3(1.0));                                                    // (… never a blown-out lump of white where the reflections pile up)
+  // THE FOAM: a soft line where the water meets the wall + round the pillar (by night only a faint pale edge)
+  float ang = atan(vW.x, -vW.z), fe = vn2(vec2(ang * 9.0, uTime * 0.25)) * 0.16 + 0.04 * sin(ang * 31.0 + uTime * 0.8);
+  float foam = smoothstep(uRW - 0.24 - fe, uRW - 0.02, r) * (1.0 - smoothstep(-0.6, 0.4, vW.z));
+  foam = max(foam, 1.0 - smoothstep(uRP + 0.03 + fe * 0.3, uRP + 0.15 + fe * 0.6, r));
+  col = mix(col, mix(vec3(0.07, 0.3, 0.38), vec3(0.93, 1.0, 1.0), uDay), foam * mix(0.28, 0.85, uDay));
+  col += mix(vec3(0.5, 0.95, 1.0), vec3(1.0), 0.5) * max(ring, 0.0) * 0.5;      // the ring's crest catches the light
+  col = min(col, vec3(1.0));
   // the meniscus: a bright wet line where the surface meets the lens
   float men = 1.0 - smoothstep(0.0, 0.05, ndc.y - wl);
   col = mix(col, mix(vec3(0.6, 1.0, 1.0), vec3(1.0), 0.4), men * step(-1.5, uLine) * 0.85);
-  if (uBloom > 0.5) col = vec3(1.0) * max(ring, 0.0) * 0.25 + col * 0.12 * (1.0 - uDay);
-  gl_FragColor = vec4(col * 0.97, 0.97);
+  if (uBloom > 0.5) col = vec3(1.0) * max(ring, 0.0) * 0.25 + glow;
+  gl_FragColor = vec4(col, 1.0);               // (F5A: the surface hides what is under it — at 0.97 the floors below showed through as ghost rings)
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;

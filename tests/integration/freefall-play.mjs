@@ -180,7 +180,7 @@ async function look() {
       for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3]]) {
         const tag = `${sw}x${sh}`;
         t = await open(sw, sh, sd, `?seed=look1${q}`, { best: 88 });
-        await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000); await sleep(1200);
+        await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 11', 15000); await sleep(1200);
         await shot(t.p, f(`30-roof-title-${tag}`));
         await t.close();
         for (const floor of [0, 15, 30, 39]) {
@@ -310,6 +310,60 @@ async function look() {
       await hideShow(t.p, true); await sleep(200); await hideShow(t.p, false);
       await sleep(900); await shot(t.p, f('60-paused'));
       await t.close();
+    }
+    // ---- F5A's scenes (THE LOOK POLISH — the files: f5a-<look>-…): THE WATER beside the owner's two targets (floor 119, the same framing —
+    // 390 × 844 @3 + 375 × 667 + 430 × 932), then ?floor=118 → the plunge · THE FINISH (a match's floor 200: the sand, the rocks, the dust,
+    // by night the firework, by day the bubbles + the sun rays) · THE ROOF GRAIN (floors 36 – 39)
+    const g5 = n => `f5a-${lk}-${n}.png`;
+    const SIZES5 = argv.includes('--one-size') ? [[390, 844, 3]] : [[390, 844, 3], [375, 667, 2], [430, 932, 3]], STILL = argv.includes('--still');
+    if (want('water')) {
+      for (const [sw, sh, sd] of SIZES5) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=117`, { best: 145 });
+        await toFloor(t, 119); await sleep(1500);
+        await shot(t.p, g5(`10-water-119-${tag}`));
+        if (sw === 390) { await sleep(1400); await shot(t.p, g5(`10-water-119-b-later-${tag}`)); }
+        if (STILL) { if (t.errs.length || t.logs.length) console.log(lk, 'water', t.errs, t.logs.slice(0, 5)); await t.close(); continue; }
+        await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().info.breaks.splash >= 1', 40000);
+        for (let i = 0; i < (sw === 390 ? 5 : 2); i++) { await shot(t.p, g5(`11-plunge-${i + 1}-${tag}`)); await sleep(sw === 390 ? 30 : 60); }
+        if (t.errs.length) console.log(lk, 'water', t.errs);
+        await t.close();
+      }
+    }
+    if (want('finish')) {
+      for (const [sw, sh, sd] of SIZES5) {
+        const tag = `${sw}x${sh}`;
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=196&mode=match`, { best: 141 });
+        await start(t); await auto(t.p, 'play');
+        await waitFor(t.p, 'window.__ffPlay.state().floor >= 199', 40000); await shot(t.p, g5(`20-finish-0-before-${tag}`));
+        await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 40000);
+        const at = [80, 330, 700, 1100, 1500, 1950, 2400];
+        let was = 0;
+        for (let i = 0; i < (sw === 390 ? at.length : 4); i++) { await sleep(at[i] - was); was = at[i]; await shot(t.p, g5(`20-finish-${i + 1}-${at[i]}ms-${tag}`)); }
+        if (t.errs.length) console.log(lk, 'finish', t.errs);
+        await t.close();
+        if (sw !== 390) continue;
+        // SOLO: the shelf of sand + the trench's mouth, the impact, the bed cracking open
+        t = await open(sw, sh, sd, `?seed=look2${q}&floor=196`, { best: 141 });
+        await toFloor(t, 198); await shot(t.p, g5(`21-bottom-solo-0-before-${tag}`));
+        await auto(t.p, 'play'); await waitFor(t.p, 'window.__ffPlay.state().info.breaks.bottom >= 1', 40000);
+        await sleep(120); await shot(t.p, g5(`21-bottom-solo-1-${tag}`)); await sleep(400); await shot(t.p, g5(`21-bottom-solo-2-${tag}`));
+        await t.close();
+      }
+    }
+    if (want('roofgrain')) {
+      for (const [sw, sh, sd] of SIZES5) {
+        const tag = `${sw}x${sh}`;
+        for (const floor of [34, 36, 37, 38, 39]) {
+          if (sw !== 390 && floor !== 37 && floor !== 39) continue;
+          t = await open(sw, sh, sd, `?seed=look2${q}&floor=${floor - 2}`, { best: 141 });
+          await toFloor(t, floor);
+          await shot(t.p, g5(`30-roofgrain-${floor}-${tag}`));
+          if (t.errs.length) console.log(lk, 'roofgrain', floor, t.errs);
+          await t.close();
+        }
+      }
     }
     if (want('sizes')) {
       // the other sizes: the opening, a play frame, an arrival's banner, the end
@@ -745,10 +799,10 @@ async function checks4() {
   // ---- THE ROOF BELOW: the title screen has the roof's painting + its city + the 3D skylight riding on it; EVERY picture of the look is in before the first drag
   for (const lk of ['night', 'day']) {
     t = await open(390, 844, 2, `?seed=f3b1&look=${lk}&tier=2`);
-    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 11', 15000);
     s = await st(t.p);
     const names = s.info.walls.split(' ').map(x => x.split(':')[0]).sort().join(' ');
-    ok(s.info.landed === 12 && s.info.roof[0] === 1 && s.info.roof[2] === 1 && s.info.roof[3] === 1 && s.info.breaks.deck && s.info.breaks.glass && !t.errs.length, `${lk} — THE TITLE SCREEN: the roof below (its painting + its city in, all of it there) with the 3D skylight riding on it; ${s.info.landed} pictures in before the first drag (${names})`);
+    ok(s.info.landed === 11 && s.info.roof[0] === 1 && s.info.roof[2] === 1 && s.info.roof[3] === 1 && s.info.breaks.deck && s.info.breaks.glass && !t.errs.length, `${lk} — THE TITLE SCREEN: the roof below (its painting + its city in, all of it there) with the 3D skylight riding on it; ${s.info.landed} pictures in before the first drag (${names})`);
     const before = s.info.landed, shows0 = s.info.roof[1];
     await start(t); await auto(t.p, 'gap');
     await waitFor(t.p, 'window.__ffPlay.state().floor >= 30', 30000);
@@ -1006,7 +1060,7 @@ async function perf() {
   for (const [lk, floor, where, mode] of [['night', 36, 'THE SKYLIGHT', ''], ['day', 36, 'THE SKYLIGHT', ''], ['night', 116, 'THE SPLASHDOWN', ''], ['day', 116, 'THE SPLASHDOWN', ''], ['night', 196, 'THE BOTTOM (solo: the crack)', ''], ['day', 196, 'THE BOTTOM (solo: the crack)', ''], ['night', 196, 'THE BOTTOM (a finish + the firework)', '&mode=match']]) for (const tier of [2, 0]) for (const rate of [1, 4]) {
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
     const d = await open(390, 844, 3, `?seed=perfb&tier=${tier}&floor=${floor}&look=${lk}${mode}`);
-    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 11', 15000);
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     await start(d); await auto(d.p, 'play');
     await sleep(1100);
@@ -1029,7 +1083,7 @@ async function stutters() {
   const out = [];
   for (const lk of LOOKS) for (const rate of [4]) {
     const d = await open(390, 844, 3, `?seed=stut1&tier=2&look=${lk}`);
-    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 11', 15000);
     await sleep(800);
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     await start(d); await auto(d.p, 'play');
@@ -1045,7 +1099,7 @@ async function stutters() {
     const r = await d.p.evaluate(() => { window.__stStop = true; const s = window.__ffPlay.state(), T = window.__st; return { floor: s.floor, over: s.over, cause: s.cause, hitches: s.hitches, worst: s.worstMs, log: s.hitchLog, W: [...T.W], N: [...T.N], F: [...T.F], landed: s.info.landed, bakes: s.banner.bakes, tier: s.tier }; });
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     out.push({ lk, rate, ...r });
-    ok(r.floor >= 205 && r.hitches <= 2 && r.landed === 12, `${lk} at ${rate}× CPU, the roof to the trench (floor ${r.floor}): HITCH ${r.hitches} (frames over 33 ms${r.log.length ? `: ${r.log.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ')}` : ''}) · worst ${r.worst.toFixed(1)} ms · no picture landed in the run (${r.landed})`);
+    ok(r.floor >= 205 && r.hitches <= 2 && r.landed === 11, `${lk} at ${rate}× CPU, the roof to the trench (floor ${r.floor}): HITCH ${r.hitches} (frames over 33 ms${r.log.length ? `: ${r.log.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ')}` : ''}) · worst ${r.worst.toFixed(1)} ms · no picture landed in the run (${r.landed})`);
     await d.close();
   }
   console.log('\n| look | cpu | area | frames | worst ms | over 25 ms |\n| --- | --- | --- | --- | --- | --- |');

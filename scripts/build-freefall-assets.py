@@ -42,8 +42,7 @@
               the painting's OWN four borders (the city blocks round the roof — the side borders turned to lie flat), stacked into one 768²
               tile, their joins cross-faded; the game repeats it MIRRORED (no seam to measure). The skylight's place is MEASURED in both
               paintings (the glass: warm by night, blue by day) and must agree with ROOF_SKY (night.js reads the same numbers).
-  F3B — breakthroughs\\water-normal\\water-normal-backup.jpg (3DTextures.me "Water 001", CC0 — the 1 K JPG, never the 4.6 MB PNG) →
-              assets/freefall/fx/water-normal.webp (512², q 86; it tiles: the wrap is measured).
+  F3B — (F5A: Water 001's normal map is no longer built — THE WATER SURFACE is worked out in its shader)
          breakthroughs\\seabed-sand\\seabed-sand_color.jpg + _normal.jpg (ambientCG "Ground 055 S", CC0) → assets/freefall/fx/sand.webp ·
               sand-normal.webp (1024², q 80 / 84; the wrap measured). The roughness map is not used (sand under water has no shine to speak of).
          breakthroughs\\kenney-particles\\kenney_particlePack.zip → assets/freefall/fx/burst.webp — THE BREAKTHROUGHS' sprites: ONLY the seven
@@ -328,8 +327,6 @@ def fx():
         f.write('  needed (`Downloads/grok/freefall/rooftop/notes-roof-below.txt`).\n')
         f.write("- `fx/burst.webp` — THE BREAKTHROUGHS' sprites: `" + '`, `'.join(BURST) + '` from the same **Particle Pack** by Kenney Vleugels\n')
         f.write('  (kenney.nl), CC0 1.0; seven of its sprites, greyscale, in one atlas.\n')
-        f.write('- `fx/water-normal.webp` — THE SPLASHDOWN\'s water: **Water 001** (its normal map) by 3DTextures.me (Katsukagi / Joao Paulo), CC0 1.0 —\n')
-        f.write('  https://3dtextures.me/2017/12/28/water-001/ ; 512 px.\n')
         f.write("- `fx/sand.webp` · `fx/sand-normal.webp` — THE BOTTOM's seabed: **Ground 055 S** (colour + normal) by ambientCG (Lennart Demes), CC0 1.0 —\n")
         f.write('  https://ambientcg.com/view?id=Ground055S ; 1024 px.\n\n')
         f.write('`python -P -E scripts/build-freefall-assets.py` builds them; the delivery is only read.\n')
@@ -383,10 +380,10 @@ def roof():
 
 
 def breaks():
-    """THE BREAKTHROUGHS' textures: the water's normal map, the seabed's sand (colour + normal), the sprites"""
+    """THE BREAKTHROUGHS' textures: the seabed's sand (colour + normal), the sprites"""
     total = 0
-    jobs = [(('breakthroughs', 'water-normal', 'water-normal-backup.jpg'), 'water-normal', 512, 86),
-            (('breakthroughs', 'seabed-sand', 'seabed-sand_color.jpg'), 'sand', 1024, 80),
+    # (F5A: Water 001's normal map is no longer shipped — THE WATER SURFACE is worked out in its shader)
+    jobs = [(('breakthroughs', 'seabed-sand', 'seabed-sand_color.jpg'), 'sand', 1024, 80),
             (('breakthroughs', 'seabed-sand', 'seabed-sand_normal.jpg'), 'sand-normal', 1024, 84)]
     for rel, name, px, q in jobs:
         im = Image.open(os.path.join(SRC, *rel)).convert('RGB')

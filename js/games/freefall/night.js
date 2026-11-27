@@ -239,9 +239,9 @@ export function createNight(host, o = {}) {
   const ROOF_URL = ['night', 'day'].map(lk => [new URL(`../../../assets/freefall/roof/below-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href, new URL(`../../../assets/freefall/roof/city-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href]);
   const roofNow = () => (day ? picture('roof-day', ROOF_URL[1][0], 4) : picture('roof', ROOF_URL[0][0], 4));
   const cityNow = () => (day ? picture('city-day', ROOF_URL[1][1], 3) : picture('city', ROOF_URL[0][1], 3));
-  // THE BREAKTHROUGHS' textures (F3B): the sprites, the water's normal map, the seabed's sand
+  // THE BREAKTHROUGHS' textures (F3B): the sprites, the seabed's sand (F5A: the water is worked out in its shader — Water 001's normal map is gone)
   const fxUrl = name => new URL(`../../../assets/freefall/fx/${name}.webp?v=${FF_ART_REV}`, import.meta.url).href;
-  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), water: picture('water-normal', fxUrl('water-normal'), true), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true) };
+  const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true) };
   // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run): a picture's first upload mid-run was a long frame — EVERY picture of the look on
   // screen is asked for behind the opening (the four walls, the panorama, the roof below + its city; the breakthroughs' textures above):
   // nothing is decoded or uploaded while a run is on (a look that turns mid-run asks for its own set at once)
