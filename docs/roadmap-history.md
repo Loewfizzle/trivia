@@ -2892,6 +2892,15 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - THE CLAUDE.md TRIM: 39,751 → under 36,000 bytes; 31 lines moved verbatim to their docs' "(moved Nov 25)" sections; coverage 0 missing.
 - THE AUDIO FIXES → docs/audio.md "THE AUDIO FIXES (Nov 25)": `engine.js#onUnlock` one-shot + `audio/sfx-kit.js` (`lateGate`, `decodeOnce`, `leadIn`) · THE LEAVE CUT ORDER (`onLeaveCut(fn(left, why, late))`, `MEDIA_LATE_MS`) · failed loads forgotten after 8 s · JAYWALK's lead-in, its `onRebuild`, its nodes disconnected · the first tap's one blip · the lobby song through `musicInput()` · `ocLoop` · THE SONG CAP (`sw.js`: `AUDIO_SONG_MAX` 60 MB, `AUDIO_KEEP_NEWEST` 3). Five engine.js comment blocks → docs/audio.md (THE BOOT BUDGET held at 6,499 of 6,500 KB). `tests/audio-fixes.test.mjs`, `tests/integration/sw-audio-cap.mjs`.
 
+## FREEFALL THE FIX PASS A — THE LOOK + THE FEEL (Nov 27, 2026 — docs/games/passes/freefall-fixa.md; no rules-file change)
+- MAKE ROOM: FREEFALL's long comment blocks → docs/freefall.md "MODULE NOTES" (verbatim); three city headers → docs/harbor/boot-headers.md.
+- THE LOOK LOCK (solo: the run's look; a match: the host's `game.look` on every phone) · THE DAY HUD (a navy fall, a white number, measured).
+- THE WATER (Grok's ripple map, both looks) · the callouts up under the number · S14's words · the rail's names (the edge markers gone) ·
+  ghost tags never overlap · THE MARK = D.
+- `?fps=1`'s END-OF-RUN SUMMARY · THE SPIKE RULE (kit/tiers.js#ask `stay`) · SHARE's card on an idle moment.
+- The title's dark hold + measured fallbacks · THE TAPPER (S12) · the deep lifted by night (S13) · the finish's share frame (N3) · N13 ·
+  NEW BEST from floor 10 · the test page's SHARE busy state.
+
 ## THE END-BOARD SWITCH-ON (Nov 27, 2026 — docs/games/passes/endboard.md; no rules-file change)
 - THE END-SCREEN BOARD (FREEFALL F5B + F5C's FINAL SHAPE — `js/ui/end-board.js`, ONE shared block) switched on per game through each cartridge's `END_BOARD`: JAYWALK (`jaywalk-solo`, LANES, AVG) · HIGH RISE (`highrise-solo`, FLOORS, AVG) · PRISM DROP (`prism-rush`, POINTS — SCORE RUSH only: `on(game)`) · OVERCLOCK (`overclock-quick`, POINTS — a QUICK run, solo only: `on(game)` + `match: false`, its 2-1-3 podium IS a match's top 3). NEON PAR, SLIPSTREAM, HOLD'EM untouched. FREEFALL pixel-identical (A/B against 72a9c8be).
 - THE CONTRACT: `END_BOARD.on(game)` + `.match` (games/contract.js). `ui/final.js`: a MATCH with the block = the block IS the list (the console's own list + its per-player cause lines stay away); `.has-eb` folds the personal-best / world-rank plaques (F5B's call, shared). The block prints each board's own format (HIGH RISE's tower sort number → its floor); a 5+ character score column narrower so a 12-letter name stays whole.

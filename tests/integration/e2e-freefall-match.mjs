@@ -4,7 +4,7 @@
 //   A (sections 1–5, `--fast` stops after it) — ONE ROOM, three matches:
 //     1. A REAL 3-PLAYER MATCH: the owner hosts + starts; 3 · 2 · 1 + the names; every phone writes its GO; THE FIRST GO = the same seed +
 //        tick 0 on all; the proof nodes fill with server-stamped chunks; THE GHOSTS (2 rivals a phone, their floors follow the real ones);
-//        THE DEPTH RAIL (a dot a player); an EDGE MARKER (a rival 5+ floors deeper); an OUT → the cause's words → Call the Winner (`k`) →
+//        THE DEPTH RAIL (a dot a player, each rival's NAME beside it — FIX A: no edge markers); an OUT → the cause's words → Call the Winner (`k`) →
 //        WATCHING THE LEADER (a tap = the next player); THE FINISH AT THE BOTTOM (floor 200: `made`); the podium FREEFALL · MATCH, the
 //        rows = the judge's replay (the server's freefallMatch on the nodes read over REST); WOULD COUNT, nothing written outside
 //        rooms/; REMATCH in place (a new match, a new count, a new seed)
@@ -255,11 +255,11 @@ async function partA() {
   const gt = await ghostTrack(I, 6, 0);
   ok(gt.n > 0 && gt.bad === 0 && gt.play <= 2, `the ghosts follow the rivals' REAL floors: a playing rival's ghost at most ${gt.play} floor${gt.play === 1 ? '' : 's'} off (${gt.n} samples), never a refused move`);
   ok(gt.dive <= 6, `… the DIVER's ghost (3 floors a second) at most ${gt.dive} floors off${gt.lost ? ` (${gt.lost} samples NOT DRAWN — no news)` : ''}`);
-  // ---- AN EDGE MARKER: a rival 5+ floors deeper (ALICE, on BOB's phone) · a rival above (on ALICE's)
-  const mk = await until(async () => { const h = (await state(pages[1])).hud.hud; return h.down.some(t => /^ALICE ↓\d+$/.test(t)) ? h : null; }, 20000);
-  ok(!!mk && Number(/↓(\d+)/.exec(mk.down.find(t => /^ALICE/.test(t)))[1]) >= 5, `AN EDGE MARKER on BOB's phone — a rival 5+ floors deeper: "${mk ? mk.down.join('" · "') : '—'}"`);
-  const mu = await until(async () => { const h = (await state(pages[0])).hud.hud; return h.up.some(t => /^(BOB|CHARLIE) ↑\d+$/.test(t)) ? h : null; }, 8000);
-  ok(!!mu, `… and on ALICE's phone the rivals above her: "${mu ? mu.up.join('" · "') : '—'}"`);
+  // ---- THE RAIL's NAMES (FIX A — the edge markers are gone): every rival's name beside its dot on BOB's phone, never two over each other
+  const mk = await until(async () => { const h = (await state(pages[1])).hud.hud; const ns = h.dots.filter(d => d.name); return ns.length === 2 && ns.some(d => d.name === 'ALICE') && ns.some(d => d.name === 'CHARLIE') ? h : null; }, 20000);
+  const gaps = mk ? mk.dots.filter(d => d.name).map(d => d.ny).sort((a, b) => a - b) : [];
+  ok(!!mk && gaps.every((y, k) => !k || y - gaps[k - 1] >= 13.5), `THE RAIL's NAMES on BOB's phone — his two rivals by their dots, apart: ${mk ? mk.dots.filter(d => d.name).map(d => `${d.name} @${d.ny}`).join(' · ') : '—'}`);
+  ok(!!mk && !('down' in mk), 'no edge marker is drawn');
   await H.shot(pages[1], 'match-marker');
   // THE NETWORK MEASURE, 3 players — all three still falling
   await until(() => Date.now() - ta.at > 14000, 15000, 100);

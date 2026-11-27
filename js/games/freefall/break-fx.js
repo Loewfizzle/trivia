@@ -244,7 +244,8 @@ ${HASH}
 vec2 swell(vec2 p, float t) {
   vec2 a = texture2D(tRip, p * 1.15 + vec2(t * 0.024, t * 0.014)).xy - 0.5;
   vec2 b = texture2D(tRip, p * 3.4 + vec2(-t * 0.034, t * 0.022) + 0.37).xy - 0.5;
-  vec2 g = (a + b * 0.75) * (32.0 / ${RIP_K}.0) * uHaveR;
+  vec2 c = texture2D(tRip, p * 7.3 + vec2(t * 0.05, -t * 0.041) + 0.71).xy - 0.5;   // (a fine third layer: the crests' own detail)
+  vec2 g = (a + b * 0.75 + c * 0.5) * (32.0 / ${RIP_K}.0) * uHaveR;
   vec2 q = p + 0.32 * vec2(sin(p.y * 0.83 + t * 0.29), cos(p.x * 0.71 - t * 0.23));
   g += (1.0 - 0.75 * uHaveR) * (vec2(0.12, 1.0) * cos((q.x * 0.12 + q.y) * 2.1 + t * 0.9) + vec2(0.8, 0.6) * 0.5 * cos((q.x * 0.8 + q.y * 0.6) * 1.3 + t * 0.5));
   return g;
@@ -270,7 +271,7 @@ void main() {
   vec2 g = swell(vW.xz, uTime) * mix(1.0, 0.55, far);                    // (calmer with distance: far ripples are finer than a pixel)
   // THE RINGS where the tower meets the water: soft rings running out from the floor's edge, dying as they go
   vec2 rd = vW.xz / max(r, 1e-4);
-  float rEnv = smoothstep(uRO * 0.86, uRO * 1.04, r) * exp(-max(r - uRO, 0.0) * 1.5), rPh = r * 15.0 - uTime * 1.5 + 0.6 * sin(atan(vW.x, vW.z) * 3.0 + uTime * 0.4);
+  float rEnv = smoothstep(uRO * 0.9, uRO * 1.03, r) * exp(-max(r - uRO, 0.0) * 3.2), rPh = r * 22.0 - uTime * 1.5 + 0.6 * sin(atan(vW.x, vW.z) * 3.0 + uTime * 0.4);
   g += rd * sin(rPh) * rEnv * 1.3;
   float ringHi = pow(max(cos(rPh), 0.0), 3.0) * rEnv;
   // THE RING WAVE of the plunge: rings running out from the impact, dying as they go
@@ -297,7 +298,7 @@ void main() {
   float l2 = dot(c2, vec3(0.3, 0.55, 0.15)) * smoothstep(0.22, 0.55, (c2.r - c2.b) / (c2.r + c2.b + 1e-4));
   float lamp = smoothstep(mix(0.05, 0.16, uDay), mix(0.2, 0.32, uDay), max(l1, l2)) * uHaveW;
   // THE LAMP COLUMN: straight down the middle from the tower toward the viewer, the far wall's own lamp — broken up by the waves
-  float cw = 0.055 + 0.006 * max(vW.z, 0.0), cx = vW.x + g.x * 0.04 + 0.02 * sin(vW.z * 13.0 + uTime);
+  float cw = (0.055 + 0.006 * max(vW.z, 0.0)) * mix(0.62, 1.0, uDay), cx = vW.x + g.x * 0.04 + 0.02 * sin(vW.z * 13.0 + uTime);
   float colm = exp(-cx * cx / (cw * cw)) * smoothstep(uRO * 0.7, uRO * 1.3, vW.z) * exp(-max(vW.z - uRO, 0.0) / 2.4);
   // (the waves cut a lamp's light into bright flecks: lit on the faces toward the light, dark between)
   float bands = 0.5 + 0.5 * sin(vW.z * 21.0 + g.y * 3.6 - uTime * 1.1);
@@ -317,9 +318,9 @@ void main() {
     col = mix(col, vec3(1.0, 0.62, 0.24), min(amber * 1.05, 0.92));
     col += vec3(0.4, 0.26, 0.08) * amber * amber;
     glow += vec3(0.5, 0.26, 0.06) * amber * 0.35;
-    vec2 gl = speck(vW.xz * 5.0 + g * 0.1 + 3.7, 0.12, vec2(1.0, max(V.y, 0.3) * 2.0), 0.14);
+    vec2 gl = speck(vW.xz * 7.0 + g * 0.1 + 3.7, 0.2, vec2(1.0, max(V.y, 0.3) * 2.0), 0.1);
     vec3 gc = mix(mix(vec3(1.0, 0.3, 0.75), vec3(0.62, 0.35, 1.0), step(0.33, fract(gl.y * 7.0))), vec3(0.3, 0.9, 1.0), step(0.66, fract(gl.y * 7.0)));
-    gc *= gl.x * pow(0.5 + 0.5 * sin(uTime * 1.7 + gl.y * 50.0), 6.0) * (0.35 + 0.65 * crest) * (1.0 - far) * 0.7;
+    gc *= gl.x * pow(0.5 + 0.5 * sin(uTime * 1.7 + gl.y * 50.0), 4.0) * (0.45 + 0.55 * crest) * (1.0 - far) * 1.1;
     // glowing cyan PLANKTON: a few specks riding the swell, breathing slowly (round ON THE SCREEN: drawn longer toward the viewer)
     vec2 pk = speck((vW.xz + g * 0.03) * 3.4 + vec2(uTime * 0.02, 0.0), 0.5, vec2(1.0, V.y), 0.055);
     vec3 pc = vec3(0.22, 0.9, 1.0) * pk.x * (0.35 + 0.65 * fract(pk.y * 13.7)) * (0.6 + 0.4 * sin(uTime * 0.9 + pk.y * 40.0));
@@ -332,13 +333,13 @@ void main() {
     col = mix(vec3(0.002, 0.03, 0.17), vec3(0.01, 0.12, 0.5), smoothstep(0.0, 0.6, sy));
     col = mix(col, vec3(0.02, 0.2, 0.6), smoothstep(0.5, 0.9, sy));
     col *= 0.9 + 0.36 * sheen;
-    col += vec3(0.04, 0.2, 0.42) * sheen * sheen + vec3(0.25, 0.5, 0.75) * crest * 0.3;
+    col += vec3(0.03, 0.15, 0.32) * sheen * sheen + vec3(0.25, 0.5, 0.75) * crest * 0.22;
     col += vec3(0.1, 0.3, 0.5) * ringHi * 0.7;
     col = mix(col, vec3(1.0, 0.66, 0.24), min(amber * 1.1, 0.95));
     col += vec3(0.5, 0.36, 0.12) * amber * amber;
     glow += vec3(0.5, 0.28, 0.06) * amber * 0.3;
     // SUN GLINTS — small, only on the moving crests, each a short blink (never a static dot: they ride the waves)
-    vec2 sp = speck(vW.xz * 7.0 + g * 0.16 + vec2(0.0, uTime * 0.1), 0.5, vec2(1.0, max(V.y, 0.25) * 2.2), 0.13);
+    vec2 sp = speck(vW.xz * 10.0 + g * 0.16 + vec2(0.0, uTime * 0.1), 0.5, vec2(1.0, max(V.y, 0.25) * 2.2), 0.09);
     float glint = sp.x * smoothstep(0.5, 1.5, face) * pow(0.5 + 0.5 * sin(uTime * 3.1 + sp.y * 60.0), 6.0) * (1.0 - 0.5 * far);
     col = mix(col, vec3(1.0, 0.97, 0.9), min(glint, 0.85));
     col = mix(col, vec3(1.0, 0.25, 0.62), pool * pool * 0.25);

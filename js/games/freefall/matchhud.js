@@ -85,7 +85,7 @@ export function createMatchHud({ busy = () => false } = {}) {
     last(words) {
       if (busy()) { setTimeout(() => this.last(words), 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
       if (lastCard) lastCard.remove();
-      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), h('span', words));
+      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), h('span', String(words).replace(' · ', ' · ')));   // (FIX A: a wrapped line breaks AFTER the dot)
       el.append(c); lastTotal++;   // (never in .ff-over: that layer hides the rail — Call the Winner's sheet)
       setTimeout(() => { c.remove(); if (lastCard === c) lastCard = null; }, LAST_CARD_MS);
     },

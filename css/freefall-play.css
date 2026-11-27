@@ -364,7 +364,7 @@
 .ff-rail-dot.is-me.is-out { background: rgba(9, 6, 20, 0.92); box-shadow: 0 0 0 2px #ff4fa8; }
 /* FIX A — THE EDGE MARKERS are gone: each RIVAL's NAME beside its dot on THE DEPTH RAIL, in its colour (railName: 7 letters at most, '…'),
    nudged apart when dots are close (matchhud.js#spreadNames — never over each other); an out rival = the crossed dot + a dimmed name */
-.ff-rail-name { position: absolute; right: calc(100% + 1px); top: 0; margin-top: -0.62em; font: 800 12px/1.2 var(--font-ui); letter-spacing: 0.05em; white-space: nowrap; color: var(--c, #fff); transition: transform 0.2s linear; will-change: transform;
+.ff-rail-name { position: absolute; right: calc(100% + 1px); top: 0; margin-top: -0.72em; padding: 0 3px; border-radius: 2px; background: rgba(7, 4, 15, 0.7); font: 800 12px/1.2 var(--font-ui); letter-spacing: 0.05em; white-space: nowrap; color: var(--c, #fff); transition: transform 0.2s linear; will-change: transform;
   text-shadow: -1.5px 0 0 #07040f, 1.5px 0 0 #07040f, 0 -1.5px 0 #07040f, 0 1.5px 0 #07040f, -1px -1px 0 #07040f, 1px 1px 0 #07040f, -1px 1px 0 #07040f, 1px -1px 0 #07040f, 0 0 6px rgba(7, 4, 15, 0.9); }
 .ff-rail-name.is-out, .ff-rail-name.is-lost { opacity: 0.5; }
 .ff-rail-name.is-made { color: #ffc83c; }
@@ -380,6 +380,7 @@
 .ff-last::before { content: ''; position: absolute; left: -12px; right: -12px; top: -18px; bottom: -16px; z-index: -1; background: radial-gradient(ellipse at 50% 50%, rgba(7, 4, 15, 0.82) 0%, rgba(7, 4, 15, 0.6) 48%, rgba(7, 4, 15, 0) 74%); }
 @keyframes ff-last { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ff-out, .ff-last { animation: none; } }
+@media (max-height: 700px) { .ff-last { gap: 3px; } .ff-last b { font-size: 18px; } .ff-last span { font-size: 10.5px; } }   /* (FIX A: a short phone — the card ends above the ball) */
 .ff-stage.is-watch .ff-marks.is-dn, .ff-stage.is-match.is-over .ff-marks.is-dn { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); }
 .ff-clock { position: absolute; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 56px); font: 700 16px/1 var(--font-num); letter-spacing: 0.06em; color: #eaffff; text-shadow: 0 0 2px #fff, 0 0 10px rgba(39, 224, 230, 0.9), 0 1px 0 #07040f; }
 /* OUT · THE BOTTOM · TIME'S UP — the cause's words for a moment, then Call the Winner / WATCH */

@@ -12,6 +12,7 @@
 //   node tests/integration/freefall-play.mjs "<chromium>" [outDir] [--look] [--perf] [--webkit]
 //     --look = the review's shots only (THE OPENING, every area, the moments, the greyscale red, the hold, the end, the sizes)
 //     --perf = the measured frame rate, every tier, 1× + 4× CPU (the bot playing) — FREEFALL's speed test
+//     --contrast = FIX A — THE DAY HUD's contrast on every area (frozen frames, the digits vs what is behind them) · --watershot = THE WATER at 119, both looks
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { mkdirSync } from 'node:fs';
@@ -189,7 +190,7 @@ async function look() {
       for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3]]) {
         const tag = `${sw}x${sh}`;
         t = await open(sw, sh, sd, `?seed=look1${q}`, { best: 88 });
-        await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000); await sleep(1200);
+        await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 13', 15000); await sleep(1200);
         await shot(t.p, f(`30-roof-title-${tag}`));
         await t.close();
         for (const floor of [0, 15, 30, 39]) {
@@ -591,7 +592,7 @@ async function checks2() {
   await start(t); await auto(t.p, 'play');
   ok(await waitFor(t.p, 'window.__ffPlay.state().newBest'), 'the fall past YOUR BEST = the crossing');
   let s = await st(t.p);
-  ok(/\bis-gold\b/.test(s.cls) && s.floor === 4 && s.call === 'NEW BEST', `floor ${s.floor}: NEW BEST in the announcer, the number turns gold`);
+  ok(!/\bis-gold\b/.test(s.cls) && s.floor === 4 && s.call !== 'NEW BEST', `floor ${s.floor}: a best under floor 10 is crossed QUIETLY — no gold, no call over the number (FIX A; the end still says NEW BEST)`);
   ok(s.info.frames > 0 && s.tapeFloor === 3, `YOUR BEST's gold tape lies round floor ${s.tapeFloor}`);
   await waitFor(t.p, 'window.__ffPlay.state().floor >= 12');
   await auto(t.p, 'red');
@@ -754,7 +755,7 @@ async function checks3() {
   await waitFor(t.p, 'window.__ffPlay.state().floor >= 3 && window.__ffPlay.state().fl === "bounce"');
   await sleep(300);
   let num = await box(t.p, '.ff-num'), bestL = await box(t.p, '.ff-best');
-  ok(num.col === 'rgb(255, 63, 168)' && bestL.col === 'rgb(11, 42, 74)', `by day the big number is PINK (${num.col}) in its dark outline, YOUR BEST in navy ink on the open sky (${bestL.col})`);
+  ok(num.col === 'rgb(255, 255, 255)' && bestL.col === 'rgb(255, 255, 255)', `FIX A — THE DAY HUD: the big number WHITE (${num.col}) in its navy outline, YOUR BEST white in a dark edge (${bestL.col})`);
   // THE LOOK LOCK (FIX A — the review's M1): a look asked for mid-run (the console's GAME LOOK, AUTO's sun) WAITS for the run's end
   await t.p.evaluate(() => window.__ffPlay.setLook('night')); await sleep(400);
   s = await st(t.p);
@@ -876,10 +877,10 @@ async function checks4() {
   // ---- THE ROOF BELOW: the title screen has the roof's painting + its city + the 3D skylight riding on it; EVERY picture of the look is in before the first drag
   for (const lk of ['night', 'day']) {
     t = await open(390, 844, 2, `?seed=f3b1&look=${lk}&tier=2`);
-    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
     s = await st(t.p);
     const names = s.info.walls.split(' ').map(x => x.split(':')[0]).sort().join(' ');
-    ok(s.info.landed === 12 && s.info.roof[0] === 1 && s.info.roof[2] === 1 && s.info.roof[3] === 1 && s.info.breaks.deck && s.info.breaks.glass && !t.errs.length, `${lk} — THE TITLE SCREEN: the roof below (its painting + its city in, all of it there) with the 3D skylight riding on it; ${s.info.landed} pictures in before the first drag (${names})`);
+    ok(s.info.landed === 13 && s.info.roof[0] === 1 && s.info.roof[2] === 1 && s.info.roof[3] === 1 && s.info.breaks.deck && s.info.breaks.glass && !t.errs.length, `${lk} — THE TITLE SCREEN: the roof below (its painting + its city in, all of it there) with the 3D skylight riding on it; ${s.info.landed} pictures in before the first drag — FIX A: + the water's ripple map (${names})`);
     const before = s.info.landed, shows0 = s.info.roof[1];
     await start(t); await auto(t.p, 'gap');
     await waitFor(t.p, 'window.__ffPlay.state().floor >= 30', 30000);
@@ -1139,7 +1140,7 @@ async function perf() {
   for (const lk of ['night', 'day']) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
     if (ONE && ONE !== `${lk}-water-${tier}-${rate}`) continue;
     const d = await open(390, 844, 3, `?seed=look2&tier=${tier}&floor=117&look=${lk}`);
-    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
     await start(d); await auto(d.p, 'play');
     await waitFor(d.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(d.p, 'safe');
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
@@ -1156,7 +1157,7 @@ async function perf() {
   for (const [lk, floor, where, mode] of [['night', 36, 'THE SKYLIGHT', ''], ['day', 36, 'THE SKYLIGHT', ''], ['night', 116, 'THE SPLASHDOWN', ''], ['day', 116, 'THE SPLASHDOWN', ''], ['night', 196, 'THE BOTTOM (solo: the crack)', ''], ['day', 196, 'THE BOTTOM (solo: the crack)', ''], ['night', 196, 'THE BOTTOM (a finish + the firework)', '&mode=match'], ['day', 196, 'THE BOTTOM (a finish + THE DAY CELEBRATION)', '&mode=match']]) for (const tier of [2, 0]) for (const rate of [1, 4]) {
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
     const d = await open(390, 844, 3, `?seed=perfb&tier=${tier}&floor=${floor}&look=${lk}${mode}`);
-    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     await start(d); await auto(d.p, 'play');
     await sleep(1100);
@@ -1180,7 +1181,7 @@ async function water() {
   for (const lk of ['night', 'day']) for (const rate of [1, 4]) {
     for (const what of ['stand', 'splash']) {
       const d = await open(390, 844, 3, `?seed=look2&tier=2&floor=${what === 'stand' ? 117 : 116}&look=${lk}`);
-      await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+      await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
       await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
       await start(d); await auto(d.p, 'play');
       if (what === 'stand') { await waitFor(d.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(d.p, 'safe'); }
@@ -1202,7 +1203,7 @@ async function stutters() {
   const out = [];
   for (const lk of LOOKS) for (const rate of [4]) {
     const d = await open(390, 844, 3, `?seed=stut1&tier=2&look=${lk}`);
-    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(d.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
     await sleep(800);
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
     await start(d); await auto(d.p, 'play');
@@ -1218,7 +1219,7 @@ async function stutters() {
     const r = await d.p.evaluate(() => { window.__stStop = true; const s = window.__ffPlay.state(), T = window.__st; return { floor: s.floor, over: s.over, cause: s.cause, hitches: s.hitches, worst: s.worstMs, log: s.hitchLog, W: [...T.W], N: [...T.N], F: [...T.F], landed: s.info.landed, bakes: s.banner.bakes, tier: s.tier }; });
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     out.push({ lk, rate, ...r });
-    ok(r.floor >= 205 && r.hitches <= 2 && r.landed === 12, `${lk} at ${rate}× CPU, the roof to the trench (floor ${r.floor}): HITCH ${r.hitches} (frames over 33 ms${r.log.length ? `: ${r.log.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ')}` : ''}) · worst ${r.worst.toFixed(1)} ms · no picture landed in the run (${r.landed})`);
+    ok(r.floor >= 205 && r.hitches <= 2 && r.landed === 13, `${lk} at ${rate}× CPU, the roof to the trench (floor ${r.floor}): HITCH ${r.hitches} (frames over 33 ms${r.log.length ? `: ${r.log.map(h => `${h.why} ${h.ms} ms @${h.floor}`).join(', ')}` : ''}) · worst ${r.worst.toFixed(1)} ms · no picture landed in the run (${r.landed})`);
     await d.close();
   }
   console.log('\n| look | cpu | area | frames | worst ms | over 25 ms |\n| --- | --- | --- | --- | --- | --- |');
@@ -1265,10 +1266,12 @@ async function checks6() {
     ok(m.on && m.ghosts.every(g => g.floor <= 1 && g.near >= 0.9 && !g.bad) && m.layer.tagged === 0, `at the start everyone stands on the same slice: every ghost within a floor of my ball is an OUTLINE with no tag (${m.ghosts.map(g => g.near.toFixed(1)).join(' ')}) — my own ball is never hidden`);
     ok(/8 PLAYING$/.test(m.top) && m.hud.rail && m.hud.dots.length === 8 && m.hud.dots.some(d => d.uid === 'me'), `the top line "${m.top}" · THE DEPTH RAIL: a dot a player (${m.hud.dots.length}), mine among them`);
     await auto(t.p, 'safe');
-    ok(await waitFor(t.p, `${M}.hud.down.length >= 2 && ${M}.ghosts.some(g => g.alpha === 0 && !g.over && !g.lost) && ${M}.ghosts.some(g => g.alpha > 0.9 && g.near < 0.1)`, 30000), 'the rivals fall on while I stay: a ghost in the picture below me, the far ones as EDGE MARKERS at the foot');
+    ok(await waitFor(t.p, `${M}.ghosts.some(g => g.alpha === 0 && !g.over && !g.lost) && ${M}.ghosts.some(g => g.alpha > 0.9 && g.near < 0.1)`, 30000), 'the rivals fall on while I stay: a ghost in the picture below me, the far ones out of the picture (named on the rail)');
     m = await t.p.evaluate(M);
     const far = m.ghosts.filter(g => g.floor - (m.ghosts.length ? 0 : 0) >= 0 && g.alpha === 0 && !g.over && !g.lost);
-    ok(m.hud.down.every(x => /^[A-Z]+ ↓[0-9]+$/.test(x)) && m.hud.down.length <= 3 && far.length >= 1 && m.layer.tagged >= 1 && m.layer.baked === 1, `the markers "${m.hud.down.join('" · "')}" (≤ 3, the nearest first) · ${far.length} ghosts too far to draw · ${m.layer.tagged} tag(s) over the ghosts in sight · the atlas still baked once`);
+    // (FIX A — THE EDGE MARKERS are gone: every rival's NAME beside its dot on the rail — 7 letters at most, never two closer than a line)
+    const nm = m.hud.dots.filter(d => d.name), ny = nm.map(d => d.ny).sort((p, q) => p - q);
+    ok(nm.length === 7 && nm.every(d => /^[A-Z…]{1,7}$/.test(d.name)) && ny.every((y, k) => !k || y - ny[k - 1] >= 13.5) && far.length >= 1 && m.layer.tagged >= 1 && m.layer.baked === 1 && !('down' in m.hud), `THE RAIL's NAMES: ${nm.map(d => `${d.name} @${d.ny}`).join(' · ')} — apart, no edge marker · ${far.length} ghosts too far to draw · ${m.layer.tagged} tag(s) over the ghosts in sight · the atlas still baked once`);
     const me0 = m.hud.dots.find(d => d.uid === 'me').y, deep = Math.max(...m.hud.dots.map(d => d.y));
     ok(deep > me0 + 8 && m.hud.railH > 300, `the rail: the deepest dot ${deep.toFixed(0)} px down a ${m.hud.railH}-px rail, mine at ${me0.toFixed(0)}`);
     // … the lights take me (I stood still): OUT → WATCH THE LEADER
@@ -1363,7 +1366,7 @@ async function contrast() {
 async function watershot() {
   for (const lk of LOOKS) {
     const t = await open(390, 844, 3, `?seed=look2&tier=2&floor=117&look=${lk}`);
-    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 12', 15000);
+    await waitFor(t.p, 'window.__ffPlay.state().info.landed >= 13', 15000);
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().floor >= 119 && window.__ffPlay.state().fl === "bounce"', 40000); await auto(t.p, 'safe');
     for (let k = 0; k < 3; k++) { await sleep(k ? 900 : 1200); await shot(t.p, `water-${lk}-${k}.png`); }

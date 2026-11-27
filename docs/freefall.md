@@ -34,6 +34,8 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F5B — THE FIXES + THE WATER SWAP + THE SHARED END SCREENS | Nov 27 2026 | `docs/games/passes/freefall-f5b.md` | SHARE = THE PICTURE ONLY (card.js + send.js — the test page + the cartridge) · the banners proven = 120's · THE MARK through the floor · the gold card readable · FLOORS 40 + 120 NO RED (`gen.blind`) · no "0 BLAZES", ONE bottom wording · the crown · the water hitches · the inbox's smudge / lamps / stump · THE WATER SWAP (night under = the day's water in night inks · day above = ocean blue + NIGHT's streaks) · THE END-SCREEN BOARD (ui/end-board.js — shared, opt-in) + FREEFALL's FINAL SHAPE |
 | F5C — F5B's LEFTOVERS + THE MATCH PIECES + HOW TO PLAY + THE MIX + CREDITS | Nov 27 2026 | `docs/games/passes/freefall-f5c.md` | the logo always paints · YOUR BEST n · AVG n · ☐ FRIENDS ONLY (shared) · the name on the card · night under + day above (the last code try) · the day mark's outline · THE TIE-BREAK · the edge markers at the rival's side · RIVAL OUT · LAST ONE STANDING · HOW TO PLAY · THE MIX + the duck · the credits |
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
+| THE REVIEW (report only) | Nov 27 2026 | `docs/games/passes/freefall-review.md` | MUST 3 · SHOULD 16 · NICE 15 — the fix list for THE FIX PASS |
+| THE FIX PASS A — THE LOOK + THE FEEL | Nov 27 2026 | `docs/games/passes/freefall-fixa.md` | MAKE ROOM (MODULE NOTES) · THE LOOK LOCK · THE DAY HUD · THE WATER (Grok's ripple map) · the callouts up · THE RAIL's NAMES (no edge markers) · THE MARK = D · `?fps=1`'s END-OF-RUN SUMMARY · THE SPIKE RULE · the title's dark hold · THE TAPPER · the deep lifted by night |
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same INPUT LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers
@@ -822,6 +824,42 @@ FREEFALL stays HIDDEN; THE SWITCH stays OFF. No rules-file change.
   to 0.5 under the outs, the breakthroughs, the bottom + LAST ONE STANDING. **THE CREDITS**: `ui/credits.js` group FREEFALL (`game` —
   shown where FREEFALL is playable).
 
+## THE FIX PASS A — THE LOOK + THE FEEL (Nov 27 — `docs/games/passes/freefall-fixa.md`)
+- **THE LOOK LOCK** (the review's M1; the owner: the HOST's look for the whole match, the same on every phone): a run keeps the look it
+  STARTED in — a change asked for mid-run (the console's Game look, AUTO's sun, the test page's `setLook`) waits for the end card
+  (`stage.js#lookHeld` · `lookWant`). A MATCH: the host stamps `game.look` at the start (`index.js#start` → `director.js#createGame` —
+  its Game look, AUTO = the sun at its place; never for a solo run); every phone's stage takes it (`view.js#lookLock` → `o.lookLock`, it
+  always wins); a refresh / late joiner / host change reads the stamp. No rules change (`game/` has no child whitelist).
+- **THE DAY HUD** (M2): by day the HUD has its own ground — a soft navy fall behind its column (`.ff-shade::before`, a radial in the foot's
+  navy) — and night's inks on it: a WHITE number (GOLD on NEW BEST) in the navy outline (`--ff-out`), the top line white in a dark edge on
+  every area. Measured (`freefall-play.mjs --contrast`: the frame frozen, the digits' own pixels against what is behind them, the worst
+  10 %): the number 7.3–16.2 : 1, the top line 8.1–17.1 : 1, NEW BEST's gold 4.5–10.0 : 1.
+- **THE WATER** (the owner's targets: Grok's mock B by day, its night recolour): ONE ripple path for both looks — Grok's ripple map
+  (`assets/freefall/fx/water-normal.webp`, 512², its gentle slopes stretched × `RIP_K` = 10 at the bake — 8 bits gave terraces), two
+  layers scrolled slowly → the swell; THE RINGS where the tower meets the water; THE LAMP COLUMN (the far wall's lamp, straight down the
+  middle, cut into flecks by the waves; a faint amber is gated out — it read brown over the blue); the side lamps' columns narrowed to
+  their hearts. DAY: the ocean blue deepening toward the bottom, the swells' faces lit sky-blue, white glints on the crests. NIGHT: dark
+  teal, a few pink / violet / cyan glints, the plankton. No thin ripple lines. The water's first draw is in THE WARM FRAME (its mesh is
+  never frustum-culled: the opening's draw call compiles it) — the review's "150–217 ms water frame" was the run ending on 119 (its end
+  card), measured.
+- **THE CALLOUTS UP:** "MIA IS OUT" + LAST ONE STANDING in the bands' zone under the number (`--ff-band-top`) — never over the floors
+  below the ball; one waits while an arrival band is up (`createMatchHud({ busy })`). **S14:** a rival who HIT THE BOTTOM can't be
+  caught — "MIA HIT THE BOTTOM · KEEP FALLING FOR 2ND" (`ghosts.js#madeAhead`; the lead measured to the rivals who did NOT finish); said
+  once a match, a refresh too (the cartridge keeps the match's seed: `view.js` drv `said`).
+- **GHOSTS:** the tags never overlap (asked again until clear of every placed tag); a wider dark rim by day.
+- **THE MARK = D** (`js/core/marks.js`): the ring floor's BACK edge first (`#7d3fb8`, 4.5), the flames + core + ball as before, the FRONT
+  edge with the wide gap over them (`#c35bff`); the card art's glow on a full region (a thin path's own box clipped it flat).
+- **SPEED:** `?fps=1` shows THE END-OF-RUN SUMMARY on the end screen (`RUN · worst n ms · HITCH n · <cause> n× (worst ms @floor) ×3 ·
+  tier path`); THE SPIKE RULE (`stage.js#SPIKE`: 4 hitches inside 20 s → one tier down, 2 a run at most, the tier left HELD — the kit's
+  `ask(t, stay)`, an opt-in nobody else passes — never flaps; a pinned tier untouched); SHARE's card drawn on an idle moment
+  `send.js#WARM_MS` after the end screen (≤ `WARM_MAX_MS`), encoded a frame later.
+- **POLISH:** the title waits DARK for the rooftop's pictures (`is-dim`, ≤ `DIM_MAX_MS` 1.6 s) and fades in; the sky + roof fallbacks are
+  the panoramas' own measured colours (never a grey slab) · **S12 THE TAPPER**: a tapped start keeps the hint + DRAG TO SPIN up
+  (`is-teach`) until the tower turns or floor 1; `TEACH_MS` untouched on floor 0 brings it back · **S13**: THE DEEP + THE TRENCH lifted by
+  night (`0x4a40c0` / `0x3a34a8` …) · **N3**: the finish's share frame at 600 ms (the ring at its widest), pulled back × 1.14, bloom 0.08 ·
+  **N13**: the day's gold YOU HIT THE BOTTOM a deeper gold in a dark edge · the mid-run NEW BEST moment only from floor `NEW_BEST_FROM`
+  (10) · the test page's SHARE busy until it settles.
+
 ## THE STUTTERS (F3B — the owner's iPhone, day speakeasy, `?fps=1`: 59 fps · worst 34 ms · HITCH 9 at tier 2)
 Every long frame of a run is now NAMED (`stage.js` THE HITCH LOG: what one-off work landed just before it — `pic` a picture's upload ·
 `snd` a sound's decode · `band` a band's bake · `tier` a tier step · `dom` the HUD's own writes · `frame` none of those; the last 24
@@ -1026,13 +1064,18 @@ A rival = their own input log through the SAME engine (their proof node's chunks
 - **ZERO GARBAGE IN PLAY:** `stepGhost` copies a run's state field by field, the stage writes eight numbers a ghost into ONE typed array
   the scene reads, the layer's `place()` writes typed arrays made once (the static scan covers all of them).
 
-## THE DEPTH RAIL + THE EDGE MARKERS (F4B — `matchhud.js`; HIGH RISE's altimeter turned upside down)
+## THE DEPTH RAIL + THE RAIL's NAMES (F4B — `matchhud.js`; HIGH RISE's altimeter turned upside down; THE FIX PASS A: the edge markers → the names)
 **THE DEPTH RAIL:** a thin glowing rail at the right edge (pink → violet → blue), **everyone's dot by depth** — floor 0 at its head, **THE
 BOTTOM marked at its foot** (a gold bar) — mine larger (white in a pink ring), **out = a crossed dot**, the finish gold, no signal hollow.
 A dot is made once a player and moved by ONE transform when its floor changes. **THE EDGE MARKERS:** a rival five or more floors below me
 = "MIA ↓12" at the foot of the screen; two or more floors above (the picture ends sooner there) = "MIA ↑3" beside the rail's head — the
 nearest first, three at most each way (`ghosts.js#edgeMarks` — kept records; a marker's words are built only when they changed). The top
 line reads YOUR BEST 88 · 4 PLAYING. Written only at a change — never in a frame that changed nothing; plain text + dots, no pills.
+**THE FIX PASS A (Nov 27 — the owner's decision): THE EDGE MARKERS ARE GONE from the main view.** Each RIVAL's NAME sits beside its dot on
+the rail instead — in its colour, at most `NAME_MAX` (7) letters (`railName` — '…' past it), 12 px bold in a dark edge; names closer than
+`NAME_GAP` (14 px) are NUDGED APART (`spreadNames`, PURE — never over each other, inside the rail); an out rival = the crossed dot + a
+dimmed name; a finisher's name gold. Moved by ONE transform when its place changed (the dots' own transition). `ghosts.js#edgeMarks` stays
+(pure, tested) but nothing draws it. The top line never reads "0 PLAYING" (everyone down: the best alone).
 
 ## THE END SCREEN (F4B — the owner's approved mock; `endscreen.js` — ONE builder for the test page's card and the cartridge's body · `final.js` · `view.js#showFinal`)
 - **THE HEADER = THE LOGO:** title-05's lettering (the opening's own WebP, its alpha) centred at the top, **~58 % of the card's width**
