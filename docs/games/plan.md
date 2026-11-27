@@ -948,3 +948,17 @@
 - **"0 BLAZES" never shows · ONE wording for the floor-200 ending: "YOU HIT THE BOTTOM"** everywhere.
 - **F5 SPLIT:** F5C (Opus) = the tie-break, the edge markers, the rival OUT sound + callout, LAST ONE STANDING, HOW TO PLAY, the mix + the credits.
 - The pass: `docs/games/passes/freefall-f5b.md`.
+
+## FREEFALL — F5C (approved Nov 27)
+- **THE BLOCK's HEADER (shared, every game):** no "THE WORLD" heading — only the tick "☐ FRIENDS ONLY" (unticked = everyone; the same remembered setting; "no friends yet" unchanged). Ben, Nov 27. A match keeps its "THIS MATCH" heading.
+- **THE END SCREEN's LOGO ALWAYS SHOWS** (it may shrink, never disappear) on every solo + match end screen at 375 × 667 · 390 × 844 · 430 × 932, both looks; still no scrolling. **YOUR BEST line = "YOUR BEST n · AVG n"** (a dash under 5 runs); a NEW BEST = its own celebrated line ("NEW BEST · n"), the AVG under it.
+- **THE SHARE CARD ALWAYS SHOWS THE PLAYER's NAME** (the test page's too); "A PLAYER" only when there truly is none.
+- **THE WATER, the last code try (Ben, Nov 27):** NIGHT UNDER's caustic lines + bubbles as clearly visible as DAY UNDER's (night colours, plankton kept); DAY ABOVE = amber / brass streaks under each wall lamp (NIGHT ABOVE's way), fewer small glints that move on the ripple crests, the far edge soft, a saturated ocean blue deepest at the bottom. If DAY ABOVE still isn't premium after F5C, the next step is a sourced CC0 stylised water texture via Grok (not more code).
+- **THE MARK by day:** a deeper pink / orange outline on the ball (the design otherwise unchanged); within the boot budget.
+- **THE TIE-BREAK:** equal floors → who reached that final floor FIRST (its tick) → more blazes → a draw (a shared place).
+- **RIVAL OUT:** another player's out → JAYWALK's out-drop sound (referenced) + "MIA IS OUT" in their colour, ~1.5 s, out of the way; two at once → queued (max 2 lines); never for your own out.
+- **LAST ONE STANDING:** 3+ players, you're the last alive → once a match, JAYWALK's moment card + last-standing sound (referenced), FREEFALL's words: ahead "+23 FLOORS AHEAD · KEEP FALLING" · behind "12 FLOORS TO THE LEAD · KEEP FALLING".
+- **HOW TO PLAY** through the site's lazy system: DRAG TO SPIN · FALL THROUGH THE GAPS · RED = OUT · 3 FLOORS CLEAN = THE BLAZE (smashes the next floor, even red) · DON'T STALL — THE LIGHTS GO OUT · MATCH: same tower, deepest wins, THE BOTTOM (200) or 3:00 · SOLO: the PAUSE (3 a run).
+- **THE MIX + CREDITS:** every FREEFALL sound balanced to JAYWALK's mix (the music ducked under the big moments; the bounce soft); every FREEFALL asset in the site's credits (nothing unused).
+- **THE ROADMAP:** after F5C → the city chat switches the block on for the other games → the review (Opus + Grok, report only) → the fix pass → go-live.
+- The pass: `docs/games/passes/freefall-f5c.md`.
