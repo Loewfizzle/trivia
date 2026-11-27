@@ -805,6 +805,14 @@ first. **Deepest wins, then the earlier tick** (`logic.js#rankCompare`). One rou
   FINAL events, every 250 ms, 200 ms on the line) and fed to the ghosts exactly as a room's proof nodes are. Nothing counts, nothing is
   asked of any server.
 
+- **THE NETWORK (measured — an 8-player match against the free Spark plan; the pass log has the table):** a busy player writes ≈ 2.2
+  times a second (≈ 21 KB a minute up); every phone mirrors the whole `ff/{matchId}` tree — ≈ 25 KB a minute of its own traffic + ≈ 18 KB
+  a minute a rival: **a full-length 8-player match ≈ 3.6 MB of download in all (453 KB a phone)**, a 3-player one ≈ 0.63 MB, a 2-player
+  one ≈ 0.25 MB → Spark's 10 GB a month ≈ 2,900 full 8-player matches (≈ 16,000 of three). Nothing was trimmed.
+- **THE OUT's ORDER:** the cause's words (2.3 s; THE BOTTOM 3.6 s) → Call the Winner (it opens once the card has left) → WATCH (it waits
+  for the card AND the call). The WATCHING line is two short lines (who + their floor · your call / TAP FOR THE NEXT); a rival with no
+  news is WAITED FOR by name (WAITING FOR ALICE · NO SIGNAL).
+
 ## THE GHOSTS (F4B — `ghosts.js` (PURE) · `ghost-fx.js` (their layer) · `stage.js#ghostsFrame`; JAYWALK's ghosts are the pattern)
 A rival = their own input log through the SAME engine (their proof node's chunks, each read ONCE as it lands).
 - **STEPPED conf → run:** THE CONFIRMED RUN = their LANDED moves, stepped to the tick of the last one — nothing assumed. THE DRAWN RUN =
@@ -854,6 +862,31 @@ line reads YOUR BEST 88 · 4 PLAYING. Written only at a change — never in a fr
   of its look: `.ff-links` — its SHARE hands the phone's own share sheet a line + the page's link: no card, no server). The dimmed game
   scene stays behind it; no pink flash; a phone held sideways + a desktop scale it with the stage's column.
 
+## THE SHARE CARD (F4B — the owner's approved mock; `share.js` (lazy — the cartridge's alone) · `shot.js` (pure) · `night.js#snap`; the kit's `share-run.js#drawRunCard`; HIGH RISE S5's pattern)
+**1080 × 1350.** THE LOGO (title-05's lettering, 580 px wide) at the top + the mode line in teal — **SOLO** · **MATCH · 2ND OF 4** (the
+place from the judge's standings) — through the kit's new opt-in `o.head(c, card)` (a cartridge's own head in the place of the NEON
+SPEAKEASY sign + the game's line; the other games pass none). **THE HERO FRAME = the REAL end frame** in HIGH RISE S5's box (984 × 792
+at 48, 348; one teal neon edge), **the cause in a dark tab top-left** (HIT THE RED · THE LIGHTS WENT OUT · TIME'S UP · **YOU HIT THE
+BOTTOM** — the finish is GOLD: the edge, the tab's words, the number); **inside the frame's foot the big glowing FLOORS number**
+(white-hot, a cyan glow; Chakra Petch numerals) with FLOORS under it, **the deepest AREA reached beside it** (lavender — a long name wraps
+to two lines) **+ the BLAZES count in fire orange**, a darker fade behind them; **the player's name under the frame; NEONSPEAKEASY.COM
+at the foot** — big (52 px), bold, white in a pink neon glow, plain text (no pill). Everything reads at 360 px wide (nothing under 46 px
+of the card's 1080).
+- **THE FRAME** (`shot.js` + `night.js#snap(bw, bh, rect)` — the frame JUST drawn copied off the canvas in that frame: no
+  preserveDrawingBuffer): taken a beat after THIS phone's OWN run ends — `SHOT_AT` red 90 ms (the burst still bright) · dark 240 · cap
+  60 · made 390 (the seabed's impact) — never of a WATCHED player's run, never a watcher's; kept on this phone under the run's key
+  (`o.shotKey()` — the cartridge: its match id; else the run's seed) until the next run. THE LIGHTS WENT OUT: the game's darkness is a DOM
+  layer over the canvas — the card lays the same dark round the ball itself.
+- **SHARE** (`index.js#shareRun` — the console's universal footer shows SHARE for a cartridge with it: solo + match): the card is DRAWN
+  while the end screen is read (`final.js` → `warmShare`), **the link uploaded only at the first SHARE tap**, fitted under the server's
+  cap (`fitPng`). **Behind the switch:** the server takes a run's card only with its own COUNTED result (`api/_lib/share-card.js
+  RUN_GAMES` + `freefall`) — none while `FREEFALL_COUNTS` is off; the phone asks nothing once the server has said WOULD COUNT
+  (`globalThis.__ffWould`, or the report's own answer) → **the picture alone goes out**, no link, no text.
+- The test page's graph gains `shot.js` alone (pure state); its own SHARE is the phone's share sheet with a line + the page's link.
+- Shots: `Downloads\NEON\freefall-f4b\share\` (every cause + a match place + THE BOTTOM's gold + 0 floors + THE TRENCH, night + day, at
+  1080 × 1350 and 360 px wide; the raw frames; the beats' contact sheets `SHOT_AT` was picked from). `node
+  tests/integration/freefall-share.mjs "<chromium>" [outDir] [--cap] [--only=…] [--looks=…] [--beats=<run>:<ms>,…]`.
+
 ## THE TWO FIXES (F4B's Group 0)
 - **THE PAUSE GAP** (the owner: "a pause is granted only after the moves before it are sent + stamped; nothing arrives late" — F4A's
   reviewer: the 8 s of play before each hold could arrive at any time, the run's clock stood at the hold): **a hold FREEZES the clock only
@@ -875,8 +908,7 @@ line reads YOUR BEST 88 · 4 PLAYING. Written only at a change — never in a fr
 (the server's OWNER yes) **PLAY → FREEFALL · TEST → PLAY NOW**; nobody else is offered it, a start from another phone is refused, the
 city's signs / HOW TO PLAY / THE BOARD's public tabs do not know it. **NEVER flip `playable` before its go-live pass.** What it does not
 have yet is ONE named list (`tests/registration.test.mjs#FREEFALL_WAITS`: HOW TO PLAY, its tile, its public board tab → the go-live pass;
-its smoke start → F4B) + `tests/proof-lists.test.mjs#RUN_CARD_WAITS` (the run card → F4B) + `tests/console-fix.test.mjs` `MATCH_WAITS`
-(the match's run hold + live wait → F4B) — each fails when it goes stale.
+its smoke start) — it fails when it goes stale. (F4B: `RUN_CARD_WAITS` + `MATCH_WAITS` are EMPTY now — the run card and the match are built.)
 - **Registered:** its ROW in THE ONE META MODULE (`js/games/metas.js` — SOLO, both looks, no options, no controller mark) + the one-line
   `meta.js`; the loader (`registry.js`); a stand-in mark (`core/marks.js` — the go-live's icon brief replaces it); the theme
   (`css/base.css [data-theme='freefall']`: teal + pink); `livePaths` = `{ runs: 'ff/{matchId}' }`; the proof node `ff` in
@@ -1032,6 +1064,10 @@ js/games/freefall/best.js endscreen.js              YOUR BEST (pure) · the end 
 js/games/freefall/meta.js index.js director.js      THE CARTRIDGE (F4A — hidden): its meta row's re-export · the contract · the pure host step
 js/games/freefall/view.js final.js lines.js         … its screen (the stage + what a run WRITES) · the podium's body · the board's lines (pure)
 js/games/freefall/proof.js                          THE PROOF (F4A — pure: the phone, the host, the server): the chunks, the clock, the holds' clock, the judge of a node
+js/games/freefall/match.js                          THE MATCH's RULES (F4B — pure): the start (THE FIRST GO), the end, the live runs, Call the Winner
+js/games/freefall/ghosts.js ghost-fx.js             THE GHOSTS (F4B): stepped conf → run, the catch-up, WATCH's playback, the rail's + the markers' maths (pure) · their layer (the balls, the x-ray, the baked tags)
+js/games/freefall/matchhud.js matchsim.js           THE MATCH's HUD (the count, THE DEPTH RAIL, the edge markers, the OUT card, WATCHING) · the test page's BOT ROOM (lazy — never in the cartridge)
+js/games/freefall/share.js shot.js                  THE SHARE CARD (lazy — the cartridge's) · the end frame's record (pure)
 js/fx/ff-specs.js  assets/vault/ff/                 THE CARDS' crops + hero boxes · their art      scripts/build-freefall-cards.mjs
 js/games/freefall/sounds.js sfx.js audition.js      the sounds' table + triggers (pure) · the player · the SOUNDS list
 assets/freefall/walls/ sky/ roof/ title/ fx/  audio/freefall/  the eight walls (night + day) · the rooftop's two panoramas · the roof below + its city (F3B) · the title (F3) · the flame atlas + the breakthroughs' textures (F3B) · the ten sounds      scripts/build-freefall-assets.py
@@ -1046,15 +1082,16 @@ tests/freefall-engine.test.mjs (25) · freefall-tower.test.mjs (11) · freefall-
 tests/freefall-proof.test.mjs (6 — F4A: the chunks, the judge of a node, the holds, both clock bounds, hostile nodes) · freefall-cartridge.test.mjs (8 — F4A: the registration, the director, the server's result, THE SWITCH, the cards, the board + AVG)
 tests/integration/e2e-freefall.mjs (53 — F4A, the emulators: the hidden cartridge end to end) · rules.test.mjs "FREEFALL F4A" (the ff node) · server.test.mjs "FREEFALL F4A" (the report, the switch OFF / ON)
 tests/integration/freefall-play.mjs (152 — the browser: the test page, both looks; --f3b · --f4a (Group 0's 18) · --haze (measure only) · --look · --perf · --stutters)
+tests/freefall-match.test.mjs (9 — F4B: the steps, the judge of a match == the live runs on 8-player sims, hostile match logs, Call the Winner, THE GHOSTS, WATCH's exact playback) · freefall-share.test.mjs (7 — F4B: the card)
+tests/integration/e2e-freefall-match.mjs (F4B, the emulators: a real 3- + 8-player match end to end) · freefall-share.mjs (the card from REAL end frames) · rules.test.mjs + server.test.mjs "FREEFALL F4B"
+tests/integration/freefall-play.mjs --f4b (the frame bar · the bot room: ghosts, rail, markers, WATCH) · --perf8 (60 fps with 8 ghosts, every tier, 1× + 4× CPU, both looks) · --look --scenes=match,end,framebar
 tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900; scripts/serve.mjs is enough) · kit/page-loads.mjs (/freefall-lab)
 ```
 
 ## COMING
-**F4B: THE MATCH** (2 … 8 players — the same seed from THE FIRST GO, each player's own `ff` node, the rivals' ghosts, Call the Winner (`k`), the
-podium, **THE FINISH's hook — `onFinish` — where the match is wired**; a rival's ghost passing a breakthrough = a small echo) **+ THE END
-SCREEN** (the header = THE LOGO: title-05's lettering at ~55–60 % of the card's width, the mode under it in small teal caps; "YOUR BEST ·
-n · AVG n"; YOUR TABLE) **+ SHARE + the run card.** Then F5 (polish — the soft roof at floors 36–39 by day, a DAY finish celebration, THE
-MARK), the review, the fix pass, the go-live (`playable: true` · `FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the tile ·
-the site's Credits group — every source is CC0: `assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`). THE DAILY (later, the dailies
-chat): three tries all day, the best counts; a daily try never holds. Open questions for the owner: `docs/games/passes/freefall-f4a.md`
-"OPEN FOR BEN".
+**F5 (polish) — its FIRST item: THE WATER SURFACE above the splashdown** (the owner, Nov 26: night "needs a lot of work", day "a little
+off"); then the soft roof at floors 36–39 by day, a DAY finish celebration, THE MARK, the seabed dust's square edges 1–2 s after the impact
+(seen in the share card's beats — headless, dpr 3: check on a phone). Then the review, the fix pass, the go-live (`playable: true` ·
+`FREEFALL_COUNTS = true` · the public board tab · HOW TO PLAY · the tile · the site's Credits group — every source is CC0:
+`assets/freefall/CREDITS.md` · `audio/freefall/CREDITS.md`). THE DAILY (later, the dailies chat): three tries all day, the best counts; a
+daily try never holds. Open questions for the owner: `docs/games/passes/freefall-f4b.md` "OPEN FOR BEN".

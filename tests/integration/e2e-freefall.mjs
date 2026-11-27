@@ -142,7 +142,10 @@ try {
   const v1 = verifyRun({ code: g.code, matchId: g.m, node });
   ok(v1.ok && v1.floor === res1.floor && v1.tick === res1.tick && v1.end === res1.end && v1.cause === res1.cause && !v1.cut, `THE JUDGE (the server's own replay of the node) == the phone's run: floor ${v1.floor}, tick ${v1.tick}, ${v1.cause}${v1.ok ? '' : ` — refused: ${v1.why}`}`);
   const fin = await P.ev("({ t: document.querySelector('.ff-fin .ff-ec-cause').textContent, n: document.querySelector('.ff-fin .ff-ec-n').getAttribute('aria-label'), kicker: document.querySelector('.ff-final .sheet-kicker').textContent, bar: (document.querySelector('.ff-final .final-bar') || {}).textContent })");
-  ok(fin.t === 'HIT THE RED' && fin.n === String(res1.floor) && /^FREEFALL · SOLO$/.test(fin.kicker.trim()) && /PLAY AGAIN/.test(fin.bar || ''), `the podium: ${fin.t} · ${fin.n} FLOORS · ${fin.kicker} · ${String(fin.bar).trim()}`);
+  ok(fin.t === 'HIT THE RED' && fin.n === String(res1.floor) && /^SOLO$/.test(fin.kicker.trim()) && /PLAY AGAIN/.test(fin.bar || ''), `the podium: ${fin.t} · ${fin.n} FLOORS · ${fin.kicker} · ${String(fin.bar).trim()}`);
+  // F4B — THE END SCREEN: the header = THE LOGO (the lettering in the frame's own header slot, the mode under it); the universal footer: PLAY AGAIN · SHARE | HOME
+  const hd = await P.ev("(() => { const k = document.querySelector('.ff-final .sheet-kicker'), im = k && k.querySelector('.ff-ec-logo-img'), r = im && im.getBoundingClientRect(), links = [...document.querySelectorAll('.ff-final .final-links .final-link')].map(x => x.textContent.trim()); return { w: r ? r.width : 0, src: im ? im.currentSrc : '', label: k && k.querySelector('.ff-ec-logo') ? k.querySelector('.ff-ec-logo').getAttribute('aria-label') : '', links }; })()");
+  ok(hd.w >= 210 && hd.w <= 250 && /lettering-/.test(hd.src) && hd.label === 'Freefall, solo' && hd.links.join('|') === 'SHARE|HOME', `F4B — THE LOGO header (${hd.w.toFixed(0)} pt wide, "${hd.label}") · the universal footer's links: ${hd.links.join(' | ')}`);
 
   // ---- 4. THE SWITCH IS OFF: judged, WOULD COUNT, nothing written
   ok(await P.waitFor("/^WOULD (NOT )?COUNT/.test(document.querySelector('.ff-fin-would').textContent)", 20000), 'the server\'s answer arrives: the would-be line');
@@ -186,10 +189,38 @@ try {
   ok(await P.waitFor(`/^WOULD COUNT · FLOOR ${res6.floor} /.test(document.querySelector('.ff-fin-would').textContent)`, 20000), `… and the server says so: "${await P.ev("document.querySelector('.ff-fin-would').textContent")}"`);
   ok(await snap(pid) === before, '… still nothing written');
 
+  // ---- 6b. A PAUSE WITH NO LINE (F4B — THE PAUSE GAP on the phone; the fresh-eyes review's HIGH): the line drops, THEN the page hides — the
+  // hold's chunk can not leave. Back on screen with the line still down, the phone must NOT call the pause granted off its own UNSENT write
+  // (its mirror shows that chunk with the phone's own guess of the time): no stamp, the count runs its three times, the run goes on and
+  // SAYS it is not counted past the pause; when the line is back the chunk lands LATE — the judge cuts the run before the pause
+  await again(P);
+  await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g2.m}' && ${S}.game.phase === 'play' && !${ST}.state().started`, 15000);
+  const g2b = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+  await sleep(500);
+  await P.drag();
+  await P.waitFor(`${G}.state().proven && ${ST}.state().started`, 15000);
+  await P.ev(`${ST}.auto = 'play'`);
+  await P.waitFor(`${ST}.state().floor >= 4`, 30000);
+  await P.ev("import('/js/firebase.js').then(f => f.goOffline())");
+  await sleep(400);
+  await P.hideShow(true);
+  await P.waitFor(`${ST}.state().held`, 4000);
+  const heldFloorB = await P.ev(`${ST}.state().floor`);
+  await sleep(3300);   // (away, longer than the judge's 2 s grant)
+  await P.hideShow(false);
+  ok(await P.waitFor(`!${ST}.state().held`, 14000), 'back with NO LINE: the count runs (no answer — up to three times), then the run goes on');
+  const noteB = await P.ev(`${ST}.state().note`), nodeB0 = await nodeOf(g2b.code, g2b.m, uid);
+  ok(/NOT COUNTED PAST THE PAUSE/.test(noteB) && !(nodeB0 && nodeB0.h), `… it SAYS so ("${noteB}") and no way back was stamped — the pause was never called granted off the phone's own unsent chunk`);
+  await P.ev("import('/js/firebase.js').then(f => f.goOnline())");
+  await P.ev(`${ST}.auto = 'red'`);
+  ok(await toFinal(P), 'the run ends on the podium');
+  const nodeB = await nodeOf(g2b.code, g2b.m, uid), vB = verifyRun({ code: g2b.code, matchId: g2b.m, node: nodeB });
+  ok(vB.ok && vB.cut && (vB.cut.why === 'pause' || vB.cut.why === 'hold') && vB.floor <= heldFloorB + 1, `THE JUDGE: the hold's chunk landed late — the run is CUT at the pause (${vB.ok ? `floor ${vB.floor}, cut: ${vB.cut && vB.cut.why}` : `refused: ${vB.why}`}; held on floor ${heldFloorB})`);
+
   // ---- 7. COUNTING ON (the test-only flip)
   await dbPut('testFreefallCounts', true);
   await again(P);
-  await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g2.m}' && ${S}.game.phase === 'play' && !${ST}.state().started`, 15000);
+  await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g2b.m}' && ${S}.game.phase === 'play' && !${ST}.state().started`, 15000);
   const g3 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
   await sleep(500);
   await P.drag();

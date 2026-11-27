@@ -510,7 +510,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.ok(e.includes("h('img.ff-ec-logo-img', { alt: '', decoding: 'async', draggable: 'false', width: '780', height: '379', sizes: '250px', srcset: `${art(780)} 780w, ${art(1170)} 1170w`, src: art(780) })") && e.includes("h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m)"), 'the logo + the mode line');
   assert.ok(!/FREE FALL|'FREE'|'FALL'/.test(e), 'FREEFALL is ONE word — the header is the lettering itself');
   assert.equal(Number(/export const LOGO_REV = (\d+);/.exec(e)[1]), Number(/export const FF_ART_REV = (\d+);/.exec(code(`${FF}night.js`))[1]), 'the lettering\'s cache key = the scene\'s');
-  assert.match(read('css/freefall-play.css'), /\.ff-ec-logo-img \{ display: block; width: clamp\(210px, calc\(var\(--ff-w\) \* 0\.58\), 250px\);/, '~58 % of the card — never under 210 pt: the script must read');
+  assert.match(read('css/freefall-play.css'), /\.ff-ec-logo-img \{ display: block; width: clamp\(210px, calc\(var\(--ff-w\) \* 0\.58\), 320px\);/, '~58 % of the card — never under 210 pt: the script must read');
   assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
   assert.ok(s.includes("h('div.ff-endfoot', again, h('div.ff-links', ...(o.onLeave ? [city] : [share, h('i.ff-link-div', { 'aria-hidden': 'true' }), city])))"), 'F4B — THE UNIVERSAL FOOTER: PLAY AGAIN, then SHARE | HOME (the cartridge\'s own card: the way out alone)');
   assert.ok(!s.includes('SOON') && s.includes("h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'))") && s.includes('press(share, sharePage);'), 'SHARE works (the phone\'s own share sheet — a line + this page\'s link: no card, no server); HOME goes home');

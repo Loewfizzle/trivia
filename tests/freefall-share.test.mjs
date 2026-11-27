@@ -20,7 +20,7 @@ test('THE FRAME (shot.js): taken a beat after the end, per cause — always BEFO
   assert.deepEqual(Object.keys(SHOT_AT).sort(), Object.keys(END_WORDS).sort(), 'a beat for every way a run ends (logic.js#END_WORDS)');
   for (const c of ['red', 'dark', 'cap']) assert.ok(SHOT_AT[c] > 0 && SHOT_AT[c] <= hold - 200, `${c}: ${SHOT_AT[c]} ms — well before the end card (${hold} ms)`);
   assert.ok(SHOT_AT.made >= 330 && SHOT_AT.made <= holdMade - 200, `THE BOTTOM: ${SHOT_AT.made} ms — after the ball lands on the seabed (300 ms: night.js), before the end card (${holdMade} ms)`);
-  assert.ok(SHOT_AT.red <= 130, 'the red\'s burst is still bright round the ball');
+  assert.ok(SHOT_AT.red >= 150 && SHOT_AT.red <= 300, 'the red: the slice is RED again (white-hot until ~130 ms — the screen review: a white wedge under a HIT THE RED tab), the sparks still in the air');
   assert.equal(shotMs('red'), SHOT_AT.red); assert.equal(shotMs('made'), SHOT_AT.made); assert.equal(shotMs(''), SHOT_AT.cap); assert.equal(shotMs('constructor'), SHOT_AT.cap, 'an unknown cause: at once, never a property of the table\'s prototype … a number');
   assert.equal(typeof shotMs('toString'), 'number'); assert.equal(typeof ballAt('toString'), 'number');
   for (const c of Object.keys(BALL_AT)) assert.ok(BALL_AT[c] >= 0.34 && BALL_AT[c] <= 0.46, `${c}: the ball ${BALL_AT[c]} down the frame — under the cause's tab, over the floors' number`);

@@ -194,7 +194,7 @@
    the script must read), the mode under it in small teal caps */
 .ff-ec-hd { margin: 0 0 2px; font: inherit; letter-spacing: 0; white-space: normal; }
 .ff-ec-logo { display: grid; justify-items: center; }
-.ff-ec-logo-img { display: block; width: clamp(210px, calc(var(--ff-w) * 0.58), 250px); height: auto; aspect-ratio: 780 / 379; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.ff-ec-logo-img { display: block; width: clamp(210px, calc(var(--ff-w) * 0.58), 320px); height: auto; aspect-ratio: 780 / 379; pointer-events: none; user-select: none; -webkit-user-drag: none; }
 .ff-ec-mode { margin-top: -5px; padding-left: 0.42em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.42em; color: var(--ff-teal); text-shadow: 0 0 9px rgba(39, 224, 230, 0.6), 0 1px 0 rgba(2, 24, 30, 0.8); }
 .ff-ec-avg { margin-top: -4px; padding-left: 0.2em; font: 700 12.5px/1.2 var(--font-ui); letter-spacing: 0.2em; color: #cfc8ea; white-space: nowrap; }
 .ff-ec-avg:empty { display: none; }
@@ -212,7 +212,7 @@
 /* THE FOOT = THE SITE's UNIVERSAL END-SCREEN FOOTER (END-SCREEN STANDARD A — css/components.css .final-bar / .final-links, copied: this
    page loads no ui/final.js): ONE big solid glowing PLAY AGAIN bar in FREEFALL's accent (TEAL, dark ink — a rounded RECTANGLE, never a
    pill), then the quiet links SHARE | HOME with the same drawn icons */
-.ff-endfoot { padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 18px); display: grid; gap: 10px; }
+.ff-endfoot { padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 24px); display: grid; gap: 10px; }
 .ff-again { min-height: 66px; margin: 0; padding: 10px 18px; display: flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-radius: 12px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   background: var(--ff-teal); color: #04262a; font: 900 22px/1 var(--font-display); letter-spacing: 0.17em; box-shadow: 0 0 0 1px rgba(214, 255, 255, 0.65) inset, 0 0 22px rgba(39, 224, 230, 0.55), 0 0 54px rgba(39, 224, 230, 0.28); transition: transform 0.08s; }
 .ff-again:active { transform: scale(0.985); }
@@ -272,7 +272,8 @@
   .ff-ec-best { min-height: 12px; margin-top: 0; font-size: 10px; letter-spacing: 0.1em; } .ff-ec-best.is-new { font-size: 12px; } .ff-ec-line { font-size: 7.5px; letter-spacing: 0.06em; padding-left: 0; }
   .ff-endfoot { padding: 0 8px 10px; gap: 6px; } .ff-again { min-height: 44px; padding: 6px 8px; gap: 8px; font-size: 13px; letter-spacing: 0.1em; } .ff-again-t { padding-left: 0.1em; } .ff-again-i svg { width: 18px; height: 18px; }
   .ff-links { min-height: 44px; } .ff-link { min-height: 44px; gap: 5px; padding: 0 4px; font-size: 9px; letter-spacing: 0.1em; } .ff-link-i svg { width: 15px; height: 15px; } .ff-link-div { height: 20px; }
-  .ff-ec-logo-img { width: clamp(118px, calc(var(--ff-w) * 0.56), 150px); } .ff-ec-mode { margin-top: -3px; font-size: 7.5px; } .ff-ec-avg { font-size: 7.5px; }
+  .ff-ec-logo-img { width: clamp(118px, calc(var(--ff-w) * 0.56), 150px); } .ff-ec-mode { margin-top: -3px; font-size: 9px; letter-spacing: 0.3em; padding-left: 0.3em; } .ff-ec-avg { font-size: 9px; }
+  .ff-ec-line { font-size: 9px; letter-spacing: 0.03em; } .ff-ec-fl { font-size: 10px; } .ff-note { font-size: 9px; letter-spacing: 0.06em; text-indent: 0.06em; } .ff-link { font-size: 10px; }   /* (the screen review: nothing under 9 px in the sideways column) */
 }
 
 /* F4A — THE CARTRIDGE (js/games/freefall/view.js: the SAME stage in the console's frame). THE END = the console's podium frame over the
@@ -289,6 +290,10 @@
 .ff-final .final::before { display: none; }
 .ff-final .btn, .ff-final .btn::before, .ff-final .btn::after { border-radius: 8px; }
 .ff-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(15px, calc(var(--ff-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; text-shadow: none; }
+/* (the screen review: THE YOU ROW's glow — z 4 — painted OVER the sticky foot — z 3 — once my row had scrolled under it: an empty pink frame round ROOM | SHARE) */
+.ff-final .final > .final-actions { z-index: 6; }
+/* (… and Call the Winner's sheet: the rail never shows through its edge) */
+.ff-match:has(.ff-over > :not(.ff-outcard)) .ff-rail { visibility: hidden; }
 .ff-final .final > .sheet-kicker.ff-kick { padding: 2px var(--cb-room) 0; font: inherit; letter-spacing: 0; white-space: normal; }
 .ff-fin { display: grid; justify-items: center; gap: 6px; padding: 2px 12px 4px; text-align: center; }
 .ff-fin-place { padding-left: 0.18em; font: 700 clamp(13px, calc(var(--ff-w) * 0.04), 16px)/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.18em; color: #fff; white-space: nowrap; }
@@ -312,7 +317,8 @@
 .ff-stage.is-watch .ff-num { opacity: 0.82; }
 .ff-stage.is-final .ff-match { display: none; }
 /* 3 · 2 · 1 · GO */
-.ff-count { position: absolute; left: 0; right: 0; top: 27%; display: grid; justify-items: center; gap: 14px; text-align: center; }
+.ff-count { position: absolute; left: 0; right: 0; top: 17%; display: grid; justify-items: center; gap: 10px; text-align: center; }
+.ff-count-names { order: -1; }   /* (the names ABOVE the number: with eight players two rows of them lay across the top floor + my ball) */
 .ff-count-n { font: 900 clamp(96px, calc(var(--ff-w) * 0.34), 150px)/0.9 var(--font-display); color: #fff; text-shadow: 0 0 3px #fff, 0 0 18px rgba(255, 79, 168, 0.95), 0 0 46px rgba(255, 79, 168, 0.6), 0 4px 0 rgba(20, 2, 14, 0.7); }
 .ff-count-n.is-go { color: #eaffff; text-shadow: 0 0 3px #fff, 0 0 18px rgba(39, 224, 230, 0.98), 0 0 46px rgba(39, 224, 230, 0.6), 0 4px 0 rgba(2, 24, 30, 0.7); }
 .ff-count-n.is-word { font-size: clamp(34px, calc(var(--ff-w) * 0.11), 48px); letter-spacing: 0.06em; }
@@ -336,18 +342,20 @@
 .ff-marks { position: absolute; display: grid; gap: 2px; }
 .ff-marks.is-dn { left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 54px); justify-items: center; }
 .ff-marks.is-up { right: calc(max(7px, env(safe-area-inset-right, 0px)) + 28px); top: calc(var(--ff-band-top) + 52px); justify-items: end; }   /* (beside the rail's head — never on its line or a dot) */
-.ff-mark { font: 800 13.5px/1.2 var(--font-ui); letter-spacing: 0.07em; white-space: nowrap; color: color-mix(in srgb, var(--c, #fff) 74%, #fff); text-shadow: -1px 0 0 #07040f, 1px 0 0 #07040f, 0 -1px 0 #07040f, 0 1px 0 #07040f, 0 0 7px rgba(7, 4, 15, 0.95); }
+.ff-mark { font: 800 13.5px/1.2 var(--font-ui); letter-spacing: 0.07em; white-space: nowrap; color: color-mix(in srgb, var(--c, #fff) 86%, #fff); text-shadow: -1px 0 0 #07040f, 1px 0 0 #07040f, 0 -1px 0 #07040f, 0 1px 0 #07040f, 0 0 7px rgba(7, 4, 15, 0.95); }
+/* (WATCHING: its two lines stand at the foot — the down-markers step up over them) */
+.ff-stage.is-watch .ff-marks.is-dn, .ff-stage.is-match.is-over .ff-marks.is-dn { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); }
 .ff-clock { position: absolute; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 56px); font: 700 16px/1 var(--font-num); letter-spacing: 0.06em; color: #eaffff; text-shadow: 0 0 2px #fff, 0 0 10px rgba(39, 224, 230, 0.9), 0 1px 0 #07040f; }
 /* OUT · THE BOTTOM · TIME'S UP — the cause's words for a moment, then Call the Winner / WATCH */
 .ff-over { position: absolute; inset: 0; display: grid; align-content: start; justify-items: center; padding-top: 30vh; }
 .ff-over > * { pointer-events: auto; }
-.ff-outcard { display: grid; gap: 6px; justify-items: center; padding: 26px 40px; text-align: center; pointer-events: none; background: radial-gradient(closest-side, rgba(5, 3, 13, 0.9), rgba(5, 3, 13, 0.62) 62%, rgba(5, 3, 13, 0)); transition: opacity 0.35s; }
+.ff-outcard { display: grid; gap: 6px; justify-items: center; max-width: 100%; box-sizing: border-box; padding: 26px 18px; text-align: center; pointer-events: none; background: radial-gradient(closest-side, rgba(5, 3, 13, 0.9), rgba(5, 3, 13, 0.62) 62%, rgba(5, 3, 13, 0)); transition: opacity 0.35s; }
 .ff-outcard.is-gone { opacity: 0; }
 .ff-outcard-k { font: 700 12px/1 var(--font-ui); letter-spacing: 0.34em; text-indent: 0.34em; color: #d9d4f2; }
-.ff-outcard-w { font: 900 clamp(22px, calc(var(--ff-w) * 0.068), 30px)/1.1 var(--font-display); letter-spacing: 0.04em; color: #e9feff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(39, 224, 230, 0.95), 0 0 28px rgba(39, 224, 230, 0.55); white-space: nowrap; }
+.ff-outcard-w { font: 900 clamp(20px, calc(var(--ff-w) * 0.058), 27px)/1.1 var(--font-display); letter-spacing: 0.03em; color: #e9feff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(39, 224, 230, 0.95), 0 0 28px rgba(39, 224, 230, 0.55); white-space: nowrap; }
 .ff-outcard.is-made .ff-outcard-w { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 200, 60, 0.95), 0 0 28px rgba(255, 170, 30, 0.6); }
 .ff-outcard-n { font: 700 15px/1 var(--font-num); letter-spacing: 0.2em; text-indent: 0.2em; color: #fff; }
-.ff-watch { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); text-align: center; font: 700 13px/1.2 var(--font-ui); letter-spacing: 0.16em; text-indent: 0.16em; color: #fff; text-shadow: 0 1px 0 #07040f, 0 0 8px #07040f, 0 0 12px rgba(7, 4, 15, 0.9); }
+.ff-watch { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); padding: 0 12px; text-align: center; white-space: pre-line; font: 700 13px/1.45 var(--font-ui); letter-spacing: 0.14em; text-indent: 0.14em; color: #fff; text-shadow: 0 1px 0 #07040f, 0 0 8px #07040f, 0 0 12px rgba(7, 4, 15, 0.9); }
 @media (max-height: 480px) {
   .ff-count { top: 18%; gap: 6px; }
   .ff-count-n { font-size: 84px; }

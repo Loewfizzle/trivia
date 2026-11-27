@@ -70,3 +70,102 @@ the deck is not drawn at all 0.3 s on, no piece of the frame 1.6 s on. The spark
 - **A match's podium body** = HIGH RISE's: your cause · "57 FLOORS · YOU FINISHED 2ND" · your call's result; the console lists every
   place as slim cards under it. A match's floor raises YOUR BEST once counting is ON (the same board — the server's rule since F4A).
 - **THE AVERAGE on the end card** shows once the server sends one (counting ON); while the switch is OFF: YOUR BEST · n alone.
+
+## THE FRESH-EYES REVIEW — the rules / proof / server side (a subagent that did not build the pass; read-only on the repo; its own probes on the real code, the emulators in a namespace of its own)
+**Verified sound (its own probes):** HOSTILE MATCH LOGS — ~110 targeted nodes (over MAX SPIN · non-canonical text · junk types · giant
++ prototype-ish keys · holes · swapped texts · backwards times · too fast · slow motion) each refused by name or cut to its last on-time
+event; **a hold in a match: 14 variants → always `too many holds`, never a cut**; a late GO (5,001 ms) → `late go` on the host AND the
+server; two GOs in one millisecond → the same seed either order; **a fuzz of 60,000 mutations of six 8-player sims: 0 throws, every one of
+the 16,235 accepted nodes equals the live engine on exactly the events the judge kept — none above** · THE JUDGE vs LIVE — **3,400 rooms,
+24,822 rows** (2–8 bots, lines 0–40 ticks, flushes 5–30 ticks, forged game starts): the host's row == the server's row == the bot's own
+run in all, the placings identical in all; the cap + floor 200 edges right · THE HOST (report-level, both switch states): his forged 999
+never read; dropping the leader / "his solo run" / deleting the leader's seat → three players, the leader credited; a stranger 403; OFF →
+`would_count` only · THE PAUSE GAP's judge: an honest line of 50 … 2,000 ms → whole, 2,001 ms → cut; a fuzz of 20,000 held nodes: judge ==
+engine on the kept prefix in all 18,522 accepted — no hold raised the lateness of a kept event · THE GHOSTS: 300 rooms / 1,200 ghosts /
+7.66 M frames on lines of 0–6.7 s: never OUT / MADE before their own `e`, 0 wrong ends, 0 throws; WATCH exact in 3.98 M checked ticks; 18
+hostile node kinds: no throw, no hang; `stepGhost` / `copyState` / `liftOf` allocate nothing (0.0–0.7 B a call over millions).
+
+| # | severity | the find | what was done |
+| --- | --- | --- | --- |
+| 1 | **HIGH** | THE PAUSE GAP's PHONE HALF read its own UNSENT chunk: `granted()` asked "the server's copy" with a `get` — under the room's live mirror the SDK answers from its LOCAL view, where a chunk still queued behind a dead line shows with the phone's own guess of its time (the probe: answered in 1 ms while offline, "1 ms after the hold" — the server's real stamp: + 3,128 ms). In exactly the case the check exists for the phone stamped the way back and played on with no note | **FIXED:** the hold's chunk is asked about only once its WRITE IS ACKNOWLEDGED (the writer's `acked` covers the hold's event — then its `at` is the server's); not acknowledged in the count's time = no answer: the count runs again (three times), then NOT COUNTED PAST THE PAUSE. A static pin + `e2e-freefall.mjs` section 6b (the line dropped, then the page hidden) |
+| 2 | **HIGH at go-live** (the switch is OFF today) | THE SORE LOSER — the port dropped the twins' rule: a loser appends ONE bad chunk to his own node (a hold · a turn over MAX SPIN · a move after his end — the rules take a chunk until his own `e`) → his row refused → `played` lost him → the WINNER was counted for a match of one (no win, solo XP) | **FIXED:** `api/_lib/freefall.js#prefixFloor` — a refused on-time node still PLAYED when its longest judge-accepted chunk prefix passed a floor (a binary search: ≤ 14 replays); its own row stays refused. Unit: three kinds of sabotage, the match stays a match of three |
+| 3 | **HIGH — older than this pass** (F4A's solo GO + `js/games/highrise/go.js`, LIVE for HIGH RISE) | THE SOLO GO could adopt the phone's own GUESS of the GO: the GO was a plain `set(serverTimestamp)`, and the helper's periodic look at the node (while the write was in the air) saw the phone's estimate → the phone played one tower, the judge replayed another (the probe: the look at 423 ms took E, the server stamped E + 654 ms) | **FIXED for FREEFALL:** its solo GO is a TRANSACTION never applied locally (as a match's). **HIGH RISE is live and not this pass's:** → the inbox (TO HIGH RISE — NEXT PASS) + OPEN FOR BEN 3 |
+| 4 | medium (inherited: JAYWALK's clock) | a run that ENDS inside a dropped-signal burst is taken whole — the tail of a run can be played slowly behind a silence of up to ~83 s (the docs' "back on the clock within 15 s" is only held against LATER chunks) | **named** — an honest death during an outage looks the same; the owner's call (mark such a row `late`?): OPEN FOR BEN 4 |
+| 5 | low (shared `api/report.js`) | a host can VOID (not rob) a proven match: `game.unproven = 1` on the final game → 409 for everyone while the room sits on it | **named** (all three proof games) → the inbox |
+| 6 | low | the cap's grace (4 s — HIGH RISE's) was shorter than the judge's own lateness (8 s): a capped run on a 5 s line was scored a floor short by the host's step while the server had every chunk | **FIXED for FREEFALL:** `match.js END_GRACE_MS` 9 s. HIGH RISE's 4 s → the inbox |
+| 7 | low | WATCH rebuilt its playback at every chunk on a line slower than ~1.4 s (155 rebuilds in 155 s) | **FIXED:** the delay follows the rival's own lateness (+ 0.5 s at each rebuild, ≤ 5 s — `WATCH_DELAY_MAX`) |
+| 8 | nit | WATCH could show an OUT a beat before `e` (the fatal landing at the last landed move's own tick) | **FIXED:** that landing waits for their `e` too |
+| 9 | nit | the phone's `holdSrv` is a second clock (the judge uses the run's own); past 2 s the judge cuts BEFORE the hold's own chunk — "past the pause" is a touch generous | **named** |
+| 10 | nit | `scoreCalls` takes a refused row as "still in"; `goOf` takes `true` as a GO — unreachable under the rules; the twins identical | **named** |
+| 11 | note | ties for first are common: the finishing tick is quantised by bounces — 175 of 3,000 eight-bot rooms tied for 1st (23 of 400 at floor 200) | OPEN FOR BEN 5 |
+
+**It could not check:** the web bundle (11.10.0) in a browser — finds 1 + 3 are proven on the SDK's own Repo code from node_modules; a real
+iPhone (whether the hold's chunk leaves the socket before iOS freezes the page — how often an honest pause is granted at all); the cap
+in the 8-player sims (the bots never reach 3:00).
+
+## GROUP 1 — THE MATCH: the real thing on the emulators (`tests/integration/e2e-freefall-match.mjs` — written + run by a subagent that did not build the match; 3 phones + a late joiner + 8 phones, headless Chromium)
+| part | checks | what was seen |
+| --- | --- | --- |
+| a 3-player match | 58 | 3 · 2 · 1 + the names on all three; three GOs 0–24 ms apart; THE SAME seed + tick 0 everywhere; each proof node fills with server-stamped chunks; a rival's ghost at most 1 floor off its real floor; an edge marker ("ALICE ↓21"); the OUT card, Call the Winner (`k` written), WATCHING the leader, a tap = the next; ALICE `made` floor 200 at 67.8 s; the podium's rows == `freefallMatch` to the floor + the tick; the call's + 0.4 on the night record; WOULD COUNT on all three; nothing written outside `rooms/`; REMATCH = a new id, count, seed |
+| a phone that locks · drops signal | 13 | hidden 3 s: never PAUSED, no hold, the run went on (floor 4 → 7); hidden 10 s: THE LIGHTS WENT OUT behind the page, the row valid, no cut; a 6 s signal drop: the player fell on, his ghost was never OUT on the others' screens, the chunks landed together — judged honest, whole, by the host AND the strict server |
+| a refresh mid-match | 4 | the reloaded phone took its own run back up (195 moves replayed, the new chunks behind the old) |
+| a late joiner | 11 | a spectator: no node, no GO, 3 ghosts + 3 dots, the watched run falls; sees the podium without a row; dealt in at the REMATCH |
+| a host change mid-match | 6 | the next phone became host 8 s after the owner's closed; `final` 93 s after the death (18 s idle + the dropped signal's 75 s); the rows == the judge's, the dead phone's too. REMATCH on a guest's phone says "Coming soon" (only the owner starts the hidden game — by design until go-live); ROOM is the way on |
+| an 8-player match | 17 | 8 WebGL pages on this machine (60 fps on the one measured, worst frame 17 ms); 7 ghosts + 8 dots on every phone; ghosts at most 1 floor off over ≈ 6,300 samples; the podium lists 8 in the judge's order on all phones |
+| the 3:00 cap (`--cap`, run once) | 16 | the clock "0:29" on both; both `cap` at tick 10800 (floors 183 / 181); THE BELL · TIME'S UP; `cap` rows from the host + the server |
+
+**What it found in the game (all fixed here):** the WATCHING line named a dead phone for the whole 93 s wait (a rival with no news is never
+"over" on this screen — the words now count the ones seen falling: WAITING FOR ALICE · NO SIGNAL) · **the out's order was wrong** — the
+watch began 0.9 s after an out, under the OUT card, and the call's sheet then opened over both → **the cause's words (2.3 s) → Call the
+Winner → WATCH** (`CALL_AFTER_MS` · `WATCH_AFTER_MS`) · the finish's card ("YOU HIT THE BOTTOM") was clipped at 390 → a smaller face in
+a narrower box · the watch line + the call's words wrapped to three lines at 390 → **two short lines** (WATCHING CHARLIE · 20 / YOUR CALL ·
+ALICE · TAP FOR THE NEXT), the down-markers step up over them · the tags' + the markers' colours were washed toward white → more of the
+player's own colour. **Named, not changed:** a COLD first start can miss the count's "3" (a fresh room's phones showed 2 · 1 · GO — the
+view + the scene load inside the 3 s; nobody was late; a rematch always shows 3 · 2 · 1 — JAYWALK's + HIGH RISE's count is the same
+3 s) · the console's own podium list (a row's note + score read as the next card's; the YOU row cut by MORE BELOW with 8 players) —
+shared by every game.
+
+## THE NETWORK — an 8-player match against the free Spark plan (measured: the WebSocket frames' payload per phone over CDP + the proof tree over REST; the checks' hand turns nearly every tick — a busy player; TLS + framing not counted)
+| players (all falling) | writes a minute (a player) | up a minute (a player) | down a minute (a phone) | a 3:00 match: writes · up · down in all (a phone) |
+| --- | --- | --- | --- | --- |
+| 2 — a real 3:00 match | 243 (122) | 40.9 KB (20.5) | 85.9 KB (43.0) | 729 · 120 KB · **252 KB** (126 KB) |
+| 3 — a 14 s window × 3 | 452 (151) | 71.1 KB (23.7) | 214 KB (71.4) | 1,356 · 208 KB · **628 KB** (209 KB) |
+| 8 — a 40 s window × 3 | 1,063 (133) | 164 KB (20.6) | 1,237 KB (155) | 3,189 · 482 KB · **3.62 MB** (453 KB) |
+
+- A chunk's own text is small (≈ 16.6 KB a minute for 8 players; the tree grows ≈ 46 KB a minute); **the download is the cost** — every
+  phone mirrors the whole `ff/{matchId}` tree: ≈ 25 KB a minute of its own traffic + ≈ 18 KB a minute a rival, so the total grows with
+  N × (N − 1).
+- **Against Spark's 10 GB a month of download:** ≈ **2,900 full-length 8-player matches** · ≈ 16,000 3-player · ≈ 41,000 2-player (a
+  real match ends sooner: the 8-player one as played — 52 s, everyone out — was 825 writes, ≈ 128 KB up, ≈ 0.96 MB down). 100
+  simultaneous connections = 12 full rooms of 8 at once. **Nothing trimmed:** the 250 ms flush + FINAL-events-only chunks already keep
+  a player at ≈ 2.2 writes a second; a slower flush would only make the ghosts older.
+
+## THE FRESH-EYES REVIEW — the SCREEN side (a second subagent that did not build the pass; read-only; ≈ 75 shots looked at singly, in contact sheets and as native-pixel crops, contrast measured from the pixels)
+| # | severity | the find | what was done |
+| --- | --- | --- | --- |
+| 1 | **HIGH** | the match podium with 8 players, my row under the fold: an EMPTY PINK GLOWING FRAME round ROOM · SHARE — THE YOU ROW's glow (z 4) painted over the frame's sticky foot (z 3) | **FIXED** for FREEFALL's podium (`.ff-final .final > .final-actions` above it). The same two numbers stand in the shared sheets (`css/vault.css` · `css/components.css`) → the inbox, to the city chat |
+| 2 | **HIGH** | a ghost's TAG faded with its ball in the hand-over to the edge marker — 1.8 : 1 (day) · 2.0 : 1 (night), for seconds while a rival paces me five floors down — and the same rival was named twice (the tag + "↓5") | **FIXED:** a tag never fades — it is whole while its ball is at least half there, then gone; the marker names the rival from there |
+| 3 | medium | THE FRAME BAR: the outer frame was gone at 0.3 s — but the GLAZING BARS still hung in front of the top two floors as ≈ 10 straight sticks (each turned about its own length — invisible — and had dropped a third of a unit): a lattice, not debris | **FIXED:** they TUMBLE about a tilted axis of their own, are thrown outward from the pane's middle, fall as fast as the frame and are gone in 0.45 s (re-shot: debris among the shards) |
+| 4 | medium | a ghost ABOVE me at the top edge: a dim untagged disc beside the ☰ button, cut by the screen's edge — a smudge | **FIXED:** above me a ghost thins out to nothing by two floors up (its "↑n" marker names it from there) |
+| 5 | medium | the match podium's fit at 390 × 844: the third row is cut by the fold, MORE BELOW sits on that card's edge, the WINNER block's room stands empty for its first moment | **named** — the console's own podium (every game's); with the logo header FREEFALL's is ≈ 100 pt taller than a one-line kicker: OPEN FOR BEN 6 |
+| 6 | medium (the owner's call) | A MATCH's end screen has the logo, MATCH, the cause and "16 FLOORS · YOU FINISHED 3RD" — no big number, no YOUR BEST · AVG, no stats line (the spec lists them without a match exception) | **named** — JAYWALK's + HIGH RISE's match body (the plan: "the match card's podium / YOUR TABLE as JAYWALK's"); the big number would push every standing under the fold at 390: OPEN FOR BEN 6 |
+| 7 | medium | THE SHARE CARD's HIT THE RED frame was the impact's own instant: the slice white-hot, the ball gone — under the tab it read as a white wedge | **FIXED:** `SHOT_AT.red` 90 → 200 ms (the slice red again, a pale flash on it, the sparks spread in the air) — the cards re-shot |
+| 8 | medium | the end screen on a phone held SIDEWAYS: SOLO + the stats line 7.5 px, the note 7 px, FLOORS + the links 9 px | **FIXED:** nothing under 9 px there (the mode, the stats line, the note 9 · FLOORS + the links 10) |
+| 9 | low | the podium rows' captions (HIT THE BOTTOM · THE LIGHTS WENT OUT): small + dim; my rank a dim pink | **named** — the console's own list (every game's) |
+| 10 | low | the desktop end screen's logo: 44 % of its 540-pt column (the 250 px cap) | **FIXED:** the cap 320 px |
+| 11 | low | the WATCHING line's second line with a 12-letter name ("YOUR CALL · CHRISTOPHERS · TAP FOR THE NEXT") would wrap at 375 / 390 | **FIXED:** beside a call the hint is short (TAP: NEXT) |
+| 12 | low | the count with 8 players: two rows of names lay on the top floor + across my ball | **FIXED:** the names stand ABOVE the number |
+| 13 | low | Call the Winner: the rail's line + a dot showed through the sheet's right edge | **FIXED:** the rail is hidden while the sheet is up |
+| 14 | low | the share card's night gold frame is ≈ 60 % white bloom (the day one is good); THE LIGHTS WENT OUT cards show a lit floor with the card's own dark round the ball | **named** — OPEN FOR BEN 7 |
+| 15 | low | the card with NO frame (a fallback: the frame was never taken): an empty dark box, block letters for the logo | **named** — the fallback only |
+| 16 | nit | three wordings for one end (MADE IT TO THE BOTTOM on the end card · YOU HIT THE BOTTOM on the share tab + the band · HIT THE BOTTOM in the podium's rows); "0 BLAZES" in fire orange | **named** — OPEN FOR BEN 7 |
+
+**Found right (its own measures):** the tags in their crisp state (13.5 px / 800, a near-black rim, sharp at 3 ×, stacked — never overlapping
+— clear of my ball; a 12-letter name fits) · the see-through ball + the day's dark rim on gold, pearl and over the water (LIAM's yellow on
+the speakeasy's gold — the hardest case — passes on the rim alone); a half-hidden ghost reads through the floor · at the start the near
+rivals are thin rings and my ball is the only solid one · the rail (2 px, my dot 18 px, an out crossed, the gold foot; clear of the music
+button; no pill anywhere) · the markers (↓ ↑ render, outlined on every floor colour, never on the number or the band) · the top line
+(≥ 72 pt clear each side at 375) · the end screen at 375 / 390 / 430 in both looks (the logo's ink 54 %, nothing clipped, the dim lines
+5.2–6 : 1) · the footer (one bar + two quiet icon links, no boxes) · the share cards at 360 px (every line reads, nothing under ≈ 13 px,
+no pill, CHRISTOPHERS fits, the gold card consistent). **It could not judge:** motion; a real iPhone; the AVG line + YOUR TABLE in the
+cartridge (the board has no rows while the switch is OFF); a day match in a real room.

@@ -252,3 +252,27 @@ test('WATCH THE LEADER = an EXACT playback, 1.5 s behind the world: at every tic
   }
   assert.ok(rebuilt > 0, 'the slow line was seen'); assert.deepEqual([W.run.floor, W.run.st !== 'live'], [B.result.floor, true]);
 });
+
+test('THE FRESH-EYES REVIEW — THE SORE LOSER: a loser who appends ONE bad chunk to his own node (a hold · a turn over MAX SPIN · a move after his end) gets a refused row — and STILL PLAYED: the match the winner is paid for does not shrink; a node that never passed a floor never played', async () => {
+  const { prefixFloor } = await import('../api/_lib/freefall.js');
+  const { tree, S, sim } = roomOf(3, { bots: ['great', 'good', 'sloppy'], maxFloor: 90 });
+  const honest = freefallMatch({ code: CODE, matchId: MID, uids: ids(3), nodes: tree });
+  assert.deepEqual(honest.played.slice().sort(), ids(3));
+  for (const bad of ['!1', '+zz', '.2+5']) {
+    const t = structuredClone(tree), n = Object.keys(t.bot2.c).length;
+    t.bot2.c[n] = { s: bad, at: t.bot2.c[n - 1].at + 400 };   // (the rules take a chunk until his own `e` — sabotage is append-only)
+    const M2 = freefallMatch({ code: CODE, matchId: MID, uids: ids(3), nodes: t });
+    assert.ok(M2.game.results.bot2.bad, `"${bad}": his own row is refused (${M2.game.results.bot2.bad}) — no floors`); assert.equal(M2.game.results.bot2.f, 0);
+    assert.deepEqual(M2.played.slice().sort(), ids(3), `"${bad}": … and he still PLAYED — the winner's match is still a match of three`);
+    assert.equal(prefixFloor(S, t.bot2), sim.results.bot2.floor >= 1 ? prefixFloor(S, tree.bot2) : 0);
+    assert.deepEqual([M2.game.results.bot0.f, M2.game.results.bot1.f], [honest.game.results.bot0.f, honest.game.results.bot1.f], 'the others\' rows are untouched');
+  }
+  assert.ok(prefixFloor(S, tree.bot2) >= 1);
+  // a node refused from its FIRST chunk — or one that only ever stood on floor 0 — never played
+  assert.equal(prefixFloor(S, { go: tree.bot2.go, c: { 0: { s: '%%', at: S.playAt + 300 } } }), 0);
+  assert.equal(prefixFloor(S, { go: tree.bot2.go }), 0); assert.equal(prefixFloor(S, null), 0);
+  const t = structuredClone(tree); t.bot2.c = { 0: { s: '+zz', at: S.playAt + 300 } };
+  assert.ok(!freefallMatch({ code: CODE, matchId: MID, uids: ids(3), nodes: t }).played.includes('bot2'));
+  // (the cap's grace is longer than the judge's own lateness: a capped run on a slow line is scored whole by the host's step too)
+  assert.ok(M.END_GRACE_MS > CLOCK.behind * MS);
+});

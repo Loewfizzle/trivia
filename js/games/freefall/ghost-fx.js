@@ -110,7 +110,7 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       try { g.letterSpacing = '0.6px'; } catch { /* an older canvas: plain spacing */ }
       g.strokeStyle = 'rgba(6, 3, 16, 0.94)'; g.lineWidth = 4.2; g.strokeText(name, x, y);
       g.fillStyle = list[i].hex || '#00f0ff'; g.fillText(name, x, y);
-      g.fillStyle = 'rgba(255, 255, 255, 0.38)'; g.fillText(name, x, y);   // (lifted toward white: a dark colour still reads)
+      g.fillStyle = 'rgba(255, 255, 255, 0.2)'; g.fillText(name, x, y);   // (lifted a little toward white: a dark colour still reads — the player's colour stays the colour)
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
     tex.dispose();   // (the atlas changed SIZE with the names / the sharpness: the texture's storage is made again — an upload into the old one overflows it)
@@ -130,7 +130,7 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       T[i * 3 + 2] = -1;
       if (a <= 0.001) continue;
       shown++;
-      if (row < 0 || near > 0.5) continue;
+      if (row < 0 || near > 0.5 || a < 0.5) continue;   // (the screen review: a tag never FADES with its ball — it is whole, or it is gone and the edge marker names the rival)
       V.set(x, y + R_BALL, z).project(cam);   // (the top of the ball: the tag sits just over it)
       if (V.z > 1 || V.x < -1.1 || V.x > 1.1 || V.y < -1.1 || V.y > 1.1) continue;
       let sx = (V.x + 1) * 0.5 * w, sy = (1 - V.y) * 0.5 * h - TAG_H * 0.5 - 2;
@@ -140,7 +140,7 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       for (let j = 0; j < tagged; j++) if (Math.abs(tx[j] - sx) < TAG_W * 0.62 && Math.abs(ty[j] - sy) < TAG_H * 0.8) sy = ty[j] - TAG_H * 0.8;
       tx[tagged] = sx; ty[tagged] = sy; tagged++;
       const px = Math.round(sx * dpr) / dpr, py = Math.round(sy * dpr) / dpr;
-      T[i * 3] = px / w * 2 - 1; T[i * 3 + 1] = 1 - py / h * 2; T[i * 3 + 2] = row + Math.min(0.79, a * 0.8);
+      T[i * 3] = px / w * 2 - 1; T[i * 3 + 1] = 1 - py / h * 2; T[i * 3 + 2] = row + 0.79;
     }
     geo.instanceCount = count; tGeo.instanceCount = count;
     aPos.needsUpdate = aCol.needsUpdate = aK.needsUpdate = aAt.needsUpdate = true;

@@ -146,10 +146,14 @@ void main() {
   float age = uTime - uBreakT - 0.05 - aQ.z * 0.12, gone = 0.0;
   if (aQ.x > 0.5 && aQ.x < 1.5 && age > 0.0) {
     // a glazing bar lets go: it drops, turning about its own length
-    vec3 ax = normalize(aS.x > aS.z ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0));
-    p = rot(p, ax, age * (3.0 + 5.0 * aQ.z)) + vec3((aQ.z - 0.5) * 0.5 * age, -5.5 * age * age - 0.4 * age, 0.3 * age);
-    n = rot(n, ax, age * (3.0 + 5.0 * aQ.z));
-    gone = age / 0.8;   // (F4B: 1.3 — the pieces of the glazing bars are clear of the floors with the shards)
+    // (F4B — the screen review: at 0.3 s the bars still hung in front of the top floors as a straight LATTICE — each turned about its own
+    //  length, which the eye can not see, and had dropped a third of a unit. They TUMBLE now — a tilted axis of their own — are thrown
+    //  outward from the pane's middle, fall as fast as the frame, and are gone in 0.45 s: debris, with the shards)
+    vec3 ax = normalize(vec3(aQ.z - 0.5, 0.35, 0.8 - aQ.z));
+    float turn = age * (7.0 + 9.0 * aQ.z);
+    p = rot(p, ax, turn) + vec3(aP.x * 1.6 * age + (aQ.z - 0.5) * 0.8 * age, -14.0 * age * age - 0.8 * age, aP.z * 1.6 * age + 0.3 * age);
+    n = rot(n, ax, turn);
+    gone = age / 0.45;
   }
   // F4B — THE SKYLIGHT's FRAME BAR (the owner's iPhone, floor 40: the frame's near bar stayed across the screen at the ball's height, its
   // far bar + sides as a dark bar at the top — in front of the tiles): THE OUTER FRAME + ITS TUBES LET GO WITH THE PANE — they drop

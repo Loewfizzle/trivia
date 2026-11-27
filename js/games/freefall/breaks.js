@@ -341,7 +341,7 @@ export function createBreaks(X) {
     if (skSt === 1 && camY >= 46.5) skSt = 2;
     // (F4B — THE FRAME BAR: once the pane breaks nothing of the skylight / the roof stays between the camera and the floors — the deck +
     //  the outer frame + its tubes are gone in 0.25 s (their shaders), the glazing bars fall with the shards: not drawn at all 1.6 s on)
-    deck.visible = skNear && (skSt === 0 || now - skT < 0.3); frame.visible = skNear && (skSt === 0 || now - skT < 1.6); glass.visible = skNear && (skSt === 0 || now - skT < 2.2);
+    deck.visible = skNear && (skSt === 0 || now - skT < 0.3); frame.visible = skNear && (skSt === 0 || now - skT < 0.8); glass.visible = skNear && (skSt === 0 || now - skT < 2.2);
     if (skNear) {
       deck.matrixWorld.copy(X.roofM);
       const near = (X.roofM.elements[0] - 0.3) / 0.5; deckU.uNear.value = near <= 0 ? 0 : near >= 1 ? 1 : near;

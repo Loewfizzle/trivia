@@ -89,5 +89,24 @@ export function freefallMatch({ code, matchId, uids, nodes }) {
     const node = nodes && nodes[u];
     results[u] = onTime(node, S.g0) ? judgedRow(judgeMatch({ seed: S.seed, node, playAt: S.playAt })) : { f: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
   }
-  return { game: { id: 'freefall', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= FF_PLAYED_FLOOR) };
+  // (`played` — the uids the server's replay saw PASS A FLOOR; the report counts + credits only these. THE FRESH-EYES REVIEW — THE SORE
+  //  LOSER, the twins' rule the first port dropped: a loser who appends ONE bad chunk to his own node — a hold, a turn over MAX SPIN, a
+  //  move after his end — gets a refused row, and would have shrunk the match the WINNER is paid for. A refused on-time node still PLAYED
+  //  when its longest judge-accepted chunk prefix passed a floor: its own row stays the refused one.)
+  return { game: { id: 'freefall', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= FF_PLAYED_FLOOR || (results[u].bad && onTime(nodes[u], S.g0) && prefixFloor(S, nodes[u]) >= FF_PLAYED_FLOOR)) };
+}
+/** the floors of the LONGEST PREFIX of a node's chunks the judge accepts (sabotage is append-only: a prefix of an accepted log is an accepted
+ *  log — a binary search, ≤ 14 replays of a 10,000-chunk node); 0 = none */
+export function prefixFloor(S, node) {
+  const c = node && node.c;
+  if (!c || typeof c !== 'object') return 0;
+  let n = 0;
+  while (n < 10000 && c[n] != null) n++;
+  const at = k => { const part = {}; for (let i = 0; i < k; i++) part[i] = c[i]; const v = judgeMatch({ seed: S.seed, node: { go: node.go, c: part }, playAt: S.playAt }); return v.ok ? v.floor : -1; };
+  let lo = 0, hi = n, best = 0;   // (lo chunks are accepted — an empty log is; hi is the node as it stands: refused)
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2), f = at(mid);
+    if (f >= 0) { lo = mid; best = f; } else hi = mid - 1;
+  }
+  return best;
 }

@@ -23,7 +23,7 @@
 // podium comes with the host's step. One life, NO holds: a hidden page runs on. A late joiner (not a participant) WATCHES from the start.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { dbRef, set as dbSet, get as dbGet, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { showCall } from '../kit/call.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
@@ -63,7 +63,10 @@ export const FINAL_HOLD_MS = 3000;
 /** … this phone writes its GO this long before the count's end (the rules open the window 2 s before it) */
 export const GO_EARLY_MS = 1800;
 /** … the cause's words stay this long over the scene before Call the Winner / the watcher's view (THE FINISH: its moment is seen first) */
-export const OUT_SHOW_MS = 2300, MADE_SHOW_MS = 3600, CALL_AFTER_MS = 1500;
+export const OUT_SHOW_MS = 2300, MADE_SHOW_MS = 3600;
+/** THE ORDER: the cause's words → Call the Winner → WATCH (the match's end-to-end run: the watch began 0.9 s after an out, under the OUT
+ *  card, and the call's sheet then opened over both). The call opens once the OUT card has left; the watch waits for the card AND the call. */
+export const CALL_AFTER_MS = OUT_SHOW_MS + 400, WATCH_AFTER_MS = OUT_SHOW_MS + 500;
 
 // (the pass's own checks — tests/integration/e2e-freefall.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
@@ -100,7 +103,7 @@ export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '', whyNot = '', stranded = false;
   let final = null, finalWrap = null, goTimer = 0, finalTimer = 0, capN = -1, againing = false;   // (capN: the log's events through a hold whose way back got no stamp — nothing past them is sent)
-  let holdSrv = 0;   // (F4B — THE PAUSE GAP: the SERVER's time this phone's last hold was made at — its chunk must be stamped within GRANT_PHONE_MS of it)
+  let holdSrv = 0, holdN = 0;   // (holdN: the log's events through that hold — its chunk is ACKNOWLEDGED once the writer's `acked` reaches it)   // (F4B — THE PAUSE GAP: the SERVER's time this phone's last hold was made at — its chunk must be stamped within GRANT_PHONE_MS of it)
   // the match (F4B)
   let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, lateGo = false, missed = false, everProven = false, finalSeen = 0;
   let outAt = 0, outRes = null, outShown = false, callEl = null, callLine = '', callDone = false, liveRuns = null, followUid = '', followPick = '', watchKey = '', countNames = null, playersSeen = null, partsSeen = null;
@@ -174,7 +177,10 @@ export function createView() {
       soloGo({
         write: () => {
           expectRefusal(path, 'freefall GO: already written (a rejoin) or the rules are not published yet', GO_WAIT_MS + 6000);
-          return stampT0(treePath(), 'freefall').then(() => (stale() ? Promise.reject(new Error('the run stopped waiting')) : dbSet(dbRef(path), serverTimestamp())));
+          // (F4B — THE FRESH-EYES REVIEW: the GO is a TRANSACTION, NEVER APPLIED LOCALLY — as a match's. A plain set shows in this phone's
+          //  own mirror at once with the phone's GUESS of the server's time: a look at the node while the write was still in the air took
+          //  that guess for the GO — the phone then played one tower, the judge replayed another)
+          return stampT0(treePath(), 'freefall').then(() => (stale() ? Promise.reject(new Error('the run stopped waiting')) : runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false })));
         },
         read: () => dbGet(dbRef(nodePath())).then(snap => snap.val()),
         now: () => performance.now(), timer: (fn, ms) => { goTimer = setTimeout(fn, ms); }, stale: () => gone || m !== matchId,
@@ -206,12 +212,26 @@ export function createView() {
   }
   /** → true (the i-th hold's chunk was stamped in time) | false (it was not — or it is not there); rejects = no answer (the line) */
   function granted(i, held) {
-    return dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
+    // THE FRESH-EYES REVIEW (HIGH): this phone's mirror answers a read from its LOCAL view — a chunk still in the air is there with the
+    // phone's own guess of its time (a hold chunk queued behind a dead line read as "stamped 1 ms after the hold"). The chunk is asked
+    // about only once its WRITE IS ACKNOWLEDGED (the writer's `acked` covers the hold's event): then its `at` is the server's own. Not
+    // acknowledged in this count's time = no answer — the count runs again (stage.js#RESUME_TRIES), then the run goes on, NOT COUNTED PAST THE PAUSE.
+    const need = holdN, from = performance.now();
+    const read = () => dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
       const T = chunkTimes(snap.val());
       if (!T) return false;
       let n = 0;
       for (const k of T) { n += k.hn || 0; if (n > i) return !(held > 0) || k.at - held <= GRANT_PHONE_MS; }
       return false;
+    });
+    return new Promise((res, rej) => {
+      const look = () => {
+        if (gone) { rej(new Error('the view is gone')); return; }
+        if (W.state().acked >= need) { read().then(res, rej); return; }
+        if (performance.now() - from > STAMP_WAIT_MS - 300) { rej(new Error('the chunk of the hold is not acknowledged yet')); return; }
+        setTimeout(look, 60);
+      };
+      look();
     });
   }
   /** a hold's way back went on WITHOUT its stamp (three counts, no answer): the run says so, and nothing past that hold is sent — the judge
@@ -323,24 +343,31 @@ export function createView() {
         ended: () => !st.game || st.game.phase !== 'play' || st.game.matchId !== matchId, onState: msg => { callLine = msg === 'NO CALL' ? '' : msg; callEl = null; }, isDestroyed: () => gone });
     }
     // WHOM THE WATCHER FOLLOWS: the one picked by a tap while they fall · else THE LEADER (the one you follow STAYS while they fall)
-    const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : 900) || !mine(g) || missed;
+    const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : WATCH_AFTER_MS) || !mine(g) || missed;
     if (held && !callEl && others.length) {
       const f = follow(others, followPick || followUid);
       if (f && f !== followUid) { followUid = f; followPick = ''; S.watch(f); }
     }
     let txt = '';
-    if (S.watching() || !mine(g) || since > 900) {
+    if (S.watching() || !mine(g) || since > WATCH_AFTER_MS) {
       const F = others.find(x => x.uid === followUid);
       const fl = F && S.watching() === F.uid && S.watchFloor() >= 0 ? S.watchFloor() : F ? F.floor : 0;   // (the floor of the run as it is DRAWN — the delayed playback)
-      if (F && live.length) txt = `WATCHING ${F.name} · ${fl}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;
+      // (a rival with NO NEWS — a dead phone, a dropped signal: `lost` — is never OUT on this screen, so it stayed "live" for ever: the line
+      //  said WATCHING <the dead phone> for the whole wait and WAITING FOR … · NO SIGNAL below could never show. The words count the ones seen falling.)
+      const up = live.filter(x => !x.lost);
+      // (TWO SHORT LINES — the match's end-to-end run: one long line wrapped to three at 390: who + their floor, then the hint / your call)
+      const hint = up.length > 1 || (F && (F.over || F.lost)) ? 'TAP FOR THE NEXT' : '';
+      if (F && up.length) txt = `WATCHING ${F.name} · ${fl}`;
       else if (F) txt = `${F.name} · FLOOR ${fl}`;
-      if (!live.length) {
+      if (!up.length) {
         // (everyone seen is out: the room waits for an end not yet signalled — a dropped signal gets its time)
         const wait = Object.keys(g.participants || {}).filter(u => !(runs && runs[u] && runs[u].e) && !(u === uid && wroteE));
         txt = g.unproven ? 'WAITING FOR THE END' : wait.length ? `WAITING FOR ${nameOf(wait[0])}${wait.length > 1 ? ` + ${wait.length - 1}` : ''} · NO SIGNAL` : txt || 'THE END';
       }
       if (missed) txt = `YOU MISSED THE START — NOT COUNTED${txt ? ` · ${txt}` : ''}`;
-      if (callLine) txt += ` · ${callLine}`;
+      const sub = [callLine, up.length && F && hint ? (callLine ? 'TAP: NEXT' : hint) : ''].filter(Boolean).join(' · ');   // (a 12-letter name beside YOUR CALL: the hint in its short form — the line stays ONE line at 375)
+      if (sub) txt += `
+${sub}`;
     }
     if (txt !== watchKey) { watchKey = txt; S.watchLine(final ? '' : txt); }
   }
@@ -439,7 +466,7 @@ export function createView() {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       // (F4B — THE PAUSE GAP: a HELD run's log — the hold with it — leaves AT ONCE, even behind a chunk in the air: its arrival is what grants the pause)
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, hide: held => { if (S && started && !S.state().over) { if (held) holdSrv = serverNow(); flush(held ? 'now' : true); } }, leave };
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, hide: held => { if (S && started && !S.state().over) { if (held) { holdSrv = serverNow(); holdN = finalCount(S.run()); } flush(held ? 'now' : true); } }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

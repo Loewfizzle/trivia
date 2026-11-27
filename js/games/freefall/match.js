@@ -15,8 +15,9 @@ export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
 export const GO_LEAD_MS = 2000;
 /** no GO at all this long after the count's end (no signal anywhere, the rules not published) → the match plays UNPROVEN, never counted */
 export const NO_GO_MS = 3000;
-/** after the 3:00 cap: the last chunks land */
-export const END_GRACE_MS = 4000;
+/** after the 3:00 cap: the last chunks land — longer than the judge's own lateness (proof.js CLOCK.behind, 8 s: THE FRESH-EYES REVIEW — at
+ *  HIGH RISE's 4 s a capped run on a 5 s line was scored a floor short by the host's step while the server already had every chunk) */
+export const END_GRACE_MS = 9000;
 /** THE DROPPED SIGNAL in a match (proof.js#CLOCK.drop — pinned equal by a test): an OFFLINE player's end is waited for this long (their
  *  moves may still be queued on the phone) before the match ends without it */
 export const DROP_WAIT_MS = 75000;

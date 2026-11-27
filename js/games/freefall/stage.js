@@ -27,7 +27,7 @@ import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard } from './endscreen.js';
 import { bakedNumber } from './bakedtext.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
-import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, edgeMarks, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
 import { createMatchHud } from './matchhud.js';
 import { keepShot, shotFor, lastShot, shotMs, ballAt, shotCrop, SHOT_BOX } from './shot.js';
@@ -279,7 +279,7 @@ export function createStage(app0, o = {}) {
   let match = MODE === 'match' && (!!o.match || !!o.rivals), spect = false, sim = null, simShift = Math.max(0, Math.floor(Number(o.simShift) || 0)), playing = -1, clockSec = -1;
   const ghosts = [], gData = new Float32Array(GHOSTS_MAX * GHOST_STRIDE), rows = [], marks = { up: [], down: [] };
   const meRow = { uid: 'me', name: 'YOU', hex: '#ffffff', floor: 0, over: false, end: '', lost: false, me: true };
-  let watchUid = '', WA = null, evW = [], wfed = 0, wNew = false, rowsDirty = true, simNear = false;
+  let watchUid = '', WA = null, evW = [], wfed = 0, wNew = false, rowsDirty = true, simNear = false, watchDelay = WATCH_DELAY;
   const UNIT = 2 * Math.PI / TURN;
   const reduceM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function restart(s = FIXED || newSeed()) {
@@ -462,7 +462,7 @@ export function createStage(app0, o = {}) {
     const g = uid ? ghostOf(uid) : null;
     if (!g) { if (watchUid) { watchUid = ''; WA = null; stage.classList.remove('is-watch'); view.reset(run); view.adopt(run, ev, ev.length); hudFloor = -1; hudGap = -99; rowsDirty = true; if (sim) MH.watching(''); } return; }
     if (uid === watchUid) return;
-    watchUid = uid; WA = createWatch(seed, 'match'); evW = []; wfed = 0; wNew = true;
+    watchUid = uid; WA = createWatch(seed, 'match'); evW = []; wfed = 0; wNew = true; watchDelay = WATCH_DELAY;
     view.pose('play'); hudFloor = -1; hudGap = -99; rowsDirty = true;
     stage.classList.add('is-watch'); stage.classList.remove('is-gold'); BN.dirty();
     if (sim) MH.watching(`WATCHING ${g.name} · TAP FOR THE NEXT`);   // (the bot room's own line — in the cartridge the view writes it, with the floor)
@@ -529,7 +529,8 @@ export function createStage(app0, o = {}) {
       gData[o8 + 6] = alone || d >= NEAR_FLOORS ? 0 : d <= NEAR_FLOORS - 0.4 ? 1 : (NEAR_FLOORS - d) * 2.5;
       gData[o8 + 7] = i;
       // (ABOVE me a ghost rides in the HUD's own lanes — the number, the band: fainter there, and no tag: its edge marker names it)
-      if (up && d > 0.9) { gData[o8 + 5] *= 0.6; gData[o8 + 7] = -1; }
+      // (the screen review: at the top edge it read as a smudge beside the corner button — it thins out to nothing by the marker's own range)
+      if (up && d > 0.9) { const k = (MARK_UP - d) * 0.6; if (k < gData[o8 + 5]) gData[o8 + 5] = k > 0 ? k : 0; gData[o8 + 7] = -1; }
       if (simNear) { gData[o8 + 1] = myY - ((i % 5) - 2) * 0.9; gData[o8 + 5] = 1; gData[o8 + 6] = 0; }   // (the SPEED TEST's own tool: every ghost in the picture at once, tags and all — never in a match)
       // (a rival at a BREAKTHROUGH: a small echo only)
       if (G.floor > was && gData[o8 + 5] > 0 && ((was < BREAK_AT.skylight && G.floor >= BREAK_AT.skylight) || (was < BREAK_AT.splash && G.floor >= BREAK_AT.splash) || (was < BREAK_AT.seabed && G.floor >= BREAK_AT.seabed))) view.ghostEcho(i);
@@ -739,9 +740,11 @@ export function createStage(app0, o = {}) {
     if (match && t0 != null) {
       const tauW = now > t0 ? (now - t0) / TICK_MS : 0;
       if (watchUid) {
-        const g = ghostOf(watchUid), tw = tauW > WATCH_DELAY ? tauW - WATCH_DELAY : 0;
+        const g = ghostOf(watchUid), tw = tauW > watchDelay ? tauW - watchDelay : 0;
         if (g) {
-          if (stepWatch(WA, g.G, Math.floor(tw), evW) || wNew) { wNew = false; view.reset(WA.run); view.adopt(WA.run, evW, evW.length); wfed = evW.length; }
+          const again = stepWatch(WA, g.G, Math.floor(tw), evW);
+          if (again && watchDelay < WATCH_DELAY_MAX) watchDelay += 30;   // (THE FRESH-EYES REVIEW: a line slower than the delay rebuilt the playback at every chunk — the delay follows the rival's own lateness, half a second a time)
+          if (again || wNew) { wNew = false; view.reset(WA.run); view.adopt(WA.run, evW, evW.length); wfed = evW.length; }
           else if (evW.length > wfed) { view.feed(evW, wfed, evW.length); wfed = evW.length; }
           R0 = WA.run; tauD = isOver(R0) ? R0.end : tw;
         }

@@ -33,6 +33,8 @@ export const NEAR_FLOORS = 1.2;
 /** WATCH THE LEADER: the watched player is played back this many ticks behind the world (1.5 s) — a move is FINAL only at the landing
  *  after it (≤ 0.6 s) + the next flush (0.25 s) + the line: by then their moves are here, the playback is exact, tick for tick */
 export const WATCH_DELAY = 90;
+/** … on a slower line the delay grows with the rival's own lateness (the stage: + half a second at each rebuild), up to this (5 s) */
+export const WATCH_DELAY_MAX = 300;
 
 const FIELDS = ['t', 'st', 'a', 'pa', 'mt', 'floor', 'at', 'fl', 'pl', 'nl', 'll', 'clean', 'blaze', 'nb', 'maxNb', 'bounces', 'shatters', 'blazes', 'sf', 'sh', 'saves', 'holds', 'dk', 'dn', 'area', 'cause', 'end'];
 /** a run's whole state into another run of the SAME seed + mode (their logs are never copied: the drawn run is only ever stepped) */
@@ -230,13 +232,12 @@ export function stepWatch(W, G, tick, ev) {
   }
   const r = W.run;
   while (W.i < G.lt.length && G.lt[W.i] <= tick && r.st === 'live') { setAngle(r, G.lt[W.i], G.la[W.i], ev); W.i++; }
-  // (never past what is KNOWN: their last landed move — or, their end here, the whole run. A step that would END the run waits for their `e`.)
-  const sure = G.done ? tick : Math.min(tick, G.pt < 0 ? 0 : G.pt);
+  // (their end here: the whole run. Else the ball goes on by the rules with the tower held — and a landing that would END the run WAITS for
+  //  their own `e`, the fatal landing at their last landed move's own tick too: THE FRESH-EYES REVIEW — the playback showed that out a
+  //  beat before the end was signalled)
   if (r.st === 'live') {
     if (G.done) stepTo(r, tick, ev);
     else {
-      stepTo(r, sure, ev);
-      // … between their last landed move and now: the ball goes on by the rules with the tower held — unless that would end it
       let stop = false;
       while (r.st === 'live') {
         const next = r.nl <= r.dn ? r.nl : r.dn;

@@ -21,7 +21,9 @@ export const SHOT_BOX = Object.freeze({ w: 984, h: 792 });
  *  the bell at once · THE BOTTOM 390 = THE IMPACT — the ball on the seabed (it lands 300 ms after the run's last tick), the shockwave
  *  ring wide in the picture, the dust rising, the last floor's shards in the air (at 600 the ring has left the frame; from 1100 the
  *  dust covers the bed). stage.js holds the end card END_HOLD_MS / END_HOLD_MADE_MS: the frame is always taken before it. */
-export const SHOT_AT = Object.freeze({ red: 90, dark: 240, cap: 60, made: 390 });
+// (F4B — the screen review: at 90 ms the slice was still WHITE-HOT — under a HIT THE RED tab the frame read as a white wedge. At 200 ms
+//  the slice is RED again, a pale flash still on it, the sparks spread in the air: it reads as the hit.)
+export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 390 });
 const own = (T, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(T, k);   // (the table's own rows only: never 'constructor')
 export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.cap);
 /** where the ball stands DOWN the frame (0 … 1 of its height), per cause: clear of the cause's tab above it and of the floors' number
