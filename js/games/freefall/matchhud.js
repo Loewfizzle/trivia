@@ -8,7 +8,7 @@ import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS, outWords } from './ghosts.js';
 /** THE BOTTOM — the rail's foot (a match's finish) */
 const FOOT = MODES.match.finish || 200;
 // FIX A — THE RAIL's NAMES: a name's line height (px — names … matchhud.js#2
-export const NAME_GAP = 14, NAME_MAX = 7;
+export const NAME_GAP = 17, NAME_MAX = 7;   // (GO-LIVE G0.2: a name's box is 14.4 px — 17 = never touching)
 export const railName = s => { const t = String(s || '').toUpperCase(); return t.length > NAME_MAX ? `${t.slice(0, NAME_MAX - 1)}…` : t; };
 // FIX A — the rivals' names beside their dots: [{ y }] … matchhud.js#3
 export function spreadNames(list, gap, h) {

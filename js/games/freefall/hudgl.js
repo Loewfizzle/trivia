@@ -1,5 +1,6 @@
 // FREEFALL — THE GL HUD (FIX D … hudgl.js#1
 import * as THREE from 'three';
+import { NAME_GAP } from './matchhud.js';
 
 export const BIG_BLUR = 12;
 const OFF = 10000, MAXW = 2048, NIL = [];
@@ -338,6 +339,13 @@ export function createHud(P, o = {}) {
   // the big number's spacing (the old baked … hudgl.js#41
   function digitPens(set, t, gap) { const out = new Float64Array(t.length); let x = 0; for (let i = 0; i < t.length; i++) { out[i] = x; x += set.m.measureText(t[i]).width + gap; } return out; }
   const digitSpan = (set, t, gap) => { let w = 0; for (let i = 0; i < t.length; i++) w += set.m.measureText(t[i]).width + (i ? gap : 0); return w; };
+  // THE TOP LINE clears the corner buttons (GO-LIVE G0.1 — docs/freefall.md): centred right of `edge`, too wide → two lines at the last ' · '
+  function topLines(set, t, A, edge) {
+    const l = Math.max(A.l, edge + 6), cx = (l + A.r) / 2, i = t.lastIndexOf(' · ');
+    if (set.width(t) <= A.r - l || i < 0) return [{ t, x: centred(set, t, cx), y: A.base }];
+    const a = t.slice(0, i), b = t.slice(i + 3), d = set.fs * 0.62;
+    return [{ t: a, x: centred(set, a, cx), y: A.base - d }, { t: b, x: centred(set, b, cx), y: A.base + d }];
+  }
   // a centred line's first pen (the page's … hudgl.js#18
   const centred = (set, t, cx) => cx - (set.indent + set.width(t)) / 2 + set.indent;
   // the alphabetic baseline's drop below a MIDDLE … hudgl.js#42
@@ -457,7 +465,7 @@ export function createHud(P, o = {}) {
   function drop(Q) { Q.dispose(); Qs.splice(Qs.indexOf(Q), 1); for (const L of order) { const i = L.indexOf(Q.m); if (i >= 0) L.splice(i, 1); } restack(); }
 
   // ---- THE STATE (the stage's: the number, … hudgl.js#47
-  const st = { num: -1, gold: false, top: '', note: '', noteS: null, noteKey: '', near: false, nearAt: 0, call: null, band: null, rows: null, rosterKey: '', roster: null, outs: [], last: null, clock: '', watch: '', hudTo: 0, hudFrom: 0, hudAt: 0, hudMs: 0 };
+  const st = { num: -1, gold: false, top: '', edge: 0, note: '', noteS: null, noteKey: '', near: false, nearAt: 0, call: null, band: null, rows: null, rosterKey: '', roster: null, outs: [], last: null, clock: '', watch: '', hudTo: 0, hudFrom: 0, hudAt: 0, hudMs: 0 };
   const F0 = { o: 1, s: 1, x: 0, y: 0 }, STILL = { o: 1, s: 1, x: 0, y: 0 };
   // THE GROUP FADE: an element's opacity fades … hudgl.js#48
   let grp = null;
@@ -494,7 +502,8 @@ export function createHud(P, o = {}) {
     if (st.num >= 0 && na > 0.001 && na < 0.999 && R2.num.box) { show(R2.num, false); groupOn(R2.num, na); } else { show(R2.num, st.num >= 0, na); if (grp) grp.on = false, hide(grp.S); }
     // THE TOP LINE (YOUR BEST n · n PLAYING)
     const ts = st.gold ? k.topG : k.top;
-    if (changed(R2.top, st.top, st.gold, ts.ver, dpr)) { if (ts.add(st.top)) R2.top.c = ts.ver; lay(R2.top, ts, [{ t: st.top, x: centred(ts, st.top, k.topA.cx), y: k.topA.base }]); }
+    if (R2.top.e !== st.edge) { R2.top.e = st.edge; R2.top.a = NaN; }
+    if (changed(R2.top, st.top, st.gold, ts.ver, dpr)) { if (ts.add(st.top)) R2.top.c = ts.ver; lay(R2.top, ts, topLines(ts, st.top, k.topA, st.edge ? st.edge - ox : 0)); }
     show(R2.top, !!st.top && !S.dim && !S.final && !(S.nohud && live) && (!S.over || S.match));
     // THE CALL (its pop: ease-out over its … hudgl.js#51
     for (let i = 0; i < k.callL.length; i++) hide(k.callL[i].S);
@@ -530,6 +539,15 @@ export function createHud(P, o = {}) {
     if (N) show(N.S, true, f.o, 1, tx + b.dx, 0);
     show(k.runs.sub, true, f.o, 1, tx, 0);
   }
+  // GO-LIVE G0.2 — the EASED names kept NAME_GAP apart too: two names passing each other never cross mid-ease (insertion sort, no garbage)
+  const NS = [];
+  function apart(M, n, now) {
+    let m = 0, hi = -1e9;
+    for (let j = 0; j < n; j++) { const d = M[j]; if (d.ny == null) continue; d.nv = tw(d.tny ||= {}, d.ny, now, 200); if (d.ny > hi) hi = d.ny; let i = m++; while (i > 0 && NS[i - 1].nv > d.nv) { NS[i] = NS[i - 1]; i--; } NS[i] = d; }
+    for (let i = 1; i < m; i++) if (NS[i].nv < NS[i - 1].nv + NAME_GAP) NS[i].nv = NS[i - 1].nv + NAME_GAP;
+    if (m && NS[m - 1].nv > hi) NS[m - 1].nv = hi;   // (the foot: never below the lowest settled name)
+    for (let i = m - 2; i >= 0; i--) if (NS[i].nv > NS[i + 1].nv - NAME_GAP) NS[i].nv = NS[i + 1].nv - NAME_GAP;
+  }
   // THE MATCH: the rail (dots + names … hudgl.js#25
   function matchFrame(now, S, off, k) {
     const M = st.rows, Ro = st.roster, on = !!M && !!Ro && !off && !S.sheet;
@@ -537,9 +555,10 @@ export function createHud(P, o = {}) {
     if (Ro) {
       let a = 0, b = 0;
       const n = M ? M.length : 0, meLast = n && M[n - 1].me;
+      if (on) apart(M, n, now);
       if (on) for (let j = 0; j < n; j++) {
         const d = M[meLast ? (j < n - 1 ? n - 2 - j : n - 1) : n - 1 - j];
-        const y = tw(d.ty ||= {}, d.y, now, 200), ny = d.ny == null ? 0 : tw(d.tny ||= {}, d.ny, now, 200);
+        const y = tw(d.ty ||= {}, d.y, now, 200), ny = d.ny == null ? 0 : d.nv;
         for (const it of d.its || NIL) {
           if (it.kind === 'dot' && it.cls === d.cls) Ro.dots.put(a++, it.b.x - ox, it.b.y - oy + y, it.b.w, it.b.h, it.u[0], it.u[1], it.u[2], it.u[3], d.cls === 'is-lost' ? 0.6 : 1);
           else if (it.kind === 'name' && it.cls === (d.cls === 'is-made' ? 'is-made' : '')) Ro.names.put(b++, it.b.x - ox, it.b.y - oy + ny, it.b.w, it.b.h, it.u[0], it.u[1], it.u[2], it.u[3], d.cls === 'is-out' || d.cls === 'is-lost' ? 0.5 : 1);
@@ -612,6 +631,7 @@ export function createHud(P, o = {}) {
     num(n) { st.num = n; },
     gold(on) { st.gold = !!on; },
     top(t) { st.top = String(t || ''); },
+    edge(x) { st.edge = x || 0; },
     note(t) { st.note = String(t || ''); },
     say(t, ms, now) { st.call = { t, ms, at: now }; },
     unsay() { st.call = null; },
@@ -638,7 +658,7 @@ export function createHud(P, o = {}) {
         R.setRenderTarget(grp.rt); R.setClearColor(0x000000, 0); R.clear(true, false, false); R.render(Q.m, cam);
         R.setRenderTarget(null); R.setClearColor(CC, c0); view2.set(vx, vy); Q.U.uXf.value.set(1, 0, 0); Q.m.visible = false;
       } let any = false; for (const m of scene.children) if (m.visible) { any = true; break; } if (!any) return; const a = R.autoClear; R.autoClear = false; R.render(scene, cam); R.autoClear = a; },
-    info: () => ({ on: !!R, look: cur, bakes, gen, meshes: Qs.length, shown: Qs.filter(Q => Q.m.visible).length, num: st.num, gold: st.gold, top: st.top, call: st.call ? st.call.t : '', band: st.band ? `${st.band.name} · ${st.band.sub}` : '', near: st.near, outs: st.outs.map(c => c.key.split('|')[0]), last: st.last ? st.last.lines.join(' ') : '', clock: st.clock, watch: st.watch, note: st.note, roster: st.roster ? st.roster.items.length : 0, bandA: st.bandA || 0, bands: K[cur] ? [...K[cur].names.keys()] : [], bandBox: st.bandA ? st.bandBox : null, lines: K[cur] ? Object.fromEntries(Object.entries(K[cur].runs).map(([n, r]) => [n, Array.isArray(r) ? r.map(x => x.ext || null) : r.ext || null])) : null }),
+    info: () => ({ on: !!R, look: cur, bakes, gen, meshes: Qs.length, shown: Qs.filter(Q => Q.m.visible).length, num: st.num, gold: st.gold, top: st.top, call: st.call ? st.call.t : '', band: st.band ? `${st.band.name} · ${st.band.sub}` : '', near: st.near, outs: st.outs.map(c => c.key.split('|')[0]), last: st.last ? st.last.lines.join(' ') : '', clock: st.clock, watch: st.watch, note: st.note, roster: st.roster ? st.roster.items.length : 0, nameY: st.rows ? st.rows.filter(d => d.ny != null).map(d => d.nv) : [], bandA: st.bandA || 0, bands: K[cur] ? [...K[cur].names.keys()] : [], bandBox: st.bandA ? st.bandBox : null, lines: K[cur] ? Object.fromEntries(Object.entries(K[cur].runs).map(([n, r]) => [n, Array.isArray(r) ? r.map(x => x.ext || null) : r.ext || null])) : null }),
     destroy() { for (const Q of Qs) Q.dispose(); for (const k of [K.night, K.day]) if (k) for (const s of k.sets) if (s.tex) s.tex.dispose(); if (st.roster) st.roster.tex.dispose(); Qs = []; R = null; },
   };
   return api;

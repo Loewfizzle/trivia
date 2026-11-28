@@ -220,6 +220,7 @@ export function createStage(app0, o = {}) {
     if (n && n % 10 === 0) BNR.say(`FLOOR ${n}`);
   }
   const setTop = t => { topText = t; H.top(t); };
+  const edge = () => H.edge(PAGE && !soundsBtn.hidden ? soundsBtn.getBoundingClientRect().right : 0);   // (G0.1: the top line keeps right of SOUNDS — a state change only)
   const setGold = on => { goldOn = on; H.gold(on); };
   const setNote = t => { note.textContent = t; noteTxt = t; H.note(t); };
   // THE ANNOUNCER: one call at a time, a bigger moment never … stage.js#23
@@ -315,7 +316,7 @@ export function createStage(app0, o = {}) {
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.reset(run); view.setBest(tapeFloor); view.pose('open', true);
     end.hidden = true; holdEl.hidden = true; soundsBtn.hidden = false; note.hidden = false;
-    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-held', 'is-near', 'is-starting'); stage.classList.add('is-open');
+    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-held', 'is-near', 'is-starting'); stage.classList.add('is-open'); edge();
     setTop(bestLine(best)); setGold(false); nearOn = false; H.near(false, 0);
     hudFloor = -1; hudGap = -99; hudArea = ''; callUntil = 0; callPri = 0; H.unsay(); callText = '';
     setNum(0); hudArea = areaOf(0).name; hudInk = areaOf(0).id;   // (FIX D: the plain + the gold digits are the GL HUD's atlases — baked with the look)
@@ -345,7 +346,7 @@ export function createStage(app0, o = {}) {
   }
   function live(ts) {
     starting = false; stage.classList.remove('is-starting'); stage.classList.add('is-live');
-    soundsBtn.hidden = true; note.hidden = !runNote;
+    soundsBtn.hidden = true; note.hidden = !runNote; H.edge(0);
     t0 = ts;
     if (FROM) { dive(FROM); fromRun = true; t0 = ts - run.t * TICK_MS; prepBanner(run.floor); }
     owed = Math.max(-OWED_MAX, Math.min(OWED_MAX, pre)); pre = 0;
@@ -502,7 +503,7 @@ export function createStage(app0, o = {}) {
     watchUid = ''; WA = null; end.hidden = true;
     stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting'); stage.classList.add('is-live'); setGold(false);
     view.pose('play'); prepBanner(0);
-    starting = false; soundsBtn.hidden = true; note.hidden = !runNote;
+    starting = false; soundsBtn.hidden = true; note.hidden = !runNote; H.edge(0);
     t0 = Number(A.t0) || performance.now(); momentsAt = performance.now() + MOMENTS_QUIET_MS; lastSaid = saidSeen();
     awakeAt = performance.now(); awake(true);
     if (!spect && A.log && A.log.length) { // stage#53
@@ -700,7 +701,7 @@ export function createStage(app0, o = {}) {
     end.hidden = !E.own; soundsBtn.hidden = false; note.hidden = !(PAGE || (E.own && runNote));
     // (F4B — the test page's bot room with `&watch=1`: OUT = WATCH THE LEADER — its card comes when every bot is down)
     if (sim && o.watchSim && rows.some(r => !r.me && !r.over)) { end.hidden = true; watch(follow(rows)); }
-    stage.classList.remove('is-live', 'is-near'); stage.classList.add('is-over');
+    stage.classList.remove('is-live', 'is-near'); stage.classList.add('is-over'); edge();
     hook.ends.push({ seed, mode: MODE, same, at, live: res, replay: r, judge: verdict, entries: log.length, holds: run.holds, clamped, best, was, isNew });
     if (hook.ends.length > 50) hook.ends.shift();
   }
@@ -827,7 +828,7 @@ export function createStage(app0, o = {}) {
     const work = performance.now() - w0;
     tiers.sample(now, prevWork); prevWork = work;
     if (t0 != null && !over && !held && now - t0 > 1000) trialTick(dt);
-    if (pin == null && frameN % 10 === 0) tiers.tick(now);
+    if (pin == null && !spikeOff && frameN % 10 === 0) tiers.tick(now);   // (GO-LIVE G0.3: after a NO HELP → back NOTHING steps the tier again for the page — the timing rule + its cap probe flapped 2→1→2→1→2)
     frames[frameK++ % 600] = dt;
     if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitchNow(dt, now);
     else if (t0 != null && !over && !held && dt > worstMs && now - t0 > 1000) worstMs = dt;

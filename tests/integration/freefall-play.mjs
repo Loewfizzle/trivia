@@ -1283,7 +1283,7 @@ async function checks6() {
     const far = m.ghosts.filter(g => g.floor - (m.ghosts.length ? 0 : 0) >= 0 && g.alpha === 0 && !g.over && !g.lost);
     // (FIX A — THE EDGE MARKERS are gone: every rival's NAME beside its dot on the rail — 7 letters at most, never two closer than a line)
     const nm = m.hud.dots.filter(d => d.name), ny = nm.map(d => d.ny).sort((p, q) => p - q);
-    ok(nm.length === 7 && nm.every(d => /^[A-Z…]{1,7}$/.test(d.name)) && ny.every((y, k) => !k || y - ny[k - 1] >= 13.5) && far.length >= 1 && m.layer.tagged >= 1 && m.layer.baked === 1 && !('down' in m.hud), `THE RAIL's NAMES: ${nm.map(d => `${d.name} @${d.ny}`).join(' · ')} — apart, no edge marker · ${far.length} ghosts too far to draw · ${m.layer.tagged} tag(s) over the ghosts in sight · the atlas still baked once`);
+    ok(nm.length === 7 && nm.every(d => /^[A-Z…]{1,7}$/.test(d.name)) && ny.every((y, k) => !k || y - ny[k - 1] >= 16.5) && far.length >= 1 && m.layer.tagged >= 1 && m.layer.baked === 1 && !('down' in m.hud), `THE RAIL's NAMES: ${nm.map(d => `${d.name} @${d.ny}`).join(' · ')} — apart, no edge marker · ${far.length} ghosts too far to draw · ${m.layer.tagged} tag(s) over the ghosts in sight · the atlas still baked once`);
     const me0 = m.hud.dots.find(d => d.uid === 'me').y, deep = Math.max(...m.hud.dots.map(d => d.y));
     ok(deep > me0 + 8 && m.hud.railH > 300, `the rail: the deepest dot ${deep.toFixed(0)} px down a ${m.hud.railH}-px rail, mine at ${me0.toFixed(0)}`);
     // … the lights take me (I stood still): OUT → WATCH THE LEADER
@@ -1744,7 +1744,99 @@ async function fixd() {
   }
 }
 
-if (argv.includes('--hudab')) await hudab();
+/** THE GO-LIVE — `--golive` (Group 0, Ben's iPhone shots): (1) THE TOP LINE ("YOUR BEST 145 · 8 PLAYING") clears every corner button — the
+ *  page's ☰ + SOUNDS and the console's 36 pt corners (var(--cb-room)) — at 375 / 390 / 430, solo + match + spectate, both looks (wrapped
+ *  at the last ' · ' when it can't) · (2) THE DEPTH RAIL's names never touch: 8 players at the same depth, the EASED names too · (3) THE
+ *  SPIKE RULE: after one NO HELP → back nothing steps the tier again for the page (33-ms frames that move the timing rule alone) */
+async function golive() {
+  const S = 'window.__ffPlay.state()', M = 'window.__ffPlay.matchState()';
+  // the top line's lines (page px) vs every visible button in the top 70 px + the console's corner room
+  const topCheck = (p) => p.evaluate(() => {
+    const s = window.__ffPlay.state(), L = (s.gl.lines && s.gl.lines.top) || [], pr = document.querySelector('.ff-play').getBoundingClientRect();
+    const room = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cb') || '36') + 20;
+    const btns = [...document.querySelectorAll('.ff-stage button, .ff-stage .ff-menu')].filter(b => { const r = b.getBoundingClientRect(), cs = getComputedStyle(b); return r.width > 0 && r.top < 70 && cs.display !== 'none' && cs.visibility !== 'hidden' && !b.hidden; })
+      .map(b => { const r = b.getBoundingClientRect(); return { n: b.className, l: r.left, r: r.right }; });
+    const lines = L.map(x => ({ t: x.t, l: x.l + pr.left, r: x.r + pr.left, y: x.y }));
+    const hits = [];
+    for (const ln of lines) for (const b of btns) if (ln.l < b.r && ln.r > b.l) hits.push(`"${ln.t}" ${ln.l.toFixed(0)}–${ln.r.toFixed(0)} over ${b.n} ${b.l.toFixed(0)}–${b.r.toFixed(0)}`);
+    for (const ln of lines) if (ln.l < room - 1 || ln.r > innerWidth - room + 1) hits.push(`"${ln.t}" ${ln.l.toFixed(0)}–${ln.r.toFixed(0)} inside the console's corner room ${room}`);
+    return { top: s.gl.top, lines: lines.map(x => `${x.t} [${x.l.toFixed(0)}–${x.r.toFixed(0)}]`), btns: btns.map(b => `${b.n}[${b.l.toFixed(0)}–${b.r.toFixed(0)}]`), hits };
+  });
+  if (!process.env.GL_SKIP_TOP) for (const [w, h, d] of [[375, 667, 2], [390, 844, 3], [430, 932, 3]]) for (const lk of ['night', 'day']) {
+    // SOLO — the opening (☰ + SOUNDS up) and the run (the corners clear)
+    let t = await open(w, h, d, `?look=${lk}&seed=gl-s`, { best: 145 });
+    let r = await topCheck(t.p);
+    ok(/YOUR BEST 145/.test(r.top) && r.lines.length && !r.hits.length, `${w} ${lk} SOLO, THE OPENING: the top line ${r.lines.join(' / ')} clears ${r.btns.join(' ')} (${r.hits.join(' · ') || 'no overlap'})`);
+    await shot(t.p, `golive-top-${w}-${lk}-solo-open.png`);
+    await start(t); await auto(t.p, 'play'); await sleep(800);
+    r = await topCheck(t.p);
+    ok(!r.hits.length, `${w} ${lk} SOLO, THE RUN: ${r.lines.join(' / ') || '(no top line)'} (${r.hits.join(' · ') || 'no overlap'})`);
+    await t.close();
+    // A MATCH (8 players: the longest line) — the fall, then OUT → WATCH THE LEADER (spectate: ☰ + SOUNDS back)
+    t = await open(w, h, d, `?look=${lk}&seed=gl-m&mode=match&rivals=7&room=1&watch=1&tier=2`, { best: 145 });
+    await start(t);
+    await waitFor(t.p, `${M}.hud.dots.length === 8 && /PLAYING/.test(${S}.gl.top)`, 20000); await sleep(400);
+    r = await topCheck(t.p);
+    ok(/YOUR BEST 145 · 8 PLAYING/.test(r.top) && r.lines.length && !r.hits.length, `${w} ${lk} MATCH, THE FALL: "${r.top}" → ${r.lines.join(' / ')} (${r.hits.join(' · ') || 'no overlap'})`);
+    await shot(t.p, `golive-top-${w}-${lk}-match.png`);
+    await t.p.evaluate(() => window.__slowmo(3)); await auto(t.p, 'safe');
+    const out = await waitFor(t.p, `${S}.over && ${M}.watch !== ''`, 40000); await sleep(700);
+    r = await topCheck(t.p);
+    ok(out && r.lines.length && !r.hits.length, `${w} ${lk} MATCH, SPECTATE (WATCHING): ${r.lines.join(' / ')} clears ${r.btns.join(' ')} (${r.hits.join(' · ') || 'no overlap'})`);
+    await shot(t.p, `golive-top-${w}-${lk}-spectate.png`);
+    ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+    await t.close();
+  }
+  // (2) THE RAIL's NAMES — 8 players on the same slice (the start), then the bots passing each other: every sample, settled AND eased
+  if (!process.env.GL_SKIP_RAIL) for (const lk of ['night', 'day']) {
+    const t = await open(390, 844, 3, `?look=${lk}&seed=gl-r&mode=match&rivals=7&room=1&tier=2`);
+    await start(t);
+    await waitFor(t.p, `${M}.hud.dots.length === 8`, 20000);
+    const box = await t.p.evaluate(() => { const n = document.createElement('span'); n.className = 'ff-rail-name'; n.textContent = 'CHARLIE'; document.querySelector('.ff-rail-in').append(n); const hh = n.getBoundingClientRect().height; n.remove(); return hh; });   // (a name's own box, measured — the rail's names are drawn in the picture)
+    await auto(t.p, 'safe'); await t.p.evaluate(() => window.__slowmo(2));
+    let worst = 1e9, worstE = 1e9, n = 0;
+    for (let k = 0; k < 60; k++) {
+      const q = await t.p.evaluate(() => { const m = window.__ffPlay.matchState(), s = window.__ffPlay.state(); return { ny: m.hud.dots.filter(d => d.name).map(d => d.ny), ev: s.gl.nameY, over: s.over }; });
+      if (q.over) break;
+      const gap = a => { const x = [...a].sort((p, r) => p - r); let g = 1e9; for (let i = 1; i < x.length; i++) g = Math.min(g, x[i] - x[i - 1]); return g; };
+      if (q.ny.length >= 2) { worst = Math.min(worst, gap(q.ny)); n++; }
+      if (q.ev.length >= 2) worstE = Math.min(worstE, gap(q.ev));
+      await sleep(150);
+    }
+    ok(n > 20 && worst >= box + 1.5 && worstE >= box + 1.5, `${lk} THE RAIL's NAMES, 7 rivals over ${n} samples: the closest two ${worst.toFixed(1)} px apart settled, ${worstE.toFixed(1)} px eased — a name's box ${box.toFixed(1)} px (never touching)`);
+    await shot(t.p, `golive-rail-${lk}.png`);
+    ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+    await t.close();
+  }
+  // (3) THE SPIKE RULE rests for the PAGE: the control first (the throttle alone steps the timing rule down), then after a NO HELP nothing steps
+  const hit = (p, k, gap = 60) => p.evaluate(async (c, g) => { for (let i = 0; i < c; i++) { window.__ffPlay.hitch(40); await new Promise(r => setTimeout(r, g)); } }, k, gap);
+  let t = await open(390, 844, 3, '?seed=gl-k0&fps=1');
+  await start(t); await auto(t.p, 'play');
+  await t.p.evaluate(() => window.__slowmo(2));   // (the page's clock at 2×: every frame reads ~33 ms — the timing rule's p75 > 19.5)
+  await waitFor(t.p, `${S}.tierPath.length > 1`, 25000);
+  let s = await st(t.p);
+  ok(s.tierPath.length > 1, `the control (no spike rule yet): frames read at 33 ms → the timing rule steps (path ${s.tierPath.join('→')})`);
+  await t.close();
+  t = await open(390, 844, 3, '?seed=gl-k1&fps=1');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, `${S}.spike.play > 2500`, 20000);
+  await hit(t.p, 4);
+  s = await st(t.p);
+  const rate = s.spike.rate || 1;
+  for (let k = 0; k < 24 && !(await st(t.p)).spike.said; k++) { await hit(t.p, 1); await sleep(Math.max(80, 1000 / rate - 60)); }
+  await waitFor(t.p, `${S}.spike.said !== ''`, 15000);
+  s = await st(t.p);
+  ok(s.spike.off && /NO HELP/.test(s.spike.said) && s.tierPath.join('') === '212', `THE SPIKE RULE: NO HELP → back (${s.spike.said} · path ${s.tierPath.join('→')})`);
+  await t.p.evaluate(() => window.__slowmo(2));
+  await sleep(15000);
+  s = await st(t.p);
+  ok(s.tierPath.join('') === '212' && s.tier === 2, `… then 15 s of 33-ms frames (the control stepped): NOTHING steps the tier again for the page (path ${s.tierPath.join('→')}, tier ${s.tier}) — never 2→1→2→1→2`);
+  ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+  await t.close();
+}
+
+if (argv.includes('--golive')) await golive();
+else if (argv.includes('--hudab')) await hudab();
 else if (argv.includes('--fixd')) await fixd();
 else if (argv.includes('--hudab-join')) await hudabJoin();
 else if (LOOK) await look();
