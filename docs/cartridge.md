@@ -265,7 +265,8 @@ the slim card + its score line fit above it with no MORE BELOW in Safari with it
 (pixel-identical). Under the score: ONE line of what the run PAID, from the SERVER's outcome only (`so` — docs/progression.md "THE SOLO LANE").
 **THE SOLO FOOT + SHARE YOUR RUN (the owner's add-on, Nov 13 noon).** The console's podium (`ui/final.js`) gives a SOLO RUN its own foot: PLAY
 NOW's room → PLAY AGAIN + BACK TO THE CITY; a ROOM OF ONE (the old "open a room and play alone") → PLAY AGAIN (the quick start) + BACK TO THE ROOM.
-Both add **SHARE** when the cartridge exports **`shareRun(game, state)`** (optional; PRISM DROP + OVERCLOCK — a lazy `share.js`): it builds the card's
+(FREEFALL FIX C — N2: a cartridge may also export **`shareOk(game, me)`** → `false` = NO SHARE on this podium — an unproven match, a refused row,
+a missed start: no misleading card.) Both add **SHARE** when the cartridge exports **`shareRun(game, state)`** (optional; PRISM DROP + OVERCLOCK — a lazy `share.js`): it builds the card's
 inputs from the result's PUBLIC fields through `js/games/kit/share-run.js#runCard` (the one gate — never a pid / uid / key / tag digits) and draws
 its own MIDDLE (PRISM DROP: the published final board via `drawMini`, night tubes / the day's crayon; OVERCLOCK: the score) on the kit's 1080 × 1350
 frame (the sign, the game + mode, the name, the result, the site) through `ctx2d` — ON THE PHONE, no server, no new /api call — then

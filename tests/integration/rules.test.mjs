@@ -2106,6 +2106,7 @@ test("FREEFALL FIX C — the proof node's `rs`: own uid, once, after GO, before 
   await seed(room);
   const N = `${R}/ff/fr1/p2`, C = s => ({ s, at: serverTimestamp() });
   await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'no rule set before GO');
+  await assertSucceeds(stampAt(db('p2'), `${R}/ff/fr1/t0`), 'THE STAMP first (a FREEFALL GO needs it)');
   await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO');
   for (const bad of ['', 'Classic', 'classic ', 'a_b', 'x'.repeat(17), 7, true, { a: 1 }]) await assertFails(set(ref(db('p2'), `${N}/rs`), bad), `not a rule-set id: ${JSON.stringify(bad)}`);
   await assertFails(set(ref(db('host'), `${N}/rs`), 'classic'), 'never another player\'s');

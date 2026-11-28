@@ -252,7 +252,9 @@ try {
       // k friends + you: 0 → NO FRIENDS YET (the world stays) · 1 → you + 1 · 3 → the top 3 (you 3rd, 119) · 8 → the top 3 + "YOU · 5TH · 119 FLOORS"
       const want = { 0: [0, ''], 1: [2, ''], 3: [3, ''], 8: [3, 'YOU · 5TH · 119 FLOORS'] }[k];
       if (k) ok(await P.waitFor(`document.querySelectorAll('.hi-final .eb-list li').length === ${want[0]} && document.querySelector('.hi-final .eb-you').textContent === '${want[1]}' && [...document.querySelectorAll('.hi-final .eb-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `FRIENDS ONLY with ${k} friend${k === 1 ? '' : 's'}: ${want[0]} rows${want[1] ? ` + "${want[1]}"` : ' (you among them)'}`);
-      else ok(await P.waitFor("document.querySelector('.hi-final .eb-note').textContent === 'NO FRIENDS YET' && document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked') === 'false'", 12000), 'FRIENDS ONLY with 0 friends: "NO FRIENDS YET" — the tick unticks itself, the world stays');
+      // (FREEFALL FIX C — S11: a REMEMBERED tick with no friends at all unticks itself + remembers '0'; the line "NO FRIENDS YET" only on
+      //  the TAP that asked — this mount had no tap, so it stays quiet: the old "on every later end screen" bug)
+      else ok(await P.waitFor("document.querySelector('.hi-final .eb-note').textContent === '' && document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked') === 'false' && localStorage.getItem('ns:endb:fr') === '0'", 12000), 'FRIENDS ONLY with 0 friends (remembered on, no tap): the tick unticks itself, remembered off, no line — the world stays');
       await sleep(700);
       const T = await P.ev(`(() => { const fr = document.querySelector('.hi-final .final'), li = [...document.querySelectorAll('.hi-final .eb-list li')];
         return { over: fr.scrollHeight - fr.clientHeight, floors: li.map(x => x.querySelector('.eb-v').firstChild.textContent), me: li.map(x => x.classList.contains('is-me')), av: li.map(x => (x.querySelector('.eb-av') || {}).textContent || ''),

@@ -36,6 +36,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | F4A — THE F3B FIXES + THE HIDDEN CARTRIDGE + COUNTING (OFF) + THE BOARD + THE CARDS | Nov 26 2026 | `docs/games/passes/freefall-f4a.md` | the haze after a breakthrough · the gold band · the darkness's look · THE HIDDEN CARTRIDGE (owner-only, solo) · THE PROOF (`ff`) · THE JUDGE on the server · THE SWITCH (OFF) · THE BOARD + AVG · THE CARDS (SPLASHDOWN · TERMINAL VELOCITY · ROCK BOTTOM) |
 | THE REVIEW (report only) | Nov 27 2026 | `docs/games/passes/freefall-review.md` | MUST 3 · SHOULD 16 · NICE 15 — the fix list for THE FIX PASS |
 | THE FIX PASS A — THE LOOK + THE FEEL | Nov 27 2026 | `docs/games/passes/freefall-fixa.md` | MAKE ROOM (MODULE NOTES) · THE LOOK LOCK · THE DAY HUD · THE WATER (Grok's ripple map) · the callouts up · THE RAIL's NAMES (no edge markers) · THE MARK = D · `?fps=1`'s END-OF-RUN SUMMARY · THE SPIKE RULE · the title's dark hold · THE TAPPER · the deep lifted by night |
+| THE FIX PASS C — SPEED ROUND 2 + SCORING + THE TEST PAGE + THE LAST ITEMS | Nov 27 2026 | `docs/games/passes/freefall-fixc.md` | THE VEIL (the darkness + the shade in the canvas) · `?hud=0` · `?empty=1` · THE HOLD · THE COPYCAT · the end-burst · a hold's longest · floor 201 blind · THE RULE-SET LEAF (`rs`) · THE BOT MATCH + `?spectate=1` · ☰ HOW TO PLAY on the page · the finish card's bursts · S10 + S11 (the shared end board) · N1 N2 N4 N10 N12 N15 |
 | THE FIX PASS B — SPEED BY EXPERIMENT + THE MATCH + STABILITY | Nov 27 2026 | `docs/games/passes/freefall-fixb.md` | THE SPIKE RULE steps down only if it HELPS · `?fps=2` THE BREAKDOWN · THE A/B SWITCHES (`?bloom=0 · ?fx=0 · ?wall=0 · ?ghosts=0 · ?smooth=0`) · SMOOTH MOTION (the tower at the real time) · a lost context keeps the rivals · a yielded tab never writes proof · S1 the re-score · S6 leavers · S7 lost phones · S8 not in the run · S9 the podium's fallback · S15 the clock after a lock · the finish card zoomed in · LAST ONE STANDING's two lines |
 
 ## THE RULES (the owner's)
@@ -64,21 +65,21 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 - **THE HOLD (F2 — SOLO only, 3 a run; HIGH RISE's) = EXACT RESUME (F3 — the owner):** hiding the page / locking the phone HOLDS the run — a
   logged event the judge replays: the WHOLE state is frozen at the hold's tick and resumed unchanged (the ball's flight + its height, the
   tower's angle, the darkness); nothing the finger does while PAUSED or in the 3 · 2 · 1 counts. A hold never cancels or restarts a
-  landing. A match and the daily never hold — "THE HOLD = EXACT RESUME", below.
+  landing. A match and the daily never hold — "THE HOLD = EXACT RESUME", below. (FIX C — DECIDED, Ben Nov 26: the pause IS allowed in the daily, 3 a run — switched on by the DAILY pass; `MODES.daily.holds` = 0 until then)
 - **THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE (F3 — the owner, Nov 26: the numbers were 6 · 4 s · 2.5 s, a stopped ball had 15 s and
   nobody ever SAW the darkness):** a darkness falls down the shaft — it starts `LEAD` (**3**) floors above the ball, rests a grace
   (**3 s**), then comes one floor every **2 s**. It is never more than LEAD floors above the deepest floor the ball has reached (when the ball reaches floor f
   it moves down to at least f − LEAD, and its pace starts again from there). It only ever moves down. When it reaches the ball's floor
   → OUT (`dark`). A ball that stops moving has LEAD × the pace = **6 s**; a run nobody touches ends at **9.0 s**. It is always in
   sight ("THE DARKNESS — SEEN + HEARD", below). **IT EASES WITH DEPTH (F3B — the owner, Nov 26: he tested F3's darkness and loves it;
-  the stall budget follows the layout's difficulty):** floors 0–100 EXACTLY as above (a floor every 2 s: 6 s stopped — whole ticks: the first floor whose pace moves is 102, 121 ticks), a straight
+  the stall budget follows the layout's difficulty):** floors 0–101 EXACTLY as above (FIX C N15: through floor 101 — the first eased floor is 102; a floor every 2 s: 6 s stopped — whole ticks: the first floor whose pace moves is 102, 121 ticks), a straight
   line over floors 100–160, **a floor every 160 ticks from floor 160 on — 8 s stopped** (THE DEEP + THE TRENCH); the pace is the one
   AT THE BALL's FLOOR when a step is set (`tuning.js#darkPaceAt` — pure, integers; the judge replays it; no new rule-set row).
 - **THE AREAS** (by floor, for the views): 0 THE ROOFTOP · 40 THE OFFICES · 80 THE SPEAKEASY · 120 UNDER THE HARBOR · 160 THE DEEP ·
   200 THE BOTTOM · past it (solo) THE TRENCH — the deep's palettes cycled, harder each lap of 40 floors.
 - **THE MODES:** SOLO = endless (a 30:00 safety cap) · MATCH + DAILY = THE FINISH at THE BOTTOM (the 200th floor passed = `made`) or the
   3:00 cap (`cap`), whichever first.
-- **THE RANKING:** the floors, then the EARLIER tick that floor was reached (`logic.js#rankCompare` / `standings`).
+- **THE RANKING:** the floors, then the EARLIER tick that floor was reached, then MORE BLAZES, then a draw (`logic.js#rankCompare` / `standings` — THE TIE-BREAK, F5C; FIX C N15).
 - **THE FEATS** (from the replay only): `reachedHarbor` (floor 120 — SPLASHDOWN) · `terminal` (15 floors in a row without a bounce —
   TERMINAL VELOCITY) · `reachedBottom` (floor 200 — ROCK BOTTOM).
 
@@ -92,7 +93,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | A BOUNCE · A FALL | `bounce` **36** ticks (0.6 s) · `fall` **18** ticks (0.3 s) — at every depth |
 | THE BLAZE | `blaze` 3 clean floors · `shatterSafe` true (F2: the landing right after a shatter is a bounce, never an out) |
 | MOVING RED (F2 — THE TRENCH) | `gen.move` { from 201 · pace 45 ticks a slice (0.75 s) · max 4 slices a track · chance 154 / 256 of a first-lap floor + 51 a lap · two 3 (from the third lap two reds move) } |
-| THE HOLD (F2) | `modes.solo.holds` 3 · match + daily 0 |
+| THE HOLD (F2) | `modes.solo.holds` 3 · match 0 · daily 0 for now (the DAILY pass: 3 — DECIDED Nov 26) · a hold's longest 10 min (FIX C — `proof.js#HOLD_MAX_MS`) |
 | THE DARKNESS (F3 — JAYWALK-style pressure · F3B — it eases with depth) | `dark` { grace **180** (3 s) · pace **120** (a floor every 2 s) · lead **3** · paceDeep **160** · easeFrom **100** · easeTo **160** } — `darkPaceAt(R, floor)`: 120 to floor 100 · 130 at 115 · 140 at 130 · 150 at 145 · 160 from 160 (a stopped ball: 6 s · 6.5 · 7 · 7.5 · 8 s) |
 | THE HUMAN PACE (the fairness proofs) | `human` { react 12 (200 ms) · spin 68 (1 turn a second) } → **reach 408** units in a fall ((18 − 12) × 68) · **hop 3** slices in a bounce |
 | the layout's curves (256ths, by floor) | `gaps` 2 a floor at the top → 1 by floor 200 · `wide` (a gap is 2 slices) 100 % to floor 40 → 0 by 200 · `red` 1.5 at floor 10 → 6.5 at 200 · `hug` (a slice beside a gap is red) 22 % at 40 → 94 % at 200 |
@@ -236,7 +237,7 @@ modules: `judgeRun` · `judgePacked({ seed, mode, log, rules? })` (the rule set 
 the log is read) · `serverRow(v)` (the row a report will read: `{ f, t, w, e, ft? }`). `tests/freefall-server.test.mjs`: honest bot
 logs accepted, every refusal by name, the judge == the live engine for 500 bot runs across all modes, 3,000 changed logs.
 
-**FOR F4 (written in F1 — F4A built it: "THE PROOF", below):** an EMPTY log is an honest run (`ok`, floor 0, THE LIGHTS WENT OUT at tick 1140)
+**FOR F4 (written in F1 — F4A built it: "THE PROOF", below):** an EMPTY log is an honest run (`ok`, floor 0, THE LIGHTS WENT OUT at tick 540 — FIX C N15: the doc said 1140)
 — a report must not count it as a play · the judge knows nothing of the SERVER's clock: a perfect log can be computed offline, so the
 run node needs JAYWALK's / HIGH RISE's server-timestamped chunks + THE SPEED CHECK (copy HIGH RISE's `proof.js` + the kit's
 proof-writer) · the log is far bigger than HIGH RISE's 200 taps (≈ 4–8 KB a run, 30–40 KB at the ceiling): the chunking must plan for
@@ -1033,7 +1034,7 @@ first. **Deepest wins, then the earlier tick** (`logic.js#rankCompare`). One rou
   match's GO in the count's last 2 s, the stamp, the leaf writes gated on the player's own `go`, `k`).
 - **THE END** (`director.js#nextStep`): every player's run has ended — their node says `e`; a silent phone is waited for: online
   `IDLE_OUT_MS` 18 s (the darkness has ended a ball nobody steers within 9 s), offline + `DROP_WAIT_MS` 75 s (THE DROPPED SIGNAL) — or the
-  3:00 cap + a 4 s grace. **The results are THE JUDGE's replay of each player's own node** (`proof.js#judgeMatch`: THE FIRST GO's seed +
+  3:00 cap + its grace (`match.js#END_GRACE_MS` = 9 s — FIX C N15: the doc said 4 s). **The results are THE JUDGE's replay of each player's own node** (`proof.js#judgeMatch`: THE FIRST GO's seed +
   clock — tick 0 = `playAt` for everyone — the speed check both ways, THE DROPPED SIGNAL; `director.js#scoreMatchNode`), never a number a
   phone claims. A row: `{ f, t, w, e, b, bl, br, ft?, cut?, bad? }`.
 - **THE SERVER** (`api/_lib/freefall.js#freefallMatch` in `/api/report`'s proof path — the 8 functions stay 8): every named player — and
@@ -1221,7 +1222,7 @@ rooms/{CODE}/ff/{matchId}/
   silence to explain it (slow motion → the run is CUT at its last on-time event: the tower then stands still and the rules end it) · a
   silence ≤ 75 s then the queued chunks landing together, back on the clock within 15 s = honest. More chunks than its own clock allows
   (7 a second) = refused before a character is unpacked (`core/proof.js#overChunkCeiling`).
-- **THE HOLD's CLOCK (solo only — a match / the daily never holds: the judge refuses one there).** A hold is a logged event (`!`); it
+- **THE HOLD's CLOCK (solo only — a match / the daily never holds: the judge refuses one there (FIX C — DECIDED, Ben Nov 26: the pause IS allowed in the daily, 3 a run — switched on by the DAILY pass; `MODES.daily.holds` = 0 until then)).** A hold is a logged event (`!`); it
   goes up as the page hides. The run is played on THE RUN's CLOCK: a hold freezes it — the time away is no lateness (the tail a locked
   phone could not send lands when it is back) — and it goes on at the hold's tick at `h/{i}` + 2.4 s (the server's stamp of the way
   back; the phone's 3 · 2 · 1 is counted from that stamp — its number never jumps back up). A stamp before its own hold = refused
@@ -1329,7 +1330,7 @@ assets/freefall/roof/grain.webp                     THE ROOF GRAIN's detail tile
 js/games/freefall/proof.js                          THE PROOF (F4A — pure: the phone, the host, the server): the chunks, the clock, the holds' clock, the judge of a node
 js/games/freefall/match.js                          THE MATCH's RULES (F4B — pure): the start (THE FIRST GO), the end, the live runs, Call the Winner
 js/games/freefall/ghosts.js ghost-fx.js             THE GHOSTS (F4B): stepped conf → run, the catch-up, WATCH's playback, the rail's + the markers' maths (pure) · their layer (the balls, the x-ray, the baked tags)
-js/games/freefall/matchhud.js matchsim.js           THE MATCH's HUD (the count, THE DEPTH RAIL, the edge markers, the OUT card, WATCHING) · the test page's BOT ROOM (lazy — never in the cartridge)
+js/games/freefall/matchhud.js matchsim.js           THE MATCH's HUD (the count, THE DEPTH RAIL + the rivals' names on it — FIX A retired the edge markers, the OUT card, WATCHING) · the test page's BOT ROOM (lazy — never in the cartridge)
 js/games/freefall/share.js shot.js                  THE SHARE CARD (lazy — the cartridge's) · the end frame's record (pure)
 js/fx/ff-specs.js  assets/vault/ff/                 THE CARDS' crops + hero boxes · their art      scripts/build-freefall-cards.mjs
 js/games/freefall/sounds.js sfx.js audition.js      the sounds' table + triggers (pure) · the player · the SOUNDS list
@@ -1957,6 +1958,63 @@ The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the ca
 // has left (the router holds this screen); and it waits for a rival's run still LIVE — the host's `final` came early — the cap ends that wait
 ```
 
+
+## THE FIX PASS C (Nov 27 — `docs/games/passes/freefall-fixc.md`)
+- **THE VEIL** (`veil.js` — the compositing fix): THE DARKNESS (the edge creeping down + the sides closing in) and THE SHADE (the dark fall
+  behind the HUD while a run is on) are the 3D picture's LAST PASS — one full-screen triangle (after the bloom + the ghosts; never in a
+  staged share frame) — not three full-screen HTML layers composited over the canvas at 3× every frame. The shapes, colours and eases
+  are the old stylesheet's number for number (the shots: Downloads\NEON\freefall-fixc\speed\veil — 18 frames within ~1 level); the
+  stage still writes `data-dark` (the checks read it). The colours: `veil.js#veilInk` (night · day · the day rooftop · the day sea).
+  The hint's sweep animates ONLY while the foot shows (it ran the whole run under an invisible foot).
+- **THE TEST PAGE's SPEED SWITCHES (+ FIX C):** `?hud=0` — every HTML layer over the canvas hidden while a run is on (+ no veil; the end
+  card + the fps summary come back) · `?empty=1` — THE CONTROL (`empty.js`): the same canvas size + pixel ratio, a plain spinning mesh,
+  the same loop + the same hitch meter, no game, no HTML layer — 30 s, then the line (a tap = again). The run summary now names its seconds.
+- **THE SCORING (server-side unless named; REPLAY = LIVE untouched):**
+  - **S3 THE HOLD** (`core/match-report.js#ffTooPerfect` · `FF_HOLD`): a judged row with a no-bounce run ≥ 40, or < 0.3 bounces a floor
+    over 100+ floors, is HELD — the XP is paid, the board row + THE AVERAGE + the cards are not written, a match win is not credited to the wins
+    board and the run is no verified play (`sv`) toward THE BOARD's listing; `rejected` names it 'held' (with f · b · br) for /admin. The sims: every bot, 200 seeds each, solo + match — best no-bounce run ≤ 18, ≥ 0.53 bounces a floor; a script
+    reading the tower: 401 floors / 1 bounce at MAX SPIN, a no-bounce run of 76–126 at a human's spin, 0.12 bounces a floor at a slow one.
+  - **S2 THE COPYCAT** (`api/_lib/freefall.js#copyScore` · `COPY`): the server's replay of every on-time node gives its LANDINGS
+    [floor, tick, the tower's angle] (the engine's land event carries `a` since FIX C). Two players are a copy when 30 landings IN A ROW
+    are alike (the angle within 24 units), or 90 % of the shorter run's landings (60+) are the same floor at the same tick → the node that came LATER is refused 'copy' (it still PLAYED — `prefixFloor`). LATER = per shared landing
+    (`laterOf`): the arrival of each node's first chunk reaching that landing's tick, the MEDIAN difference — a copy can never send a move
+    before its source's chunk with it arrived (the fresh-eyes review: an average over chunks could be gamed by recutting them). Honest sims (60 rooms × 8 bots, 1,680 pairs): at
+    most 17 in a row, 73 %. The review's probes: the copy 400 ms behind and the copy + ONE scripted landing — refused in 12 of 12.
+  - **S4 A MATCH's END-BURST** (`proof.js#END_BURST_MS` 20 s): a run that ENDS inside a dropped-signal burst takes it only when its silence
+    was ≤ 20 s — else it is CUT at the first move PLAYED during the silence (a move past the silence's start + 8 s of play); the honest tail
+    a phone sends when it wakes (moves played before the lock) is kept. A solo keeps the old rule.
+  - **S5 A HOLD's LONGEST** (`proof.js#HOLD_MAX_MS` 10 min): a way back stamped more than 10 min after the hold's own wall time = no way
+    back: the run is CUT at that hold (no rules change). The phone says so 30 s early (its hold time is not the judge's run clock): "NOT COUNTED PAST THE PAUSE — OVER 10 MINUTES".
+  - **N6 FLOOR 201 IS BLIND** (`tuning.js` classic: `blind: [40, 120, 201]`, the moving red from 202): it is landed on during THE BOTTOM's
+    impact (ring, dust, the camera's kick) — never red under the ball there. Nothing was recorded on the old numbers: no new rule-set row.
+  - **N7 THE RULE-SET LEAF** (HIGH RISE's S4B): `ff/{matchId}/{uid}/rs` — the run's rule set, its player's, ONCE, within 10 s of its GO,
+    before its first chunk + its end (a RULES CHANGE — re-published with FIX C). The judge reads a node with no `rs` as "classic"; a set
+    the table does not hold is refused ('rules'); a match is played on THE FIRST GO's player's set (`match.js#matchRules` — the director
+    writes `game.rs`) and a node naming another is refused.
+  - **N8 A TRUNCATED LOG** can earn up to +5 floors (mean +1.8 in 15 of 40 runs — a modified client only: the judge plays any prefix out
+    with the tower held still). Covered by THE HOLD; no fix of its own.
+- **THE TEST PAGE's BOT MATCH** (`botmatch.js` — lazy, the page only): `?mode=match&rivals=N` (N ≤ 7) = the real 3 · 2 · 1 + the names
+  (from the stage's warm frame), the bots from GO, my out → WATCH THE LEADER (a tap = the next), everyone down → THE RESULTS (my place +
+  their floors) + REMATCH · `&spectate=1` = no ball of my own, the stage as a WATCHER (the same watch code a real player gets after an out:
+  the ghosts, the tags, THE DEPTH RAIL + its names, the outs, the darkness, the blaze, the breakthroughs of the run watched). Driven
+  through the SAME stage hands the cartridge's match view uses (count · adopt · setGhosts · feedGhost · watch · the watch line · the OUT
+  card). `&room=1` = the old bot room (the drag starts it — the look + speed rigs use it). Nothing counts.
+- **THE TEST PAGE's ☰** (top-left, on the opening, the pause + the end card) → HOW TO PLAY through the one opener, FREEFALL's tab alone
+  (`openHelp('freefall', { only: true })`). SHARE acts on a real click (iOS's share sheet). HOW TO PLAY: + "A MATCH never pauses."
+- **THE FINISH's SHARE CARD** (`card.js#BURSTS`): three big neon bursts — gold + cyan by night, gold + teal by day — clear of the words and
+  inside the frame, a crisp GOLD RING round the ball (a narrow radial band — the card's no-capsule rule), and by day a dark vignette
+  closing in round the ball (the card is never milky). Fixed shapes. Only THE BOTTOM's gold card.
+- **THE PODIUM** (the contract's `shareOk(game, me)` — FREEFALL's: no SHARE on an unproven match or a refused row: a late / no GO, a
+  copy, a bad log) · **CALL THE WINNER** picks only players still falling with an on-time GO and news, never past the judge's window
+  (− 4 s) · **A REFRESH** keeps the call line ("YOUR CALL · MIA" from the mirrored call), shows the OUT card once, and remembers that the
+  podium waited on a live run (this tab's session).
+- **THE SHARED END BOARD** (`ui/end-board.js`, every game with it on): S10 — the server's answer carrying a NEW BEST (`pbs`) PATCHES the
+  kept world list (YOUR row at the new value, ranked again — a refetch would be stale behind the 12 s + 10 s + edge caches) and YOUR TABLE
+  is read again; every block on screen redraws · S11 — FRIENDS ONLY unticks itself when the table has nobody but you: remembered '0' only
+  when you have NO friends at all (`api/_lib/friends.js#boardTable` now answers `friends`, the count it looked at) — friends with no run on
+  THIS board = off for this screen only ("NO FRIENDS ON THIS BOARD YET"); the line only on the tap that caused it.
+- **THE ROOM:** the long comments of the cartridge's files moved to THE CODE NOTES (below) — FREEFALL's line 602 → 567 KB of 610 with
+  everything this pass added.
 
 ## THE CODE NOTES (moved from the code — FIX C, Nov 27)
 THE ROOM (FIX C Group 0.1): the long comments of FREEFALL's cartridge files moved here VERBATIM (no behaviour change) — the game's line in

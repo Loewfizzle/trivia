@@ -1018,7 +1018,8 @@ const HAZE = [['THE SKYLIGHT', 40, 'skylight'], ['THE SPLASHDOWN', 120, 'splash'
 async function haze(measureOnly = false) {
   const pc = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)} %`;
   for (const lk of ['day', 'night']) for (const [name, F, key] of HAZE) {
-    const t = await open(390, 844, 2, `?seed=f4a-haze&look=${lk}&floor=${F - 2}&tier=2${F === 200 ? '' : ''}`);
+    // (FIX C: `hud=0` — THE 3D PICTURE ALONE: THE VEIL draws the darkness IN the canvas now; the ball stands on safe ground here, so the darkness creeps in between the readings)
+    const t = await open(390, 844, 2, `?seed=f4a-haze&look=${lk}&floor=${F - 2}&tier=2&hud=0${F === 200 ? '' : ''}`);
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, `window.__ffPlay.state().info.breaks.${key} >= 1`, 30000);
     const hit = Date.now();
@@ -1242,7 +1243,7 @@ async function checks6() {
   // dark bar at the top, in front of the tiles): once the pane breaks NOTHING of the skylight / the roof is between the camera and the
   // floors — the deck + the outer frame + its tubes gone in 0.25 s, the glazing bars' pieces with the shards. The ball STANDS on floor 40.
   for (const lk of ['night', 'day']) for (const [w, h, d] of [[390, 844, 2], [375, 667, 2], [430, 932, 2]]) {
-    const t = await open(w, h, d, `?seed=look2&look=${lk}&floor=37&tier=2`);
+    const t = await open(w, h, d, `?seed=look2&look=${lk}&floor=37&tier=2&hud=0`);
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().info.breaks.skylight >= 1', 30000);
     const hit = Date.now();
