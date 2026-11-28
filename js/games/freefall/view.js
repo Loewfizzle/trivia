@@ -196,7 +196,7 @@ export function createView() {
     expectRefusal(path, 'freefall: a hold\'s stamp — the rules are not re-published yet, or the match moved on', STAMP_WAIT_MS + 4000);
     return new Promise(res => {
       const t = setTimeout(() => res(0), STAMP_WAIT_MS);
-      const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); if (typeof v === 'number' && holdSrv > 0 && v - holdSrv > HOLD_MAX_MS) { pauseWhy = 'long'; res(-1); return; }   // (FIX C — S5: the judge cuts at a hold that long)
+      const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); if (typeof v === 'number' && holdSrv > 0 && v - holdSrv > HOLD_MAX_MS - 30000) { pauseWhy = 'long'; res(-1); return; }   // (FIX C — S5: the judge cuts at a hold that long — the phone 30 s early: its idea of the hold's time is not the judge's run clock)
         res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); });
       // F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own … view.js#25
       granted(i, holdSrv).then(ok => { if (ok === false) { clearTimeout(t); res(-1); return null; } return stamp(); }).catch(() => { clearTimeout(t); res(0); });

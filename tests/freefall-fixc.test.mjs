@@ -138,7 +138,9 @@ test('GROUP 3 — THE TEST PAGE: the bot match (botmatch.js — lazy, page only;
 test('GROUP 4 — THE FINISH CARD: bigger coloured bursts (gold + cyan by night, gold + teal by day) where the words are not, a dark vignette by day — fixed shapes, only on THE BOTTOM\'s gold card', () => {
   return import('../js/games/freefall/card.js').then(({ BURSTS }) => {
     assert.deepEqual(BURSTS.night, ['#ffc83c', '#00f0ff', '#ffc83c']); assert.deepEqual(BURSTS.day, ['#ffc83c', '#14d6cf', '#ffc83c']);
-    for (const [fx, fy, fr] of BURSTS.at) assert.ok(fy - fr * 0.8 >= 0 && fy + fr <= 0.75 && !(fx < 0.55 && fy < 0.3), `a burst at ${fx}, ${fy} keeps clear of the cause's tab + the floors`);
+    // (in px of THE HERO FRAME, 984 × 792: inside its top (the review: the top-right one was clipped), above the foot's words, off the tab)
+    for (const [fx, fy, fr] of BURSTS.at) { const W = 984, H = 792, R = fr * W; assert.ok(fy * H - R >= 0 && fy * H + R <= H - 210 && !(fx < 0.55 && fy < 0.3), `a burst at ${fx}, ${fy} (r ${R.toFixed(0)} px) keeps clear of the frame's top, the cause's tab + the floors`); }
+    assert.equal(BURSTS.ring, 0.12, 'the gold ring round the ball');
     const src = readFileSync('js/games/freefall/card.js', 'utf8');
     assert.match(src, /if \(gold\) celebrate\(c, box, shot\);/); assert.doesNotMatch(src.slice(src.indexOf('function celebrate'), src.indexOf('/** the middle')), /Math\.random/);
   });
@@ -154,4 +156,36 @@ test('GROUP 5 — N1 the call\'s picks (on-time GO, not lost; no sheet past the 
   }
   assert.match(readFileSync('js/ui/final.js', 'utf8'), /typeof mod\.shareOk !== 'function' \|\| mod\.shareOk\(g, me\) !== false/, 'N2: the shared podium asks');
   assert.ok(v.includes("outShown = true; }   // (a rejoin after their own end") && v.includes('callLine = `YOUR CALL · ${nameOf(node.k.w)}`') && v.includes('if (waiting) lwKeep(true);'), 'N10');
+});
+
+test('S2 — WHO CAME LATER is judged PER SHARED LANDING (the review: a mean over chunks can be gamed): an honest leader whose last chunks came in a 5 s burst is never the one refused', async () => {
+  const { laterOf } = await import('../api/_lib/freefall.js');
+  const S = matchStart(CODE, 'lt1', { A: { go: G0 } });
+  const A = botRun(S.seed, 1, { bot: 'great' }), nodeA = nodeOfBot(A, S), keys = Object.keys(nodeA.c).map(Number), cut = keys.length - 20;
+  for (const k of keys) if (k >= cut) nodeA.c[k] = { ...nodeA.c[k], at: nodeA.c[k].at + 5000 };   // (A's own dropped signal at the end)
+  const copy = { go: G0 + 30, c: Object.fromEntries(keys.map(k => [k, { s: nodeA.c[k].s, at: nodeA.c[k].at + 400 }])) };
+  const M = freefallMatch({ code: CODE, matchId: 'lt1', uids: ['A', 'B'], nodes: { A: nodeA, B: copy } });
+  assert.equal(M.game.results.B.bad, 'copy'); assert.ok(!M.game.results.A.bad, JSON.stringify(M.game.results.A));
+  assert.equal(typeof laterOf, 'function');
+  assert.doesNotMatch(readFileSync('api/_lib/freefall.js', 'utf8'), /function lagOf/, 'the chunk-average rule is gone');
+});
+
+test('S4 — an honest LOCK in a match: the tail played BEFORE the silence (sent when the phone wakes, 40 s later) is never cut; moves played during the silence are', () => {
+  const at0 = G0 + START_LEAD_MS;
+  const before = [{ at: at0 + 100, n: 1, t0: 1, t1: 1, s0: 0, s1: 0, hn: 0 }, { at: at0 + 10000, n: 1, t0: 595, t1: 600, s0: 0, s1: 0, hn: 0 }];
+  // the tail: moves at ticks 610 – 640 (played ~0.5 s after the last chunk landed), arriving 40 s later — the run ended in the dark meanwhile
+  const tail = [...before, { at: at0 + 50000, n: 2, t0: 610, t1: 640, s0: 0, s1: 0, hn: 0 }];
+  assert.equal(clockProblem(G0, tail, [], [], END_BURST_MS), null, 'the pre-lock tail is taken');
+  // slow motion: moves at ticks 610 … 3000 (40 s of play) arriving in the burst → cut where play passed the silence's start + 8 s
+  const slow = [...before, { at: at0 + 50000, n: 2, t0: 610, t1: 640, s0: 0, s1: 0, hn: 0 }, { at: at0 + 50050, n: 3, t0: 1500, t1: 3000, s0: 0, s1: 0, hn: 0 }];
+  const c = clockProblem(G0, slow, [], [], END_BURST_MS);
+  assert.deepEqual(c && [c.why, c.tick, c.events], ['behind', 1500, 4]);
+});
+
+test('S3 — a HELD row in a MATCH: no wins-board credit, no verified play (sv) toward THE BOARD\'s listing; the honest rival is untouched', () => {
+  const game = { id: 'freefall', matchId: 'm2', phase: 'final', mode: 'match', sv: 1, participants: { u1: true, u2: true }, settings: {}, results: { u1: { f: 200, t: 6000, w: 'made', e: 6000, b: 0, br: 200 }, u2: { f: 150, t: 7000, w: 'red', e: 7050, b: 110, br: 9 } } };
+  const ex = extractMatch(game);
+  assert.equal(ex.rows.u1.win, false); assert.equal(ex.rows.u1.c.w, undefined); assert.equal(ex.rows.u1.sv, undefined); assert.equal(ex.rows.u1.held, undefined);
+  assert.ok(ex.rejected.some(r => r.uid === 'u1' && r.v === 'held'));
+  assert.equal(ex.rows.u2.rec['freefall-solo'], 150, 'the honest rival keeps the row');
 });

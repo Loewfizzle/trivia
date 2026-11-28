@@ -459,7 +459,7 @@ function freefallExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};
   if (r.bad) { out.rejected.push({ uid, board: 'freefall-solo', v: r.bad }); return; }
   if (game.sv !== 1) return;
-  if (ffTooPerfect(r)) { out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)) }); return; }
+  if (ffTooPerfect(r)) { out.held = 1; out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)) }); return; }
   const solo = Object.keys(game.participants || {}).length === 1;
   if (num(r.f) > 0) out.rec[solo ? 'freefall' : 'freefall-solo'] = Math.floor(num(r.f));
   for (const k of String(r.ft || '').split(' ')) if (Object.prototype.hasOwnProperty.call(FF_FEATS, k)) (out.f ||= {})[FF_FEATS[k]] = 1;
@@ -532,7 +532,10 @@ export function extractMatch(game, ctx = {}) {
     const o = { rank: row.rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {}, rejected: out.rejected };
     EXTRA[game.id](game, row.uid, o, row, ctx, win);
     if (solo && (soloEmpty(game, row.uid, row) || o.hidden)) o.empty = 1;   // (B1: nothing answered, nothing scored → never counted; THE DROP B: a solo SURVIVAL's time past its rows — hidden time — neither)
-    if (game.sv === 1 && VERIFIED_SOLO.includes(game.id) && !((game.results || {})[row.uid] || {}).bad && !o.empty) o.sv = 1;   // (THE PROOF PASS: the server's own replay, not refused)
+    // (FREEFALL FIX C — THE HOLD: a HELD row is no win on the wins board and no verified play toward THE BOARD's listing — the XP stands)
+    if (o.held) { o.win = false; delete o.c.w; }
+    if (game.sv === 1 && VERIFIED_SOLO.includes(game.id) && !((game.results || {})[row.uid] || {}).bad && !o.empty && !o.held) o.sv = 1;
+    delete o.held;   // (THE PROOF PASS: the server's own replay, not refused)
     delete o.hidden;
     if (solo) { o.solo = true; const rec = {}; for (const [b, v] of Object.entries(o.rec)) { const sb = soloBoard(b); if (sb) rec[sb] = v; } o.rec = rec; }
     delete o.rejected;

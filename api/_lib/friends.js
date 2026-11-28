@@ -67,7 +67,8 @@ export async function friendsState(pid, now = Date.now()) {
 /**
  * YOUR TABLE for ONE RECORD board (JAYWALK H3 — a game's end screen: friends' bests): you + the ≤ FR.tableN friends YOUR OWN list names
  * (js/core/friends.js#tablePids — a stranger's best is never readable by naming their id), the ones with a value on that board, best first.
- * → { b, rows: [{ ...the slim card's public face (the board id — NEVER a pid), v, me? }] } — a friend hidden from the boards is not listed.
+ * → { b, rows: [{ ...the slim card's public face (the board id — NEVER a pid), v, me? }], friends } — a friend hidden from the boards is not
+ * listed; `friends` = how many friends the table looked at (the end board's S11 — 0 = truly none; more = none on THIS board yet).
  */
 export async function boardTable(pid, b, now = Date.now()) {
   const def = boardDef(String(b || ''));
@@ -81,7 +82,7 @@ export async function boardTable(pid, b, now = Date.now()) {
     if (face) rows.push({ ...face, v: vals[i], ...(p === pid ? { me: true } : {}) });
   });
   rows.sort((x, y) => (def.dir === -1 ? x.v - y.v : y.v - x.v) || (x.me ? -1 : y.me ? 1 : 0));
-  return { b: def.id, rows };
+  return { b: def.id, rows, friends: pids.length - 1 };
 }
 
 /** the pending-requests count (the badge on the profile button — `me` carries it) */

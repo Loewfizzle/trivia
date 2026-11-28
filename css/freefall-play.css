@@ -445,3 +445,6 @@
 .ff-menu-i { display: grid; gap: 5px; width: 22px; }
 .ff-menu-i b { display: block; height: 2.5px; border-radius: 1px; background: #f4f2ff; box-shadow: 0 0 6px rgba(255, 79, 168, 0.8), 0 1px 0 #07040f; }
 .ff-stage:is(.is-open, .is-held, .is-over) .ff-menu ~ .ff-snd { left: 52px; }
+/* FIX C (the fresh-eyes review): the page's note never sits under the WATCHING line; the results' HOME centred under REMATCH */
+.ff-stage.is-watch .ff-note { visibility: hidden; }
+.ff-bm-foot .ff-bm-home { justify-self: center; width: 100%; }

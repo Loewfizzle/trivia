@@ -48,9 +48,18 @@ test('THE READS stay small: ONE board fetch (the all-time top 100) a session + Y
   assert.ok(s.includes('if (!boards.has(b)) boards.set(b,') && s.includes('if (!tables.has(b)) tables.set(b,'), 'each read once a session (a failed one may be asked again)');
   assert.ok(s.includes("export const FRIENDS_KEY = 'ns:endb:fr';") && /try \{ return localStorage\.getItem\(FRIENDS_KEY\) === '1'; \} catch/.test(s) && /try \{ localStorage\.setItem\(FRIENDS_KEY/.test(s));
   assert.ok(s.includes("AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)"), 'the stored average — a dash under 5 runs (core/board-avg.js)');
-  assert.ok(s.includes("if (friends && !R.some(r => !r.me)) { writeFr(false); setFriends(false, false, byTap ? 'NO FRIENDS YET' : ''); return; }"), 'no friends yet: the world stays — FIX C S11: the untick is REMEMBERED (\'0\'), the line only on the tap that asked');
+  assert.ok(s.includes("if (friends && !R.some(r => !r.me)) { const none = R.friends === 0; if (none) writeFr(false); setFriends(false, false, byTap ? (none ? 'NO FRIENDS YET' : 'NO FRIENDS ON THIS BOARD YET') : ''); return; }"), 'no friends yet: the world stays — FIX C S11: REMEMBERED off (\'0\') only with NO friends at all (the server\'s count); none on this board = this screen only; the line only on the tap');
+  assert.match(read('api/_lib/friends.js'), /return \{ b: def\.id, rows, friends: pids\.length - 1 \};/);
   // FIX C — S10: a counted run's NEW BEST (the server's `pbs`) drops that board's kept reads + every block showing it reads again
-  assert.ok(s.includes("Q.onOutcome((k, o) => newBests(o))") && s.includes('boards.delete(p.b); tables.delete(p.b);'), 'S10: the outcome\'s pbs → the reads dropped');
+  assert.ok(s.includes("Q.onOutcome((k, o) => newBests(o))") && s.includes('boards.set(p.b, boards.get(p.b).then(R => patchMine(R, p.b, Number(p.v)))') && s.includes('tables.delete(p.b);'), 'S10: the outcome\'s pbs → the world list PATCHED (a refetch is stale behind the caches), YOUR TABLE read again');
+});
+
+test('FIX C — S10 patchMine (PURE): YOUR row takes the new best, the list is ranked again (a tie shares its place); no row of yours = unchanged', async () => {
+  const { patchMine } = await import('../js/ui/end-board.js'), s = read('js/ui/end-board.js');   // (`s`: the block's own checks below ride here)
+  const R = [{ id: 'a', v: 120, rank: 1 }, { id: 'b', v: 90, rank: 2 }, { id: 'me', v: 60, rank: 3, me: true }, { id: 'c', v: 50, rank: 4 }];
+  assert.deepEqual(patchMine(R, 'freefall-solo', 130).map(r => [r.id, r.rank, r.v]), [['me', 1, 130], ['a', 2, 120], ['b', 3, 90], ['c', 4, 50]]);
+  assert.deepEqual(patchMine(R, 'freefall-solo', 90).map(r => [r.id, r.rank]), [['a', 1], ['me', 2], ['b', 2], ['c', 4]]);
+  const none = R.filter(r => !r.me); assert.equal(patchMine(none, 'freefall-solo', 500), none);
   assert.doesNotMatch(s, /\b999px\b|border-radius/, 'no pill');
   const css = read('css/components.css');
   assert.match(css, /\.eb-tick::before \{ content: ''; position: absolute; inset: -7px -8px; \}/, 'the tick\'s tap area: 44 pt tall');

@@ -54,7 +54,7 @@ test('THE MARK (extractMatch): `sv` only on a match THE SERVER built from a proo
   assert.equal(extractMatch(jaywalkSolo({ code: 'ROOM', matchId: 'sabc12', uid: 'u', node: null }).game, {}).rows.u.sv, undefined);
   // a game the HOST grades can never carry it — whatever its blob says
   const src = read('js/core/match-report.js');
-  assert.ok(src.includes("if (game.sv === 1 && VERIFIED_SOLO.includes(game.id) && !((game.results || {})[row.uid] || {}).bad && !o.empty) o.sv = 1;"));
+  assert.ok(src.includes("if (game.sv === 1 && VERIFIED_SOLO.includes(game.id) && !((game.results || {})[row.uid] || {}).bad && !o.empty && !o.held) o.sv = 1;"))   // (FREEFALL FIX C: + never a HELD row);
   // … and a proof game's MATCH with ONE real player (the solo rule) keeps the mark: its run was the server's replay
   assert.ok((read('api/report.js') + read('api/_lib/trust-lists.js')).includes("export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {}, ...(row && row.sv === 1 ? { sv: 1 } : {}) });"));
   assert.ok(read('js/core/progress.js').includes('next.cp = countedPlays(s) + (solo ? (row && row.sv === 1 ? 1 : 0) : 1);'));

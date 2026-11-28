@@ -91,7 +91,7 @@ export function freefallMatch({ code, matchId, uids, nodes }) {
     if (!results[u].bad) lands[u] = landingsOf(ev);
   }
   // FIX C — S2 THE COPYCAT: two players whose LANDINGS are the same → the later-arriving node is refused ('copy' — it still PLAYED)
-  for (const [a, b] of copyPairs(lands)) { const late = lagOf(nodes[a], S) >= lagOf(nodes[b], S) ? a : b; results[late] = { f: 0, t: 0, w: '', e: -1, bad: 'copy' }; }
+  for (const [a, b] of copyPairs(lands)) { const late = laterOf(nodes[a], nodes[b], lands[a], lands[b]) === 'a' ? a : b; results[late] = { f: 0, t: 0, w: '', e: -1, bad: 'copy' }; }
   // (`played` — the uids the server's replay saw PASS A FLOOR; the report counts + credits only these. THE FRESH-EYES REVIEW — THE SORE
   //  LOSER, the twins' rule the first port dropped: a loser who appends ONE bad chunk to his own node — a hold, a turn over MAX SPIN, a
   //  move after his end — gets a refused row, and would have shrunk the match the WINNER is paid for. A refused on-time node still PLAYED
@@ -107,7 +107,6 @@ export function freefallMatch({ code, matchId, uids, nodes }) {
  * room, the same tower, 60 rooms, 1,680 pairs, the "great" bots nearly clones of each other): (a) at most 17 in a row · (b) at most 73 %.
  */
 export const COPY = Object.freeze({ run: 30, tol: 24, min: 60, share: 0.9 });
-const TICK_MS = 1000 / 60;
 const landingsOf = ev => ev.filter(e => e.e === 'land').map(e => [e.floor, e.t, e.a]);
 const angGap = (x, y) => { const d = (((x - y) % 4096) + 4096) % 4096; return d > 2048 ? 4096 - d : d; };
 /** two landing lists → { row: the longest run alike, shared: the share of the shorter's landings at the same floor + tick } */
@@ -131,13 +130,17 @@ function copyPairs(lands) {
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) if (isCopy(copyScore(lands[ids[i]], lands[ids[j]]))) out.push([ids[i], ids[j]]);
   return out;
 }
-/** how late a node's chunks arrived on the match's clock, on average (ms) — the copier is always behind the one it copies */
-function lagOf(node, S) {
-  const T = chunkTimes(node && node.c);
-  if (!T || !T.length) return 0;
-  let s = 0;
-  for (const k of T) s += k.at - (S.playAt + k.t1 * TICK_MS);
-  return s / T.length;
+/** WHO CAME LATER (the fresh-eyes review: an average over CHUNKS can be gamed — the copier cuts its own chunks): for every landing both
+ *  share, the server's arrival time of the first chunk of each node that reaches that tick (the moves that decided it) — a copy can never
+ *  send a move before its source's chunk with that move arrived. The node later on the MEDIAN shared landing is the copy → 'a' | 'b' */
+export function laterOf(nodeA, nodeB, LA, LB) {
+  const TA = chunkTimes(nodeA && nodeA.c) || [], TB = chunkTimes(nodeB && nodeB.c) || [];
+  const reach = (T, t) => { for (const k of T) if (k.t1 >= t) return k.at; return null; };
+  const inB = new Set(LB.map(x => `${x[0]}:${x[1]}`)), d = [];
+  for (const x of LA) { if (!inB.has(`${x[0]}:${x[1]}`)) continue; const a = reach(TA, x[1]), b = reach(TB, x[1]); if (a != null && b != null) d.push(a - b); }
+  if (!d.length) return 'a';
+  d.sort((p, q) => p - q);
+  return d[Math.floor(d.length / 2)] >= 0 ? 'a' : 'b';
 }
 /** the floors of the LONGEST PREFIX of a node's chunks the judge accepts (sabotage is append-only: a prefix of an accepted log is an accepted
  *  log — a binary search, ≤ 14 replays of a 10,000-chunk node); 0 = none */

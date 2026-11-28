@@ -112,11 +112,16 @@ export function drawFfHead(c, card, logo) {
 /** FIX C — THE FINISH's CELEBRATION (the reviewer + the owner: "bigger coloured bursts + a dark vignette by day"): by DAY the frame's edges
  *  go dark round the ball (the card is never milky), then THREE big neon bursts — gold + cyan by night, gold + teal by day — where the words
  *  are not (the top right, the two sides at the ball's height). Fixed shapes (no randomness: the same run = the same card). Px of 1080. */
-export const BURSTS = Object.freeze({ at: [[0.8, 0.2, 0.2], [0.13, 0.5, 0.15], [0.87, 0.55, 0.15]], rays: 18, night: ['#ffc83c', '#00f0ff', '#ffc83c'], day: ['#ffc83c', '#14d6cf', '#ffc83c'], vignette: 'rgba(4,14,36,0.82)' });
+export const BURSTS = Object.freeze({ at: [[0.8, 0.28, 0.18], [0.13, 0.5, 0.15], [0.87, 0.55, 0.14]], ring: 0.12, rays: 18, night: ['#ffc83c', '#00f0ff', '#ffc83c'], day: ['#ffc83c', '#14d6cf', '#ffc83c'], vignette: 'rgba(4,14,36,0.82)' });
 function celebrate(c, box, shot) {
   const { x, y, w, h } = box, day = !!shot && shot.look === 'day', bx = x + w * (shot && shot.ballX != null ? shot.ballX : 0.5), by = y + h * (shot && shot.ballY != null ? shot.ballY : 0.42);
   c.save();
-  if (day) { const v = c.createRadialGradient(bx, by, w * 0.2, bx, by, w * 0.74); v.addColorStop(0, 'rgba(4,14,36,0)'); v.addColorStop(0.5, 'rgba(4,14,36,0.5)'); v.addColorStop(1, BURSTS.vignette); c.fillStyle = v; c.fillRect(x, y, w, h); }
+  // (FIX C — the fresh-eyes review: the day vignette closes in ROUND THE BALL — the pale band through its row went too)
+  if (day) { const v = c.createRadialGradient(bx, by, w * 0.12, bx, by, w * 0.6); v.addColorStop(0, 'rgba(4,14,36,0)'); v.addColorStop(0.35, 'rgba(4,14,36,0.5)'); v.addColorStop(1, BURSTS.vignette); c.fillStyle = v; c.fillRect(x, y, w, h); }
+  // THE GOLD RING round the ball (crisp, the finish's own colour — the frame's 3D ring is faint at a card's size)
+  //  (drawn as a narrow band of a radial gradient: a ring, never a capsule primitive)
+  const rr = w * BURSTS.ring, ringAt = (r0, r1, mid, a) => { const g = c.createRadialGradient(bx, by, r0, bx, by, r1); g.addColorStop(0, 'rgba(255,200,60,0)'); g.addColorStop(0.5, mid); g.addColorStop(1, 'rgba(255,200,60,0)'); c.globalAlpha = a; c.fillStyle = g; c.fillRect(bx - r1, by - r1, r1 * 2, r1 * 2); c.globalAlpha = 1; };
+  ringAt(rr - 22, rr + 22, 'rgba(255,200,60,0.55)', 1); ringAt(rr - 6, rr + 6, '#ffc83c', 1); ringAt(rr - 2.5, rr + 2.5, '#fff3c8', 1);
   const cols = day ? BURSTS.day : BURSTS.night;
   c.lineCap = 'round';
   BURSTS.at.forEach(([fx, fy, fr], i) => {

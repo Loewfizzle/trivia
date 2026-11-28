@@ -189,16 +189,19 @@ export function clockProblem(go, times, holdTicks = [], stamps = [], endBurst = 
     if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) return k.s1 > 0 ? { why: 'hold', tick: holdTicks[k.s1 - 1], seg: k.s1 } : { why: 'ahead' };
     const now = runTick(k.at);
     if (k.t0 >= now - CLOCK.behind) drop = null;   // (on the clock — a drop before it is settled)
-    else if (drop) { const lag = now - k.t0; if (k.at > drop.until || lag > drop.lag + CLOCK.jitter) return { why: 'behind', tick: drop.tick, events: drop.events }; drop.lag = lag; }
+    else if (drop) { const lag = now - k.t0; if (k.at > drop.until || lag > drop.lag + CLOCK.jitter) return { why: 'behind', tick: drop.tick, events: drop.events }; drop.lag = lag; if (!drop.cut && k.t0 > drop.from) drop.cut = { tick: k.t0, events }; }
     else {
       const silence = Math.min(k.at - prev, CLOCK.drop);
       if (k.t0 < runTick(k.at - silence) - CLOCK.behind) return { why: 'behind', tick: k.t0, events };
-      drop = { tick: k.t0, events, until: k.at + CLOCK.catchUp, lag: now - k.t0, silence };
+      // (FIX C — S4: `from` = the last tick a move could have been PLAYED before the silence (+ the usual 8 s behind); a move past it was
+      //  played DURING the silence — the end-burst rule cuts there, never the honest tail a phone sends when it wakes)
+      const from = runTick(k.at - silence) + CLOCK.behind;
+      drop = { tick: k.t0, events, until: k.at + CLOCK.catchUp, lag: now - k.t0, silence, from, cut: k.t0 > from ? { tick: k.t0, events } : null };
     }
     events += k.n;
   }
   // (FIX C — S4: the run ENDED inside a burst — a match takes it only after a short silence)
-  if (drop && endBurst > 0 && drop.silence > endBurst) return { why: 'behind', tick: drop.tick, events: drop.events };
+  if (drop && endBurst > 0 && drop.silence > endBurst && drop.cut) return { why: 'behind', tick: drop.cut.tick, events: drop.cut.events };
   return null;
 }
 

@@ -48,18 +48,31 @@ function worldRows(b) {
   return boards.get(b);
 }
 function tableRows(b) {
-  if (!tables.has(b)) tables.set(b, api().then(A => A.api('profile', { action: 'table', b })).then(d => ((d && d.rows) || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, rank: i + 1 }))).catch(e => { tables.delete(b); throw e; }));
+  if (!tables.has(b)) tables.set(b, api().then(A => A.api('profile', { action: 'table', b })).then(d => { const R = ((d && d.rows) || []).filter(r => r && typeof r.v === 'number').map((r, i) => ({ ...r, rank: i + 1 })); R.friends = d && Number.isFinite(d.friends) ? d.friends : null; return R; })   /* (FIX C — S11: how many friends the table looked at) */.catch(e => { tables.delete(b); throw e; }));
   return tables.get(b);
 }
 /** E2E only — the session's reads forgotten (a fixture re-seeded the board / YOUR TABLE: the next mount asks again) */
 export const forgetReads = () => { boards.clear(); tables.clear(); };
 // FIX C — S10 (FREEFALL's review; the shared block, every game with it on): the server's answer for a counted run carries a NEW BEST (`pbs`)
-// → that board's kept reads are dropped and every block showing it reads again (the top 3 + the YOU line show the new row, no reload)
+// → every block showing it shows the new row, no reload: THE WORLD's kept list is PATCHED in place (YOUR row takes the new value + the list
+// is ranked again — a fetch would come back stale for up to ~30 s: the board's own 12 s cache, the browser's 10 s, the edge's 20 s + 60 s
+// SWR — the fresh-eyes review); YOUR TABLE (a POST, never cached) is read again. A best that enters the top 100 for the first time shows
+// at the next session's read (this phone has no row of its own there to patch).
 const shown = new Map();   // board → the mounted blocks' re-reads
+/** PURE: the kept rows with YOUR row at its new value, ranked again (the board's own order; a tie shares its place) */
+export function patchMine(rows, b, v) {
+  if (!Array.isArray(rows) || !Number.isFinite(v) || !rows.some(r => r && r.me)) return rows;
+  const d = boardDef(b), low = !!(d && d.dir === -1);
+  const R = rows.map(r => (r.me ? { ...r, v } : r)).sort((x, y) => (low ? x.v - y.v : y.v - x.v) || (x.me ? -1 : y.me ? 1 : 0));
+  let last = null, rank = 0;
+  R.forEach((r, i) => { if (r.v !== last) { rank = i + 1; last = r.v; } r.rank = rank; });
+  return R;
+}
 export function newBests(outcome) {
   for (const p of (outcome && Array.isArray(outcome.pbs) ? outcome.pbs : [])) {
     if (!p || typeof p.b !== 'string') continue;
-    boards.delete(p.b); tables.delete(p.b);
+    if (boards.has(p.b)) boards.set(p.b, boards.get(p.b).then(R => patchMine(R, p.b, Number(p.v))).catch(() => []));
+    tables.delete(p.b);
     for (const fn of shown.get(p.b) || []) { try { fn(); } catch { /* that block's own business */ } }
   }
 }
@@ -121,8 +134,9 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
     note.textContent = msg;
     (friends ? tableRows(b) : worldRows(b)).then(R => {
       if (gone || n !== ask) return;
-      // (FIX C — S11: the tick unticks itself → '0' is REMEMBERED; the line says why only on the TAP that asked — never on a later end screen)
-      if (friends && !R.some(r => !r.me)) { writeFr(false); setFriends(false, false, byTap ? 'NO FRIENDS YET' : ''); return; }
+      // (FIX C — S11: the tick unticks itself. NO FRIENDS AT ALL → '0' is REMEMBERED (every game shares the tick). Friends, none on THIS
+      //  board yet → off for this screen only, the setting kept. The line says why only on the TAP that asked — never on a later end screen.)
+      if (friends && !R.some(r => !r.me)) { const none = R.friends === 0; if (none) writeFr(false); setFriends(false, false, byTap ? (none ? 'NO FRIENDS YET' : 'NO FRIENDS ON THIS BOARD YET') : ''); return; }
       const { top, you: mine } = pickRows(R);
       if (!top.length && !msg) note.textContent = 'NO RUNS ON THE BOARD YET';
       return show(top, mine, r => r, () => n === ask);
