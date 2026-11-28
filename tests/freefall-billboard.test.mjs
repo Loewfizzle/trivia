@@ -24,10 +24,13 @@ test('THE BILLBOARD: 848 : 448, the foot band a quarter of the height, the logo 
   assert.doesNotMatch(build, /https?:\/\/(?!localhost)/, 'nothing is fetched from outside');
 });
 
-test('THE FACE ships small — and is NOT installed: no game module, no city file names it', () => {
+test('THE FACE ships small — installed by THE FREEFALL CITY PASS: ONE city file draws it (screens/harbor/freefall-art.js — the tri-vision\'s row face), no game module names it', () => {
   const u = new URL('../assets/city/freefall/billboard.webp', import.meta.url);
   assert.ok(statSync(u).size > 20000 && statSync(u).size < 110000, `assets/city/freefall/billboard.webp ${statSync(u).size} B`);
   assert.deepEqual(readdirSync(new URL('../assets/city/freefall/', import.meta.url)), ['billboard.webp']);
   for (const f of readdirSync(new URL('../js/games/freefall/', import.meta.url))) if (f !== 'billboard.js') assert.doesNotMatch(read(`js/games/freefall/${f}`), /billboard/, `${f} knows no billboard`);
-  for (const dir of ['js/screens/harbor', 'js/core']) for (const f of readdirSync(new URL(`../${dir}/`, import.meta.url))) if (f.endsWith('.js')) assert.doesNotMatch(read(`${dir}/${f}`), /city\/freefall\/billboard/, `${dir}/${f}: the city does not show it yet`);
+  const users = [];
+  for (const dir of ['js/screens/harbor', 'js/core']) for (const f of readdirSync(new URL(`../${dir}/`, import.meta.url))) if (f.endsWith('.js') && /city\/freefall\/billboard/.test(read(`${dir}/${f}`))) users.push(`${dir}/${f}`);
+  assert.deepEqual(users, ['js/screens/harbor/freefall-art.js'], 'the city line: its one painter');
+  assert.match(read('js/screens/harbor/freefall-art.js'), /drawImage\(img, C\.dx, C\.dy, C\.dw, C\.dh\)/, 'drawn WHOLE (COVER), like HIGH RISE\'s');
 });

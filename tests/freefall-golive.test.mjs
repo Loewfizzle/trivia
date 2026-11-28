@@ -42,9 +42,10 @@ test('GROUP 1 — THE TWO FLIPS: playable (NEW from Nov 28), counting ON with th
   assert.match(read('api/report.js'), /export const freefallCounts = async \(\) => \{ if \(emulated\(\)\) \{ const t = await val\('testFreefallCounts'\); if \(t === true \|\| t === false\) return t; \} return FREEFALL_COUNTS; \};/, 'the emulators\' flip is TWO-WAY: the OFF path stays tested');
   assert.match(read('js/board/view.js'), /export const TABS = Object\.freeze\(\[[^\]]*'highrise', 'freefall'\]\);/);
   assert.match(read('js/board/view.js'), /export const HIDDEN_TABS = Object\.freeze\(\[\]\);/);
-  assert.deepEqual([...SIGN_HOLD], ['freefall'], 'held off every city sign until THE CITY PASS installs its sign');
-  assert.ok(!signRoster(GAMES).some(x => x.id === 'freefall'));
-  for (const [f, re] of [['js/ui/tube-logo.js', /LOGO_ACC = \{[^}]*freefall: '#27e0e6'/], ['js/screens/title.js', /const ACC = \{[^}]*freefall: '#27e0e6'/], ['js/screens/harbor/signs.js', /SIGN_ACC = \{[^}]*freefall: '#27e0e6'/]]) assert.match(read(f), re, `${f}: FREEFALL's teal`);
+  assert.deepEqual([...SIGN_HOLD], [], 'held off every city sign at its go-live — THE FREEFALL CITY PASS installed its sign + lifted the hold');
+  assert.ok(signRoster(GAMES).some(x => x.id === 'freefall'));
+  for (const [f, re] of [['js/ui/tube-logo.js', /LOGO_ACC = \{[^}]*freefall: '#27e0e6'/], ['js/core/marks.js', /GAME_ACC = Object\.freeze\(\{[^}]*freefall: '#27e0e6'/], ['js/screens/harbor/signs.js', /SIGN_ACC2 = Object\.freeze\(\{[^}]*freefall: '#27e0e6'/]]) assert.match(read(f), re, `${f}: FREEFALL's teal`);
+  assert.match(read('js/screens/harbor/signs.js'), /SIGN_ACC = \{[^}]*freefall: '#ff4fa8'/, 'the sign: FREE hot pink, FALL teal (SIGN_ACC2)');
   assert.ok(!existsSync(new URL('../freefall-lab.html', import.meta.url)) && !existsSync(new URL('../js/games/freefall/lab.js', import.meta.url)) && !existsSync(new URL('../js/games/freefall/graybox.js', import.meta.url)) && !existsSync(new URL('../css/freefall-lab.css', import.meta.url)), '/freefall-lab DELETED');
   assert.ok(existsSync(new URL('../freefall-play.html', import.meta.url)), '/freefall-play stays (never counts)');
   assert.doesNotMatch(read('scripts/serve.mjs') + read('tests/integration/kit/page-loads.mjs'), /freefall-lab'/);

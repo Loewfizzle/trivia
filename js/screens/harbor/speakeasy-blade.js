@@ -79,13 +79,15 @@ export function bladeWords(name) {
 /** CITY PART 1 — ONE COLUMN, TWO WORDS (the owner, Nov 20: the speakeasy blade's HIGH RISE "stacked with a clear gap, or one line — whichever
  *  reads at 390 unzoomed"): two side-by-side columns read ACROSS on a vertical board (HR · II · GS · HE), so these names stack in ONE column —
  *  the first word over the second, a short gap (BLADE_GAP_SLOT of a letter's slot) between them; every letter still ≥ 10 pt (tests/harbor.test.mjs) */
-export const BLADE_COLUMN = Object.freeze(['HIGH RISE']);
+export const BLADE_COLUMN = Object.freeze(['HIGH RISE', 'FREE FALL']);
+const BLADE_AS = { FREEFALL: 'FREE FALL' };   // (THE FREEFALL CITY PASS: FREE over FALL, one column)
 export const BLADE_GAP_SLOT = 0.6;
 const colSlots = w => [...w].reduce((a, ch) => a + (ch === ' ' ? BLADE_GAP_SLOT : 1), 0);
 /** each character's slot offset down its column (a space = the gap) */
 export const colAt = w => { const at = []; let y = 0; for (const ch of w) { at.push(y); y += ch === ' ' ? BLADE_GAP_SLOT : 1; } return at; };
 export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) {
-  const one = String(name || '').toUpperCase().trim().replace(/\s+/g, ' ');
+  let one = String(name || '').toUpperCase().trim().replace(/\s+/g, ' ');
+  one = BLADE_AS[one] || one;
   const words = BLADE_COLUMN.includes(one) ? [one] : bladeWords(name), nc = Math.max(1, words.length);
   const x0 = MARQUEE.edge + 0.05, x1 = bw - MARQUEE.edge - 0.05, top = v1 - LETTER.v1, foot = v0 + LETTER.v0, ih = top - foot;
   const cw = (x1 - x0 - LETTER.gap * (nc - 1)) / nc, n = Math.max(1, ...words.map(colSlots)), lh = ih / n;

@@ -1,6 +1,7 @@
 // A game's neon mark as a small inline SVG string. ONE builder (FIXES R2): THE PLAY sheet + PICK A GAME. A tube's `w` = its own width;
 // `day` (a pale ground): a tube's `o` = an outline under it (F5C: FREEFALL's ball).
 import { markFor } from '../core/marks.js';
+export { GAME_ACC } from '../core/marks.js';
 
 export function markSvg(game, cls = 'nd-shelf-mark', day = false) {
   const m = markFor(game), w = (m && m.w) || 7;

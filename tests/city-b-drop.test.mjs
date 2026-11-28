@@ -42,10 +42,10 @@ test('CITY PART 1: the faces in order — HIGH RISE → JAYWALK → HOLD’EM (t
   setDrop({ live: '2026-12-01', mode: 'on' });
   assert.equal(dropShow(day), 'drop', 'THE DROP\'s own window still answers (the feed, /admin)');
   const two = triFaces(day);
-  assert.deepEqual(two, ['highrise', 'holdem-open'], `HIGH RISE + HOLD'EM turn — never THE DROP: ${two}`);
+  assert.deepEqual(two, ['freefall', 'highrise', 'holdem-open'], `FREEFALL + HIGH RISE + HOLD'EM turn — never THE DROP: ${two}`);   // (THE FREEFALL CITY PASS: + FREEFALL, the newest first)
   setJaywalk({ on: true, bar: 'soon', since: '2026-11-01' });
   const F = triFaces(day);
-  assert.deepEqual(F, ['highrise', 'jaywalk', 'holdem-open'], `the order ${F}`);
+  assert.deepEqual(F, ['freefall', 'highrise', 'jaywalk', 'holdem-open'], `the order ${F}`);
   assert.ok(!triFaces(plus('2026-12-01', 3)).includes('drop'), 'THE DROP: out of the rotation for good');
   // the clock: the same turn times whatever the faces; each turn lands on the next face (A → B → C → A)
   const K = triKnobs(), T = turnsBetween(0, 2000, K);

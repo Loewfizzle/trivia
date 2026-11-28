@@ -30,16 +30,16 @@ test('HOW TO PLAY: RULES.highrise in ui/help.js — one line + two short section
 });
 
 test('THE SIGN HOLD — LIFTED (CITY PART 1, Nov 20): HIGH RISE is on the city\'s signs through THE ONE roster (the roof signs, the speakeasy blade, the ghost ad) + its own tri-vision face; the hold stays as the switch for the next game', () => {
-  assert.ok(!SIGN_HOLD.includes('highrise'));   // (FREEFALL's GO-LIVE, Nov 28: the hold names FREEFALL alone — the switch did its job again)
+  assert.ok(!SIGN_HOLD.includes('highrise'));   // (FREEFALL's GO-LIVE, Nov 28 held FREEFALL — THE FREEFALL CITY PASS lifted it: the hold is empty again)
   assert.ok(GAMES.find(g => g.id === 'highrise').playable);
   assert.ok(signRoster(GAMES).some(g => g.id === 'highrise'), 'in the roster');
-  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);   // (FREEFALL playable but HELD — not yet on a sign)
+  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['freefall', 'highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);   // (FREEFALL on the signs since THE FREEFALL CITY PASS)
   // the neon takes the roster (never its own `playable` filter) — the scene hands it the same; the ghost ad + the blades read signGames
   assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)\.map/);
   const scene = read('js/screens/harbor/scene.js');
   assert.match(scene, /const signGames = signRoster\(games\);/); assert.match(scene, /createNeon\(\{ games: signGames,/); assert.match(scene, /const playable = signGames;/);
   // its own pieces: the two-tone roof sign + its day enamel (signs.js), the stacked split (harbor-neon.js), the tri-vision's face (harbor-trivision.js)
-  assert.match(read('js/screens/harbor/signs.js'), /SIGN_ACC2 = Object\.freeze\(\{ highrise: '#35e3ff' \}\)/);
+  assert.match(read('js/screens/harbor/signs.js'), /SIGN_ACC2 = Object\.freeze\(\{ highrise: '#35e3ff'[,}]/);   // (THE FREEFALL CITY PASS: + freefall's FALL teal)
   assert.match(read('js/screens/harbor/signs.js'), /highrise: '#ff4fd8'/);
   assert.match(read('js/core/harbor-neon.js'), /highrise: \['HIGH', 'RISE'\]/);
 });

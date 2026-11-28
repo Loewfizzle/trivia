@@ -36,7 +36,7 @@ import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt, ownerMessages, intercomHead } from '../../core/harbor-billboard.js';
 import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
-import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId, isHighriseId, newestFace, faceDates } from '../../core/harbor-trivision.js';
+import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId, ROW_FACES, newestFace, faceDates } from '../../core/harbor-trivision.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
@@ -65,7 +65,7 @@ import { facadeSteps } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
-import { cabinetCut, setJaywalkPainter, setDropPainter, setHighrisePainter } from './signs.js';
+import { cabinetCut, setJaywalkPainter, setDropPainter, setRowPainter } from './signs.js';
 import { vehiclesReset, vehicleInFront } from './occluders.js';
 
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
@@ -1136,7 +1136,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false, dropForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { pick: null, shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0, hr: false, hrWarmed: false };   // (CITY PART 1: hr — HIGH RISE's poster decoded)
+  const tri = { pick: null, shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0, row: {}, rowWarm: {} };   // (the row faces: row[id] — its poster decoded)
   const triWarmFailed = what => {
     tri.warmed = false; tri.fails++;
     tri.retryAt = performance.now() + [3e3, 15e3, 60e3, 300e3][Math.min(tri.fails - 1, 3)];
@@ -1262,6 +1262,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let triHeldOut = 0, rbSwapped = false;   // (rbSwapped: the crisp poster copy is off while a swapped board's bake is out — it comes back as a cut)
   const triLog = [];   // (CITY A — THE BILLBOARD FLASH's probe: the board's events on the city clock — a swap, a snapshot crossfade, a turn, a landed bake)
   const triNote = (ev, x = '') => { triLog.push(`${(clock.now() / 1000).toFixed(2)} ${ev}${x ? ` ${x}` : ''}`); if (triLog.length > 40) triLog.shift(); };   // (CITY A: turns whose hold ran out before the new bake landed — 0 expected; the debug hook shows it)
+  const ROW_ART = { highrise: () => lazyImport(import('./highrise-art.js'), './highrise-art.js'), freefall: () => lazyImport(import('./freefall-art.js'), './freefall-art.js') };   // (the row faces' painters — lazy)
   /** the faces the board turns between today, once JAYWALK's art has decoded (warmed after the reveal) — else null (HOLD'EM alone) */
   function triFacesNow(key) {
     if (!jaywalkForced && (clock.force.has('billboard-jaywalk') || clock.force.has('trivision')) && LK.local) { jaywalkForced = true; setJaywalkForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('jaywalk') === 'open' ? 'open' : 'soon' }); }
@@ -1270,7 +1271,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (CITY F — THE OPEN NOW BILLBOARD: the face the board turns to decides WHICH picture warms — COMING SOON's art, or from the OPEN DAY the
     //  owner's poster (jaywalk-art.js#warmJaywalk(…, open)); a face shows only once ITS picture has decoded)
     const needOpen = !!F && F.includes('jaywalk-open'), needSoon = !!F && F.includes('jaywalk');
-    const needHr = !!F && F.some(isHighriseId);
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME (the 4:03 pm entry): the face the board OPENS on is picked from ALL of today's faces by their
     //  switch dates (newestFace) — and that ONE face's picture warms at once, before the reveal; the others after it, as ever)
     if (F && tri.lastN == null) tri.pick = F[newestFace(F, faceDates())];   // (until it opens the pick follows the feed — COMING SOON → NOW OPEN)
@@ -1278,9 +1278,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (needSoon && !tri.warmed && early('jaywalk') && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
     if (needOpen && !tri.openWarmed && early('jaywalk-open') && performance.now() >= tri.retryAt) { tri.openWarmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jwOpen = true; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`the open-now poster (${why})`); }, true); }).catch(e => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`painter (${(e && e.message) || e})`); }); }
     if (needDr && !tri.drWarm && early('drop') && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
-    if (needHr && !tri.hrWarmed && early('highrise') && performance.now() >= tri.retryAt) { tri.hrWarmed = true; lazyImport(import('./highrise-art.js'), './highrise-art.js').then(m => { if (!destroyed) m.warmHighrise(() => { if (destroyed) return; tri.hr = true; tri.fails = 0; setHighrisePainter(m.paintHighrise); boardCheck = 0; }, why => { if (!destroyed) { tri.hrWarmed = false; triWarmFailed(`HIGH RISE poster (${why})`); } }); }).catch(e => { if (!destroyed) { tri.hrWarmed = false; triWarmFailed(`HIGH RISE painter (${(e && e.message) || e})`); } }); }   // (CITY PART 1: lazy — never the boot graph; a failure retries on the backoff)
+    for (const id of ROW_FACES) if (F && F.includes(id) && !tri.rowWarm[id] && early(id) && performance.now() >= tri.retryAt) { tri.rowWarm[id] = true; ROW_ART[id]().then(m => { if (!destroyed) m.warm(() => { if (destroyed) return; tri.row[id] = true; tri.fails = 0; setRowPainter(id, m.paint); boardCheck = 0; }, why => { if (!destroyed) { tri.rowWarm[id] = false; triWarmFailed(`${id} poster (${why})`); } }); }).catch(e => { if (!destroyed) { tri.rowWarm[id] = false; triWarmFailed(`${id} painter (${(e && e.message) || e})`); } }); }   // (lazy — never the boot graph; a failure retries on the backoff)
     if (!F) return null;
-    const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr) && (f !== 'highrise' || tri.hr));
+    const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr) && (!ROW_FACES.includes(f) || tri.row[f]));
     return G.length >= 2 ? G : null;
   }
   /** every frame (boardSync): the clock's turn → a turn from the face on show to the clock's (never a pop-in) → the faces [A, B], or null */
@@ -3008,7 +3008,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     let late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || firstBakeDue() || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the reveal waits for the roof board's PICKED poster (≤ REVEAL_MAX − 0.5 s; a failed load lets go))
-    const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : bp === 'highrise' ? !!tri.hr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
+    const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : ROW_FACES.includes(bp) ? !!tri.row[bp] : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
     // CITY PART 1 — THE PAGE'S CLOCK: the network's gates let go by the PAGE's time on screen; a baked city reveals from PAGE_LATE_MS (docs/harbor.md)
     const pageOn = pageOnScreen(on), netGo = pageOn > NET_LET_GO_MS;
     const g = { bake: ready, fonts: fonts || netGo, wx: wx || netGo, sky: sky || netGo, panel: panel || netGo, songs: songs || netGo, folk: folk || netGo, board: board || netGo };

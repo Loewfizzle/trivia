@@ -1,6 +1,6 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-28 06:12 UTC from https://neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-28 13:05 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -229,10 +229,4 @@ Exported 2026-11-28 06:12 UTC from https://neonspeakeasy.com by scripts/lab-expo
 | 224 | BEAM ME UP · FULL CARD (`full-card-beammeup`) | epic | APPROVE |  | 2026-11-17 11:24 UTC | v1 |
 | 229 | GARDEN PARTY (`card-garden`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v1 |
 | 230 | GARDEN PARTY · FULL CARD (`full-card-garden`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v1 |
-| 231 | SPLASHDOWN (`card-splashdown`) | rare | APPROVE |  | 2026-11-26 23:17 UTC | v1 |
-| 232 | TERMINAL VELOCITY (`card-terminalvelocity`) | epic | APPROVE |  | 2026-11-26 23:17 UTC | v1 |
-| 233 | ROCK BOTTOM (`card-rockbottom`) | legendary | APPROVE |  | 2026-11-26 23:17 UTC | v1 |
-| 234 | SPLASHDOWN · FULL CARD (`full-card-splashdown`) | rare | APPROVE |  | 2026-11-26 23:18 UTC | v1 |
-| 235 | TERMINAL VELOCITY · FULL CARD (`full-card-terminalvelocity`) | epic | APPROVE |  | 2026-11-26 23:18 UTC | v1 |
-| 236 | ROCK BOTTOM · FULL CARD (`full-card-rockbottom`) | legendary | APPROVE |  | 2026-11-26 23:17 UTC | v1 |
 | 208 | HORSESHOE (`emb-horseshoe`) | uncommon | APPROVE |  | 2026-11-15 22:10 UTC | v2 |

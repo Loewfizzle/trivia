@@ -21,6 +21,7 @@ import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, logoGlowSvg, logoRaceSvg, logoTrack, anchorsSvg, TAGLINE } from '../ui/logo.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
+import { GAME_ACC } from '../core/marks.js';
 import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
 import { rankBadge, emblem, RANK_COLORS } from '../ui/emblems.js';
@@ -114,7 +115,7 @@ function partyLine() {
   return `${d.kind === 'station' ? `station ${String(d.station || '').toUpperCase()}` : `party ${String(d.kind).toUpperCase()}`} · ${d.song} ${mmss(d.at)} / ${mmss(d.dur)} · ${who}${lat} · next in ${mmss(Math.max(0, d.left))}${brk ? ` · break ${String(brk.kind).toUpperCase()}${brk.song === d.song ? ' (this song)' : ''}` : ''}`;
 }
 
-const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#f2c14e', freefall: '#27e0e6' };
+const ACC = GAME_ACC;   // (THE FREEFALL CITY PASS: ONE table, core/marks.js — two games had no key here: their shelf icons fell back to ice)
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
 // (THE CITY POLISH PASS — THE RETURN-VISIT POWER-ON, the owner's call LATER: DEFAULT OFF. ?poweron=short = this phone's return visits get the

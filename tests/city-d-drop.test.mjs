@@ -38,9 +38,10 @@ test('CITY D: a daily turned on (GO LIVE AT THE NEXT 4 AM — the only way an OF
   setDrop(null);
 });
 
-test('CITY D: the scene hands the board its clock (CITY PART 1: the order HIGH RISE → JAYWALK → HOLD\'EM, HIGH RISE judged on the streak day)', () => {
+test('CITY D: the scene hands the board its clock (THE FREEFALL CITY PASS: the order FREEFALL → HIGH RISE → JAYWALK → HOLD\'EM, the row faces judged on the streak day)', () => {
   const sc = readFileSync('js/screens/harbor/scene.js', 'utf8');
   assert.match(sc, /const F = key \? triFaces\(key, clock\.now\(\)\) : null/);
   const T = readFileSync('js/core/harbor-trivision.js', 'utf8');
-  assert.match(T, /\[highriseShow\(dropKey\(dayKey, nowMs\)\), jaywalkShow\(dayKey\), holdemShow\(dayKey\)\]/);
+  assert.match(T, /const k = dropKey\(dayKey, nowMs\), F = \[\.\.\.ROW_FACES\.map\(id => rowShow\(id, k\)\), jaywalkShow\(dayKey\), holdemShow\(dayKey\)\]/);
+  assert.match(T, /export const ROW_FACES = Object\.freeze\(\['freefall', 'highrise'\]\);/, 'newest first');
 });

@@ -12,10 +12,10 @@ import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
-export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', jaywalk: '#ff4fc4', holdem: '#ff5a64', highrise: '#ff4fd8', freefall: '#27e0e6' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
+export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', jaywalk: '#ff4fc4', holdem: '#ff5a64', highrise: '#ff4fd8', freefall: '#ff4fa8' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
 /** CITY PART 1 — A TWO-TONE NAME (the owner, Nov 20: HIGH hot pink #ff4fd8 / RISE cyan #35e3ff — its game screen's own two colours): a stacked
  *  name's SECOND word in its own tube colour, where a game has one (NIGHT tube colours only — the day face is paint: DAY_PAINT's ink2) */
-export const SIGN_ACC2 = Object.freeze({ highrise: '#35e3ff' });
+export const SIGN_ACC2 = Object.freeze({ highrise: '#35e3ff', freefall: '#27e0e6' });   // (THE FREEFALL CITY PASS: FREE hot pink / FALL electric teal)
 /**
  * THE NAME A SIGN SPELLS (DT1 — the owner: "never a shortened name anywhere"): the game's city name, whole — the two-word ones
  * with both words (HIGH STAKES, DOUBLE AGENT, NEON PAR: never "STAKES" or "AGENT"); the others their one-word sign name (the
@@ -54,6 +54,7 @@ export const DAY_PAINT = {
   // (CITY PART 1 — HIGH RISE's day face: its night pink + cyan as PAINT — HIGH in deep raspberry, RISE in deep teal, on a cream board with a dark
   //  keyline; never a lit-looking colour on a dark board)
   highrise: { face: [238, 226, 200], ink: [158, 30, 104], ink2: [16, 92, 116], edge: KEY_DARK },
+  freefall: { face: [14, 64, 90], ink: [246, 176, 200], ink2: [226, 242, 234], edge: GOLD_LEAF },   // FREE faded rose + FALL sea-cream on deep petrol-teal enamel, gold leaf
 };
 // POLISH 4 — THE ROOF BILLBOARD's POSTERS (the owner: OVERCLOCK read amber-on-amber under the warm gooseneck lamps): a poster may not
 // stand on a warm orange / amber / gold field — under those lamps it blends; each game's poster gets a field that CONTRASTS with warm
@@ -112,7 +113,7 @@ function paintFace(x, sg, pt, day, sd, P) {
   x.beginPath(); x.roundRect(P.x + inset * 1.35, P.y + inset * 1.35, P.w - inset * 2.7, P.h - inset * 2.7, Math.max(0.4, (P.r || 1) * 0.6)); x.stroke();
   x.restore();
   for (const p of sg.parts) {
-    const b = bbox(p.t), lh = p.mark ? (b.y1 - b.y0) * 0.6 : (p.boxes && p.boxes[0] ? p.boxes[0].y1 - p.boxes[0].y0 - 1.2 : b.y1 - b.y0);
+    const b = bbox(p.t), lh = p.mark ? (b.y1 - b.y0) * 0.6 * (p.k || 1) : (p.boxes && p.boxes[0] ? p.boxes[0].y1 - p.boxes[0].y0 - 1.2 : b.y1 - b.y0);
     paintStrokes(x, p.tubes, lh, p.word2 && pt.ink2 ? { ...pt, ink: pt.ink2 } : pt, sd, day, !!p.mark);   // (CITY PART 1: a two-tone name's second word in its own paint)
   }
 }
@@ -163,7 +164,7 @@ const skewP = (p, k, base) => (k ? { ...p, pts: p.pts.map(([x, y]) => [x + (base
 // a mark (0..100 box) into a square: → [{ polys, col }]
 function markTubes(g, x0, y0, size) {
   const m = markFor(g), s = size / 100;
-  return m.tubes.map(t => ({ polys: flattenPath(t.d, s, x0, y0, 1), col: hexRgb(t.col) }));
+  return m.tubes.map(t => ({ polys: flattenPath(t.d, s, x0, y0, 1), col: hexRgb(t.col), k: t.w ? t.w / (m.w || 7) : 1 }));   // (k: a tube's own width t.w — FREEFALL's thin core)
 }
 /**
  * THE GAME BLADE's layout (NEON PASS 3, the owner: "the LETTERS must win"): the cabinet R → the bulbs' OUTER FRAME (a ring just
@@ -221,7 +222,7 @@ export function buildSign(spot, game, ctx) {
     if (spot.type === 'vbox') {
       // (the mark on top only where it reads: a wide cabinet — on a slim one a small mark reads as a letter)
       const markH = game && R.w >= 14 && R.h > R.w * (text.length + 2.2) * 0.9 ? R.w * 0.86 : 0;
-      if (markH) for (const m of markTubes(game, R.x + (R.w - markH) / 2, R.y + pad * 0.9, markH)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
+      if (markH) for (const m of markTubes(game, R.x + (R.w - markH) / 2, R.y + pad * 0.9, markH)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85 * m.k, k: m.k, mark: true });
       const L2 = lettersCol(text.replace(/ /g, ' '), R.x + pad, R.y + pad + (markH ? markH + pad * 0.6 : 0), R.w - pad * 2, R.h - pad * 2 - (markH ? markH + pad * 0.6 : 0));
       tw = Math.max(0.55, Math.min(1.25, L2.lh * 0.13));
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
@@ -241,7 +242,7 @@ export function buildSign(spot, game, ctx) {
       // NEON PASS 5 — A ROOF SIGN, STACKED (the owner: the names were too small for the glance test): the game's mark centred on
       // top, the NAME across the cabinet's whole width under it — ≥ 10 pt at 390 wide (tests/harbor.test.mjs), never clipped
       const px = Math.max(1.6, R.h * 0.06), py = Math.max(1.4, R.h * 0.05), ms = game ? Math.min(R.h * 0.34, R.w * 0.4) : 0, gp = R.h * 0.04;
-      if (ms) for (const m of markTubes(game, R.x + (R.w - ms) / 2, R.y + py + 0.6, ms)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.55, tw * 0.75), mark: true });
+      if (ms) for (const m of markTubes(game, R.x + (R.w - ms) / 2, R.y + py + 0.6, ms)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.55, tw * 0.75) * m.k, k: m.k, mark: true });
       const L2 = lettersRow(text, R.x + px, R.y + py + ms + gp, R.w - px * 2, R.h - py * 2 - ms - gp);
       tw = tubeWidthFor(L2.lh);
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
@@ -250,7 +251,7 @@ export function buildSign(spot, game, ctx) {
       // (NEON PASS 4: the name now fits inside the border — a slightly smaller mark + tighter gaps give the letters the room back;
       // the text box ends 0.8 pad in from the edge: just inside the border tube)
       const ms = game ? (R.h - pad * 2) * 0.9 : 0, mx = R.x + pad + tw * 0.45, tx = mx + (ms ? ms + pad * 0.45 : 0);
-      if (ms) for (const m of markTubes(game, mx, R.y + (R.h - ms) / 2, ms)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85, mark: true });
+      if (ms) for (const m of markTubes(game, mx, R.y + (R.h - ms) / 2, ms)) parts.push({ tubes: m.polys, col: m.col, w: tw * 0.85 * m.k, k: m.k, mark: true });
       const L2 = lettersRow(text, tx, R.y + pad, R.x + R.w - pad * 0.8 - tx, R.h - pad * 2);
       tw = tubeWidthFor(L2.lh);
       parts.push({ tubes: L2.polys, col, w: tw, boxes: L2.boxes });
@@ -259,7 +260,7 @@ export function buildSign(spot, game, ctx) {
     if (spot.bulbs) border = null;
   } else if (spot.type === 'icon') {
     const size = Math.min(R.w, R.h);
-    for (const m of markTubes(game, R.x + (R.w - size) / 2, R.y + (R.h - size) / 2, size)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.6, size * 0.065), mark: true });
+    for (const m of markTubes(game, R.x + (R.w - size) / 2, R.y + (R.h - size) / 2, size)) parts.push({ tubes: m.polys, col: m.col, w: Math.max(0.6, size * 0.065) * m.k, k: m.k, mark: true });
   } else if (spot.type === 'script') {
     const L2 = lettersRow(spot.text, R.x, R.y, R.w, R.h, { skew: 0.22 });
     parts.push({ tubes: L2.polys, col, w: Math.max(0.7, L2.lh * 0.14) });
@@ -458,8 +459,9 @@ export function billboardContent(show, games) {
   if (show && (show.game === 'holdem' || show.game === 'holdem-open')) return { title: 'HOLD’EM', sub: show.game === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'holdem-open' ? 'open' : 'soon', game: null, lines: null, bg: [31, 50, 99], ink: [239, 228, 198], acc: [198, 50, 59] };
   // (THE TRI-VISION: the roof board's second face — JAYWALK's poster, painted by jaywalk-art.js, COMING SOON or NOW OPEN)
   if (show && (show.game === 'jaywalk' || show.game === 'jaywalk-open')) return { title: 'JAYWALK', sub: show.game === 'jaywalk-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'jaywalk-open' ? 'open' : 'soon', game: null, lines: null, bg: [3, 2, 8], ink: [255, 61, 180], acc: [255, 61, 180] };
-  // (CITY PART 1: HIGH RISE's OPEN NOW face — the B1 poster drawn WHOLE by highrise-art.js; only OPEN NOW, never COMING SOON)
-  if (show && show.game === 'highrise') return { title: 'HIGH RISE', sub: 'OPEN NOW', poster: 'highrise', bar: 'open', game: null, lines: null, bg: [5, 3, 10], ink: [255, 79, 216], acc: [255, 79, 216] };
+  // (THE ROW FACES — HIGH RISE (CITY PART 1) + FREEFALL: an OPEN NOW poster drawn WHOLE by its <id>-art.js; only OPEN NOW, never COMING SOON)
+  const rp = show && ROW_POSTER[show.game];
+  if (rp) return { title: rp[0], sub: 'OPEN NOW', poster: show.game, bar: 'open', game: null, lines: null, bg: [5, 3, 10], ink: rp[1], acc: rp[1] };
   // (CITY B: the third face — THE DROP · NEW DAILY, drawn in code by drop-art.js; SELF-LIT neon at night, never under the lamps' pools)
   if (show && show.game === 'drop') return { title: 'PRISM DROP', sub: 'NEW DAILY', poster: 'drop', selfLit: true, game: null, lines: null, bg: [8, 6, 26], ink: [238, 241, 255], acc: [106, 63, 208] };
   const g = games.find(x => x.id === (show && show.game)) || null;
@@ -609,10 +611,10 @@ const paintJaywalk = (x, R, bar, sd) => { if (JW_PAINT) JW_PAINT(x, R, bar, sd);
 let DR_PAINT = null;
 export function setDropPainter(f) { DR_PAINT = typeof f === 'function' ? f : null; }
 const paintDrop = (x, R, night) => { if (DR_PAINT) DR_PAINT(x, R, night); else { x.fillStyle = night ? '#08061a' : '#6a3fd0'; x.fillRect(R.x, R.y, R.w, R.h); } };
-// CITY PART 1: HIGH RISE's painter (screens/harbor/highrise-art.js — lazy, like JAYWALK's: never in the boot graph; the face waits for its picture)
-let HR_PAINT = null;
-export function setHighrisePainter(f) { HR_PAINT = typeof f === 'function' ? f : null; }
-const paintHighrise = (x, R) => { if (HR_PAINT) HR_PAINT(x, R); else { x.fillStyle = '#05030a'; x.fillRect(R.x, R.y, R.w, R.h); } };
+// THE ROW FACES' painters (screens/harbor/<id>-art.js — lazy: never in the boot graph; the face waits for its picture)
+const ROW_POSTER = { highrise: ['HIGH RISE', [255, 79, 216]], freefall: ['FREEFALL', [255, 79, 168]] }, ROW_PAINT = {};
+export function setRowPainter(id, f) { ROW_PAINT[id] = typeof f === 'function' ? f : null; }
+const paintRow = (id, x, R) => { if (ROW_PAINT[id]) ROW_PAINT[id](x, R); else { x.fillStyle = '#05030a'; x.fillRect(R.x, R.y, R.w, R.h); } };
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr, dun = spot.mount === 'speak', lamps = gooseneckLamps(R, dun ? 5 : 4);
   // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
@@ -624,7 +626,7 @@ export function buildBillboard(spot, content, ctx) {
   // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
   const poster = (x, sd, night = false) => {
     if (content.poster === 'drop') { paintDrop(x, R, night); return; }
-    if (content.poster === 'highrise') { paintHighrise(x, R); return; }   // (CITY PART 1: the B1 poster, whole)
+    if (ROW_POSTER[content.poster]) { paintRow(content.poster, x, R); return; }   // (a row face: its poster, whole)
     if (content.poster) { (String(content.poster).startsWith('jaywalk') ? paintJaywalk : paintHoldem)(x, R, content.bar, sd); return; }   // (CITY FIXES + HOLD'EM: its own painted poster · THE TRI-VISION: JAYWALK's)
     const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
@@ -648,8 +650,8 @@ export function buildBillboard(spot, content, ctx) {
       const m = markFor(content.game), ms = Math.min(ih * 0.98, R.w * 0.3), s2 = ms / 100, mx = cx - ms / 2, my = top + (ih - ms) / 2, lw = 12;
       x.save(); x.translate(mx, my); x.scale(s2, s2); x.lineCap = 'round'; x.lineJoin = 'round';
       for (const t of m.tubes) { const p = new Path2D(t.d); x.save(); x.translate((sd > 0 ? -1 : 1) * 4, 5); x.strokeStyle = rgba(pt.shade, 0.45); x.lineWidth = lw + 9; x.stroke(p); x.restore(); }
-      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.edge); x.lineWidth = lw + 7; x.stroke(p); }
-      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.mark ? pt.mark : mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw; x.stroke(p); }
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.edge); x.lineWidth = lw * (t.w ? t.w / (m.w || 7) : 1) + 7; x.stroke(p); }
+      for (const t of m.tubes) { const p = new Path2D(t.d); x.strokeStyle = rgba(pt.mark ? pt.mark : mix(hexRgb(t.col), pt.ink, 0.45)); x.lineWidth = lw * (t.w ? t.w / (m.w || 7) : 1); x.stroke(p); }
       x.restore();
     }
     // the name: shadow → keyline → the letters → a lighter top edge (condensed: drawn in a squeezed frame)

@@ -18,3 +18,5 @@ export function paintHighrise(x, R) {
   if (ART.ready && ART.img) { const img = ART.img, C = coverOf(R, img.naturalWidth || 848, img.naturalHeight || 448); x.drawImage(img, C.dx, C.dy, C.dw, C.dh); }
   x.restore();
 }
+// (THE FREEFALL CITY PASS: the row faces' one shape — scene.js warms + paints every row face by these names)
+export { warmHighrise as warm, paintHighrise as paint };

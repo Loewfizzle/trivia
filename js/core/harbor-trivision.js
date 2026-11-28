@@ -96,22 +96,23 @@ export function dropKey(dayKey, nowMs = null) {
   const s = String(streakDay(nowMs) || ''), k = /^d\d{8}$/.test(s) ? `${s.slice(1, 5)}-${s.slice(5, 7)}-${s.slice(7, 9)}` : null;
   return k && (!KEY_RE.test(String(dayKey || '')) || dayNum(k) > dayNum(dayKey)) ? k : dayKey;
 }
-// ---- CITY PART 1 — HIGH RISE's OPEN NOW face (the owner, Nov 20 8:12 am + 5:52 pm: the B1 billboard — HIGH over RISE + a dark band with OPEN NOW;
-// ONLY OPEN NOW, never COMING SOON): LIT BY HIGH RISE's OWN GO-LIVE — its GAMES row (config.js: playable + its `live` day); before that day, or with
-// the row off, no face at all. Judged on the streak day like THE DROP (the board's own key is its WORK DAY — a day late until the evening paste)
-const highriseRow = () => GAMES.find(g => g && g.id === 'highrise') || null;
-/** PURE on a GAMES row: the day HIGH RISE went live ('YYYY-MM-DD') | null (not playable / no day) */
-export const highriseLive = (row = highriseRow()) => (row && row.playable && KEY_RE.test(String(row.live || '')) ? String(row.live) : null);
-/** the HIGH RISE face a day key shows: 'highrise' | null */
-export function highriseShow(dayKey, row = highriseRow()) {
-  const live = highriseLive(row);
-  return live && KEY_RE.test(String(dayKey || '')) && dayNum(dayKey) >= dayNum(live) ? 'highrise' : null;
+// ---- THE ROW FACES (CITY PART 1 — HIGH RISE; THE FREEFALL CITY PASS — FREEFALL): an OPEN NOW poster lit by the game's OWN GAMES row (playable +
+// its `live` day), never COMING SOON; judged on the streak day like THE DROP. Newest first (docs/harbor.md "THE TRI-VISION")
+export const ROW_FACES = Object.freeze(['freefall', 'highrise']);
+const rowOf = id => GAMES.find(g => g && g.id === id) || null;
+/** PURE on a GAMES row: the day the game went live ('YYYY-MM-DD') | null */
+export const rowLive = (id, row = rowOf(id)) => (row && row.playable && KEY_RE.test(String(row.live || '')) ? String(row.live) : null);
+/** the row face a day key shows: id | null */
+export function rowShow(id, dayKey, row = rowOf(id)) {
+  const live = rowLive(id, row);
+  return live && KEY_RE.test(String(dayKey || '')) && dayNum(dayKey) >= dayNum(live) ? id : null;
 }
-export const isHighriseId = id => id === 'highrise';
-/** the faces a day key turns between, in order — CITY PART 1 (the owner): HIGH RISE → JAYWALK → HOLD'EM, the newest game first; THE DROP's face
- *  REMOVED (the owner's call via the games chat — its pieces stay for the old feed + the tests); null when fewer than two are up (one face alone =
- *  no turning); nowMs (the city's clock): HIGH RISE judged on the streak day (dropKey — the same later-of rule) */
-export function triFaces(dayKey, nowMs = null) { const F = [highriseShow(dropKey(dayKey, nowMs)), jaywalkShow(dayKey), holdemShow(dayKey)].filter(Boolean); return F.length >= 2 ? F : null; }
+export const highriseLive = (row = rowOf('highrise')) => rowLive('highrise', row);
+export const highriseShow = (dayKey, row = rowOf('highrise')) => rowShow('highrise', dayKey, row);
+export const isRowFace = id => ROW_FACES.includes(id);
+/** the faces a day key turns between, in order: the row faces (newest first) → JAYWALK → HOLD'EM; THE DROP's face removed (CITY PART 1); null
+ *  when fewer than two are up; nowMs: the row faces judged on the streak day (dropKey) */
+export function triFaces(dayKey, nowMs = null) { const k = dropKey(dayKey, nowMs), F = [...ROW_FACES.map(id => rowShow(id, k)), jaywalkShow(dayKey), holdemShow(dayKey)].filter(Boolean); return F.length >= 2 ? F : null; }
 /** CITY H1 — THE BOARD OPENS ON THE NEWEST GAME (the owner): PURE — the index in F of the face whose switch went on MOST RECENTLY (the latest of
  *  each face's `since` / OPEN DAY — /admin stamps them when a switch is flipped, never typed); a tie → the later face; no dates → 0 */
 export function newestFace(F, dates = {}) {
@@ -125,7 +126,9 @@ export function newestFace(F, dates = {}) {
 export const JAYWALK_OPENED = '2026-11-17';
 export function faceDates() {
   const H = holdemState(), J = jaywalkState(), D = dropState(), h = [H.since, H.open], j = [J.since, J.open || (J.bar === 'open' ? JAYWALK_OPENED : null)];
-  return { holdem: h, 'holdem-open': h, jaywalk: j, 'jaywalk-open': j, drop: [D.live], highrise: [highriseLive()] };   // (CITY PART 1: HIGH RISE's open day = its go-live — THE BOARD OPENS ON THE NEWEST GAME)
+  const o = { holdem: h, 'holdem-open': h, jaywalk: j, 'jaywalk-open': j, drop: [D.live] };
+  for (const id of ROW_FACES) o[id] = [rowLive(id)];   // (a row face's open day = its go-live)
+  return o;
 }
 /** THE BILLPOSTER stays home while the tri-vision is up (the turning board is the motion — no paste) */
 export const triKeeps = dayKey => !!triFaces(dayKey);

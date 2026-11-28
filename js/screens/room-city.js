@@ -258,7 +258,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   async function openGamesNow(asHost) {
     const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
     const base = GAMES.filter(g => g.playable || (asHost && isOwnerTest(g.id)));   // (HE8 — THE OWNER'S LIVE TEST: a game being built, on the owner's host phone only)
-    const [{ markSvg }, { LOGO_ACC }, O] = await Promise.all([lazyImport(import('../ui/mark-svg.js'), '../ui/mark-svg.js'), lazyImport(import('../ui/tube-logo.js'), '../ui/tube-logo.js'), lazyImport(import('../core/game-order.js'), '../core/game-order.js').catch(() => null)]);
+    const [{ markSvg, GAME_ACC }, O] = await Promise.all([lazyImport(import('../ui/mark-svg.js'), '../ui/mark-svg.js'), lazyImport(import('../core/game-order.js'), '../core/game-order.js').catch(() => null)]);
     // (CITY H2 — THE GAMES LIST ORDER: the PLAY sheet's own order — most played first, a game's first 14 days on top with NEW; CITY PART 2: the
     //  HOST's list puts the voted games on top at the open — most votes first, a tie = the earliest vote; never re-ordered under a finger)
     const shelf = O ? O.shelfOrder(base, O.storedOrder()) : base;   // (FIXES R2 — the owner: the PLAY sheet's neon marks, never the poster tiles)
@@ -278,7 +278,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
         // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
         if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
         lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
-      } }, h('span.sh-row-ic.rc-game-ic', { style: { '--ic': LOGO_ACC[g.id] || '#d6f0ff' }, html: markSvg(g), 'aria-hidden': 'true' }), h('span.rc-game-t', g.isNew ? h('em.gm-new', 'NEW') : null, h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb), mine), box, help || h('i.rc-game-go', '›'));
+      } }, h('span.sh-row-ic.rc-game-ic', { style: { '--ic': GAME_ACC[g.id] || '#d6f0ff' }, html: markSvg(g), 'aria-hidden': 'true' }), h('span.rc-game-t', g.isNew ? h('em.gm-new', 'NEW') : null, h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb), mine), box, help || h('i.rc-game-go', '›'));
       rows.set(g.id, { btn, dots, n, box, mine, sig: '' });
       return btn;
     }));

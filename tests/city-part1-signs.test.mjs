@@ -75,16 +75,22 @@ test('THE TRI-VISION: HIGH RISE\'s OPEN NOW face (B1) lit by its GO-LIVE alone; 
   assert.equal(highriseShow('2026-11-20', row), 'highrise');
   assert.equal(highriseShow('2026-11-20', { ...row, playable: false }), null, 'its row off: nothing');
   const F = triFaces('2026-11-25');
-  assert.equal(F[0], 'highrise'); assert.ok(!F.includes('drop'));
-  assert.equal(F[newestFace(F, faceDates())], 'highrise', 'the board opens on HIGH RISE (its open day the newest switch date)');
+  assert.equal(F[0], 'highrise', 'before FREEFALL\'s go-live: HIGH RISE first'); assert.ok(!F.includes('drop'));
+  const F2 = triFaces('2026-11-28');
+  assert.deepEqual(F2.slice(0, 3), ['freefall', 'highrise', 'jaywalk'], 'THE FREEFALL CITY PASS: FREEFALL → HIGH RISE → JAYWALK → HOLD\'EM');
+  assert.equal(F2[newestFace(F2, faceDates())], 'freefall', 'the board opens on the NEWEST game — FREEFALL (its go-live the newest switch date)');
   // the face is a picture: drawn WHOLE once it has decoded (lazy — never the boot graph); the reveal waits for the pick's picture ≤ 4 s
   const sc = read('js/screens/harbor/scene.js');
-  assert.match(sc, /lazyImport\(import\('\.\/highrise-art\.js'\), '\.\/highrise-art\.js'\)\.then\(m => \{ if \(!destroyed\) m\.warmHighrise\(/);
-  assert.match(sc, /\(f !== 'highrise' \|\| tri\.hr\)/, 'a face only once its picture has decoded (no flash)');
-  assert.match(sc, /bp === 'highrise' \? !!tri\.hr/, 'the reveal waits for the pick\'s picture (≤ REVEAL_MAX − 0.5 s)');
-  const art = read('js/screens/harbor/highrise-art.js');
-  assert.match(art, /assets\/city\/highrise\/billboard\.webp/); assert.match(art, /drawImage\(img, C\.dx, C\.dy, C\.dw, C\.dh\)/);
-  assert.ok(!/fillText|word\(/.test(art), 'nothing lettered over the picture');
+  for (const id of ['highrise', 'freefall']) assert.ok(sc.includes(`${id}: () => lazyImport(import('./${id}-art.js'), './${id}-art.js')`), `${id}: its painter lazy`);
+  assert.match(sc, /ROW_ART\[id\]\(\)\.then\(m => \{ if \(!destroyed\) m\.warm\(/);
+  assert.match(sc, /\(!ROW_FACES\.includes\(f\) \|\| tri\.row\[f\]\)/, 'a face only once its picture has decoded (no flash)');
+  assert.match(sc, /ROW_FACES\.includes\(bp\) \? !!tri\.row\[bp\]/, 'the reveal waits for the pick\'s picture (≤ REVEAL_MAX − 0.5 s)');
+  for (const id of ['highrise', 'freefall']) {
+    const art = read(`js/screens/harbor/${id}-art.js`);
+    assert.ok(art.includes(`assets/city/${id}/billboard.webp`)); assert.match(art, /drawImage\(img, C\.dx, C\.dy, C\.dw, C\.dh\)/);
+    assert.match(art, /export (function warm\(|\{ warmHighrise as warm)/, `${id}: the row faces' one shape`);
+    assert.ok(!/fillText|word\(/.test(art), 'nothing lettered over the picture');
+  }
   const boot = JSON.parse(read('tests/integration/boot-budget.json'));
-  assert.ok(!JSON.stringify(boot).includes('highrise-art'), 'never in the boot');
+  assert.ok(!JSON.stringify(boot).includes('-art.js'), 'never in the boot');
 });

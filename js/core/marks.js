@@ -5,6 +5,8 @@
 // A mark is drawn in a 0..100 box: { tubes: [{ d: SVG path, col }], blade: 'WORD', w?: its tube width as an icon (7) }. To add a game: add its mark here —
 // the signs pick it up from the GAMES registry automatically. A game without a mark gets its initials in tube letters.
 
+/** each game's OWN accent (its body[data-theme] --accent) — the PLAY shelf + PICK A GAME's icon glow, the title's game cards; ONE table (THE FREEFALL CITY PASS) */
+export const GAME_ACC = Object.freeze({ rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#f2c14e', jaywalk: '#ff4fc4', highrise: '#ff4fd8', freefall: '#27e0e6' });
 export const MARKS = {
   // CIPHER BREACH: a grid of letter tiles, two of them lit yellow like a hint
   cipher: { blade: 'CIPHER', tubes: [

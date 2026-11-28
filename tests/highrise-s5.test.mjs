@@ -110,7 +110,7 @@ test('THE B1 BILLBOARD — Bowlby One as GENERATED path data (no font load) · H
   if (kind === 'VP8 ') assert.deepEqual([webp.readUInt16LE(vp8 + 14) & 0x3fff, webp.readUInt16LE(vp8 + 16) & 0x3fff], [848, 448], 'the board\'s 848 × 448');
   // (CITY PART 1 — WIRED into the city at last: the tri-vision's OPEN NOW face, drawn WHOLE by highrise-art.js — tests/city-part1-signs.test.mjs)
   assert.match(read('js/screens/harbor/highrise-art.js'), /assets\/city\/highrise\/billboard\.webp/, 'the city draws this very picture');
-  assert.match(read('js/core/harbor-trivision.js'), /export function highriseShow\(/, 'its face on the board');
+  assert.match(read('js/core/harbor-trivision.js'), /export const ROW_FACES = Object\.freeze\(\[[^\]]*'highrise'/, 'its face on the board (THE FREEFALL CITY PASS: a ROW FACE — lit by its GAMES row)');
 });
 
 test('THE CLOSE\'s REVIEW — the baked HUD is WARMED behind the welcome (no bake in a NEW BEST / first-call frame), at most SETS_KEPT digit sets kept (evicted ones zeroed), a new dpr resizes the backing, the share card\'s numbers are THE JUDGE\'s', async () => {

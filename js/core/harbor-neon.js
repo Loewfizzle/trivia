@@ -922,7 +922,7 @@ const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m
 
 // ---- CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
 /** THE SIGN HOLD (HIGH RISE's GO-LIVE, Nov 20): a playable game kept OFF every city sign until THE CITY PASS lifts it (docs/highrise.md) */
-export const SIGN_HOLD = Object.freeze(['freefall']);   // (FREEFALL's GO-LIVE, Nov 28: held until THE CITY PASS installs its sign + day face + billboard and lifts it — HIGH RISE's was lifted by CITY PART 1)
+export const SIGN_HOLD = Object.freeze([]);   // (HIGH RISE's lifted by CITY PART 1, FREEFALL's by THE FREEFALL CITY PASS, Nov 28)
 /** the games a city sign may name: the playable ones (never a frozen game, never a daily), minus THE SIGN HOLD */
 export function signRoster(games) {
   return (games || []).filter(g => g && g.playable && !g.daily && !SIGN_HOLD.includes(g.id));
@@ -936,7 +936,7 @@ export const litSigns = (pick, spots) => [...new Set((spots || []).filter(s => s
 export const bladeGame = (ms, ids, lit = []) => ghostAdGame(ms, ids, lit && lit.length ? lit : null);
 /** the owner's call (Nov 15): these names are ALWAYS two stacked words on every neon sign — never one line — where the spot takes two (a roof
  *  sign) or allows a split (`split` — the vertical blades) */
-export const SIGN_SPLIT = Object.freeze({ jaywalk: ['JAY', 'WALK'], overclock: ['OVER', 'CLOCK'], highrise: ['HIGH', 'RISE'] });   // (CITY PART 1: HIGH / RISE stacked on a roof sign; the hotel blade's column can not take it — 8 letters > cap + 1: PRISM / HOLDEM only, the owner's)
+export const SIGN_SPLIT = Object.freeze({ jaywalk: ['JAY', 'WALK'], overclock: ['OVER', 'CLOCK'], highrise: ['HIGH', 'RISE'], freefall: ['FREE', 'FALL'] });   // (CITY PART 1: HIGH / RISE stacked on a roof sign; the hotel blade's column can not take it — 8 letters > cap + 1: PRISM / HOLDEM only, the owner's)
 /** FIXES R2 (the owner, Nov 15): a ROOF sign (a 'box' spot taking two words) spells PRISM's FULL name, stacked — PRISM / DROP, like JAY / WALK;
  *  a vertical blade (the hotel's, the speakeasy's) keeps the one word PRISM */
 export const SIGN_STACK = Object.freeze({ prism: ['PRISM', 'DROP'] });
@@ -995,7 +995,8 @@ export function assignSigns(games, spots, key = 'x', { avoid = null } = {}) {
   // the week's order: the games that fit a named spot, shuffled for the week, rotated by tonight's place in it
   const fitsAny = id => others.some(s => signText(byId.get(id), s));
   const pool = shuffle(rngFrom(`signs|w${week}`), games.map(g => g.id).filter(fitsAny));
-  const rot = pool.length ? (d * Math.max(1, named.length)) % pool.length : 0, order = [...pool.slice(rot), ...pool.slice(0, rot)];
+  // (THE FREEFALL CITY PASS: + one each wrap — six names on three spots stepped 0 · 3 · 0 · 3 and a game sat out a whole week)
+  const st = d * Math.max(1, named.length), rot = pool.length ? (st + Math.floor(st / pool.length)) % pool.length : 0, order = [...pool.slice(rot), ...pool.slice(0, rot)];
   // the phone's own spots first (CITY B: few games hang now — a panorama's extra blade never leaves a roof sign dark), then the most particular
   // (fewest words, then the shortest cap)
   const pano = x => (String(x.id).startsWith('n-pano') ? 1 : 0);
