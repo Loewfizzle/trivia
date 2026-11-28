@@ -421,6 +421,7 @@ RULES.freefall = {
       'A MATCH: one tower. The deepest wins.',
       'It ends at THE BOTTOM (floor 200) or 3:00.',
       'SOLO: leave the app and it PAUSES (3 a run).',
+      'A MATCH never pauses.',   // (FIX C — N5)
     ]],
   ],
 };
@@ -504,7 +505,7 @@ function body(id) {
 
 /** CITY I: opened through ui/help-open.js (this file is a LAZY chunk — never a static import). `frame` = the sheet help-open.js opened
  *  at the tap while this file loaded: the rules fill THAT sheet (never a second one) and its close runs this file's cleanup (whenClosed) */
-export function openHelp(gameId, frame = null) {
+export function openHelp(gameId, frame = null, o = null) {
   if (!frame) closeHelp();
   // (only the PLAYABLE games' tabs + the game on screen's own)
   const first = (GAMES.find(g => g.playable) || GAMES[0]).id;
@@ -521,7 +522,7 @@ export function openHelp(gameId, frame = null) {
     content.replaceChildren(...body(id));
     content.scrollTop = 0;
   };
-  for (const g of GAMES.filter(x => x.playable || x.id === current)) {
+  for (const g of GAMES.filter(x => (o && o.only ? x.id === current : x.playable || x.id === current))) {   // (FIX C: `only` — a game's test page shows its own tab alone)
     tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, markSvg(g) ? h('span.help-ic', { html: markSvg(g, 'help-mark'), 'aria-hidden': 'true' }) : TAB[g.id] || g.name.slice(0, 2)));
   }
   // (THE SHEET; the game's name = its small line)

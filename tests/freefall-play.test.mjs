@@ -23,7 +23,10 @@ const posix = p => normalize(p).split('\\').join('/');
 //  DRAWING (the ground, the foot, the letter spacing). daily/share.js's own LAZY imports are its showCard sheet (+ a SHARE tube from
 //  ui/components.js, which reaches the console): the page never calls showCard / sendReady / sendShare / prepShare / shareRunCard —
 //  send.js shows its own picture (the test below proves both) — so that one module's lazy imports are not followed)
-export const SHEET_ONLY = Object.freeze({ 'js/daily/share.js': ['../ui/sheet.js', '../ui/dom.js', '../ui/components.js'] });
+export const SHEET_ONLY = Object.freeze({ 'js/daily/share.js': ['../ui/sheet.js', '../ui/dom.js', '../ui/components.js'],
+  // (FIX C — the page's ☰ HOW TO PLAY: help.js's one lazy import is HOLD'EM's hand rankings, a button on HOLD'EM's tab — the page opens
+  //  FREEFALL's tab ALONE (`only`), so it is never there to tap)
+  'js/ui/help.js': ['../games/holdem/rankings.js'] });
 function graph(entry) {
   const seen = new Set(), bare = new Set(), todo = [entry];
   while (todo.length) {
@@ -81,7 +84,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
   // (F4B — THE MATCH on the page: the ghosts + the match's HUD are the stage's own; THE BOT ROOM — matchsim.js + the sims' bots + the proof's
   //  pure chunk maths — is LAZY: loaded only with `?mode=match&rivals=N`; nothing of it writes or counts)
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'empty.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'veil.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'botmatch.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'empty.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'veil.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
   // F5B — the page's SHARE: the picture kit is lazy, and nothing on the page sends through the share kit's own senders (send.js does)
   const fromDaily = g.files.filter(f => /from '[^']*daily\/share\.js'/.test(code(f)));
   assert.deepEqual(fromDaily, [`${FF}card.js`, 'js/games/kit/share-run.js'], 'the drawing reaches daily/share.js through card.js + the kit alone');
@@ -89,7 +92,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   assert.match(code(`${FF}card.js`), /import \{ runCard, drawRunCard, RUN_W \} from '\.\.\/kit\/share-run\.js';/, '… and the kit\'s card — never its sender (shareRunCard)');
   for (const f of g.files) if (!['js/games/kit/share-run.js', 'js/daily/share.js'].includes(f)) assert.doesNotMatch(code(f), /\bshareRunCard\b|\bsendShare\b|\bsendReady\b|\bprepShare\b/, `${f}: never the share kit's own senders`);
   assert.match(read(`${FF}stage.js`), /lazyImport\(import\('\.\/matchsim\.js'\), '\.\/matchsim\.js'\)/, 'the bot room is lazy'); assert.doesNotMatch(read(`${FF}stage.js`), /^import .*matchsim/m);
-  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/config.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/proof.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/daily/share.js', 'js/errlog.js', 'js/games/jaywalk/numerals.js', 'js/games/kit/look.js', 'js/games/kit/share-run.js', 'js/games/kit/tiers.js', 'js/ui/canvas-safe.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
+  assert.deepEqual(g.files.filter(f => !f.startsWith(FF)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sfx-kit.js', 'js/audio/sound-state.js', 'js/config.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/marks.js', 'js/core/party.js', 'js/core/proof.js', 'js/core/quiet-kinds.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/daily/share.js', 'js/errlog.js', 'js/games/jaywalk/numerals.js', 'js/games/kit/look.js', 'js/games/kit/share-run.js', 'js/games/kit/tiers.js', 'js/ui/canvas-safe.js', 'js/ui/dom.js', 'js/ui/help-open.js', 'js/ui/help.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/mark-svg.js', 'js/ui/onscreen.js', 'js/ui/sheet.js'], 'the shared modules: the audio engine + its helpers, the kit\'s tiers + its LOOK (F3 — AUTO asks the site\'s own sun rule: core/sky.js + what it reads), THE SHEET, the lazy loader, the integer hash');
   // (HIGH RISE's page carries the same five: they are PURE — the sun's place is worked out on the phone, nothing is asked of a server)
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
@@ -136,7 +139,8 @@ test('THE RUN ON THE PAGE: FAIR INPUT (each move at its own event time, coalesce
   assert.match(s, /if \(t0 == null && !\(match && !o\.rivals\)\) \{ if \(performance\.now\(\) - restartAt < RESTART_GUARD_MS\) return; begin\(stamp\(e\.timeStamp\)\); \}/, 'THE REVIEW: the tail of a double tap on PLAY AGAIN is not a start (F4B: a MATCH starts on its count — never on a drag)');
   assert.match(s, /if \(held\) \{ countAt = 0; countShown = 0; holdN\.textContent = ''; return; \}/, 'THE REVIEW: hidden again during the 3 · 2 · 1 — the count starts over, never skipped');
   assert.match(s, /if \(document\.visibilityState === 'hidden'\) hide\(\);/, 'THE REVIEW: a run that goes live behind a hidden page is held at once');
-  assert.doesNotMatch(s, /addEventListener\('click'/, 'never a click (TAPS ON PLAIN PAGE AREAS)');
+  assert.equal((s.match(/addEventListener\('click'/g) || []).length, 1, 'never a click (TAPS ON PLAIN PAGE AREAS) — FIX C N12: the ONE click = clickPress, SHARE\'s (iOS gives the share sheet a real click)');
+  assert.match(s, /clickPress\(share, sharePage\);/);
   assert.match(s, /carry \+= \(s\.clientX - drag\.x\) \* TURN \/ \(2 \* Math\.PI \* view\.pxPerRad\(\)\);/, '1 : 1 — the finger\'s pixels → the ring\'s own radians → angle units (F1\'s scale)');
   assert.match(s, /typeof e\.getCoalescedEvents === 'function' \? e\.getCoalescedEvents\(\) : null/, 'every sample the browser gathered, each at its own time');
   assert.match(s, /const T = tickOf\(ts, t0\);/, 'a move\'s event time → its tick');
@@ -538,7 +542,7 @@ test('THE AREAS\' WALLS + THE END (static): each area its wall (THE ROOFTOP = th
   assert.match(read('css/freefall-play.css'), /\.ff-ec-logo-img \{ display: block; width: clamp\(210px, calc\(var\(--ff-w\) \* 0\.58\), 320px\);/, '~58 % of the card — never under 210 pt: the script must read');
   assert.match(e, /cause\.style\.setProperty\('--fn', NEON\.teal\);/, 'the cause in teal — never red');
   assert.ok(s.includes("h('div.ff-endfoot', again, h('div.ff-links', ...(o.onLeave ? [city] : [share, h('i.ff-link-div', { 'aria-hidden': 'true' }), city])))"), 'F4B — THE UNIVERSAL FOOTER: PLAY AGAIN, then SHARE | HOME (the cartridge\'s own card: the way out alone)');
-  assert.ok(!s.includes('SOON') && s.includes("h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'))") && s.includes('press(share, sharePage);'), 'SHARE works (the phone\'s own share sheet — a line + this page\'s link: no card, no server); HOME goes home');
+  assert.ok(!s.includes('SOON') && s.includes("h('a.ff-link.ff-city', { href: '/' }, linkIco('home'), h('span', 'HOME'))") && s.includes('clickPress(share, sharePage);'), 'SHARE works (the phone\'s own share sheet — a line + this page\'s link: no card, no server); HOME goes home');
   assert.match(read('css/freefall-play.css'), /\.ff-again \{[^}]*border-radius: 12px;[^}]*background: var\(--ff-teal\); color: #04262a;/, 'PLAY AGAIN: one solid bar in FREEFALL\'s accent, a rounded rectangle (the universal footer\'s 12 px — never a pill)');
   assert.doesNotMatch(read('css/freefall-play.css'), /\.final\.crowned|ff-flash/, 'no pink flash at the end (the page builds its own card — the console\'s crown never runs here)');
 });

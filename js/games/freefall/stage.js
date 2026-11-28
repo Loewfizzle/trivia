@@ -73,6 +73,14 @@ function press(node, fn) {
   node.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); fn(e); } });
   return node;
 }
+/** FIX C — N12: a button that acts on its CLICK (the share sheet needs the browser's own user activation — iOS gives it to a click, not
+ *  always to a pointerup); its press + lift still never reach the tower */
+function clickPress(node, fn) {
+  node.addEventListener('pointerdown', e => e.stopPropagation());
+  node.addEventListener('pointerup', e => e.stopPropagation());
+  node.addEventListener('click', e => { e.stopPropagation(); node.blur(); fn(e); });
+  return node;
+}
 const ICON_AGAIN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
 const NO_VIEW = { el: null, reset() {}, feed() {}, draw() {}, pose() {}, setTier() {}, setLook() {}, lookNow: () => 'night', warm: () => true, skyIn: () => true, setBest() {}, grey() {}, rest() {}, adopt() {}, pxPerRad: () => 112, project: () => [0.5, 0.5], frame: () => null, apexY: () => 0.2, info: () => ({}), lastWork: () => 0, submitAt: () => 0, ghosts() {}, ghostNames() {}, ghostEcho() {}, ghostInfo: () => ({}), destroy() {} };
 
@@ -140,7 +148,9 @@ export function createStage(app0, o = {}) {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  const stage = h(`div.ff-stage.is-open${HUD0 ? '.ff-nohud' : ''}`, { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
+  // FIX C — HOW TO PLAY on the TEST PAGE: ☰ top-left on the opening + the pause → the ONE opener (ui/help-open.js — lazy, the frame at the tap)
+  const helpBtn = PAGE ? press(h('button.ff-menu', { type: 'button', 'aria-label': 'How to play' }, h('i.ff-menu-i', { 'aria-hidden': 'true' }, h('b'), h('b'), h('b'))), () => { lazyImport(import('../../ui/help-open.js'), '../../ui/help-open.js').then(m => m.openHelp('freefall', { only: true })).catch(() => {}); }) : null;
+  const stage = h(`div.ff-stage.is-open${HUD0 ? '.ff-nohud' : ''}`, { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, helpBtn, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
   app.replaceChildren(stage);
   // FIX A — THE TITLE's GREY FLASH (the owner's iPhone): the … stage.js#19
   let dimming = true;
@@ -659,7 +669,7 @@ export function createStage(app0, o = {}) {
     const n = startN;
     shareBusy(picKit().then(() => (n === startN && pic ? pic.send() : null), () => {}));
   };
-  press(share, sharePage);
+  clickPress(share, sharePage);   // (FIX C — N12: a real click)
   if (o.onLeave) press(city, () => { city.classList.add('is-busy'); Promise.resolve(o.onLeave()).then(null, () => city.classList.remove('is-busy')); });
   function showEnd(now) {
     shown = true; drag = null; keyDir = 0; owed = 0;

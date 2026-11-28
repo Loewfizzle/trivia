@@ -113,14 +113,17 @@ function mount() {
   const lift = e => { if (drag && drag.id === e.pointerId) drag = null; };
   play.addEventListener('pointerup', lift); play.addEventListener('pointercancel', lift);
   play.addEventListener('touchmove', e => e.preventDefault(), { passive: false });   // (no page scroll under a finger)
-  document.addEventListener('keydown', e => {
+  // (FIX C: the document's listeners are KEPT — stop() takes them away: a start / stop twice = one handler)
+  const onKeyDown = e => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
     if (shown) return;
     if (t0 == null) begin(stamp(e.timeStamp));
     keyDir = e.key === 'ArrowLeft' ? -1 : 1;
-  });
-  document.addEventListener('keyup', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') keyDir = 0; });
+  };
+  const onKeyUp = e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') keyDir = 0; };
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
 
   function showEnd(now) {
     shown = true; overAt = now; drag = null; keyDir = 0;
@@ -196,7 +199,7 @@ function mount() {
     msToLanding: () => (t0 != null && !isOver(run) ? t0 + run.nl * TICK_MS - performance.now() : null),
     restart: (m, s) => restart(m || mode, s),
     frames: () => frames.slice(),
-    stop() { cancelAnimationFrame(raf); view.destroy(); },
+    stop() { cancelAnimationFrame(raf); view.destroy(); document.removeEventListener('keydown', onKeyDown); document.removeEventListener('keyup', onKeyUp); },
   };
   restart();
   raf = requestAnimationFrame(frame);

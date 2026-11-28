@@ -220,13 +220,13 @@ async function look() {
         await t.close();
       }
     }
-    // F4B — THE MATCH on the page (the bot room: `?mode=match&rivals=7`): the ghosts (their tags, the x-ray, the outline near my ball), THE
+    // F4B — THE MATCH on the page (the bot room: `?mode=match&rivals=7&room=1`): the ghosts (their tags, the x-ray, the outline near my ball), THE
     // DEPTH RAIL, the edge markers — at the 4 sizes; a look's own contrast (the day's pearl / gold / lavender floors, the water)
     if (want('match')) {
       const M = 'window.__ffPlay.matchState()';
       for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2], [430, 932, 3], [1440, 900, 1]]) {
         const tag = `${sw}x${sh}`;
-        t = await open(sw, sh, sd, `?seed=look3&mode=match&rivals=7${q}`, { best: 88 });
+        t = await open(sw, sh, sd, `?seed=look3&mode=match&rivals=7&room=1${q}`, { best: 88 });
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `${M}.ghosts.length === 7 && window.__ffPlay.state().floor >= 1`, 20000);
         await sleep(500); await shot(t.p, f(`50-match-a-start-${tag}`));
@@ -238,7 +238,7 @@ async function look() {
       }
       // … deep in a run, the rivals level with me (the bot room's clock shifted): the offices · the speakeasy's gold · the harbor's pearl + the water
       for (const [name, floor, shift] of [['offices', 46, 900], ['speakeasy', 88, 2300], ['harbor', 124, 3500], ['deep', 166, 5200]]) {
-        t = await open(w, h, dpr, `?seed=look3&mode=match&rivals=7&floor=${floor}&simshift=${shift}${q}`, { best: 88 });
+        t = await open(w, h, dpr, `?seed=look3&mode=match&rivals=7&room=1&floor=${floor}&simshift=${shift}${q}`, { best: 88 });
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `${M}.ghosts.length === 7`, 20000);
         await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === "bounce"`, 30000); await auto(t.p, 'safe'); await sleep(900);
@@ -288,7 +288,7 @@ async function look() {
       const M = 'window.__ffPlay.matchState()';
       for (const [sw, sh, sd] of [[390, 844, 3], [375, 667, 2]]) {
         const tag = `${sw}x${sh}`;
-        t = await open(sw, sh, sd, `?seed=look4&mode=match&rivals=3${q}`, { best: 88 });
+        t = await open(sw, sh, sd, `?seed=look4&mode=match&rivals=3&room=1${q}`, { best: 88 });
         await start(t); await auto(t.p, 'play');
         await waitFor(t.p, `${M}.hud.outTotal >= 1`, 120000); await sleep(250);
         await shot(t.p, f(`52-moment-out-${tag}`));
@@ -1264,12 +1264,12 @@ async function checks6() {
       `${lk} ${w}×${h} — THE FRAME BAR: the ball stands on floor 40 — 0.45 s after the break the deck is not drawn, 1.75 s after it no piece of the frame is; the bar's line (left · right) + the top bar's line read at 1 s as they do at 3.2 s (lightness off by ${diff.map(v => v.toFixed(1)).join(' · ')} of 255 — nothing lies there)`);
     await t.close();
   }
-  // ---- THE MATCH ON THE PAGE (the bot room — `?mode=match&rivals=7`: seven bots on the run's own seed, fed to the ghosts as a room's proof
+  // ---- THE MATCH ON THE PAGE (the bot room — `?mode=match&rivals=7&room=1`: seven bots on the run's own seed, fed to the ghosts as a room's proof
   // nodes would be; nothing counts, nothing is asked of any server): the ghosts, their tags, the outline near my ball, THE DEPTH RAIL,
   // the edge markers, the top line; OUT = WATCH THE LEADER (a tap = the next player)
   {
     const M = 'window.__ffPlay.matchState()';
-    const t = await open(390, 844, 2, '?seed=look3&mode=match&rivals=7&watch=1&look=night');
+    const t = await open(390, 844, 2, '?seed=look3&mode=match&rivals=7&room=1&watch=1&look=night');
     await start(t);
     ok(await waitFor(t.p, `${M}.ghosts.length === 7 && ${M}.layer.baked === 1`, 20000), 'THE BOT ROOM: seven rivals — a ghost each, their name tags baked ONCE (behind the start)');
     let m = await t.p.evaluate(M);
@@ -1306,7 +1306,7 @@ async function checks6() {
 async function perf8() {
   for (const [lk, floor, where] of [['night', 84, 'THE SPEAKEASY'], ['day', 84, 'THE SPEAKEASY'], ['day', 124, 'UNDER THE HARBOR'], ['night', 124, 'UNDER THE HARBOR']]) for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {   // (F5B: UNDER THE HARBOR by night wears the day's water now)
     if (ONE && ONE !== `${lk}-${floor}-${tier}-${rate}`) continue;
-    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}&mode=match&rivals=8&simshift=2000`);
+    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}&floor=${floor}&look=${lk}&mode=match&rivals=8&room=1&simshift=2000`);
     await start(d); await auto(d.p, 'smash');
     await waitFor(d.p, 'window.__ffPlay.matchState().ghosts.length === 8', 20000);
     await d.p.evaluate(() => window.__ffPlay.simNear(true));
@@ -1443,7 +1443,7 @@ async function fixb() {
   ok(/^AB dpr 1\.5 · bloom 0 · fx 0 · wall 0 · tier 1 pinned · smooth 0 — /.test(s.fpsLine) && !s.info.bloom && s.info.dpr <= 1.5 && s.tier === 1 && !t.errs.length, `THE A/B SWITCHES named on the line (${s.fpsLine.slice(0, 90)} …) · bloom ${s.info.bloom} · dpr ${s.info.dpr} · ${t.errs.length} errors`);
   await shot(t.p, 'fixb-ab-all-off.png');
   await t.close();
-  t = await open(390, 844, 3, '?seed=fixb3&fps=1&mode=match&rivals=3&ghosts=0');
+  t = await open(390, 844, 3, '?seed=fixb3&fps=1&mode=match&rivals=3&room=1&ghosts=0');
   await start(t); await auto(t.p, 'play'); await sleep(2500);
   s = await st(t.p);
   const gm = await t.p.evaluate('window.__ffPlay.matchState()');
@@ -1481,7 +1481,7 @@ async function fixb() {
     if (name !== '60 Hz + one 36 ms frame') ok(off.bad > on.bad, `… ?smooth=0 (the old way) steps once a tick: ${off.bad} / ${off.n} frames off (${off.sample})`);
   }
   // (7) G3 — THE CALLOUTS' TIMERS after a reset(): 2 callouts, reset, past OUT_CALL_MS, then 4 → never more than OUT_CALL_MAX on screen
-  t = await open(390, 844, 3, '?seed=fixb5&mode=match&rivals=2');
+  t = await open(390, 844, 3, '?seed=fixb5&mode=match&rivals=2&room=1');
   const outs = () => t.p.evaluate('window.__ffPlay.matchState().hud.outs.length');
   await t.p.evaluate(() => { window.__ffPlay.mh.callout('MIA IS OUT', '#00f0ff'); window.__ffPlay.mh.callout('LIAM IS OUT', '#ffd23f'); window.__ffPlay.mh.reset(); });
   await sleep(1500 + 400);
@@ -1491,7 +1491,7 @@ async function fixb() {
   await t.close();
   // (8) G3.2 — LAST ONE STANDING's two lines: the dot ENDS line 1, never leads line 2 — the longest words (a 12-letter name) at 375 + 390
   for (const [w, hh, dd] of [[375, 667, 2], [390, 844, 3]]) {
-    t = await open(w, hh, dd, '?seed=fixb5&mode=match&rivals=2');
+    t = await open(w, hh, dd, '?seed=fixb5&mode=match&rivals=2&room=1');
     await start(t); await auto(t.p, 'play'); await sleep(1800);   // (mid-run: the title gone, the card where a player sees it)
     const rows = [];
     for (const words of ['ABCDEFGHIJKL HIT THE BOTTOM · KEEP FALLING FOR 2ND', '2 RIVALS HIT THE BOTTOM · KEEP FALLING FOR 3RD', '123 FLOORS TO THE LEAD · KEEP FALLING']) {
@@ -1504,7 +1504,7 @@ async function fixb() {
     await t.close();
   }
   // (6) G1 — A LOST CONTEXT in a match: the new scene gets the 7 rivals + their names again; while WATCHING, the next frame adopts the watched run
-  t = await open(390, 844, 3, '?seed=look3&mode=match&rivals=7');
+  t = await open(390, 844, 3, '?seed=look3&mode=match&rivals=7&room=1');
   await start(t); await auto(t.p, 'play'); await sleep(2500);
   const before = await t.p.evaluate('window.__ffPlay.matchState().layer');
   await t.p.evaluate(() => window.__ffPlay.lose());
@@ -1530,7 +1530,9 @@ async function fixb() {
 async function fixc() {
   const S = 'window.__ffPlay.state()';
   // (1) `?hud=0`: no HTML layer over the canvas while a run is on; the fps line + the end card come back at the end
-  let t = await open(390, 844, 3, '?seed=fixc1&fps=2&hud=0');
+  let t;
+  if (!argv.includes('--fixc-g3')) {
+  t = await open(390, 844, 3, '?seed=fixc1&fps=2&hud=0');
   await start(t); await auto(t.p, 'play');
   await waitFor(t.p, `${S}.floor >= 4`, 20000);
   const vis = await t.p.evaluate(() => [...document.querySelectorAll('.ff-hud, .ff-best, .ff-banners, .ff-match, .ff-fps, .ff-note')].map(e => [e.className, getComputedStyle(e).visibility]));
@@ -1560,11 +1562,47 @@ async function fixc() {
     ok(!errs.length, `… no page error (${errs.join(' | ') || 'none'})`);
     await ctx.close();
   }
+  }
   if (argv.includes('--fixc-g0')) return;
+  // (3) THE BOT MATCH (`?mode=match&rivals=3`): the 3 · 2 · 1 + the names BEFORE any drag, the bots from GO, my out → WATCH THE LEADER, a
+  //     tap = the next, everyone down → THE RESULTS (my place + their floors) + REMATCH (a new round, the count again)
+  const B = 'window.__ffBot.state()';
+  for (const spect of [false, true]) {
+    const D = spect ? 'spectate' : 'testpage', sub = n => (OUT ? join('..', D, n) : n);
+    if (OUT) mkdirSync(join(OUT, '..', D), { recursive: true });
+    t = await open(390, 844, 3, `?seed=fixc-bm&mode=match&rivals=3${spect ? '&spectate=1' : ''}`);
+    ok(await waitFor(t.p, `!!window.__ffBot && ['3', '2'].includes(window.__ffPlay.matchState().hud.count)`, 15000), `${D}: the 3 · 2 · 1 BEFORE any drag (${await t.p.evaluate(() => JSON.stringify(window.__ffPlay.matchState().hud.count))})`);
+    const names = await t.p.evaluate(() => [...document.querySelectorAll('.ff-match .ff-count-names > *')].map(e => e.textContent));
+    ok(names.length === (spect ? 3 : 4), `… the names under it: ${names.join(' · ')}`);
+    if (OUT) await shot(t.p, sub(`fixc-${D}-count.png`));
+    ok(await waitFor(t.p, `${B}.adopted && ${S}.started`, 8000), '… GO: the run is on (no drag)');
+    if (!spect) { await auto(t.p, 'red'); ok(await waitFor(t.p, `${B}.my != null`, 20000), `my run ends (${JSON.stringify((await t.p.evaluate(() => window.__ffBot.state())).my)})`); }
+    else ok((await t.p.evaluate(() => window.__ffPlay.matchState().spect)) === true, 'spectate: no ball of my own (the stage is a watcher)');
+    ok(await waitFor(t.p, `${B}.watching !== '' && /^WATCHING /.test(${B}.line)`, 15000), `… WATCH THE LEADER: "${(await t.p.evaluate(() => window.__ffBot.state().line)).replace(/\n/g, ' | ')}"`);
+    await sleep(1500);
+    if (OUT) await shot(t.p, sub(`fixc-${D}-watch.png`));
+    const w1 = (await t.p.evaluate(() => window.__ffBot.state())).watching;
+    await t.p.mouse.click(195, 420); await sleep(400);
+    const w2 = (await t.p.evaluate(() => window.__ffBot.state())).watching;
+    const live = (await t.p.evaluate(() => window.__ffBot.state().rows.filter(r => !r.me && !r.over).length));
+    ok(live < 2 || w2 !== w1, `… a TAP = the next player (${w1} → ${w2}, ${live} still falling)`);
+    if (spect) { await sleep(2500); if (OUT) await shot(t.p, sub('fixc-spectate-watch-2.png')); }
+    await t.p.evaluate(() => window.__slowmo(8));   // (the bots to their ends: the page's clock 8×)
+    ok(await waitFor(t.p, `!!${B}.results && !!document.querySelector('.ff-bm')`, 120000), '… everyone down → THE RESULTS');
+    await t.p.evaluate(() => window.__slowmo(1));
+    await sleep(500);
+    const R = await t.p.evaluate(() => ({ head: document.querySelector('.ff-bm-h').textContent, rows: [...document.querySelectorAll('.ff-bm-list li')].map(li => li.textContent), me: !!document.querySelector('.ff-bm-list li.is-me'), btn: document.querySelector('.ff-bm-again').textContent, again: !!document.querySelector('.ff-again:not(.ff-bm-again):not([hidden])') && !document.querySelector('.ff-end').hidden }));
+    ok(R.rows.length === (spect ? 3 : 4) && R.me === !spect && R.btn === 'REMATCH' && (spect ? R.head === 'YOU WATCHED' : /^YOU (WON|CAME)/.test(R.head)) && !R.again, `… "${R.head}" · ${R.rows.join(' | ')} · [${R.btn}] — no solo PLAY AGAIN`);
+    if (OUT) await shot(t.p, sub(`fixc-${D}-results.png`));
+    await t.p.click('.ff-bm-again');
+    ok(await waitFor(t.p, `${B}.round === 2 && !document.querySelector('.ff-bm') && ['3', '2', '1', ''].includes(window.__ffPlay.matchState().hud.count)`, 8000), '… REMATCH: a new round, the count again');
+    ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+    await t.close();
+  }
 }
 
 if (LOOK) await look();
-else if (argv.includes('--fixc') || argv.includes('--fixc-g0')) await fixc();
+else if (argv.includes('--fixc') || argv.includes('--fixc-g0') || argv.includes('--fixc-g3')) await fixc();
 else if (argv.includes('--watershot')) await watershot();
 else if (argv.includes('--fixb')) await fixb();
 else if (argv.includes('--contrast')) await contrast();

@@ -9,7 +9,7 @@
 import { h } from '../../ui/dom.js';
 import { MODE_IDS, SEED_MAX } from './tuning.js';
 import { BEST_KEY, cleanBest } from './best.js';
-import { createStage } from './stage.js';
+import { createStage, newSeed } from './stage.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 
 const app = document.getElementById('app');
@@ -55,8 +55,15 @@ const AB = Object.freeze({ bloom: !off('bloom'), fx: !off('fx'), wall: !off('wal
 
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds) with the page's own pieces on (`page`): the SOUNDS
 // list, the note; YOUR BEST = this phone's (`ff:play:best`)
-// FIX C — `?empty=1`: THE CONTROL (empty.js) — the same canvas + loop + meter with a plain spinning mesh, no game, no HTML layer
+// THE PAGE's STAGE OPTIONS (the look, the speed switches, YOUR BEST = this phone's)
+const OPTS = { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '2' ? 2 : Q.get('fps') === '1' ? 1 : 0, ab: AB, tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest }, name: myName };
+// FIX C — THE BOT MATCH (botmatch.js — lazy): `?mode=match&rivals=N` = the real 3 · 2 · 1 + the names, the bots from GO, WATCH, THE RESULTS +
+// REMATCH · `&spectate=1` = no ball of your own, you follow the leader. `&room=1` = the old bot room (the drag starts it — the look + speed rigs)
+const BOT_MATCH = MODE === 'match' && !Q.has('room') && (OPTS.rivals > 0 || Q.get('spectate') === '1');
+const openStage = () => { try { createStage(app, OPTS); } catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); } };
 if (Q.get('empty') === '1') lazyImport(import('./empty.js'), './empty.js').then(E => { window.__ffEmpty = E.startEmpty(app, { dpr: Number(Q.get('dpr')) || 0 }); }, e => app.replaceChildren(h('p.ff-wait', `Can’t open the control: ${(e && e.message) || e}`)));
-else try {
-  createStage(app, { page: true, hook: '__ffPlay', seed: FIXED, mode: MODE, from: FROM, rivals: MODE === 'match' ? Math.max(0, Math.min(8, Math.floor(Number(Q.get('rivals')) || 0))) : 0, watchSim: Q.get('watch') === '1', simShift: Number(Q.get('simshift')) || 0, look: LOOK, skyShift: Math.max(-1, Math.min(1, Number(Q.get('pano')) || 0)), fps: Q.get('fps') === '2' ? 2 : Q.get('fps') === '1' ? 1 : 0, ab: AB, tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, dpr: Number(Q.get('dpr')) || 0, best: { read: readBest, write: writeBest }, name: myName });
-} catch (e) { app.replaceChildren(h('p.ff-wait', `Can’t open the game: ${(e && e.message) || e}`)); }
+else if (BOT_MATCH) {
+  lazyImport(import('./botmatch.js'), './botmatch.js').then(B => {
+    window.__ffBot = B.startBotMatch(app, createStage, { opts: OPTS, name: () => myName() || 'YOU', newSeed }, { rivals: OPTS.rivals || 3, spectate: Q.get('spectate') === '1', seed: FIXED });
+  }, e => app.replaceChildren(h('p.ff-wait', `Can’t open the match: ${(e && e.message) || e}`)));
+} else openStage();

@@ -6,7 +6,7 @@ import { h } from './dom.js';
 import { reportError } from '../errlog.js';
 import { onScreenWait } from './onscreen.js';
 
-let mod = null, loading = null, tries = 0, frame = null, want = undefined;
+let mod = null, loading = null, tries = 0, frame = null, want = undefined, wantO = null;
 
 function load() {
   if (mod) return Promise.resolve(mod);
@@ -36,7 +36,7 @@ function fill() {
   load().then(m => {
     if (frame !== f || !f) return;   // (closed while it loaded — nothing opens later on its own)
     frame = null;
-    m.openHelp(want, f);
+    m.openHelp(want, f, wantO);
   }, e => {
     console.warn('[help]', e);
     try { reportError(e instanceof Error ? e : new Error(String(e)), 'help'); } catch { /* reporting never throws */ }
@@ -49,10 +49,11 @@ function fill() {
   });
 }
 
-/** open HOW TO PLAY (on `gameId`'s tab when it has one) — at once when the rules are loaded, else the frame first */
-export function openHelp(gameId) {
-  if (mod) { frame = null; return mod.openHelp(gameId); }
-  want = gameId;
+/** open HOW TO PLAY (on `gameId`'s tab when it has one) — at once when the rules are loaded, else the frame first. `o.only` (FIX C — a test
+ *  page): that game's tab alone */
+export function openHelp(gameId, o = null) {
+  if (mod) { frame = null; return mod.openHelp(gameId, null, o); }
+  want = gameId; wantO = o;
   if (frame) return;   // (a second tap while it loads: the one frame stays — never a double open)
   // (every way the sheet closes — ×, ‹, the scrim, Esc, a swipe, closeAllSheets — runs onClose: help.js's cleanup rides it as f.whenClosed
   //  once the rules took the sheet over)

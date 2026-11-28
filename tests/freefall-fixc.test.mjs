@@ -121,3 +121,16 @@ test('N7 THE RULE-SET LEAF: a node\'s `rs` (none = classic); unknown → refused
   const view = readFileSync('js/games/freefall/view.js', 'utf8');
   assert.match(view, /dbSet\(dbRef\(path\), RULES_DEFAULT\)/);
 });
+
+test('GROUP 3 — THE TEST PAGE: the bot match (botmatch.js — lazy, page only; rivals ≤ MATCH_MAX − 1), &room=1 the old room, ☰ HOW TO PLAY through the one opener, SHARE on a click, lab.js lets its document listeners go', async () => {
+  const { RIVALS_MAX, COUNT_MS } = await import('../js/games/freefall/botmatch.js');
+  const { MATCH_MAX } = await import('../js/games/freefall/match.js');
+  assert.equal(RIVALS_MAX, MATCH_MAX - 1); assert.equal(COUNT_MS, 3600);
+  const play = readFileSync('js/games/freefall/play.js', 'utf8'), stage = readFileSync('js/games/freefall/stage.js', 'utf8'), lab = readFileSync('js/games/freefall/lab.js', 'utf8');
+  assert.match(play, /const BOT_MATCH = MODE === 'match' && !Q\.has\('room'\) && \(OPTS\.rivals > 0 \|\| Q\.get\('spectate'\) === '1'\);/);
+  assert.match(play, /lazyImport\(import\('\.\/botmatch\.js'\), '\.\/botmatch\.js'\)/);
+  assert.doesNotMatch(readFileSync('js/games/freefall/index.js', 'utf8') + readFileSync('js/games/freefall/view.js', 'utf8'), /botmatch/, 'never in the cartridge');
+  assert.match(stage, /lazyImport\(import\('\.\.\/\.\.\/ui\/help-open\.js'\), '\.\.\/\.\.\/ui\/help-open\.js'\)\.then\(m => m\.openHelp\('freefall', \{ only: true \}\)\)/);
+  assert.ok(lab.includes("document.removeEventListener('keydown', onKeyDown); document.removeEventListener('keyup', onKeyUp);"));
+  assert.match(readFileSync('js/ui/help.js', 'utf8'), /'A MATCH never pauses\.'/, 'N5');
+});
