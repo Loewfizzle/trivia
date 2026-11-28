@@ -609,6 +609,8 @@ export function createNight(host, o = {}) {
   }
 
   // F4B — THE GHOSTS (ghost-fx.js): the match's rivals on MY … night.js#46
+  let overlay = null;
+  const CSZ = [0, 0, 0];
   const veil = createVeil(renderer, reduce);   // (FIX C — THE VEIL: the darkness + the shade, the frame's last pass)
   const ghostLayer = createGhostLayer({ renderer, cam, uDay: G.uDay, RB: SHAPE.RB, R_BALL: SHAPE.R_BALL });
   let ghostN = 0, ghostData = null;
@@ -786,7 +788,7 @@ export function createNight(host, o = {}) {
       ghostLayer.place(ghostN, ghostData, w, hh, dpr, (V.x + 1) * 0.5 * w, (1 - V.y) * 0.5 * hh);
       ghostLayer.draw();
     }
-    if (!staged) veil.draw(subAt);
+    if (!staged) { veil.draw(subAt); if (overlay) overlay(); }   // (FIX D — THE GL HUD: the frame's last pass, never in a share frame)
   }
 
   // (a static scene: no mesh composes its matrix a frame — the ones that move set theirs in draw)
@@ -834,7 +836,9 @@ export function createNight(host, o = {}) {
   setLook(day ? 'day' : 'night');
 
   return {
-    el, reset, feed, adopt, draw, pose, setTier, warm, setLook,
+    el, reset, feed, adopt, draw, pose, setTier, warm, setLook, renderer,
+    /** FIX D — THE GL HUD: the canvas's CSS size + its pixel ratio · the pass drawn after the veil */
+    cssSize: () => { CSZ[0] = w || cssW; CSZ[1] = hh || cssH; CSZ[2] = dpr; return CSZ; }, setOverlay(fn) { overlay = fn || null; },
     lookNow: () => (day ? 'day' : 'night'),
     /** F4B — THE GHOSTS: the stage's records (ghost-fx.js GHOST_STRIDE numbers a ghost — the array is READ each frame, never copied) · their
      *  names' tags (baked once: [{ name, hex }]) · a rival's small echo at a breakthrough */

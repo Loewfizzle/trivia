@@ -57,7 +57,7 @@ async function open(w, h, dpr, q = '', { best = 0, auto = false } = {}) {
 }
 const st = p => p.evaluate(() => window.__ffPlay.state());
 /** the band that is up (F3B: every band is its own kept node — an arrival touches no DOM) */
-const bandSel = s => `.ff-banners > .ff-banner:nth-of-type(${s.banner.at + 1})`;
+const bandSel = () => '.ff-banners > .ff-banner';   // (FIX D: ONE band node — the source of every band drawn in the picture)
 /** a REAL finger: down at (x, y), across by `dx` px in `steps` moves, (up) */
 async function drag(t, x, y, dx, { steps = 4, up = true, down = true } = {}) {
   const pt = px => ({ x: px, y, id: 1, radiusX: 4, radiusY: 4, force: 1 });
@@ -519,7 +519,7 @@ async function checks1() {
   await auto(t.p, 'gap');
   ok(await waitFor(t.p, 'window.__ffPlay.state().blaze'), 'three clean floors light THE BLAZE');
   { const i = (await st(t.p)).info; ok(i.fx === 1 && i.flames === 96, `THE BLAZE = NEON FIRE: its flame sprites are in (the atlas uploaded), a fixed pool of ${i.flames}`); }
-  const call = await box(t.p, '.ff-call');
+  const call = { ...(await box(t.p, '.ff-call')), text: (await st(t.p)).gl.call };   // (FIX D: the call's words = the GL HUD's; its size = its source's)
   ok(call.text === 'BLAZE!' && call.fs >= 26, `the announcer: "${call.text}" (${call.fs.toFixed(0)} px)`);
   await auto(t.p, 'smash');
   ok(await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1'), 'THE BLAZE goes through a solid slice (a shatter)');
@@ -818,28 +818,26 @@ async function checks3() {
   const ALL_BANDS = 'THE OFFICES|FLOOR 40,THE SPEAKEASY|FLOOR 80,UNDER THE HARBOR|FLOOR 120,THE DEEP|FLOOR 160,YOU HIT THE BOTTOM|FLOOR 200,THE TRENCH|FLOOR 201,THE TRENCH|LAP 2 · FLOOR 241';
   for (const lk of ['night', 'day']) {
     t = await open(390, 844, 3, `?seed=bnr1&look=${lk}&floor=77`);
-    await waitFor(t.p, 'window.__ffPlay.state().banner.baked >= 7', 6000);
+    await waitFor(t.p, 'window.__ffPlay.state().gl.bands.length >= 7', 6000);
     await sleep(700);   // (the fonts are in: the bands are settled)
-    const ahead = (await st(t.p)).banner;
-    ok(ahead.keys.join(',') === ALL_BANDS && ahead.shows === 0, `${lk}: behind the opening EVERY band of the run is baked (${ahead.baked}: the areas' six + the trench's first lap)`);
+    const ahead = (await st(t.p)).gl, NAMES = ['THE OFFICES|0', 'THE SPEAKEASY|0', 'UNDER THE HARBOR|0', 'THE DEEP|0', 'THE TRENCH|0', 'YOU HIT THE BOTTOM|1'];
+    ok(NAMES.every(n => ahead.bands.includes(n)) && (await st(t.p)).banner.shows === 0, `${lk}: behind the opening EVERY band's name is baked with the look (${ahead.bands.length}: ${ahead.bands.map(n => n.split('|')[0]).join(' · ')}; FLOOR n from the atlas — FIX D)`);
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
     await sleep(520);
     s = await st(t.p);
     const sel = bandSel(s), band = await box(t.p, sel), numB = await box(t.p, '.ff-num'), apex = await t.p.evaluate(() => window.__ffPlay.apexY());
-    const ink = await t.p.evaluate(q => { const b = document.querySelector(q), cs = getComputedStyle(b), c = b.querySelector('canvas'), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height).data; let on = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) on++; return { bg: cs.backgroundImage, rule: cs.borderTopColor, on, w: c.width, words: b.querySelector('.ff-banner-n').textContent + ' / ' + b.querySelector('.ff-banner-s').textContent, hidden: getComputedStyle(b.querySelector('.ff-banner-n')).color, kids: document.querySelector('.ff-banners').children.length }; }, sel);
-    ok(s.floor >= 80 && s.banner.showing && band.op > 0.9 && s.banner.bakes === ahead.bakes && ink.kids === 8, `${lk}: the ball reaches floor 80 — the band crosses (opacity ${band.op.toFixed(2)}); NOTHING was baked or built in the run (${s.banner.bakes} bakes, all behind the opening; the same ${ink.kids - 1} band nodes)`);
+    const ink = await t.p.evaluate(q => { const b = document.querySelector(q), cs = getComputedStyle(b); return { bg: cs.backgroundImage, rule: cs.borderTopColor, kids: document.querySelector('.ff-banners').children.length }; }, sel);
+    ok(s.floor >= 80 && s.banner.showing && s.gl.bandA > 0.9 && s.gl.bakes === ahead.bakes && s.gl.meshes === ahead.meshes && ink.kids === 2, `${lk}: the ball reaches floor 80 — the band crosses IN THE PICTURE (opacity ${s.gl.bandA.toFixed(2)}); NOTHING was baked or built in the run (${s.gl.bakes} look bakes, ${s.gl.meshes} meshes — the same as behind the opening)`);
     ok(band.x <= 0.5 && band.r >= 389.5 && band.h >= 40 && band.y >= numB.b && band.b <= apex + 0.5, `${lk}: the band lies UNDER THE BIG NUMBER (${band.y.toFixed(0)} … ${band.b.toFixed(0)} of 844 — the number's foot ${numB.b.toFixed(0)}) and ends above the ball's highest point (${apex.toFixed(0)}): never over a floor below the ball`);
-    ok(ink.words === 'THE SPEAKEASY / FLOOR 80' && ink.on > 250 && ink.w === 1170 && ink.hidden === 'rgba(0, 0, 0, 0)' && (lk === 'day' ? /236, 247, 255/.test(ink.bg) && ink.rule !== 'rgb(255, 79, 168)' : /8, 4, 20/.test(ink.bg) && ink.rule === 'rgb(255, 79, 168)'), `${lk}: "${ink.words}" BAKED into the band's canvas (${ink.on} inked samples at 3×), the DOM words transparent under it; ${lk === 'day' ? 'a frosted pale band' : 'a dark band between two thin pink rules'}`);
+    const sub = s.gl.lines && s.gl.lines.sub && s.gl.lines.sub[0];
+    ok(s.gl.band === 'THE SPEAKEASY · FLOOR 80' && !!sub && sub.t === 'FLOOR 80' && sub.l > 0 && sub.r < 390 && sub.y > band.y && sub.y < band.b && (lk === 'day' ? /236, 247, 255/.test(ink.bg) && ink.rule !== 'rgb(255, 79, 168)' : /8, 4, 20/.test(ink.bg) && ink.rule === 'rgb(255, 79, 168)'), `${lk}: "${s.gl.band}" — FLOOR 80 laid from the atlas inside the band (${sub ? `${sub.l.toFixed(0)} … ${sub.r.toFixed(0)}, baseline ${sub.y.toFixed(0)}` : 'none'}); ${lk === 'day' ? 'a frosted pale band' : 'a dark band between two thin pink rules'} (the stylesheet's own inks, painted)`);
     await sleep(1500);
-    const after = await box(t.p, sel);
     s = await st(t.p);
-    ok(after.op < 0.05 && s.banner.bakes === ahead.bakes && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${after.op.toFixed(2)}); the next ones were ready all along (${s.banner.bakes} bakes)`);
-    // F5B — EVERY AREA's BAND IS UNDER THE HARBOR's (the owner: floor 120's is "perfect, out of the way, up long enough to read"): the same
-    // box, the same class (no area of its own — only THE BOTTOM's gold), the same canvas — 40 · 80 · 120 · 160 · the trench + its laps
-    const boxes = await t.p.evaluate(() => [...document.querySelectorAll('.ff-banners > .ff-banner')].map(b => { const r = b.getBoundingClientRect(); return { k: b.querySelector('.ff-banner-n').textContent, cls: b.className.replace(/\s*is-baked/, ''), y: r.top, h: r.height, x: r.left, w: r.width, cw: b.querySelector('canvas').width, ch: b.querySelector('canvas').height }; }));
-    const ref = boxes.find(b => b.k === 'UNDER THE HARBOR'), rest = boxes.filter(b => !/is-gold/.test(b.cls));
-    ok(!!ref && rest.length >= 5 && rest.every(b => b.cls === 'ff-banner' && b.y === ref.y && b.h === ref.h && b.x === ref.x && b.w === ref.w && b.cw === ref.cw && b.ch === ref.ch), `${lk}: every area's band = UNDER THE HARBOR's (${rest.map(b => b.k).join(' · ')}): ${ref ? `${ref.y.toFixed(0)} … ${(ref.y + ref.h).toFixed(0)} of 844, ${ref.w.toFixed(0)} wide` : 'no 120 band'} — one box, one class, one 1.6 s (banner.js#BANNER_MS)`);
+    ok(s.gl.bandA < 0.05 && s.gl.bakes === ahead.bakes && !t.errs.length, `${lk}: it is gone after 1.6 s (opacity ${s.gl.bandA.toFixed(2)}); nothing baked (${s.gl.bakes} look bakes)`);
+    // F5B — EVERY AREA's BAND IS UNDER THE HARBOR's: FIX D — ONE band node is the source of every band (one box, one class, one ground baked
+    // per look + THE BOTTOM's gold), the name its only difference
+    ok(ink.kids === 2 && (await t.p.evaluate(() => document.querySelectorAll('.ff-banners > .ff-banner').length)) === 1, `${lk}: every area's band = ONE band's box + ground (the names its only difference) — one 1.6 s (banner.js#BANNER_MS)`);
     await t.close();
   }
   // THE BOTTOM (200) = the GOLD band "YOU HIT THE BOTTOM" (with the impact); THE TRENCH (201) crosses after it; a later LAP names itself
@@ -864,7 +862,8 @@ async function checks3() {
     await start(t); await auto(t.p, 'play');
     await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
     await sleep(500);
-    const sel = bandSel(await st(t.p)), band = await box(t.p, sel), nm = await box(t.p, `${sel} .ff-banner-n`), stg = await box(t.p, '.ff-stage'), numB = await box(t.p, '.ff-num'), apex = await t.p.evaluate(() => window.__ffPlay.apexY());
+    const s2 = await st(t.p), sel = bandSel(s2), band = await box(t.p, sel), stg = await box(t.p, '.ff-stage'), numB = await box(t.p, '.ff-num'), apex = await t.p.evaluate(() => window.__ffPlay.apexY());
+    const bb = s2.gl.bandBox || { l: -1, r: 1e4 }, nm = { text: s2.gl.band.split(' · ')[0], x: stg.x + bb.l, r: stg.x + bb.r };   // (FIX D: the name's own box in the picture, fitted at its bake)
     ok(nm.text === 'UNDER THE HARBOR' && nm.x >= stg.x + 2 && nm.r <= stg.r - 2 && band.y >= numB.b - 0.5 && band.b <= apex + 1, `${w} × ${h}: "${nm.text}" fits its band (${nm.x.toFixed(0)} … ${nm.r.toFixed(0)} of ${stg.x.toFixed(0)} … ${stg.r.toFixed(0)}), under the number (${numB.b.toFixed(0)}), above the ball's highest point (${band.b.toFixed(0)} ≤ ${apex.toFixed(0)})`);
     await t.close();
   }
@@ -1083,11 +1082,12 @@ async function checks5() {
     await start(t); await auto(t.p, 'gap');
     const up = await waitFor(t.p, "(b => b.showing && /^YOU HIT THE BOTTOM/.test(b.key))(window.__ffPlay.state().banner)", 20000), t0 = Date.now();
     await sleep(200);
-    const a = (await st(t.p)).banner, aAt = Date.now() - t0;
+    const gb = () => st(t.p).then(x => ({ ...x.banner, opacity: x.gl.bandA }));   // (FIX D: the band's opacity = the GL HUD's)
+    const a = await gb(), aAt = Date.now() - t0;
     if (OUT) await shot(t.p, `f4a-band-${lk}-solo.png`);
     await sleep(Math.max(0, 1800 - (Date.now() - t0)));
-    const c = (await st(t.p)).banner, cAt = Date.now() - t0;
-    const ink = await t.p.evaluate(() => { const n = document.querySelector('.ff-banner.is-gold'); n.classList.remove('is-baked'); const v = [getComputedStyle(n.querySelector('.ff-banner-n')).color, getComputedStyle(n).backgroundImage]; n.classList.add('is-baked'); return v; });
+    const c = await gb(), cAt = Date.now() - t0;
+    const ink = await t.p.evaluate(() => { const n = document.querySelector('.ff-banner'); n.classList.add('is-gold'); const v = [getComputedStyle(n.querySelector('.ff-banner-n')).color, getComputedStyle(n).backgroundImage]; n.classList.remove('is-gold'); return v; });   // (the stylesheet's gold inks — what the GL band is painted from)
     ok(up && a.gold && a.opacity > 0.99 && c.gold && /^YOU HIT/.test(c.key) && c.opacity > 0.99 && ink[0] === 'rgb(255, 246, 216)' && /rgba\(20, 12, 2, 0\.9\)/.test(ink[1]) && !t.errs.length, `${lk} — SOLO: "YOU HIT THE BOTTOM" is the GOLD band (pale gold words on its own dark ground), whole ${aAt} ms after it comes (opacity ${a.opacity.toFixed(2)}) and still whole at ${cAt} ms (${c.opacity.toFixed(2)})`);
     const next = await waitFor(t.p, "(b => b.showing && /^THE TRENCH/.test(b.key))(window.__ffPlay.state().banner)", 4000);
     ok(next, `${lk} — … THE TRENCH's band crosses AFTER it (${Date.now() - t0} ms)`);
@@ -1099,7 +1099,7 @@ async function checks5() {
     const t = await open(w, h, 2, '?seed=f4a-warn&look=day&floor=20');
     await start(t); await auto(t.p, 'safe');
     const near = await waitFor(t.p, "window.__ffPlay.state().cls.includes('is-near')", 12000);
-    const m = await t.p.evaluate(() => { const P = window.__ffPlay, r = document.querySelector('.ff-warn').getBoundingClientRect(), n = document.querySelector('.ff-num').getBoundingClientRect(), cs = getComputedStyle(document.querySelector('.ff-warn')); return { bottom: r.bottom, top: r.top, left: r.left, right: r.right, apex: P.apexY(), numFoot: n.bottom, shown: cs.opacity !== '0', vw: innerWidth }; });
+    const m = await t.p.evaluate(() => { const P = window.__ffPlay, r = document.querySelector('.ff-warn').getBoundingClientRect(), n = document.querySelector('.ff-num').getBoundingClientRect(), cs = getComputedStyle(document.querySelector('.ff-warn')); return { bottom: r.bottom, top: r.top, left: r.left, right: r.right, apex: P.apexY(), numFoot: n.bottom, shown: P.state().gl.near && !!cs, vw: innerWidth }; });   // (FIX D: the plate is drawn in the picture at its source's box)
     if (OUT && w === 390) await shot(t.p, 'f4a-dark-day-warn.png');
     ok(near && m.shown && m.bottom <= m.apex && m.top >= m.numFoot - 8 && m.left >= 0 && m.right <= m.vw, `${w} × ${h}: THE LIGHTS ARE GOING OUT ends ${Math.round(m.apex - m.bottom)} px ABOVE the ball's highest point (the plate ${Math.round(m.top)} … ${Math.round(m.bottom)}, the apex ${Math.round(m.apex)}), under the number`);
     await t.close();
@@ -1118,7 +1118,7 @@ async function checks5() {
     const u = await open(390, 844, 2, '?seed=f4a-blaze&look=day&floor=84');
     await start(u); await auto(u.p, 'gap');
     await waitFor(u.p, "window.__ffPlay.state().call === 'BLAZE!'", 12000);
-    const cs = await u.p.evaluate(() => { const c = getComputedStyle(document.querySelector('.ff-call')); return [c.color, c.textShadow]; });
+    const cs = await u.p.evaluate(() => { const n = document.querySelector('.ff-call'), k = n.className; n.className = 'ff-call is-blaze'; const c = getComputedStyle(n), v = [c.color, c.textShadow]; n.className = k; return v; });   // (FIX D: the stylesheet's BLAZE! inks — the GL call is painted from them)
     await sleep(160);
     if (OUT) await shot(u.p, 'f4a-blaze-day.png');
     ok(cs[0] === 'rgb(255, 244, 214)' && (cs[1].match(/rgba?\(46, 10, 0/g) || []).length >= 4, `the day BLAZE!: pale letters (${cs[0]}) on a dark, warm backing — read on the flame`);
@@ -1337,17 +1337,16 @@ async function contrast() {
     await waitFor(t.p, `window.__ffPlay.state().floor >= ${floor + 2} && window.__ffPlay.state().fl === 'bounce'`, 30000);
     await sleep(700);
     await t.p.evaluate(() => window.__slowmo(0)); await sleep(300);
-    const bx = await t.p.evaluate(() => {
-      const r = n => { const q = n.getBoundingClientRect(); return [q.left, q.top, q.width, q.height]; };
-      const best = document.querySelector('.ff-best'), rg = document.createRange(); rg.selectNodeContents(best);
-      const tb = rg.getBoundingClientRect();
-      return { num: r(document.querySelector('.ff-numc') || document.querySelector('.ff-num')), best: [tb.left, tb.top, tb.width, tb.height], text: best.textContent };
+    const bx = await t.p.evaluate(() => {   // (FIX D: the words' boxes from the GL HUD's laid lines — canvas px = page px, the canvas fills the stage)
+      const g = window.__ffPlay.state().gl, o = document.querySelector('.ff-stage').getBoundingClientRect(), n = g.lines.num[0], b = g.lines.top[0];
+      const fs = parseFloat(getComputedStyle(document.querySelector('.ff-num')).fontSize), bs = parseFloat(getComputedStyle(document.querySelector('.ff-best')).fontSize);
+      return { num: [o.left + n.l - 4, o.top + n.y - fs * 0.8, n.r - n.l + 8, fs * 0.9], best: [o.left + b.l - 2, o.top + b.y - bs, b.r - b.l + 4, bs * 1.3], text: b.t };
     });
     const clipOf = ([x, y, w, h]) => ({ x: Math.max(0, x), y: Math.max(0, y), width: Math.max(4, w), height: Math.max(4, h) });
     const grab = async () => ({ num: await t.p.screenshot({ encoding: 'base64', clip: clipOf(bx.num) }), best: await t.p.screenshot({ encoding: 'base64', clip: clipOf(bx.best) }) });
     const A = await grab();
     if (OUT) await t.p.screenshot({ path: join(OUT, `contrast-${lk}-${name}.png`) });
-    await t.p.evaluate(() => { for (const s of ['.ff-hud', '.ff-best']) document.querySelector(s).style.visibility = 'hidden'; }); await sleep(150);
+    await t.p.evaluate(() => window.__ffPlay.hud.mute(true)); await sleep(150);   // (FIX D: the picture without its HUD pass)
     const B = await grab();
     const m = await t.p.evaluate(async (A, B) => {
       const px = async b64 => { const im = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob()); const c = new OffscreenCanvas(im.width, im.height), x = c.getContext('2d'); x.drawImage(im, 0, 0); return x.getImageData(0, 0, im.width, im.height).data; };
@@ -1497,7 +1496,7 @@ async function fixb() {
     const rows = [];
     for (const words of ['ABCDEFGHIJKL HIT THE BOTTOM · KEEP FALLING FOR 2ND', '2 RIVALS HIT THE BOTTOM · KEEP FALLING FOR 3RD', '123 FLOORS TO THE LEAD · KEEP FALLING']) {
       await t.p.evaluate(x => window.__ffPlay.mh.last(x), words); await sleep(500);
-      rows.push(await t.p.evaluate(() => { const L = [...document.querySelectorAll('.ff-last span i')]; return L.map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent, l: r.left, r: r.right, y: r.top }; }); }));
+      rows.push(await t.p.evaluate(() => { const o = document.querySelector('.ff-stage').getBoundingClientRect(); return (window.__ffPlay.state().gl.lines.last || []).filter(Boolean).map(L => L[0]).filter(x => x && x.t).map(x => ({ t: x.t, l: o.left + x.l, r: o.left + x.r, y: o.top + x.y })); }));   // (FIX D: the card's two lines as the GL HUD laid them)
       if (words.startsWith('ABC')) await shot(t.p, `fixb-last-${w}.png`);
     }
     const good = rows.every(L => L.length === 2 && / ·$/.test(L[0].t) && !/^·/.test(L[1].t) && L[1].y > L[0].y && L.every(x => x.l >= 8 && x.r <= w - 8));
@@ -1602,7 +1601,152 @@ async function fixc() {
   }
 }
 
-if (LOOK) await look();
+// =============================================================================================================== FIX D — THE SIDE-BY-SIDE
+// `--hudab` (E2E_BASE = the build: the old HTML HUD's on a worktree's server, the new GL HUD's here; HUDAB=old|new names the folder): the
+// SAME frozen moments of every in-play piece — the number + the top line, BLAZE! · SMASH! · NEW BEST (gold), a band, THE BOTTOM's gold band,
+// the plate, the rail + a callout, LAST ONE STANDING, WATCHING, spectate — at 375 × 667 · 390 × 844 · 430 × 932, both looks. Each moment is
+// frozen in a FLAT stretch of its motion (the page's clock stopped; the old build's own animations paused there). `--hudab-join` then lays
+// old | new side by side (+ the top of the screen at 2×) in <out>/side.
+async function hudab() {
+  const S = 'window.__ffPlay.state()', TAG = process.env.HUDAB || 'new', dir = join(OUT || '.', TAG);
+  mkdirSync(dir, { recursive: true });
+  const freeze = async p => { await p.evaluate(() => { window.__slowmo(1e-7); for (const a of document.getAnimations()) a.pause(); }); await sleep(250); };
+  const nearStill = p => p.evaluate(() => { for (const a of document.getAnimations()) if (a.animationName === 'ff-blink') a.cancel(); const H = window.__ffPlay.hud; if (H) { H.near(false, 0); H.near(true, performance.now()); } });
+  const SIZES = argv.includes('--one-size') ? [[390, 844, 3]] : [[375, 667, 2], [390, 844, 3], [430, 932, 3]], ONLY = process.env.HUDAB_ONLY || '', want2 = c => !ONLY || ONLY.includes(c);
+  for (const lk of (process.env.LOOKS || 'night,day').split(',')) for (const [w, h, d] of SIZES) {
+    const tag = (n) => join(dir, `${lk}-${w}-${n}.png`);
+    const solo = async (q, best, fn) => { const t = await open(w, h, d, `?look=${lk}&${q}`, { best }); await waitFor(t.p, "!document.querySelector('.ff-stage').classList.contains('is-dim')", 5000); await sleep(600); await start(t); try { await fn(t); } finally { if (t.errs.length) console.log('  page errors:', t.errs.join(' | ')); await t.close(); } };
+    // the number + the top line (the run's first moment from floor 37) · BLAZE! · SMASH!
+    if (want2('ab')) await solo('seed=fixd&floor=37', 50, async t => {
+      await freeze(t.p); await t.p.screenshot({ path: tag('a-number') });
+      await t.p.evaluate(() => window.__slowmo(1)); await auto(t.p, 'smash');
+      for (const c of ['BLAZE!', 'SMASH!']) { if (await waitFor(t.p, `${S}.call === '${c}'`, 15000)) { await sleep(c === 'BLAZE!' ? 430 : 380); await freeze(t.p); await t.p.screenshot({ path: tag(`b-${c === 'BLAZE!' ? 'blaze' : 'smash'}`) }); await t.p.evaluate(() => window.__slowmo(1)); } }
+    });
+    // the band (THE OFFICES at 40) · NEW BEST (gold — the best 42 crossed at 43)
+    if (want2('c')) await solo('seed=fixd&floor=37', 42, async t => {
+      await auto(t.p, 'play');
+      if (await waitFor(t.p, `${S}.banner.showing`, 15000)) { await sleep(750); await freeze(t.p); await t.p.screenshot({ path: tag('c-band') }); await t.p.evaluate(() => window.__slowmo(1)); }
+      await auto(t.p, 'gap');
+    });
+    // NEW BEST (gold — a run from floor 0: a `?floor=` start never counts one) — YOUR BEST 10 crossed at 11
+    if (want2('d')) await solo('seed=fixd', 10, async t => {
+      await auto(t.p, 'gap');
+      if (await waitFor(t.p, `${S}.call === 'NEW BEST'`, 30000)) { await sleep(700); await freeze(t.p); await t.p.screenshot({ path: tag('d-newbest') }); }
+    });
+    // THE LIGHTS ARE GOING OUT (a stalled ball) · THE BOTTOM's gold band
+    if (want2('e')) await solo('seed=fixd&floor=37', 50, async t => {
+      await auto(t.p, 'safe');
+      if (await waitFor(t.p, `${S}.cls.includes('is-near')`, 25000)) { await sleep(300); await freeze(t.p); await nearStill(t.p); await sleep(150); await t.p.screenshot({ path: tag('e-warn') }); }
+    });
+    if (want2('f')) await solo('seed=fixd&floor=196', 0, async t => {
+      await auto(t.p, 'gap');
+      await waitFor(t.p, `${S}.floor >= 198`, 15000); await auto(t.p, 'play');
+      if (await waitFor(t.p, `${S}.banner.showing && ${S}.banner.gold`, 30000)) { await sleep(350); await freeze(t.p); await t.p.screenshot({ path: tag('f-bottom') }); }
+    });
+    // THE MATCH (the test page's bot match): the rail + a callout · LAST ONE STANDING · WATCHING · spectate
+    for (const spect of [false, true]) {
+      if (!want2(spect ? 'j' : 'g')) continue;
+      const t = await open(w, h, d, `?look=${lk}&seed=fixd-m&mode=match&rivals=3${spect ? '&spectate=1' : ''}`);
+      try {
+        await waitFor(t.p, `!!window.__ffBot && ${S}.started`, 15000); await sleep(3500);
+        if (!spect) {
+          await t.p.evaluate(() => { const g = window.__ffPlay.matchState().ghosts[0]; window.__ffPlay.mh.callout(`${g.name} IS OUT`, window.__ffBot.state().rows.find(r => r.uid === g.uid).hex || '#fff'); });
+          await sleep(450); await freeze(t.p); await t.p.screenshot({ path: tag('g-rail-callout') }); await t.p.evaluate(() => window.__slowmo(1));
+          await sleep(1800);
+          await t.p.evaluate(() => window.__ffPlay.mh.last('+3 FLOORS AHEAD · KEEP FALLING'));
+          await sleep(900); await freeze(t.p); await t.p.screenshot({ path: tag('h-last') }); await t.p.evaluate(() => window.__slowmo(1));
+          await auto(t.p, 'red');
+        }
+        if (await waitFor(t.p, `window.__ffBot.state().watching !== ''`, 20000)) { await sleep(spect ? 2500 : 3200); await freeze(t.p); await t.p.screenshot({ path: tag(spect ? 'j-spectate' : 'i-watch') }); }
+      } finally { if (t.errs.length) console.log('  page errors:', t.errs.join(' | ')); await t.close(); }
+    }
+    console.log(`${TAG} ${lk} ${w}×${h}: shot`);
+  }
+}
+/** `--hudab-join`: <out>/old + <out>/new → <out>/side: old | new at real size, then the top 45 % of each at 2× under them */
+async function hudabJoin() {
+  const { readdirSync, readFileSync, existsSync, writeFileSync } = await import('node:fs');
+  const side = join(OUT, 'side'); mkdirSync(side, { recursive: true });
+  const p = await (await b.createBrowserContext()).newPage();
+  for (const f of readdirSync(join(OUT, 'new')).filter(n => n.endsWith('.png'))) {
+    if (!existsSync(join(OUT, 'old', f))) continue;
+    const A = readFileSync(join(OUT, 'old', f)).toString('base64'), B = readFileSync(join(OUT, 'new', f)).toString('base64');
+    const png = await p.evaluate(async (a, bb) => {
+      const load = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = `data:image/png;base64,${s}`; });
+      const [I, J] = await Promise.all([load(a), load(bb)]), w = I.width, h = I.height, top = Math.round(h * 0.45), g = 24;
+      const c = document.createElement('canvas'); c.width = w * 2 + g; c.height = h + top + 70;
+      const x = c.getContext('2d'); x.fillStyle = '#111'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(I, 0, 30); x.drawImage(J, w + g, 30);
+      x.imageSmoothingEnabled = false; x.drawImage(I, w / 4, 0, w / 2, top / 2, 0, h + 60, w, top); x.drawImage(J, w / 4, 0, w / 2, top / 2, w + g, h + 60, w, top);
+      x.fillStyle = '#fff'; x.font = 'bold 22px sans-serif'; x.fillText('OLD — the HTML HUD', 8, 22); x.fillText('NEW — the HUD in the 3D picture', w + g + 8, 22);
+      return c.toDataURL('image/png').split(',')[1];
+    }, A, B);
+    writeFileSync(join(side, f), Buffer.from(png, 'base64'));
+  }
+  console.log('joined →', side);
+}
+
+/** FIX D — `--fixd`: IN A FALL NOTHING OVER THE CANVAS CHANGES — every DOM mutation (nodes, attributes — classes + styles —, text) in the
+ *  stage + every running animation on it, counted over 30 s of play (solo) and 20 s of a bot match (the rail, the callouts, LAST ONE
+ *  STANDING in the picture): 0, the screen-reader line (.ff-banner-live) alone excepted; the GL HUD's own state read through the hook. */
+async function fixd() {
+  const S = 'window.__ffPlay.state()';
+  const watchDom = p => p.evaluate(() => {
+    const st = document.querySelector('.ff-stage'), out = window.__ffMut = { n: 0, sr: 0, what: [] };
+    const sr = n => !!(n && (n.nodeType === 1 ? n : n.parentElement) && (n.nodeType === 1 ? n : n.parentElement).closest('.ff-banner-live'));
+    new MutationObserver(L => { for (const m of L) { if (sr(m.target)) { out.sr++; continue; } out.n++; if (out.what.length < 12) out.what.push(`${m.type}:${m.target.nodeType === 1 ? m.target.className : m.target.parentElement && m.target.parentElement.className}${m.attributeName ? `@${m.attributeName}` : ''}`); } }).observe(st, { subtree: true, childList: true, attributes: true, characterData: true });
+    window.__ffAnims = () => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && st.contains(a.effect.target)).map(a => `${a.effect.target.className}:${a.animationName || a.transitionProperty || 'waapi'}`);
+  });
+  for (const lk of ['night', 'day']) {
+    // SOLO — 30 s of a real fall (the bot playing: bands, BLAZE!, SMASH!, CLOSE CALL, NEW BEST over YOUR BEST 12, the plate when it stalls)
+    let t = await open(390, 844, 3, `?look=${lk}&seed=fixd-z`, { best: 12 });
+    await start(t); await auto(t.p, 'play');
+    await waitFor(t.p, `${S}.floor >= 3`, 20000);
+    await watchDom(t.p);
+    const seen = new Set(), calls = new Set(), anims = new Set();
+    let maxShown = 0, numOk = true;
+    for (let k = 0; k < 60; k++) {
+      if (k === 30) await auto(t.p, 'smash');
+      if (k === 45) await auto(t.p, 'safe');
+      await sleep(500);
+      const s = await t.p.evaluate(() => { const s = window.__ffPlay.state(); return { floor: s.floor, over: s.over, gl: s.gl, call: s.call, cls: s.cls, anims: window.__ffAnims() }; });
+      if (s.over) break;
+      maxShown = Math.max(maxShown, s.gl.shown); if (s.gl.band) seen.add(s.gl.band.split(' · ')[0]); if (s.gl.call) calls.add(s.gl.call); for (const a of s.anims) anims.add(a);
+      if (Math.abs(s.gl.num - s.floor) > 1) numOk = false;
+    }
+    const m = await t.p.evaluate(() => window.__ffMut), s = await st(t.p);
+    ok(m.n === 0 && !anims.size, `${lk} SOLO — 30 s of a fall to floor ${s.floor}: ${m.n} page changes over the canvas (${m.what.join(' · ') || 'none'}), ${anims.size} running animations (${[...anims].join(' · ') || 'none'}); the reader's line: ${m.sr} writes`);
+    ok(numOk && maxShown >= 2 && seen.size >= 1 && calls.size >= 1, `… the GL HUD drew it all: the number = the floor every check · up to ${maxShown} pieces at once · bands ${[...seen].join(', ')} · calls ${[...calls].join(', ')}`);
+    ok(m.sr <= Math.ceil(s.floor / 10) + seen.size + 2, `… the reader's line at most once a floor (${m.sr} writes over ${s.floor} floors)`);
+    ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+    if (OUT) await shot(t.p, `fixd-${lk}-solo.png`);
+    await t.close();
+    // THE BOT MATCH — 20 s of my fall with 3 rivals (the rail moving, the rivals going OUT: their callouts, LAST ONE STANDING)
+    t = await open(390, 844, 3, `?look=${lk}&seed=fixd-zm&mode=match&rivals=3`);
+    await waitFor(t.p, `!!window.__ffBot && ${S}.started`, 15000); await auto(t.p, 'play');
+    await waitFor(t.p, `${S}.floor >= 2 && window.__ffPlay.matchState().hud.count === ''`, 15000); await sleep(600);
+    await watchDom(t.p);
+    const outs = new Set(); let rail = 0, lastSeen = '';
+    await t.p.evaluate(() => window.__slowmo(3));   // (the bots' own runs at 3×: their outs come inside the window)
+    for (let k = 0; k < 40; k++) {
+      await sleep(500);
+      const r = await t.p.evaluate(() => { const s = window.__ffPlay.state(), m = window.__ffPlay.matchState(); return { over: s.over, gl: s.gl, dots: m.hud.dots.length, anims: window.__ffAnims() }; });
+      if (r.over) break;
+      rail = Math.max(rail, r.gl.roster); for (const o of r.gl.outs) outs.add(o); if (r.gl.last) lastSeen = r.gl.last; for (const a of r.anims) anims.add(a);
+    }
+    const mm = await t.p.evaluate(() => window.__ffMut);
+    ok(mm.n === 0 && !anims.size, `${lk} MATCH — my fall with 3 rivals: ${mm.n} page changes over the canvas (${mm.what.join(' · ') || 'none'}), ${anims.size} running animations (${[...anims].join(' · ') || 'none'})`);
+    ok(rail > 0 && (outs.size > 0 || lastSeen), `… the rail's atlas (${rail} pieces), the callouts ${[...outs].join(', ') || 'none'}${lastSeen ? ` · ${lastSeen}` : ''} — all in the picture`);
+    ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+    if (OUT) await shot(t.p, `fixd-${lk}-match.png`);
+    await t.close();
+  }
+}
+
+if (argv.includes('--hudab')) await hudab();
+else if (argv.includes('--fixd')) await fixd();
+else if (argv.includes('--hudab-join')) await hudabJoin();
+else if (LOOK) await look();
 else if (argv.includes('--fixc') || argv.includes('--fixc-g0') || argv.includes('--fixc-g3')) await fixc();
 else if (argv.includes('--watershot')) await watershot();
 else if (argv.includes('--fixb')) await fixb();

@@ -337,7 +337,7 @@ The detail (checklists, test counts) is in `docs/roadmap-history.md`; add a one-
 
 ## Next up (agreed plan, in order)
 
-- **FREEFALL — THE REVIEW → THE FIX PASS → THE GO-LIVE** (THE BLOCK FOR EVERY GAME ✅ Nov 27 — THE END-BOARD SWITCH-ON): the review (Opus + Grok, report only) ✅ · THE FIX PASS A (the look + the feel) ✅ · THE FIX PASS B (speed by experiment + the match + stability) ✅ · THE FIX PASS C (scoring + anti-cheat + the rules leaf + the shared end board + the test page + the small items) ✅ · go-live (FREEFALL playable, THE SWITCH on).
+- **FREEFALL — THE REVIEW → THE FIX PASS → THE GO-LIVE** (THE BLOCK FOR EVERY GAME ✅ Nov 27 — THE END-BOARD SWITCH-ON): the review (Opus + Grok, report only) ✅ · THE FIX PASS A (the look + the feel) ✅ · THE FIX PASS B (speed by experiment + the match + stability) ✅ · THE FIX PASS C (scoring + anti-cheat + the rules leaf + the shared end board + the test page + the small items) ✅ · THE FIX PASS D (the in-play HUD drawn INSIDE the 3D picture — the iPhone's stutter; docs/games/passes/freefall-fixd.md) ✅ · go-live (+ an /admin HELD list + RELEASE) (FREEFALL playable, THE SWITCH on).
 - **CITY 2.0 — THE HARBOR, Parts 6b–12** (`docs/harbor.md`, the order: `docs/harbor/plan.md`):
   (6b ✅ — skydivers, the witch + Santa's sleigh moved to Part 11's holiday skies) · 7b the speakeasy's life · 8a the promenade's look · 8b the stage's life · 9 seasons + weather · 10 holidays + the banner plane · 11 party nights ·
   12 easter eggs + sounds + memory + desktop + switch-over.

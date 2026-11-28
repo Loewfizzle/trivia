@@ -132,7 +132,7 @@ test('GROUP 3 — THE TEST PAGE: the bot match (botmatch.js — lazy, page only;
   assert.doesNotMatch(readFileSync('js/games/freefall/index.js', 'utf8') + readFileSync('js/games/freefall/view.js', 'utf8'), /botmatch/, 'never in the cartridge');
   assert.match(stage, /lazyImport\(import\('\.\.\/\.\.\/ui\/help-open\.js'\), '\.\.\/\.\.\/ui\/help-open\.js'\)\.then\(m => m\.openHelp\('freefall', \{ only: true \}\)\)/);
   assert.ok(lab.includes("document.removeEventListener('keydown', onKeyDown); document.removeEventListener('keyup', onKeyUp);"));
-  assert.match(readFileSync('js/ui/help.js', 'utf8'), /'A MATCH never pauses\.'/, 'N5');
+  assert.match(readFileSync('js/ui/help.js', 'utf8'), /'Multiplayer never pauses\.'/, 'N5 (FIX D: the owner\'s words)');
 });
 
 test('GROUP 4 — THE FINISH CARD: bigger coloured bursts (gold + cyan by night, gold + teal by day) where the words are not, a dark vignette by day — fixed shapes, only on THE BOTTOM\'s gold card', () => {

@@ -405,7 +405,7 @@ RULES.golf = {
 // FREEFALL — F5C (the owner's list, Nov 27): JAYWALK's shape — one line, short lines (≤ 52), one small drawing each. Checked against
 // docs/freefall.md "THE RULES": a drag spins the tower (the arrow keys too) · a gap = a fall · RED = OUT · 3 floors clean = THE BLAZE (it
 // smashes the next floor, red too) · a ball that stalls: the lights go out above it · a MATCH: one tower for all, the deepest wins (ties:
-// the first there), THE BOTTOM (floor 200) or 3:00 ends it · SOLO: endless, leaving the app PAUSES it — 3 a run (a match never pauses).
+// the first there), THE BOTTOM (floor 200) or 3:00 ends it · SOLO: endless, leaving the app PAUSES it — 3 a run (multiplayer never pauses).
 RULES.freefall = {
   goal: 'Fall as deep as you can.',
   sections: [
@@ -421,7 +421,7 @@ RULES.freefall = {
       'A MATCH: one tower. The deepest wins.',
       'It ends at THE BOTTOM (floor 200) or 3:00.',
       'SOLO: leave the app and it PAUSES (3 a run).',
-      'A MATCH never pauses.',   // (FIX C — N5)
+      'Multiplayer never pauses.',   // (FIX C — N5 · FIX D: the owner's words)
     ]],
   ],
 };

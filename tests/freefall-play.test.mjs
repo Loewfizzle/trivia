@@ -84,7 +84,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
   // (F4B — THE MATCH on the page: the ghosts + the match's HUD are the stage's own; THE BOT ROOM — matchsim.js + the sims' bots + the proof's
   //  pure chunk maths — is LAZY: loaded only with `?mode=match&rivals=N`; nothing of it writes or counts)
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'botmatch.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'empty.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'veil.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
+  assert.deepEqual(own, ['audition.js', 'banner.js', 'best.js', 'bot.js', 'botmatch.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'empty.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'hudgl.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'veil.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
   // F5B — the page's SHARE: the picture kit is lazy, and nothing on the page sends through the share kit's own senders (send.js does)
   const fromDaily = g.files.filter(f => /from '[^']*daily\/share\.js'/.test(code(f)));
   assert.deepEqual(fromDaily, [`${FF}card.js`, 'js/games/kit/share-run.js'], 'the drawing reaches daily/share.js through card.js + the kit alone');
@@ -309,17 +309,18 @@ test('ZERO GARBAGE IN PLAY (HIGH RISE\'s LAG RULES — static): no function that
   assert.match(n, /const S = new Float64Array\(24\);/, 'the frame\'s fractions live in ONE typed scratch array');
   assert.match(n, /const ro = new ResizeObserver\(measure\);/, 'the sizes come from a ResizeObserver — never a layout read in a frame');
   assert.doesNotMatch(body(n, '  function draw(run, tau, dt, extra = 0) {'), /clientWidth|clientHeight|getBoundingClientRect/);
-  // THE BAKED NUMBER: a floor copies bitmaps — no text-shadow is re-rasterised in play; the gold set is warmed behind the opening
-  assert.match(code(`${FF}bakedtext.js`), /for \(let i = 0; i < count; i\+\+\) \{ const d = s\.charCodeAt\(i\) - 48; c\.drawImage\(glyphs\[d\], Math\.round\(x \* dpr\), 0\); x \+= gw\[d\] \+ gap; \}/);
-  assert.match(code(`${FF}stage.js`), /stage\.classList\.add\('is-gold'\); BN\.warm\(\); stage\.classList\.remove\('is-gold'\); BN\.dirty\(\);/);
-  assert.match(read('css/freefall-play.css'), /\.ff-num\.is-baked \.ff-dg \{ color: transparent; text-shadow: none; \}/);
+  // THE BAKED NUMBER → FIX D: the GL HUD's DIGIT ATLAS — a floor re-lays quads (no bake, no upload); the plain + the gold sets baked with the look
+  const hg = code(`${FF}hudgl.js`);
+  assert.match(hg, /const gold = st\.gold && !S\.watch, ns = gold \? k\.numG : k\.num;\n    if \(st\.num >= 0 && changed\(R2\.num, st\.num, gold, ns\.ver, dpr\)\)/, 'a floor re-lays the digits only when it changed — four cached fields, no string a frame');
+  assert.match(hg, /under\(lk, true, \(\) => \{ k\.numG = set\(P\.num, '0123456789'\); k\.topG = set\(P\.top\); \}\);/);
+  assert.match(read('css/freefall-play.css'), /\.ff-stage\.ff-gl :is\(\.ff-best, \.ff-hud, \.ff-banner, \.ff-rail, \.ff-clock, \.ff-outs, \.ff-last, \.ff-watch\) \{ visibility: hidden; will-change: auto; \}/);
 });
 
 test('THE ADD-ONS (the owner, Nov 26) — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE seen + heard · FREEFALL\'s OWN ROOFTOP PANORAMAS at full resolution · THE NIGHT WALLS v2, a scale a wall, the glow from below eased', () => {
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`), st = code(`${FF}stage.js`), sf = code(`${FF}sfx.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
   // THE PRESSURE: the rule's numbers (the rules tests prove what they do); the stage's data-dark = the floors the darkness is above the ball
   assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 }, 'a stopped ball has 6 s (F3B: easing to 8 s from floor 160); the darkness is never more than 3 floors above');
-  assert.match(st, /vDark = on \? Math\.max\(1, Math\.min\(3, gap\)\) : 0;\n    stage\.dataset\.dark = vDark \? String\(vDark\) : '';/);   // (FIX C: the step also feeds THE VEIL — veil.js draws it in the canvas)
+  assert.match(st, /vDark = on \? Math\.max\(1, Math\.min\(3, gap\)\) : 0;\n    darkV = vDark \? String\(vDark\) : '';/);   // (FIX C: the step also feeds THE VEIL — veil.js draws it in the canvas · FIX D: no page attribute — the state hook's darkAttr)
   assert.match(css, /\.ff-stage\[data-dark='3'\] \.ff-dark::before \{ transform: translate3d\(0, -80%, 0\); \}/, '3 floors off: a faint edge at the very top — a calm run sees no more');
   assert.match(css, /\.ff-stage\[data-dark='2'\] \.ff-dark::before \{ transform: translate3d\(0, -36%, 0\); \}/); assert.match(css, /\.ff-stage\[data-dark='1'\] \.ff-dark::before \{ transform: translate3d\(0, 0, 0\); \}/, 'it creeps down IN STEP: one transform a step');
   assert.match(css, /\.ff-dark::before \{[^}]*height: 24%;/, 'the edge ends above the ball\'s bounce: never over the ball or its floor');
@@ -358,15 +359,16 @@ test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench la
   assert.deepEqual([40, 80, 120, 160, 200, 201, 241, 281].map(f => { const w = arrivalWords(f); return `${w.name} / ${w.sub}`; }), ['THE OFFICES / FLOOR 40', 'THE SPEAKEASY / FLOOR 80', 'UNDER THE HARBOR / FLOOR 120', 'THE DEEP / FLOOR 160', 'THE BOTTOM / FLOOR 200', 'THE TRENCH / FLOOR 201', 'THE TRENCH / LAP 2 · FLOOR 241', 'THE TRENCH / LAP 3 · FLOOR 281']);
   const b = code(`${FF}banner.js`), st = code(`${FF}stage.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(b, /export const BANNER_MS = 1600;/, '~1.6 s in + out');
-  assert.match(b, /export const BANNER_KEYS = Object\.freeze\(\[\{ opacity: BANNER_REST, transform: 'translate3d\(-5%, 0, 0\)' \}/); assert.match(b, /export const BANNER_REST = 0\.001;/, 'at rest a band is all but clear — never 0: its layer stays painted'); assert.doesNotMatch(b.slice(b.indexOf('export const BANNER_KEYS'), b.indexOf('const fontOf')).replace(/opacity|transform|offset/g, ''), /[a-zA-Z]+: /, 'opacity + transform only');
-  assert.match(b, /import \{ parseShadows \} from '\.\/bakedtext\.js';/, 'BAKED text — the big number\'s way');
+  assert.match(b, /export const BANNER_KEYS = Object\.freeze\(\[\{ opacity: BANNER_REST, transform: 'translate3d\(-5%, 0, 0\)' \}/); assert.match(b, /export const BANNER_REST = 0\.001;/, 'at rest a band is all but clear — never 0: its layer stays painted'); assert.doesNotMatch(b.slice(b.indexOf('export const BANNER_KEYS'), b.indexOf('export const BANNER_KEEP')).replace(/opacity|transform|offset/g, ''), /[a-zA-Z]+: /, 'opacity + transform only');
+  assert.match(b, /import \{ framesOf, EASE_OUT \} from '\.\/hudgl\.js';/, 'FIX D: the band is drawn IN the 3D picture — its frames on the GL HUD');
   // made ready AHEAD of the arrival — F3B (THE STUTTERS): EVERY band a run meets (the areas' six + the trench's first lap) behind the opening, each
   // in a canvas of its own, KEPT (the next run bakes nothing); an arrival only swaps the canvas shown
   assert.match(st, /for \(let k = 0; k < 7; k\+\+\) \{ f = nextArrival\(f\); const w = arrivalWords\(f\); BNR\.prepare\(bandName\(f, w\), w\.sub, bandCls\(f\)\); if \(f > LAP0\) break; \}/);
-  assert.match(b, /const bands = new Map\(\);/); assert.match(b, /if \(bands\.has\(keyOf\(name, sub\)\) \|\| performance\.now\(\) < until\) return;/, 'a kept band is never built twice — and never while a band is up');
+  assert.match(code(`${FF}hudgl.js`), /for \(const \[name, gold\] of o\.areas \|\| \[\]\) \{/, 'FIX D: EVERY area\'s name baked with the look (FLOOR n from the atlas) — nothing is baked at an arrival');
   // AN ARRIVAL TOUCHES NO DOM: a band that was made ready is shown by ONE one-shot on its own node — no text, no class, no child changed
   const showFn = body(bare(read(`${FF}banner.js`)), '    show(name, sub, onDone, cls) {');
-  assert.match(showFn, /anim = b\.node\.animate \? b\.node\.animate\(gold \? \(reduce \? BANNER_GOLD_KEYS_STILL : BANNER_GOLD_KEYS\) : reduce \? BANNER_KEYS_STILL : BANNER_KEYS/);   // (F4A: THE BOTTOM's gold band snaps in + stays — its own keys)
+  assert.match(showFn, /H\.band\(name, sub, gold, ms, F\[\(gold \? 2 : 0\) \+ \(reduce \? 1 : 0\)\], gold \? null : EASE_OUT\);/);   // (F4A: THE BOTTOM's gold band snaps in + stays — its own keys · FIX D: the same keys on the GL HUD — framesOf(BANNER_KEYS …))
+  assert.match(code(`${FF}banner.js`), /const F = \[framesOf\(BANNER_KEYS\), framesOf\(BANNER_KEYS_STILL\), framesOf\(BANNER_GOLD_KEYS\), framesOf\(BANNER_GOLD_KEYS_STILL\)\];/);
   assert.doesNotMatch(showFn.replace(/if \(!b\) \{[^}]*\}/, '').replace(/sayTimer = setTimeout\([^;]*;[^;]*;/, ''), /textContent|classList|replaceChildren|append|innerHTML|\.style\./, 'show() itself writes nothing to the page (a reader is told a moment later)');
   assert.match(read('css/freefall-play.css'), /\.ff-banner \{[^}]*opacity: 0\.001; will-change: transform, opacity;/);
   // F3B: THE BOTTOM's band is the GOLD one — "YOU HIT THE BOTTOM" — and comes with the impact (a whole fall after the arrival's event)
@@ -375,7 +377,7 @@ test('THE ARRIVAL BANNERS (F3): an arrival = an area\'s first floor, a trench la
   assert.match(st, /if \(floor === BREAK_AT\.seabed\) \{ bedDue = performance\.now\(\) \+ BOTTOM_HIT_S \* 1000; return; \}\n    if \(bedDue\) \{ bedDue = 0; band\(BREAK_AT\.seabed\); \}/);
   assert.match(st, /if \(bedDue && now >= bedDue && !held\) \{ bedDue = 0; band\(BREAK_AT\.seabed\); \}/); assert.doesNotMatch(st, /bedTimer/);
   // (… and a call that is UP when a band comes is taken down — said again after it, if its moment is not long gone)
-  assert.match(st, /if \(at < callUntil\) \{\n      if \(callPri >= pendPri\) \{ pendText = callText; pendCls = callCls; pendPri = callPri; pendMs = callMs; pendAt = callAt; \}\n      callUntil = 0; callPri = 0; if \(callAnim\) \{ callAnim\.cancel\(\); callAnim = null; \}/);
+  assert.match(st, /if \(at < callUntil\) \{\n      if \(callPri >= pendPri\) \{ pendText = callText; pendCls = callCls; pendPri = callPri; pendMs = callMs; pendAt = callAt; \}\n      callUntil = 0; callPri = 0; H\.unsay\(\);/);   // (FIX D: the call's pop is the GL HUD's)
   assert.match(css, /\.ff-stage\[data-look\] \.ff-banner\.is-gold \{ border-block-color: var\(--ff-gold\);/, 'gold rules, in both looks');
   // F3B: the announcer never talks over a band (the band lies in its lane now): a call waits for it to leave
   assert.match(st, /if \(BNR\.showing\(\)\) \{ if \(pri >= pendPri\) \{ pendText = text; pendCls = cls; pendPri = pri; pendMs = ms; pendAt = now; \} return; \}/);

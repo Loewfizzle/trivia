@@ -1365,7 +1365,7 @@ above). Open questions for the owner: `docs/games/passes/freefall-f5a.md` "OPEN 
 
 The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the cartridge carries code, not history (THE FIX PASS PART A, Group 0 — the review's M3: FREEFALL's budget line had 1.4 KB left). Each moved block keeps its FIRST line in the code, marked `(→ §n, docs/freefall.md MODULE NOTES)`; §n counts per module. A pass that changes the code next to a block updates it here (and keeps the code's own comment short).
 
-### js/games/freefall/bakedtext.js
+### js/games/freefall/bakedtext.js (GONE — FIX D: the GL HUD's digit atlas, hudgl.js)
 
 **§1** (above ``)
 
@@ -2016,6 +2016,36 @@ The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the ca
 - **THE ROOM:** the long comments of the cartridge's files moved to THE CODE NOTES (below) — FREEFALL's line 602 → 567 KB of 610 with
   everything this pass added.
 
+## THE FIX PASS D — THE IN-PLAY HUD INSIDE THE 3D PICTURE (Nov 27 — `docs/games/passes/freefall-fixd.md`)
+- **WHY (Ben's iPhone, `?fps=2`):** after FIX C 15 hitches / 75 floors · `&hud=0` 4 / 65 · `&empty=1` 0 in 1,800 frames — iPhone Safari is
+  fine; the stutter was the HTML HUD over the canvas (re-rasterised with its glows at a change, composited over WebGL every frame).
+- **THE GL HUD (`js/games/freefall/hudgl.js`)** — everything on screen WHILE THE BALL FALLS is drawn by the 3D picture's LAST pass (after the
+  bloom + THE VEIL; `night.js#setOverlay`; never in a staged share frame): the big number (+ its glow, the gold NEW BEST set), the top line
+  (YOUR BEST n · n PLAYING), the calls (BLAZE! · SMASH! · CLOSE CALL · NEW BEST), THE LIGHTS ARE GOING OUT, the arrival bands (+ THE
+  BOTTOM's gold one), THE DEPTH RAIL (dots, names, the crossed / dimmed states), the callouts (MIA IS OUT), LAST ONE STANDING, the clock,
+  the WATCHING line, the page's note while a run is on.
+- **THE SAME LOOK — THE STYLESHEET STAYS THE ONE SOURCE:** each piece's HTML node is still in the page, HIDDEN (`.ff-stage.ff-gl …
+  { visibility: hidden }`), and is PAINTED from its own computed style (hudgl.js's painter: backgrounds, linear / radial gradients, borders,
+  box + text shadows, ::before / ::after with their transforms) into a texture ONCE — a look's pieces at the opening (the other look made
+  ready in a quiet moment), a match's rail / names / callouts at a ROSTER change (one atlas, one upload), a resize when it settles. A change
+  of the stylesheet = a change on screen, no second copy to keep. Words that change (the number, the top line, FLOOR n, the clock, the
+  watch line, LAST ONE STANDING's line) re-lay quads from a GLYPH ATLAS per style — no bake, no upload in a fall. A glow ≥ 12 px
+  (`BIG_BLUR`) is baked at 1× (a blur is soft at any size); the letters + their tight edges at the device's own pixel ratio (3 on an iPhone,
+  snapped to the canvas's pixels). Premultiplied, sRGB with no conversion — the page's own layers' blend.
+- **THE SAME MOTION:** the old keyframes + transitions, number for number (hudgl.js `OUT_FRAMES` / `LAST_FRAMES` = css @keyframes ff-out /
+  ff-last with their per-segment ease-out; the bands + the call = their Web Animations' frames + whole-run easing; the plate's steps(2)
+  blink; `.ff-hud`'s 0.4 s fade; the rail's 0.2 s linear moves) — `tests/freefall-fixd.test.mjs` holds the two copies together.
+- **IN A FALL NOTHING OVER THE CANVAS CHANGES** (`freefall-play.mjs --fixd`: a MutationObserver + the running animations over 30 s of a solo
+  fall and a bot match = 0): NEW BEST's gold + the plate are FLAGS (the state hook's `cls` still names is-gold / is-near), data-dark /
+  data-area are no longer written (the hook's `darkAttr` / `areaAttr` are the values). The ONE exception: a visually hidden screen-reader
+  line (`.ff-banner-live`) — the floor every 10 floors + the arrivals (+ LAST ONE STANDING) — never more than once a floor. The fps line
+  (`?fps=`) is hidden while a run is on (as `&hud=0` had it); its summary is back at the end.
+- **STAYS IN THE PAGE (not on screen while the ball falls):** the opening, PAUSED + its count, HOW TO PLAY, 3 · 2 · 1 + the names, the OUT
+  card + Call the Winner's sheet, the end card / the podium, the share sheet, ☰ / SOUNDS (hidden in play on the test page; the console's
+  corner buttons are static).
+- **A LOWER TIER:** the HUD is drawn at the canvas's own pixel ratio — the device's at tier 2 (an iPhone's 3×); tier 1 = 2×, tier 0 = 1.5×.
+- **`?hud=0`** still means no HUD while a run is on (now: the GL pass draws nothing) — the A/B stays.
+
 ## THE CODE NOTES (moved from the code — FIX C, Nov 27)
 THE ROOM (FIX C Group 0.1): the long comments of FREEFALL's cartridge files moved here VERBATIM (no behaviour change) — the game's line in
 `tests/integration/game-budget.json` counts raw bytes. In the code a moved whole-line block left ONE line `// <its first words> … <file>#<n>`;
@@ -2525,3 +2555,34 @@ a moved trailing comment left `// <file>#<n>`. The note below has the same `<fil
 - **logic.js#3** — a tick ↔ a clock: tick 0 = `t0` (ms) — the ONE mapping (FAIR INPUT: a move's event.timeStamp → the nearest tick; 60 Hz and 120 Hz phones are equal)
 - **logic.js#4** — THE ARRIVALS (F3 — the banners): the floor the NEXT area begins at after `floor` — the areas' own starts (40 · 80 · 120 · 160 · 200 · 201), then THE TRENCH's laps (241 · 281 · …)
 - **logic.js#5** — rows { uid, floor, tick, blazes } → [{ uid, rank, floor, tick, blazes }] — the same floor at the same tick with as many blazes shares the place
+
+#### hudgl.js (FIX D — the GL HUD; the same convention)
+- **hudgl.js#1** — FREEFALL — THE GL HUD (FIX D — docs/freefall.md "THE GL HUD"): everything on screen WHILE THE BALL FALLS is drawn INSIDE the 3D picture — its own last pass at the canvas's sharpness, after the bloom + the veil, never in a staged share frame (Ben's iPhone, Nov 27, `?fps=2`: 15 hitches / 75 floors with the HTML HUD over the canvas · 4 / 65 with it hidden · 0 in 1,800 frames with no game at all). THE SAME LOOK: the stylesheet stays the ONE source — each piece is PAINTED from its own hidden HTML element's computed style (the painter: backgrounds, gradients, borders, box + text shadows, ::before / ::after) into a texture ONCE (at the start, a look change, a resize, a roster change — never in a fall); words that change (the number, the top line, FLOOR n, the clock, the watch line, LAST ONE STANDING's line) re-lay quads from a GLYPH ATLAS — no bake, no upload. A glow ≥ BIG_BLUR px is baked at 1× (a blur is soft at any size), the letters + their tight edges at the device's own. Motion = uniforms (the old keyframes + transitions, number for number).
+- **hudgl.js#2** — "rgb(255, 0, 0) 0px 0px 14px 2px, …" → [{ color, x, y, blur, spread, inset }] (a text-shadow or a box-shadow, as computed)
+- **hudgl.js#3** — in PAINT order (the list's last first): the index of the last big glow — every shadow up to it goes in the 1× layer
+- **hudgl.js#4** — ---- THE PAINTER (an element's subtree, as the browser would draw it — the parts this HUD's stylesheet uses)
+- **hudgl.js#5** — the subtree → its paint ops in paint order: boxes { cs, r, xf } + text runs { cs, t, x, y } (page px; `keep(el)` = paint this child)
+- **hudgl.js#6** — a computed linear- / radial-gradient → { f: the canvas gradient, k: the y squash it is drawn under (an ellipse) }
+- **hudgl.js#7** — the pen x of each letter: the run's own advances (kerning kept: the width of everything before it) + the letter spacing
+- **hudgl.js#8** — the ops' named parts (box · glow · sharp) → ONE canvas at scale `s` → { cv, x, y, w, h } (page px) — null: nothing there
+- **hudgl.js#9** — an element → its layers [{ cv, x, y, w, h }]: ONE at the device's sharpness — or, with a glow ≥ BIG_BLUR: its boxes · the glows at 1× · the letters
+- **hudgl.js#10** — ---- THE GLYPH ATLAS: a style's letters, each in its layers (the glows at 1× · the tight shadows · the letter), packed in ONE canvas
+- **hudgl.js#11** — ---- THE GL PASS: quads in canvas CSS px; a texture each; premultiplied, sRGB as the page's own layers were (no conversion)
+- **hudgl.js#12** — keyframes [{ at, o, s, x, y }] at progress p (0 … 1) → into `out`; `seg` = an easing a SEGMENT (a CSS animation's) — none: linear
+- **hudgl.js#13** — WAAPI-style frames ({ opacity, transform: 'scale(…)' | 'translate3d(x%, …)' | 'translateY(…px) scale(…)', offset }) → kf frames
+- **hudgl.js#14** — css @keyframes ff-out (1.5 s ease-out) · ff-last (2.6 s ease-out) — number for number (css/freefall-play.css)
+- **hudgl.js#15** — the stacking (the page's old order): the top line · the number · the calls + the plate · the band's ground · its name · FLOOR n · the rail · its names + dots · the clock · the callouts · the watch line · LAST ONE STANDING's card · its line · the note
+- **hudgl.js#16** — createHud(P, o) — THE HUD's pieces in the GL pass. P = the stage's hidden source elements: stage, play, top, num, call, warn, note, band { node, t, n, s }, rail { el, inner, dot, name }, outs, out, last { el, span, i: [i1, i2] }, clock, watch. o = { reduce, kinds: the announcer's calls [[text, cls]], pop: their frames, areas: [[name, gold]] }. attach(view) = built on that view's renderer (a lost context's new view: everything again, from the page).
+- **hudgl.js#17** — lay a run: lines [{ t, x (the first pen), y (the baseline) }] — every layer in turn (the glows under every letter, then the edges, then the letters), each letter snapped to the canvas's pixels
+- **hudgl.js#18** — a centred line's first pen (the page's layout: the indent, the letters + their trailing spacing, centred in the box)
+- **hudgl.js#19** — a look's change on the stage, for a bake only — read, painted, put back in the same task: never shown
+- **hudgl.js#20** — LAST ONE STANDING: its ground + its title ONCE; its line from the atlas (two lines: the dot ends the first)
+- **hudgl.js#21** — (the old baked number's baseline: the digit box's line, the font's own half leading)
+- **hudgl.js#22** — ---- THE MATCH's pieces — baked at a ROSTER change (the match's start, never a floor): every dot's states, the names, the callouts, in ONE atlas
+- **hudgl.js#23** — a value eased linearly to its target over `ms` (the rail's 0.2 s transitions) — `e` holds { to, from, at, v }
+- **hudgl.js#24** — ONE FRAME: every piece's place + alpha from the stage's state `S` (classes that change OUTSIDE a fall only — read once a frame)
+- **hudgl.js#25** — THE MATCH: the rail (dots + names eased 0.2 s linear — their old transitions), the callouts, the clock, the watch line, LAST ONE STANDING
+- **hudgl.js#26** — the callouts: their own lines' keyframes; stacked in the callouts' grid (a line gone: the next one moves up)
+- **hudgl.js#27** — the clock (the last half minute) · the watch line (pre-line: its line breaks kept, a long line wrapped to the box)
+- **hudgl.js#28** — the look to draw (its pieces baked at its first need — the stage asks at the opening, never in a fall: the look is locked through a run)
+- **hudgl.js#29** — THE MATCH: the rail's records [{ uid, me, hex, rn, out, cls, y, ny }] — the roster baked again only when `key` (the names + colours) changes

@@ -1,7 +1,7 @@
 // FREEFALL — THE STAGE (F2 — docs/freefall.md "THE TEST … stage.js#1
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST } from './tuning.js';
+import { TICK_MS, TURN, SLICES, BALL, SAFE, GAP, RED, MODES, MODE_IDS, MAX_SPIN, SEED_MAX, FIRST, AREAS } from './tuning.js';
 import { createRun, stepTo, turn, setAngle, hold, isOver, resultOf, logOf, darkGap, floorNow } from './engine.js';
 import { sliceStart, sliceUnder, kindAtTick, wrap, angDiff, floorInto } from './tower-gen.js';
 import { replay, judgeRun, isHold } from './replay.js';
@@ -12,7 +12,7 @@ import { createTiers } from '../kit/tiers.js';
 import { resolveLook, sunUpNow } from '../kit/look.js';
 import { createNight, FF_ART_REV, SHAPE } from './night.js';
 import { endCard, warmLogo } from './endscreen.js';
-import { bakedNumber } from './bakedtext.js';
+import { createHud, framesOf } from './hudgl.js';
 import { createBanner, BANNER_MS, BANNER_GOLD_MS } from './banner.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, ghostPhi, liftOf, outWords, lastWords, lastStanding, madeAhead, follow, nextFollow, createWatch, stepWatch, LIFT, MARK_FLOORS, MARK_UP, NEAR_FLOORS, WATCH_DELAY, WATCH_DELAY_MAX, LOST_GONE_MS, LOST_OUT_MS } from './ghosts.js';
 import { GHOST_STRIDE, GHOSTS_MAX } from './ghost-fx.js';
@@ -105,13 +105,15 @@ export function createStage(app0, o = {}) {
   const play = h('div.ff-play', { role: 'application', 'aria-label': 'Freefall — drag left or right to spin the tower' });
   const dark = h('div.ff-dark', { 'aria-hidden': 'true' }), shade = h('div.ff-shade', { 'aria-hidden': 'true' });
   const topL = h('div.ff-best');
-  const num = h('div.ff-num', { 'aria-label': '0' }, h('span.ff-dg', { 'aria-hidden': 'true' }, '0'));
+  const num = h('div.ff-num', { 'aria-hidden': 'true' }, h('span.ff-dg', '0'));
   const call = h('div.ff-call', { 'aria-live': 'polite' }), warn = h('div.ff-warn', 'THE LIGHTS ARE GOING OUT');
   const hud = h('div.ff-hud', num, call, warn); // stage#12
   // THE ARRIVAL BANNERS (banner.js): a band across the foot of … stage.js#13
-  const BNR = createBanner();
+  // FIX D — THE GL HUD (hudgl.js): every piece on screen in a fall is drawn IN the 3D picture; these nodes are its hidden sources
+  const HP = {}, HO = { reduce: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, kinds: [['BLAZE!', 'is-blaze'], ['SMASH!', 'is-blaze'], ['CLOSE CALL', 'is-teal'], ['NEW BEST', 'is-gold']], pop: null, areas: [...new Set(AREAS.map(a => a.name))].map(n => [n, false]).concat([[BOTTOM_WORDS, true]]) }, H = createHud(HP, HO);
+  const BNR = createBanner(H);
   // F4B — THE MATCH's HUD (matchhud.js): 3 · 2 · 1 + the names, … stage.js#14
-  const MH = createMatchHud({ busy: () => BNR.showing() });
+  const MH = createMatchHud({ busy: () => BNR.showing(), hud: H });
   // THE OPENING's TITLE (F3 — title-05, the owner's pick): … stage.js#15
   const art = (name, w) => new URL(`../../../assets/freefall/title/${name}-${w}.webp?v=${FF_ART_REV}`, import.meta.url).href;
   const sizesOf = k => `min(${Math.round(k * 100)}vw, ${Math.round(k * 60)}vh)`;   // (the stage's column: min(100vw, 60dvh) wide)
@@ -150,8 +152,9 @@ export function createStage(app0, o = {}) {
   });
   // FIX C — HOW TO PLAY on the TEST PAGE: ☰ top-left on the opening + the pause → the ONE opener (ui/help-open.js — lazy, the frame at the tap)
   const helpBtn = PAGE ? press(h('button.ff-menu', { type: 'button', 'aria-label': 'How to play' }, h('i.ff-menu-i', { 'aria-hidden': 'true' }, h('b'), h('b'), h('b'))), () => { lazyImport(import('../../ui/help-open.js'), '../../ui/help-open.js').then(m => m.openHelp('freefall', { only: true })).catch(() => {}); }) : null;
-  const stage = h(`div.ff-stage.is-open${HUD0 ? '.ff-nohud' : ''}`, { 'data-look': lookT, 'data-area': 'rooftop' }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, helpBtn, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
+  const stage = h(`div.ff-stage.is-open.ff-gl${HUD0 ? '.ff-nohud' : ''}`, { 'data-look': lookT }, play, dark, shade, topL, hud, BNR.el, MH.el, open, foot, holdEl, end, helpBtn, PAGE ? soundsBtn : null, PAGE || o.go ? note : null, fps);
   app.replaceChildren(stage);
+  Object.assign(HP, { stage, play, top: topL, num, call, warn, note, band: BNR.src, ...MH.src });
   // FIX A — THE TITLE's GREY FLASH (the owner's iPhone): the … stage.js#19
   let dimming = true;
   const dimFrom = performance.now();
@@ -167,7 +170,9 @@ export function createStage(app0, o = {}) {
   let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin, dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0, ab: o.ab }); }
   catch { stage.append(noGL()); return null; }
-  hook.view = view;
+  hook.view = view; hook.hud = H;
+  const glOn = v => { H.attach(v); if (v.setOverlay) v.setOverlay(() => H.draw()); H.look(lookT); };
+  glOn(view);
   const tierPath = [pin == null ? 2 : pin];
   const tiers = createTiers({ apply: t => { view.setTier(t); tierAt = performance.now(); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
   // THE LOST CONTEXT (JAYWALK's lesson — iOS takes a WebGL … stage.js#20
@@ -182,13 +187,14 @@ export function createStage(app0, o = {}) {
     try { view.destroy(); } catch { /* it is gone already */ }
     try { view = createNight(play, { tier: tiers.get(), dprMax: o.dpr || 0, look: lookT, skyShift: o.skyShift || 0, ab: o.ab }); }
     catch {
-      view = NO_VIEW; hook.view = view;
+      view = NO_VIEW; hook.view = view; H.attach(null);
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
       if (++tries <= 8) lostTimer = setTimeout(rebuild, 1500);
       return;
     }
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
+    glOn(view);
     view.reset(run); view.adopt(run, ev, fed); view.setBest(tapeFloor); view.pose(t0 == null && !starting ? 'open' : 'play', true);
     // (FIX B — Grok's G1: the new scene gets the match's rivals … stage.js#21
     if (ghosts.length) { view.ghostNames(ghosts); view.ghosts(ghosts.length, gData); }
@@ -198,8 +204,7 @@ export function createStage(app0, o = {}) {
   }
   watchGL();
 
-  // ---- THE HUD: written only when it changes; the big number's digits keep their boxes, its glow is BAKED
-  const BN = bakedNumber(num);
+  // ---- THE HUD (FIX D): no page write in a fall — the GL HUD's state; ONE screen-reader line (BNR.say: the floor every 10 + the arrivals)
   // THE LOOK, live: the scene flips at once (night.js#setLook); … stage.js#22
   let lookWant = lookT;
   const lookHeld = () => (t0 != null || starting) && !!run && !isOver(run);
@@ -208,19 +213,19 @@ export function createStage(app0, o = {}) {
   let sunTimer = 0;
   const askSun = () => sunUpNow(Date.now()).then(up => { if (!gone) setLook(resolveLook('auto', up)); }, () => {});
   if (!o.lookNow && !LOOK_Q) { askSun(); sunTimer = setInterval(askSun, SUN_EVERY_MS); }
-  let numShown = -1, digits = 1, vDark = 0;
+  let numShown = -1, vDark = 0, goldOn = false, nearOn = false, topText = '', noteTxt = '', darkV = '';
   function setNum(n) {
     if (n === numShown) return;
-    numShown = n;
-    const s = String(n);
-    if (s.length !== digits) { digits = s.length; num.replaceChildren(...[...s].map(d => h('span.ff-dg', { 'aria-hidden': 'true' }, d)), num.querySelector('.ff-numc')); }
-    else for (let i = 0; i < s.length; i++) { const t = num.children[i].firstChild; if (t.data !== s[i]) t.data = s[i]; }
-    num.setAttribute('aria-label', s);
-    BN.set(n);
+    numShown = n; H.num(n);
+    if (n && n % 10 === 0) BNR.say(`FLOOR ${n}`);
   }
+  const setTop = t => { topText = t; H.top(t); };
+  const setGold = on => { goldOn = on; H.gold(on); };
+  const setNote = t => { note.textContent = t; noteTxt = t; H.note(t); };
   // THE ANNOUNCER: one call at a time, a bigger moment never … stage.js#23
   let callUntil = 0, callPri = 0, callAnim = null, callText = '', callCls = '', callMs = 0, callAt = 0;
   const POP = [{ opacity: 0, transform: 'scale(0.6)' }, { opacity: 1, transform: 'scale(1.12)', offset: 0.22 }, { opacity: 1, transform: 'scale(1)', offset: 0.4 }, { opacity: 1, transform: 'scale(1)', offset: 0.8 }, { opacity: 0, transform: 'scale(1.04)' }];
+  HO.pop = framesOf(POP);
   // (F3B: THE BAND lies in the announcer's lane now — a call … stage.js#24
   let pendText = '', pendCls = '', pendPri = 0, pendMs = 0, pendAt = 0;
   function say(text, cls, pri, ms, now) {
@@ -228,9 +233,7 @@ export function createStage(app0, o = {}) {
     if (now < callUntil && pri < callPri) return;
     domAt = now;
     callUntil = now + ms; callPri = pri; callText = text; callCls = cls; callMs = ms; callAt = now;
-    call.textContent = text; call.className = `ff-call ${cls}`;
-    if (callAnim) callAnim.cancel();
-    callAnim = call.animate ? call.animate(POP, { duration: ms, easing: 'ease-out', fill: 'forwards' }) : null;
+    H.say(text, ms, now);   // (the pop: POP's frames, ease-out over its time — the GL HUD's)
   }
   // ---- THE ARRIVALS: the band of the NEXT arrival is made … stage.js#25
   let bnrQueued = -1, bnrTimer = 0, bedDue = 0;
@@ -254,7 +257,7 @@ export function createStage(app0, o = {}) {
     // (the fresh-eyes review: a call that is UP when the band … stage.js#29
     if (at < callUntil) {
       if (callPri >= pendPri) { pendText = callText; pendCls = callCls; pendPri = callPri; pendMs = callMs; pendAt = callAt; }
-      callUntil = 0; callPri = 0; if (callAnim) { callAnim.cancel(); callAnim = null; }
+      callUntil = 0; callPri = 0; H.unsay();
     }
     domAt = at;
     BNR.show(bandName(floor, w), w.sub, bannerDone, bandCls(floor));   // (a `?floor=N` start can land past the ones made ready: baked now, once)
@@ -267,7 +270,9 @@ export function createStage(app0, o = {}) {
     // (the call that waited for the band: said now, if its moment is not long gone)
     if (pendText) { const now = performance.now(), t = pendText, c = pendCls, p = pendPri, m = pendMs, old = now - pendAt > 1800; pendText = ''; pendPri = 0; if (!old) say(t, c, p, m, now); }
   }
-  window.addEventListener('resize', () => BNR.dirty(), sig);   // (the band is baked for its width)
+  // (the HUD is baked for its size: a real resize — a phone turned — bakes it again, once it settles)
+  let rzT = 0, rzK = '';
+  window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { const r = stage.getBoundingClientRect(), k = `${Math.round(r.width)}x${Math.round(r.height)}`; if (k !== rzK) { rzK = k; H.dirty(); } }, 150); }, sig);
 
   // ---- the run: the pure engine on this page's clock
   let seed = '', run = null, t0 = null, shown = false, endedAt = 0, starting = false, startN = 0, warmed = false;
@@ -305,20 +310,18 @@ export function createStage(app0, o = {}) {
     seed = s; run = createRun({ seed, mode: MODE }); t0 = null; shown = false; endedAt = 0; starting = false; startN++; restartAt = performance.now();
     ev = []; fed = 0; owed = 0; carry = 0; pre = 0; clamped = 0; drag = null; keyDir = 0; autoTick = 0;
     held = false; countAt = 0; away = false; hitches = 0; cN.fill(0); cMax.fill(0); spikeK = 0; kN.fill(0); kSum.fill(0); kMax.fill(0); pSum.fill(0); allWork = 0; allN = 0; longN = 0; longMax = 0; if (teach) teachOn(false); whipAt = -1e9; countN++; countTries = 0; stamped = false; overTold = false; runNote = '';
-    if (!PAGE) note.textContent = '';
+    if (!PAGE) setNote('');
     worstMs = 0; hN = 0;
     best = Math.max(best, readBest()); tapeFloor = best; newBest = false; fromRun = false;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.reset(run); view.setBest(tapeFloor); view.pose('open', true);
     end.hidden = true; holdEl.hidden = true; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-held', 'is-near', 'is-starting'); stage.classList.add('is-open');
-    topL.textContent = bestLine(best);
-    hudFloor = -1; hudGap = -99; hudArea = ''; callUntil = 0; callPri = 0; if (callAnim) { callAnim.cancel(); callAnim = null; } call.textContent = ''; call.className = 'ff-call';
-    // (THE BAKED HUD's warm-up: the plain + the gold digits are … stage.js#35
-    stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); BN.dirty();
-    setNum(0); hudArea = areaOf(0).name; hudInk = areaOf(0).id; stage.dataset.area = hudInk;
+    setTop(bestLine(best)); setGold(false); nearOn = false; H.near(false, 0);
+    hudFloor = -1; hudGap = -99; hudArea = ''; callUntil = 0; callPri = 0; H.unsay(); callText = '';
+    setNum(0); hudArea = areaOf(0).name; hudInk = areaOf(0).id;   // (FIX D: the plain + the gold digits are the GL HUD's atlases — baked with the look)
     bnrQueued = -1; clearTimeout(bnrTimer); BNR.clear(); prepBanner(0);
     bedDue = 0; pendText = ''; pendPri = 0; finished = null; handed = false;
-    stage.dataset.dark = ''; vDark = 0;
+    darkV = ''; vDark = 0;
     // (F4B: a new run has no rivals yet — the bot room / the match's view sets them again)
     sim = null; spect = false; ghosts.length = 0; rows.length = 0; view.ghosts(0, null); watchUid = ''; WA = null; playing = -1; clockSec = -1; rowsDirty = true;
     MH.reset(); stage.classList.remove('is-watch'); momentsAt = Infinity; lastSaid = false; unduck();
@@ -376,7 +379,7 @@ export function createStage(app0, o = {}) {
     seed = String(G.seed); run = createRun({ seed, mode: MODE }); ev = []; fed = 0;
     view.reset(run); view.setBest(tapeFloor);
     whipAt = reduceM ? -1e9 : performance.now();
-    runNote = String(G.note || ''); note.textContent = runNote;
+    runNote = String(G.note || ''); setNote(runNote);
     prepBanner(0);
     live(Number(G.t0) || performance.now());
   }
@@ -484,7 +487,7 @@ export function createStage(app0, o = {}) {
     if (uid === watchUid) return;
     watchUid = uid; WA = createWatch(seed, 'match'); evW = []; wfed = 0; wNew = true; watchDelay = WATCH_DELAY;
     view.pose('play'); hudFloor = -1; hudGap = -99; rowsDirty = true;
-    stage.classList.add('is-watch'); stage.classList.remove('is-gold'); BN.dirty();
+    stage.classList.add('is-watch'); setGold(false);
     if (sim) MH.watching(`WATCHING ${g.name} · TAP FOR THE NEXT`);   // (the bot room's own line — in the cartridge the view writes it, with the floor)
   }
   // the match's run lands (THE FIRST GO's seed + tick 0 — it … stage.js#51
@@ -497,7 +500,7 @@ export function createStage(app0, o = {}) {
     whipAt = reduceM ? -1e9 : performance.now();
     for (let i = 0; i < ghosts.length; i++) resetGhost(ghosts[i].G, seed, 'match');
     watchUid = ''; WA = null; end.hidden = true;
-    stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting', 'is-gold'); stage.classList.add('is-live');
+    stage.classList.remove('is-watch', 'is-over', 'is-open', 'is-starting'); stage.classList.add('is-live'); setGold(false);
     view.pose('play'); prepBanner(0);
     starting = false; soundsBtn.hidden = true; note.hidden = !runNote;
     t0 = Number(A.t0) || performance.now(); momentsAt = performance.now() + MOMENTS_QUIET_MS; lastSaid = saidSeen();
@@ -532,7 +535,7 @@ export function createStage(app0, o = {}) {
     if (!lastSaid && !spect && performance.now() >= momentsAt) { const lead = lastStanding(rows); if (lead != null) { lastSaid = true; saidKeep(); MH.last(lastWords(lead, madeAhead(rows))); if (snd) { snd.play('last-standing'); duckFor(DUCK_MS['last-standing']); } } }
     let n = 0;
     for (let i = 0; i < rows.length; i++) if (!rows[i].over && !rows[i].dead) n++;   // (FIX B — S7: a phone with no news for LOST_OUT_MS is not PLAYING)
-    if (n !== playing) { playing = n; topL.textContent = `${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`; }   // (FIX A — N13: never "0 PLAYING")
+    if (n !== playing) { playing = n; setTop(`${best > 0 && !spect ? `${bestLine(best)}${n ? ' · ' : ''}` : ''}${n ? `${n} PLAYING` : ''}`); }   // (FIX A — N13: never "0 PLAYING")
     // (the bot room with `&watch=1`: every bot is down — its own card comes now)
     if (sim && o.watchSim && watchUid && n === 0) { watch(''); end.hidden = false; }
   }
@@ -597,7 +600,7 @@ export function createStage(app0, o = {}) {
     if (glDown) { clearTimeout(lostTimer); lostTimer = 0; rebuild(); }
   }
   // F4A — a hold's way back went on WITHOUT its stamp (the … stage.js#66
-  function unstampedNow() { try { runNote = `${o.onUnstamped() || ''}`; note.textContent = runNote; note.hidden = !runNote; } catch { /* the view's own business */ } }
+  function unstampedNow() { try { runNote = `${o.onUnstamped() || ''}`; setNote(runNote); note.hidden = !runNote; } catch { /* the view's own business */ } }
   /** THE HOLD's way back: 3 · 2 · 1. F4A — the cartridge stamps it (`o.resume(i)` → this page's clock at the SERVER's stamp, 0 = none): the
    *  run goes on exactly 3 × COUNT_MS after the stamp — the judge's own number (proof.js#RESUME_LEAD_MS) */
   function startCount() {
@@ -631,7 +634,7 @@ export function createStage(app0, o = {}) {
       if (e.e === 'fall' && !fromRun && crossedBest(best, e.floor)) {
         // THE CROSSING (once a run): NEW BEST — the number turns gold … stage.js#70
         newBest = true;
-        if (e.floor >= NEW_BEST_FROM) { stage.classList.add('is-gold'); BN.dirty(); say('NEW BEST', 'is-gold', 3, 1300, now); if (snd) snd.play(CUE_NEW_BEST.id); }
+        if (e.floor >= NEW_BEST_FROM) { setGold(true); say('NEW BEST', 'is-gold', 3, 1300, now); if (snd) snd.play(CUE_NEW_BEST.id); }
       }
     }
   }
@@ -693,7 +696,7 @@ export function createStage(app0, o = {}) {
     warmPic();   // (F5B: the share picture is ready by the time a thumb reaches SHARE)
     // F4A — THE CARTRIDGE: a PROVEN run ends on the console's … stage.js#74
     const E = o.onEnd ? o.onEnd(res) || { own: true } : { own: true };
-    if (E.note) { runNote = String(E.note); note.textContent = runNote; }
+    if (E.note) { runNote = String(E.note); setNote(runNote); }
     end.hidden = !E.own; soundsBtn.hidden = false; note.hidden = !(PAGE || (E.own && runNote));
     // (F4B — the test page's bot room with `&watch=1`: OUT = WATCH THE LEADER — its card comes when every bot is down)
     if (sim && o.watchSim && rows.some(r => !r.me && !r.over)) { end.hidden = true; watch(follow(rows)); }
@@ -811,15 +814,16 @@ export function createStage(app0, o = {}) {
       if (R0 === run) lead += spinAhead(tau);
       ghostsFrame(now, tauW, R0, tauD, lead);
     } else lead += spinAhead(tau);
+    // the HUD (FIX D): what changed → the GL HUD, BEFORE the picture (drawn in it — the number in the same frame as its floor)
+    if (R0.floor !== hudFloor) hudFloorNow(R0);
+    const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);
+    if (gap !== hudGap) hudDarkNow(gap, overD);
+    hudFrame(now);
     const wd = BRK ? performance.now() : 0;
     view.veil(HUD0 ? 0 : vDark, !HUD0 && (stage.classList.contains('is-live') || stage.classList.contains('is-starting')), hudInk);   // (FIX C — THE VEIL)
     view.draw(R0, tauD, dt, lead);
     if (over && R0 === run && !spect && shotRun !== startN && t0 != null && now - endedAt >= shotMs(run.st === 'out' ? run.cause : run.st)) takeShot(tauD, lead); // stage#82
     if (BRK) { const we = performance.now(), sa = view.submitAt(); fBuild = sa > wd && sa < we ? sa - wd : we - wd; fSub = sa > wd && sa < we ? we - sa : 0; }   // (FIX B — `?fps=2`: the scene build · the render submit)
-    // the HUD: only what changed (its words are built in the two functions a CHANGE calls — never in the frame)
-    if (R0.floor !== hudFloor) hudFloorNow(R0);
-    const overD = isOver(R0), gap = overD ? 9 : darkGap(R0);
-    if (gap !== hudGap) hudDarkNow(gap, overD);
     const work = performance.now() - w0;
     tiers.sample(now, prevWork); prevWork = work;
     if (t0 != null && !over && !held && now - t0 > 1000) trialTick(dt);
@@ -829,6 +833,16 @@ export function createStage(app0, o = {}) {
     else if (t0 != null && !over && !held && dt > worstMs && now - t0 > 1000) worstMs = dt;
     if (fps && frameN % 30 === 0) fpsLine();
     if (BRK) { qOurs = pUpd + pBuild + pSub; qGap = pingGap; pBuild = fBuild; pSub = fSub; pUpd = Math.max(0, work - fBuild - fSub); allWork += work; allN++; pingMax = 0; pingLast = performance.now(); }
+  }
+  // FIX D — the GL HUD's frame: the stage's state (classes that change OUTSIDE a fall — read, never written here)
+  const HS = { live: false, starting: false, over: false, open: false, watch: false, match: false, final: false, dim: false, nohud: HUD0, sheet: false, noteHidden: false };
+  function hudFrame(now) {
+    const c = stage.classList;
+    HS.live = c.contains('is-live'); HS.starting = c.contains('is-starting'); HS.over = c.contains('is-over'); HS.open = c.contains('is-open'); HS.watch = c.contains('is-watch');
+    HS.match = c.contains('is-match'); HS.final = c.contains('is-final'); HS.dim = dimming; HS.sheet = MH.sheet(); HS.noteHidden = note.hidden || !(PAGE || o.go);
+    const z = view.cssSize ? view.cssSize() : null;
+    if (z) H.size(z[0], z[1], z[2]);
+    H.frame(now, HS);
   }
   // FIX B — SMOOTH MOTION THROUGH A MISSED FRAME (VIEW ONLY): … stage.js#83
   const SMOOTH = !(o.ab && o.ab.smooth === false);
@@ -911,15 +925,15 @@ export function createStage(app0, o = {}) {
   // FIX B — THE A/B SWITCHES (the test page only: `o.ab` — … stage.js#89
   const AB = (() => { const a = o.ab || {}, s = [o.dpr ? `dpr ${o.dpr}` : '', a.bloom === false ? 'bloom 0' : '', a.fx === false ? 'fx 0' : '', a.wall === false ? 'wall 0' : '', a.ghosts === false ? 'ghosts 0' : '', pin != null ? `tier ${pin} pinned` : '', a.smooth === false ? 'smooth 0' : '', HUD0 ? 'hud 0' : ''].filter(Boolean); return s.length ? `AB ${s.join(' · ')} — ` : ''; })();
   /** the look on screen changed: the page's words + inks follow the picture (written at a change only) */
-  function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; BN.dirty(); BNR.dirty(); }
+  function lookNow() { lookSeen = lookT; stage.dataset.look = lookT; H.look(lookT); }
   /** a floor was passed: the big number, the area (YOUR BEST's line once it is beaten) */
   function hudFloorNow(R = run) {
     hudFloor = R.floor; setNum(hudFloor); rowsDirty = true;
     if (teach && hudFloor >= 1) teachOn(false);
     const a = areaOf(hudFloor).name, ink = areaOf(Math.max(0, hudFloor - INK_LAG)).id;
     if (a !== hudArea) hudArea = a;
-    if (ink !== hudInk) { hudInk = ink; stage.dataset.area = ink; domAt = performance.now(); } // stage#90
-    if (newBest) topL.textContent = bestLine(hudFloor);
+    if (ink !== hudInk) hudInk = ink; // stage#90
+    if (newBest) setTop(bestLine(hudFloor));
   }
   /** THE DARKNESS — ALWAYS IN SIGHT (F3: JAYWALK-style pressure — never more than 3 floors above): the stage's data-dark = the floors it is
    *  above the ball (3 · 2 · 1; '' = no run / over): the stylesheet's dark edge creeps down from the top IN STEP with it — never over the
@@ -928,8 +942,8 @@ export function createStage(app0, o = {}) {
     hudGap = gap; domAt = performance.now();
     const on = t0 != null && !over;
     vDark = on ? Math.max(1, Math.min(3, gap)) : 0;
-    stage.dataset.dark = vDark ? String(vDark) : '';
-    stage.classList.toggle('is-near', gap <= 1 && on);
+    darkV = vDark ? String(vDark) : '';
+    nearOn = gap <= 1 && on; H.near(nearOn, performance.now());
     if (snd && snd.rumble) snd.rumble(!on || held || watchUid || spect ? 0 : gap <= 1 ? 1 : gap === 2 ? 0.5 : 0);   // (F4B: the rumble is MY run's — never a watched player's)
   }
   function countLine(c) { countShown = c; holdN.textContent = String(c); }
@@ -944,11 +958,11 @@ export function createStage(app0, o = {}) {
   }
 
   // (the pass's own checks — tests/integration/freefall-play.mjs)
-  const matchInfo = () => ({ on: match, spect, watch: watchUid, watchFloor: WA ? WA.run.floor : -1, playing, shift: simShift, hud: MH.info(), layer: view.ghostInfo(), top: topL.textContent,
+  const matchInfo = () => ({ on: match, spect, watch: watchUid, watchFloor: WA ? WA.run.floor : -1, playing, shift: simShift, hud: MH.info(), layer: view.ghostInfo(), top: topText,
     ghosts: ghosts.map((g, i) => ({ uid: g.uid, name: g.name, floor: g.G.floor, over: g.G.over, end: g.G.end, lost: g.G.lost, held: g.G.held, moves: g.G.moves, bad: g.G.bad, a: g.G.a, y: g.G.y, phi: gData[i * GHOST_STRIDE], alpha: gData[i * GHOST_STRIDE + 5], near: gData[i * GHOST_STRIDE + 6] })) });
   Object.assign(hook, {
     matchState: matchInfo, watch: uid => watch(uid), simShift: n => { simShift = Math.max(0, Math.floor(n) || 0); }, simNear: v => { simNear = !!v; },
-    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookWant, lookAttr: stage.dataset.look, areaAttr: stage.dataset.area, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: stage.dataset.dark, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), spike: { off: spikeOff, trial: trialFrom, rate: trialRate, ms: trialMs, hits: trialHits, said: spikeSaid, play: playMs }, fpsLine: fps ? fpsA.data : '', brk: BRK ? { kinds: Array.from(kN), sum: Array.from(pSum), long: longOn ? longN : -1 } : null, hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: stage.className, num: num.getAttribute('aria-label'), area: hudArea, banner: BNR.info(), top: topL.textContent, call: call.textContent, frame: view.frame(run), info: view.info(), veil: view.veilInfo(), pxPerRad: view.pxPerRad() }),
+    state: () => ({ mode: MODE, seed, note: runNote, look: lookT, lookWant, lookAttr: stage.dataset.look, areaAttr: hudInk, started: t0 != null, starting, shown, held, counting: !!countAt, over: isOver(run), st: run.st, cause: run.cause, t: run.t, a: run.a, floor: run.floor, clean: run.clean, blaze: run.blaze, dark: darkGap(run), darkAttr: darkV, rumble: snd && snd.rumbling ? snd.rumbling() : 0, nl: run.nl, pl: run.pl, fl: run.fl, entries: run.lt.length, holds: run.holds, saves: run.saves, bounces: run.bounces, shatters: run.shatters, owed, clamped, best, tapeFloor, newBest, warmed, rebuilds, tier: tiers.get(), tierPath: tierPath.slice(), spike: { off: spikeOff, trial: trialFrom, rate: trialRate, ms: trialMs, hits: trialHits, said: spikeSaid, play: playMs }, fpsLine: fps ? fpsA.data : '', brk: BRK ? { kinds: Array.from(kN), sum: Array.from(pSum), long: longOn ? longN : -1 } : null, hitches, worstMs, hitchLog: Array.from({ length: Math.min(hN, HLOG) }, (_, k) => { const i = (hN - 1 - k + HLOG * 1000) % HLOG; return { ms: Math.round(hMs[i]), floor: hFloor[i], why: WHY[hWhy[i]] }; }), finished, muffles: snd && snd.muffles ? snd.muffles() : 0, events: ev.length, lates: snd && snd.lates ? snd.lates() : 0, cls: `${stage.className}${goldOn ? ' is-gold' : ''}${nearOn ? ' is-near' : ''}`, num: String(numShown), area: hudArea, banner: BNR.info(), gl: H.info(), top: topText, call: callText, frame: view.frame(run), info: view.info(), veil: view.veilInfo(), pxPerRad: view.pxPerRad() }),
     /** the tower turn that brings the nearest gap (as the floor stands at the next landing) under the ball */
     toGap: () => gapTurn(GAP), toSafe: () => gapTurn(SAFE),
     /** (F4A — THE HAZE CHECK) where the middle of a slice's top face on the floor `df` under the ball's is on the screen ([x, y], 0 … 1) —
@@ -1004,9 +1018,9 @@ export function createStage(app0, o = {}) {
     // F4B — THE SHARE CARD's frame of THIS stage's run (shot.js — … stage.js#92
     shot: () => shotFor(shotKey()),
     // FIX B — S8: no run here (a phone not in the room's solo … stage.js#93
-    block(text) { const t = String(text || ''); if (t === blockTxt) return; blockTxt = t; stage.classList.toggle('is-blocked', !!t); if (t) { note.textContent = t; note.hidden = false; } else if (!runNote) { note.textContent = PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : ''; note.hidden = !PAGE; } },
-    showCard(text) { runNote = String(text || ''); note.textContent = runNote; note.hidden = !runNote; end.hidden = false; },
+    block(text) { const t = String(text || ''); if (t === blockTxt) return; blockTxt = t; stage.classList.toggle('is-blocked', !!t); if (t) { setNote(t); note.hidden = false; } else if (!runNote) { setNote(PAGE ? 'TEST PAGE — NOTHING COUNTS YET' : ''); note.hidden = !PAGE; } },
+    showCard(text) { runNote = String(text || ''); setNote(runNote); note.hidden = !runNote; end.hidden = false; },
     hideCard() { end.hidden = true; note.hidden = true; },
-    destroy() { gone = true; unduck(); clearInterval(pingT); if (longObs) longObs.disconnect(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); BN.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
+    destroy() { gone = true; unduck(); clearInterval(pingT); if (longObs) longObs.disconnect(); MH.destroy(); cancelAnimationFrame(raf); ac.abort(); acIn.abort(); awake(false); clearTimeout(lostTimer); clearInterval(sunTimer); clearTimeout(bnrTimer); BNR.destroy(); offGL(); H.destroy(); try { view.destroy(); } catch { /* gone */ } if (snd) snd.stopAll(); stage.remove(); if (o.hook && window[o.hook] === hook) delete window[o.hook]; },
   };
 }

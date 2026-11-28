@@ -1,7 +1,9 @@
 // FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE … matchhud.js#1
+// FIX D: THE RAIL, the callouts, LAST ONE STANDING, the clock + the watch line are drawn IN THE 3D PICTURE (hudgl.js); their nodes here are the
+// hidden sources of their look. 3 · 2 · 1 (before the fall) + the OUT card + Call the Winner's sheet (after it) stay in the page.
 import { h } from '../../ui/dom.js';
 import { MODES } from './tuning.js';
-import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS } from './ghosts.js';
+import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS, outWords } from './ghosts.js';
 
 /** THE BOTTOM — the rail's foot (a match's finish) */
 const FOOT = MODES.match.finish || 200;
@@ -16,84 +18,85 @@ export function spreadNames(list, gap, h) {
   return list;
 }
 
-export function createMatchHud({ busy = () => false } = {}) {
+export function createMatchHud({ busy = () => false, hud: H } = {}) {
   const countN = h('div.ff-count-n'), countNames = h('div.ff-count-names');
   const count = h('div.ff-count', { hidden: true, 'aria-live': 'assertive' }, countN, countNames);
   const railIn = h('div.ff-rail-in'), rail = h('div.ff-rail', { hidden: true, 'aria-hidden': 'true' }, h('i.ff-rail-line'), h('i.ff-rail-foot'), railIn);
-  const spread = [];
-  const clockT = document.createTextNode(''), clock = h('div.ff-clock', { hidden: true }, clockT);
-  const over = h('div.ff-over');
-  const watchT = document.createTextNode(''), watch = h('div.ff-watch', { hidden: true, role: 'status' }, watchT);
-  // F5C — RIVAL OUT's callouts (≤ OUT_CALL_MAX lines, a third waits) + LAST ONE STANDING's card (JAYWALK's look)
-  const outs = h('div.ff-outs', { 'aria-live': 'polite' }), outQ = [];
-  let outN = 0, lastCard = null, outTotal = 0, lastTotal = 0;
-  const el = h('div.ff-match', rail, clock, count, outs, over, watch);
+  const src = { dot: h('i.ff-rail-dot'), name: h('span.ff-rail-name') };
+  const clock = h('div.ff-clock'), over = h('div.ff-over'), watch = h('div.ff-watch', { role: 'status' });
+  const outs = h('div.ff-outs'), out = h('div.ff-out'), outQ = [];
+  const i1 = h('i'), i2 = h('i'), lspan = h('span', i1, i2), lastEl = h('div.ff-last', { hidden: true, 'aria-hidden': 'true' }, h('b', 'LAST ONE STANDING'), lspan);
+  const sr = h('span.ff-banner-live', { role: 'status', 'aria-live': 'polite' });   // (LAST ONE STANDING + a rival out, for a reader)
+  let outN = 0, outTotal = 0, lastTotal = 0, lastText = '', lastT = 0;
+  const el = h('div.ff-match', rail, clock, count, outs, over, watch, lastEl, sr);
   let outWait = 0, gen = 0; // matchhud#4
+  const lines = [];
   function nextOut() {
     // (FIX A — the callouts live in the BANDS' zone under the number now: one waits while an arrival band is up)
     if (outQ.length && busy()) { if (!outWait) outWait = setTimeout(() => { outWait = 0; nextOut(); }, 250); return; }
     while (outN < OUT_CALL_MAX && outQ.length) {
-      const o = outQ.shift(), line = h('div.ff-out', { style: { '--c': o.hex } }, o.text);
-      outs.append(line); outN++; outTotal++;
+      const o = outQ.shift();
+      H.callout(`${o.text}|${o.hex}`, OUT_CALL_MS); lines.push(o.text); outN++; outTotal++;
       const g0 = gen;
-      setTimeout(() => { line.remove(); if (g0 !== gen) return; outN--; nextOut(); }, OUT_CALL_MS);
+      setTimeout(() => { if (g0 !== gen) return; lines.shift(); outN--; nextOut(); }, OUT_CALL_MS);
     }
   }
-  const dots = new Map();   // uid → { el, y, cls, hex, name: { el, t, text, ny } | null }
-  let railH = 0, countKey = null, namesKey = null, clockKey = '', watchKey = '', outCard = null;
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { railH = railIn.clientHeight; for (const d of dots.values()) d.y = -1; }) : null;
+  const recs = new Map();   // uid → the rail's record { uid, me, hex, name, rn, out, cls, y, ny } (the GL HUD eases + draws it)
+  const list = [], spread = [];
+  let railH = 0, countKey = null, namesKey = null, clockKey = '', watchKey = '', outCard = null, keyNow = '';
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { railH = railIn.clientHeight; }) : null;
   if (ro) ro.observe(railIn);
 
   return {
-    el, over,
+    el, over, src: { rail: { el: rail, inner: railIn, dot: src.dot, name: src.name }, outs, out, last: { el: lastEl, span: lspan, i: [i1, i2] }, clock, watch },
     /** 3 · 2 · 1 · GO (+ GET READY) — and, once, the names lined up ([{ name, hex, me }]) */
     count(text, names) {
       const key = text || '';
       if (key !== countKey) { countKey = key; countN.textContent = key; count.hidden = !key; countN.classList.toggle('is-go', key === 'GO'); countN.classList.toggle('is-word', key.length > 2); }
       if (names !== namesKey) { namesKey = names; countNames.replaceChildren(...(names || []).map(p => h(`span.ff-count-name${p.me ? '.is-me' : ''}`, { style: { '--c': p.hex } }, p.me ? `${p.name} · YOU` : p.name))); }
     },
-    // THE DEPTH RAIL: rows [{ uid, hex, floor, over, end ('out' | … matchhud.js#5
+    // THE DEPTH RAIL: rows [{ uid, hex, name, floor, over, end ('out' | 'made' | …), lost, me }] → the records (a dot's y on the rail, its
+    // state; a rival's name beside it, nudged apart — spreadNames) — no page write: the GL HUD draws them
     rail(rows) {
-      if (rail.hidden) rail.hidden = false;
+      if (rail.hidden) { rail.hidden = false; railH = railIn.clientHeight; }
       if (!railH) railH = railIn.clientHeight;
+      let key = '';
+      list.length = 0;
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        let d = dots.get(r.uid);
-        if (!d) {
-          d = { el: h(`i.ff-rail-dot${r.me ? '.is-me' : ''}`), y: -1, cls: '', hex: '', name: null };
-          // (FIX A — THE EDGE MARKERS are gone: each RIVAL's name sits beside its dot, in its colour)
-          if (!r.me) { const t = document.createTextNode(''); d.name = { el: h('span.ff-rail-name', t), t, text: '', ny: -1 }; railIn.prepend(d.name.el); }
-          dots.set(r.uid, d); if (r.me) railIn.append(d.el); else railIn.prepend(d.el);
-        }
-        if (d.hex !== r.hex) { d.hex = r.hex; d.el.style.setProperty('--c', r.hex); if (d.name) d.name.el.style.setProperty('--c', r.hex); }
-        if (d.name) { const n = railName(r.name); if (n !== d.name.text) { d.name.text = n; d.name.t.data = n; } }
-        const k = r.floor >= FOOT ? 1 : r.floor <= 0 ? 0 : r.floor / FOOT, y = Math.round(k * railH * 2) / 2;
-        if (y !== d.y) { d.y = y; d.el.style.transform = `translate3d(0, ${y}px, 0)`; }
-        const cls = r.end === 'made' ? 'is-made' : r.end === 'out' ? 'is-out' : r.lost ? 'is-lost' : '';
-        if (cls !== d.cls) { if (d.cls) { d.el.classList.remove(d.cls); if (d.name) d.name.el.classList.remove(d.cls); } if (cls) { d.el.classList.add(cls); if (d.name) d.name.el.classList.add(cls); } d.cls = cls; }
+        let d = recs.get(r.uid);
+        if (!d) { d = { uid: r.uid, me: !!r.me, hex: '', name: '', rn: '', out: '', cls: '', y: 0, ny: null }; recs.set(r.uid, d); }
+        if (d.hex !== r.hex || d.name !== r.name) { d.hex = r.hex; d.name = r.name; d.rn = railName(r.name); d.out = outWords(r.name || 'A RIVAL'); }
+        key += `${r.uid}:${d.rn}:${d.hex}|`;
+        const k = r.floor >= FOOT ? 1 : r.floor <= 0 ? 0 : r.floor / FOOT;
+        d.y = Math.round(k * railH * 2) / 2;
+        d.cls = r.end === 'made' ? 'is-made' : r.end === 'out' ? 'is-out' : r.lost ? 'is-lost' : '';
+        list.push(d);
       }
-      if (dots.size > rows.length) for (const [uid, d] of dots) if (!rows.some(r => r.uid === uid)) { d.el.remove(); if (d.name) d.name.el.remove(); dots.delete(uid); }
-      // the names nudged apart (never over each other), each moved by one transform when its place changed
+      for (const uid of recs.keys()) if (!rows.some(r => r.uid === uid)) recs.delete(uid);
+      // the names nudged apart (never over each other)
       spread.length = 0;
-      for (const d of dots.values()) if (d.name) { d.name.y0 = d.y; spread.push(d.name); }
-      for (const n of spread) n.y = n.y0;
+      for (const d of list) if (!d.me) { d.ns ||= { y: 0, ny: 0 }; d.ns.y = d.y; spread.push(d.ns); }
       spreadNames(spread, NAME_GAP, railH);
-      for (const n of spread) { const y = Math.round(n.ny * 2) / 2; if (y !== n.at) { n.at = y; n.el.style.transform = `translate3d(0, ${y}px, 0)`; } }
+      for (const d of list) d.ny = d.me ? null : Math.round(d.ns.ny * 2) / 2;
+      keyNow = key;
+      // (the rivals first, my dot over them — the page's old order)
+      list.sort((a, b) => (a.me === b.me ? 0 : a.me ? 1 : -1));
+      H.rail(list, key);
     },
     /** F5C — RIVAL OUT: "MIA IS OUT" in their colour for OUT_CALL_MS (two at once; a third waits) */
     callout(text, hex) { outQ.push({ text, hex }); nextOut(); },
     /** F5C — LAST ONE STANDING: JAYWALK's moment card, once a match (the stage decides when) */
     last(words) {
       if (busy()) { const g0 = gen; setTimeout(() => { if (g0 === gen) this.last(words); }, 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
-      if (lastCard) lastCard.remove();
       // (FIX B: TWO lines, the dot ENDS the first — "CHARLIE HIT … matchhud.js#6
-      const W = String(words), k = W.indexOf(' · '), sub = k < 0 ? h('span', W) : h('span', h('i', `${W.slice(0, k)} ·`), h('i', W.slice(k + 3)));
-      const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), sub);   // (FIX A: a wrapped line breaks AFTER the dot)
-      el.append(c); lastTotal++;   // (never in .ff-over: that layer hides the rail — Call the Winner's sheet)
-      setTimeout(() => { c.remove(); if (lastCard === c) lastCard = null; }, LAST_CARD_MS);
+      const W = String(words), k = W.indexOf(' · ');
+      H.last(k < 0 ? [W] : [`${W.slice(0, k)} ·`, W.slice(k + 3)], LAST_CARD_MS);
+      lastText = `LAST ONE STANDING${W.replace(' · ', ' ·')}`; lastTotal++; sr.textContent = `LAST ONE STANDING — ${W}`;
+      clearTimeout(lastT); const g0 = gen; lastT = setTimeout(() => { if (g0 === gen) lastText = ''; }, LAST_CARD_MS);
     },
     /** the last half minute: "0:27" ('' = hidden) */
-    clock(text) { if (text !== clockKey) { clockKey = text; clockT.data = text; clock.hidden = !text; } },
+    clock(text) { if (text !== clockKey) { clockKey = text; H.clock(text); } },
     // OUT / THE BOTTOM / TIME'S UP — the cause's words over the … matchhud.js#7
     outCard(o) {
       if (outCard) { outCard.remove(); outCard = null; }
@@ -104,18 +107,20 @@ export function createMatchHud({ busy = () => false } = {}) {
       setTimeout(() => { if (c.isConnected) c.classList.add('is-gone'); }, o.ms || 2300);
     },
     /** WATCHING MIA · 57 · TAP FOR THE NEXT ('' = hidden) */
-    watching(text) { const t = text || ''; if (t !== watchKey) { watchKey = t; watchT.data = t; watch.hidden = !t; } },
+    watching(text) { const t = text || ''; if (t !== watchKey) { watchKey = t; H.watch(t); } },
+    /** Call the Winner's sheet is up (the rail never shows through its edge) */
+    sheet() { for (const c of over.children) if (!c.classList.contains('ff-outcard')) return true; return false; },
     reset() {
       countKey = null; namesKey = null; count.hidden = true; countN.textContent = ''; countNames.replaceChildren();
-      for (const d of dots.values()) { d.el.remove(); if (d.name) d.name.el.remove(); }
-      dots.clear(); rail.hidden = true;
-      clockKey = ''; clock.hidden = true; watchKey = ''; watch.hidden = true;
-      gen++; clearTimeout(outWait); outWait = 0;
-      outQ.length = 0; outs.replaceChildren(); outN = 0; outTotal = 0; lastTotal = 0; if (lastCard) { lastCard.remove(); lastCard = null; }
+      recs.clear(); list.length = 0; rail.hidden = true; H.railOff();
+      clockKey = ''; watchKey = ''; H.clock(''); H.watch('');
+      gen++; clearTimeout(outWait); outWait = 0; clearTimeout(lastT);
+      outQ.length = 0; lines.length = 0; outN = 0; outTotal = 0; lastTotal = 0; lastText = '';
+      H.reset();
       if (outCard) { outCard.remove(); outCard = null; }
       over.replaceChildren();
     },
-    info: () => ({ count: countKey || '', names: countNames.childElementCount, rail: !rail.hidden, dots: [...dots].map(([uid, d]) => ({ uid, y: d.y, cls: d.cls, name: d.name ? d.name.text : '', ny: d.name ? d.name.at : null })), clock: clockKey, watching: watchKey, outCard: !!outCard, railH, outs: [...outs.children].map(e => e.textContent), outTotal, last: lastCard ? lastCard.textContent : '', lastTotal }),
-    destroy() { if (ro) ro.disconnect(); },
+    info: () => ({ count: countKey || '', names: countNames.childElementCount, rail: !rail.hidden, dots: list.map(d => ({ uid: d.uid, y: d.y, cls: d.cls, name: d.me ? '' : d.rn, ny: d.ny })), clock: clockKey, watching: watchKey, outCard: !!outCard, railH, outs: lines.slice(), outTotal, last: lastText, lastTotal, key: keyNow }),
+    destroy() { if (ro) ro.disconnect(); clearTimeout(lastT); },
   };
 }

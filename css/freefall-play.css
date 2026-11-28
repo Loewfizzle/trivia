@@ -448,3 +448,11 @@
 /* FIX C (the fresh-eyes review): the page's note never sits under the WATCHING line; the results' HOME centred under REMATCH */
 .ff-stage.is-watch .ff-note { visibility: hidden; }
 .ff-bm-foot .ff-bm-home { justify-self: center; width: 100%; }
+/* FIX D — THE GL HUD (js/games/freefall/hudgl.js): every piece on screen WHILE THE BALL FALLS is drawn INSIDE the 3D picture (Ben's iPhone:
+   the HTML layers over the canvas were the stutter). The nodes below stay in the page as its hidden SOURCES — painted ONCE from their own
+   computed style, so these rules stay the one source of the look — and nothing over the canvas changes in a fall. The screen-reader line
+   (.ff-banner-live) stays readable. */
+.ff-stage.ff-gl :is(.ff-best, .ff-hud, .ff-banner, .ff-rail, .ff-clock, .ff-outs, .ff-last, .ff-watch) { visibility: hidden; will-change: auto; }
+.ff-stage.ff-gl :is(.ff-rail-dot, .ff-rail-name) { will-change: auto; transition: none; }
+.ff-stage.ff-gl:is(.is-live, .is-starting) :is(.ff-note, .ff-fps) { visibility: hidden; }
+.ff-stage.ff-gl :is(.ff-out, .ff-last) { animation: none; }   /* (a source is measured at rest — its entry animation is the GL HUD's) */
