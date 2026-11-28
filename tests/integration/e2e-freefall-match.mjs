@@ -174,11 +174,16 @@ async function ghostTrack(idx, secs, diverIdx = -1) {
 /** a finished match: the game's rows against THE SERVER's own replay of every node (freefallMatch on the nodes as the emulator holds them) */
 async function judged(code, m, ids) {
   const fin = await dbGet(`rooms/${code}/game`), nodes = await dbGet(`rooms/${code}/ff/${m}`), srv = freefallMatch({ code, matchId: m, uids: ids, nodes });
-  const same = !!srv.game && fin && fin.results && ids.every(u => { const a = srv.game.results[u], b = fin.results[u]; return !!a && !!b && a.f === b.f && a.t === b.t && a.w === b.w && a.e === b.e && !!a.bad === !!b.bad; });
+  const eq = u => { const a = srv.game.results[u], b = fin.results[u]; return !!a && !!b && a.f === b.f && a.t === b.t && a.w === b.w && a.e === b.e && !!a.bad === !!b.bad; };
+  const same = !!srv.game && fin && fin.results && ids.every(eq);
+  // (THE GO-LIVE: FIX C's COPYCAT is the SERVER's alone — test phones playing ONE hand on ONE tower land alike and the later nodes are refused
+  //  'copy'; the host's podium cannot know it. `copies` = those uids; `sameHonest` = every other row agrees)
+  const copies = srv.game ? ids.filter(u => srv.game.results[u] && srv.game.results[u].bad === 'copy') : [];
+  const sameHonest = !!srv.game && fin && fin.results && ids.every(u => copies.includes(u) || eq(u));
   const st = fin && fin.results ? gameStandings(fin) : [];
   const sorted = st.every((r, i) => i === 0 || st[i - 1].floor > r.floor || (st[i - 1].floor === r.floor && st[i - 1].tick <= r.tick));
   const line = ids.map(u => { const r = (fin.results || {})[u] || {}; return `${NAMES[uids.indexOf(u)]} ${r.f} ${r.w || (r.bad ? `bad:${r.bad}` : '-')}${r.cut ? ' CUT' : ''}`; }).join(' · ');
-  return { fin, nodes, srv, same, st, sorted, line };
+  return { fin, nodes, srv, same, sameHonest, copies, st, sorted, line };
 }
 async function snap(pids, code, m) {
   const out = {};
@@ -513,7 +518,8 @@ async function partB() {
   const whole = measure(`${N} players, the WHOLE match as played (${((tz.at - t0.at) / 1000).toFixed(0)} s, GO → the podium)`, I, t0, tz, n0, nz);
   note(`the whole ${N}-player match as played: ${tz.per.reduce((a, p) => a + p.chunks + p.other, 0)} writes into the proof tree (${tz.per.map(p => p.chunks).join(' / ')} chunks), the tree ${tz.bytes} B, up ${nz.reduce((a, x, i) => a + x.tx - n0[i].tx, 0)} B, down ${nz.reduce((a, x, i) => a + x.rx - n0[i].rx, 0)} B over ${whole.secs} s`);
   const J = await judged(code, m, ids);
-  ok(J.same && J.sorted && Object.keys(J.fin.results).length === N, `everyone's end → the podium: ${N} rows = the judge's replay; the server agrees (${J.line})`);
+  ok(J.sameHonest && J.sorted && Object.keys(J.fin.results).length === N, `everyone's end → the podium: ${N} rows = the judge's replay; the server agrees (${J.line})${J.copies.length ? ` — ${J.copies.length} test phone(s) playing the SAME hand refused 'copy' by the server's COPYCAT (FIX C — the server's alone): ${J.copies.map(u => NAMES[uids.indexOf(u)]).join(', ')}` : ''}`);
+  if (J.copies.length) note(`THE COPYCAT in the 8-phone fixture: ${J.copies.length} of ${N} nodes refused 'copy' (the test's one hand on one tower — a real room never lands alike)`);
   await sleep(900);
   const pod = await all(I, p => podiumOf(p, NAMES.slice(0, N)));
   const want = J.st.map(r => NAMES[uids.indexOf(r.uid)]).join(' ');

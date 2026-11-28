@@ -139,9 +139,11 @@ try {
   await P.tap('.nd-tab-play');
   ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"highrise\"]')", 6000), 'a stranger: the dock\'s PLAY → THE GAMES SHELF lists HIGH RISE');
   const shelf = await P.ev("({ rows: [...document.querySelectorAll('.nd-shelf-sheet .nd-shelf-row')].map(r => r.dataset.game), hi: document.querySelector('.nd-shelf-row[data-game=\"highrise\"]').textContent, isNew: !!document.querySelector('.nd-shelf-row[data-game=\"highrise\"] .gm-new') })");
-  ok(shelf.rows.length === 5 && !/TEST/.test(shelf.hi), `… five playable games (${shelf.rows.join(' · ')}) — HIGH RISE with no · TEST ("${shelf.hi.replace(/\s+/g, ' ').trim()}")`);
+  ok(shelf.rows.length === 6 && !/TEST/.test(shelf.hi), `… six playable games (${shelf.rows.join(' · ')}) — HIGH RISE with no · TEST ("${shelf.hi.replace(/\s+/g, ' ').trim()}")`);   // (FREEFALL's GO-LIVE, Nov 28: six)
   const freshNow = isNew('2026-11-20', dayKeyOf(streakDay(Date.now())));
-  if (freshNow) ok(shelf.rows[0] === 'highrise' && shelf.isNew, `… on TOP with NEW (its first 14 days from its go-live, Nov 20): ${shelf.rows[0]}${shelf.isNew ? ' · NEW' : ''}`);
+  // (FREEFALL's GO-LIVE: a NEWER game NEW too sits above it — the newest go-live first: FREEFALL from the 4 am line of Nov 28)
+  const above = isNew('2026-11-28', dayKeyOf(streakDay(Date.now()))) ? 1 : 0;
+  if (freshNow) ok(shelf.rows[above] === 'highrise' && shelf.isNew, `… on TOP with NEW (its first 14 days from its go-live, Nov 20): ${shelf.rows[0]}${shelf.isNew ? ' · NEW' : ''}`);
   else ok(!shelf.isNew, '… past its first 14 days: no NEW (the popularity order)');
   await P.shot('stranger-shelf.png');
   await sleep(450);   // (a tap in the shelf sheet's first moment is dropped — its opening guard)
@@ -254,7 +256,9 @@ try {
       if (k) ok(await P.waitFor(`document.querySelectorAll('.hi-final .eb-list li').length === ${want[0]} && document.querySelector('.hi-final .eb-you').textContent === '${want[1]}' && [...document.querySelectorAll('.hi-final .eb-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `FRIENDS ONLY with ${k} friend${k === 1 ? '' : 's'}: ${want[0]} rows${want[1] ? ` + "${want[1]}"` : ' (you among them)'}`);
       // (FREEFALL FIX C — S11: a REMEMBERED tick with no friends at all unticks itself + remembers '0'; the line "NO FRIENDS YET" only on
       //  the TAP that asked — this mount had no tap, so it stays quiet: the old "on every later end screen" bug)
-      else ok(await P.waitFor("document.querySelector('.hi-final .eb-note').textContent === '' && document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked') === 'false' && localStorage.getItem('ns:endb:fr') === '0'", 12000), 'FRIENDS ONLY with 0 friends (remembered on, no tap): the tick unticks itself, remembered off, no line — the world stays');
+      else { const okk = await P.waitFor("document.querySelector('.hi-final .eb-note').textContent === '' && document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked') === 'false' && localStorage.getItem('ns:endb:fr') === '0'", 12000);
+        const why = okk ? '' : await P.ev("JSON.stringify({ note: document.querySelector('.hi-final .eb-note').textContent, tick: document.querySelector('.hi-final .eb-tick').getAttribute('aria-checked'), fr: localStorage.getItem('ns:endb:fr'), rows: document.querySelectorAll('.hi-final .eb-list li').length })");
+        ok(okk, `FRIENDS ONLY with 0 friends (remembered on, no tap): the tick unticks itself, remembered off, no line — the world stays${why ? ` — the page: ${why}` : ''}`); }
       await sleep(700);
       const T = await P.ev(`(() => { const fr = document.querySelector('.hi-final .final'), li = [...document.querySelectorAll('.hi-final .eb-list li')];
         return { over: fr.scrollHeight - fr.clientHeight, floors: li.map(x => x.querySelector('.eb-v').firstChild.textContent), me: li.map(x => x.classList.contains('is-me')), av: li.map(x => (x.querySelector('.eb-av') || {}).textContent || ''),

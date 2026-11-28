@@ -9,8 +9,9 @@ CHECKLIST (HIGH RISE's go-live, `highrise-golive.md`, the pattern).
 | --- | --- |
 | `9d1488f5` | Step 0 — plan.md (speed solved on Ben's iPhone; the go-live calls) |
 | `28c3dddd` | Group 0 — the three fixes from Ben's iPhone shots |
-| (Groups 1–3) | THE TWO FLIPS + the checklist · THE HELD LIST + RELEASE on /admin · the counting-ON cases |
-| the close (top) | the fresh-eyes review's fixes, this log, the final run (the ci tag) |
+| `efc1b902` | Groups 1–3 — THE TWO FLIPS + the checklist · THE HELD LIST + RELEASE on /admin · the counting-ON cases |
+| `f2f204cb` | the fresh-eyes review's fixes |
+| the close (top) | the final run's test fixes (pins the flip missed, the 8-phone copycat, the audit clean-up), this log (the ci tag) |
 
 THE ADD-ON INBOX: read at the start, after each group's commit and before the final run — nothing addressed to this pass. This pass ADDS
 two entries: TO THE CITY CHAT (install FREEFALL's sign + day face + billboard, lift THE SIGN HOLD) and OPEN FOR BEN.
@@ -107,8 +108,24 @@ See `docs/freefall.md` "THE HELD LIST". `match-report.js#heldNode` + `ffHoldWhy`
 Also found while shooting /admin by hand: the first Held-runs card wiped its own header (its list shared the card's id) — and the
 **Second accounts** card has had the same slip (its title + Refresh vanished after loading) → one id each.
 
-## THE FINAL RUN
-(filled at the close)
+## THE FINAL RUN (fresh emulators + this pass's own `serve.mjs --emu`, one suite at a time; logs `Downloads\NEON\freefall-golive\logs\`)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2866 / 0** (`freefall-golive.test.mjs` new) |
+| smoke (+ THE PAGES LOAD — /freefall-lab gone) | **27 / 27** — six playable, ten hidden, FREEFALL started by a regular host |
+| `e2e-freefall` (A STRANGER — counted; the kill switch OFF = WOULD COUNT) | **61 / 61** |
+| `e2e-freefall-match` (full) | 138 / 139 → the red was the CHECK: the 8 test phones play ONE hand on ONE tower, the server's COPYCAT (FIX C) refuses 3 as 'copy' and the host's podium can't know → the check compares every row the server did not refuse + names them → section 6 alone **16 / 16** |
+| the test page `freefall-play.mjs` · `--golive` · `freefall-share.mjs` | **199 / 199 · 38 / 38 · 255 / 255** |
+| speed `--perf` · `--perf8` · `--stutters` | 67 / 68 · 23 / 24 · **2 / 2** — ONE row each (day · THE SPEAKEASY · tier 1 at 4× CPU: a single 250.0 ms frame ~2 min into the browser's life — this machine's known stall, every FREEFALL pass logged it) → each row ALONE **1 / 1 · 1 / 1**: nothing slower |
+| HIGH RISE `e2e-highrise` · `e2e-highrise-match` | the shelf's "five playable" pin (FIXED: six, and a NEWER NEW game above it from 4 am) · FRIENDS ONLY with 0 friends (S11): red twice, then green 107 / 107 TWICE on the same code (the old code green once) — both reds ran right after server-test runs on the shared emulators (a known false-red source); the check now prints the page's state if it fails again · **35 / 35** |
+| JAYWALK `e2e-jaywalk` · `e2e-jaywalk-match` | **123 / 123** · 94 / 96 — the known pre-existing two (JAYWALK fixtures, named by THE REVIEW) |
+| PRISM DROP · HOLD'EM · OVERCLOCK | **66 / 66 · 25 / 25 · 75 / 75** |
+| harbor `neon, cartridge, room, tapfit, trivision, load, gamestart, sololook, gameflows, vault` | 206 / 212 → THE CARTRIDGE PLUG pinned FREEFALL "being built" (FIXED) → `cartridge` alone **3 / 3**; the other five = `vault`: four 4×-CPU lobby speed rows + THE CARD LAB's finger scroll — the PRE-PASS code (a worktree at `8763566f` on :5174, the same emulators) fails the same rows (50 / 58 there, 52 / 58 here): this machine, not this pass |
+| rules (`rules.test.mjs`) | 102 / 107 — the five known JAYWALK + HIGH RISE fixtures (THE PROOF PASS's `t0` date passed — THE REVIEW, FIX C); every FREEFALL case green |
+| `/api` (`server.test.mjs`) — last | 75 / 78 → the admin test reads the WHOLE audit log; my block left its RELEASE rows (FIXED: removed at its end) → **76 / 78** — the two known JAYWALK fixtures |
+- The full harbor suite: the cloud's, on the tagged push (THE LOCAL TESTING RULE).
+- Every server this pass started (the emulators; `serve.mjs --emu` on :5173 — restarted three times as the server code changed; the old-code
+  worktree's `serve.mjs` on :5174) stopped at the end, by exact PID; the worktree's junctions removed as links, then the worktree.
 
 ## THE CALLS MADE (obvious / established — overrule any)
 - THE TOP LINE: TWO lines (split at the last ' · ') when it can't fit between the corners — never a smaller font; on the test page it

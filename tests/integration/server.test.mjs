@@ -1479,7 +1479,13 @@ test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a strange
     assert.ok(!rj.held.some(x => x.id === hid2) && !(await val(`ffheld/${hid2}`)), 'REJECT: off the list');
     assert.equal(JSON.stringify([await stats(S), await val('lb/freefall-solo'), await val(`profiles/${spid}`)]), before2, '… the board, the stats, the profile untouched (its XP stays)');
     await rejects(adminAction('u-ffboss', { action: 'heldRelease', id: 'bad/id' }), 400, 'bad_id');
-  } finally { if (keepAdmins == null) delete process.env.ADMIN_PIDS; else process.env.ADMIN_PIDS = keepAdmins; process.env.BOARD_MIN_MATCHES = '1'; }
+  } finally {
+    if (keepAdmins == null) delete process.env.ADMIN_PIDS; else process.env.ADMIN_PIDS = keepAdmins;
+    process.env.BOARD_MIN_MATCHES = '1';
+    // (this block's own audit rows out again — the admin test below reads the WHOLE log as its boss's)
+    const au = (await val('audit')) || {};
+    await Promise.all(Object.entries(au).filter(([, a]) => a && a.by === bossPid).map(([k]) => ref(`audit/${k}`).remove()));
+  }
 });
 
 // JAYWALK H4 — THE MATCH: counted ONLY from the server's replay of EVERY player's proof node (the course + tick 0 from THE FIRST GO) —
