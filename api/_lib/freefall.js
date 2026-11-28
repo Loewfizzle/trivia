@@ -5,7 +5,7 @@
 // below: OFF until go-live — judged, never awarded).
 import { judgeRun as judge, unpackLog, maxEntries, rulesOf } from '../../js/games/freefall/replay.js';
 import { featsOf } from '../../js/games/freefall/logic.js';
-import { judgeSolo, judgeMatch } from '../../js/games/freefall/proof.js';
+import { judgeSolo, judgeMatch, chunkTimes } from '../../js/games/freefall/proof.js';
 import { matchStart } from '../../js/games/freefall/match.js';
 import { onTime, goOf } from '../../js/core/proof.js';
 import { ENTRY_CHARS_MAX } from '../../js/games/freefall/tuning.js';
@@ -83,17 +83,61 @@ export function freefallMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
   if (!ids.some(u => onTime(nodes[u], S.g0) && nodes[u].c != null)) return { game: null, why: 'no moves' };
-  const results = {}, participants = {};
+  const results = {}, participants = {}, lands = {};
   for (const u of ids) {
     participants[u] = true;
-    const node = nodes && nodes[u];
-    results[u] = onTime(node, S.g0) ? judgedRow(judgeMatch({ seed: S.seed, node, playAt: S.playAt })) : { f: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
+    const node = nodes && nodes[u], ev = [];
+    results[u] = onTime(node, S.g0) ? judgedRow(judgeMatch({ seed: S.seed, node, playAt: S.playAt, ev, rules: S.rs })) : { f: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
+    if (!results[u].bad) lands[u] = landingsOf(ev);
   }
+  // FIX C — S2 THE COPYCAT: two players whose LANDINGS are the same → the later-arriving node is refused ('copy' — it still PLAYED)
+  for (const [a, b] of copyPairs(lands)) { const late = lagOf(nodes[a], S) >= lagOf(nodes[b], S) ? a : b; results[late] = { f: 0, t: 0, w: '', e: -1, bad: 'copy' }; }
   // (`played` — the uids the server's replay saw PASS A FLOOR; the report counts + credits only these. THE FRESH-EYES REVIEW — THE SORE
   //  LOSER, the twins' rule the first port dropped: a loser who appends ONE bad chunk to his own node — a hold, a turn over MAX SPIN, a
   //  move after his end — gets a refused row, and would have shrunk the match the WINNER is paid for. A refused on-time node still PLAYED
   //  when its longest judge-accepted chunk prefix passed a floor: its own row stays the refused one.)
   return { game: { id: 'freefall', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= FF_PLAYED_FLOOR || (results[u].bad && onTime(nodes[u], S.g0) && prefixFloor(S, nodes[u]) >= FF_PLAYED_FLOOR)) };
+}
+/**
+ * FIX C — S2 THE COPYCAT (the review: in a match every phone mirrors the whole tree — a modified client could write the leader's chunks
+ * into its own node a moment later; each node judged alone, the copy tied or beat the leader). A LANDING = [floor, tick, the tower's angle]
+ * from the server's own replay. Two players are a COPY when (a) `run` landings IN A ROW are the same floor at the same tick with the angle
+ * within `tol` units (a ±1-unit jitter changes nothing), or (b) of the shorter run's landings (at least `min`), `share` are the same floor at
+ * the same tick (a copier who jitters more still has to fall where the leader fell). THE SIMS (tests/freefall-copycat.test.mjs — 8 bots a
+ * room, the same tower, 60 rooms, 1,680 pairs, the "great" bots nearly clones of each other): (a) at most 17 in a row · (b) at most 73 %.
+ */
+export const COPY = Object.freeze({ run: 30, tol: 24, min: 60, share: 0.9 });
+const TICK_MS = 1000 / 60;
+const landingsOf = ev => ev.filter(e => e.e === 'land').map(e => [e.floor, e.t, e.a]);
+const angGap = (x, y) => { const d = (((x - y) % 4096) + 4096) % 4096; return d > 2048 ? 4096 - d : d; };
+/** two landing lists → { row: the longest run alike, shared: the share of the shorter's landings at the same floor + tick } */
+export function copyScore(A, B) {
+  const at = new Map(B.map((x, i) => [`${x[0]}:${x[1]}`, i]));
+  let row = 0, n = 0;
+  for (let i = 0; i < A.length; i++) {
+    const j = at.get(`${A[i][0]}:${A[i][1]}`);
+    if (j === undefined) continue;
+    n++;
+    let k = 0;
+    while (i + k < A.length && j + k < B.length && A[i + k][0] === B[j + k][0] && A[i + k][1] === B[j + k][1] && angGap(A[i + k][2], B[j + k][2]) <= COPY.tol) k++;
+    if (k > row) row = k;
+  }
+  const m = Math.min(A.length, B.length);
+  return { row, shared: m ? n / m : 0, m };
+}
+export const isCopy = s => s.row >= COPY.run || (s.m >= COPY.min && s.shared >= COPY.share);
+function copyPairs(lands) {
+  const ids = Object.keys(lands), out = [];
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) if (isCopy(copyScore(lands[ids[i]], lands[ids[j]]))) out.push([ids[i], ids[j]]);
+  return out;
+}
+/** how late a node's chunks arrived on the match's clock, on average (ms) — the copier is always behind the one it copies */
+function lagOf(node, S) {
+  const T = chunkTimes(node && node.c);
+  if (!T || !T.length) return 0;
+  let s = 0;
+  for (const k of T) s += k.at - (S.playAt + k.t1 * TICK_MS);
+  return s / T.length;
 }
 /** the floors of the LONGEST PREFIX of a node's chunks the judge accepts (sabotage is append-only: a prefix of an accepted log is an accepted
  *  log — a binary search, ≤ 14 replays of a 10,000-chunk node); 0 = none */
@@ -102,7 +146,7 @@ export function prefixFloor(S, node) {
   if (!c || typeof c !== 'object') return 0;
   let n = 0;
   while (n < 10000 && c[n] != null) n++;
-  const at = k => { const part = {}; for (let i = 0; i < k; i++) part[i] = c[i]; const v = judgeMatch({ seed: S.seed, node: { go: node.go, c: part }, playAt: S.playAt }); return v.ok ? v.floor : -1; };
+  const at = k => { const part = {}; for (let i = 0; i < k; i++) part[i] = c[i]; const v = judgeMatch({ seed: S.seed, node: { go: node.go, c: part, rs: node.rs }, playAt: S.playAt, rules: S.rs }); return v.ok ? v.floor : -1; };
   let lo = 0, hi = n, best = 0;   // (lo chunks are accepted — an empty log is; hi is the node as it stands: refused)
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2), f = at(mid);

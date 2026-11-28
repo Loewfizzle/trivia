@@ -82,7 +82,7 @@ test('A NEW RUN: tick 0 = GO — the tower at angle 0, the ball dropping in onto
     stepTo(run, FIRST - 1, ev);
     assert.deepEqual(ev, [], 'nothing happens before the first landing');
     stepTo(run, FIRST, ev);
-    assert.deepEqual(ev, [{ e: 'land', floor: 0, slice: sliceNow(run), kind: SAFE, t: FIRST }, { e: 'bounce', floor: 0, slice: sliceNow(run), t: FIRST }]);
+    assert.deepEqual(ev, [{ e: 'land', floor: 0, slice: sliceNow(run), kind: SAFE, t: FIRST, a: 0 }, { e: 'bounce', floor: 0, slice: sliceNow(run), t: FIRST }]);
     assert.deepEqual([run.floor, run.fl, run.pl, run.nl, run.ll, run.bounces, run.t], [0, 'bounce', FIRST, FIRST + BOUNCE, FIRST, 1, FIRST]);
     assert.equal(darkGap(run), DARK.lead);
   }
@@ -539,7 +539,7 @@ test('THE EVENTS (for a view): each with its tick; a landing\'s own events toget
     i = j;
   }
   for (const e of ev) {
-    if (e.e === 'land') assert.deepEqual(Object.keys(e), ['e', 'floor', 'slice', 'kind', 't']);
+    if (e.e === 'land') assert.deepEqual(Object.keys(e), ['e', 'floor', 'slice', 'kind', 't', 'a']);   // (FIX C: + the tower's angle)
     if (e.e === 'fall') assert.deepEqual(Object.keys(e), ['e', 'floor', 'clean', 't']);
     if (e.e === 'shatter') assert.deepEqual(Object.keys(e), ['e', 'floor', 'slice', 'red', 't']);
     if (e.e === 'area') assert.deepEqual(Object.keys(e), ['e', 'id', 'floor', 't']);
@@ -755,7 +755,7 @@ test('F2 — THE LANDING RIGHT AFTER A SHATTER IS NEVER AN OUT (the owner\'s rul
     assert.deepEqual([run.st, run.floor, run.fl, run.nl, run.clean, run.nb, run.bounces, run.saves, run.sh], ['live', f, 'bounce', L + BOUNCE, 0, 0, b0 + 1, 1, false], 'a bounce — the floor is NOT passed, the counts reset');
     assert.equal(run.maxNb, nb0);
     assert.deepEqual(ev.map(e => e.e), ['land', 'bounce']);
-    assert.deepEqual(ev[0], { e: 'land', floor: f, slice: ev[0].slice, kind: RED, t: L });
+    assert.deepEqual(ev[0], { e: 'land', floor: f, slice: ev[0].slice, kind: RED, t: L, a: run.a });
     assert.deepEqual(ev[1], { e: 'bounce', floor: f, slice: ev[0].slice, red: true, t: L }, 'the view\'s cue: a red flash + the slice cracks');
     // the tower did not move: the NEXT landing is on the same red slice — and that one is out
     const L2 = land(run, ev);
@@ -803,7 +803,7 @@ test('F2 — MOVING RED in the engine (THE TRENCH, solo): a landing reads the sl
   assert.equal(kindAt(fl, s), SAFE, 'the static layout calls that slice safe'); assert.equal(kindAtTick(fl, s, a.nl, R), RED, '… at that tick it is red');
   steerTo(a, sliceStart(s) + 170); const ev = []; const L = land(a, ev);
   assert.deepEqual([a.st, a.cause, a.end], ['out', 'red', L]);
-  assert.deepEqual(ev[0], { e: 'land', floor: f, slice: s, kind: RED, t: L });
+  assert.deepEqual(ev[0], { e: 'land', floor: f, slice: s, kind: RED, t: L, a: a.a });
   // THE SAME SLICE when the mover stands elsewhere → a bounce
   const b = { ...run, lt: run.lt.slice(), la: run.la.slice(), ht: run.ht.slice(), cur: { ...run.cur } };
   let hops = 0;

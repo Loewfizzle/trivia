@@ -6,7 +6,7 @@ import { colorHex } from '../../config.js';
 import { showCall } from '../kit/call.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { createRun, stepTo, isOver } from './engine.js';
-import { TICK_HZ } from './tuning.js';
+import { TICK_HZ, RULES_DEFAULT } from './tuning.js';
 import { startOf, liveOf } from './match.js';
 import { finalPatch } from './director.js';
 import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
@@ -18,7 +18,7 @@ import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
 import { seedOf, gameStandings, END_WORDS } from './logic.js';
-import { CLOCK, START_LEAD_MS, START_LATE_MS, GRANT_PHONE_MS, finalCount, packRange, eventsOf, chunkTimes, logFromChunks } from './proof.js';
+import { CLOCK, START_LEAD_MS, START_LATE_MS, GRANT_PHONE_MS, HOLD_MAX_MS, finalCount, packRange, eventsOf, chunkTimes, logFromChunks } from './proof.js';
 import { scoreNode } from './director.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { endLogo } from './endscreen.js';
@@ -30,7 +30,7 @@ import { soloGo, GO_WAIT_MS } from '../highrise/go.js';   // (THE SOLO GO — PU
 
 export { GO_WAIT_MS };
 /** an UNPROVEN run's words — on screen while it is on (the stage's quiet line) + its end card's reason */
-export const NOT_COUNTED = Object.freeze({ net: 'NOT COUNTED — NO CONNECTION', line: 'NOT COUNTED — NO LINE TO THE BOARD', pause: 'NOT COUNTED PAST THE PAUSE — NO CONNECTION', dup: 'NOT COUNTED — OPEN IN ANOTHER TAB' });
+export const NOT_COUNTED = Object.freeze({ net: 'NOT COUNTED — NO CONNECTION', line: 'NOT COUNTED — NO LINE TO THE BOARD', pause: 'NOT COUNTED PAST THE PAUSE — NO CONNECTION', long: 'NOT COUNTED PAST THE PAUSE — OVER 10 MINUTES', dup: 'NOT COUNTED — OPEN IN ANOTHER TAB' });
 export const notCounted = why => (why === 'no answer' || why === 'late' ? NOT_COUNTED.net : why === 'dup' ? NOT_COUNTED.dup : NOT_COUNTED.line);
 // the podium is waited this long after a proven run's end … view.js#2
 export const FINAL_WAIT_MS = 6000;
@@ -88,7 +88,7 @@ export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '', whyNot = '', stranded = false;
   let final = null, finalWrap = null, goTimer = 0, finalTimer = 0, capN = -1, againing = false; // view#11
-  let holdSrv = 0, holdN = 0; // view#12
+  let holdSrv = 0, holdN = 0, pauseWhy = 'pause'; // view#12
   // the match (F4B)
   let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, lateGo = false, missed = false, everProven = false, finalSeen = 0;
   let outAt = 0, outRes = null, outShown = false, callEl = null, callLine = '', callDone = false, liveRuns = null, followUid = '', followPick = '', watchKey = '', countNames = null, playersSeen = null, partsSeen = null;
@@ -140,6 +140,16 @@ export function createView() {
   });
 
   // GO: the proof node's first write — the SERVER's time, read … view.js#19
+  /** FIX C — N7 THE RULE SET (HIGH RISE's S4B): the run RECORDS the rule set it is played on — `rs` on its own proof node, once, right
+   *  behind its GO. Best effort: on rules not yet re-published the write is refused (expected, quiet) — THE JUDGE reads no `rs` as "classic". */
+  let wroteRs = false;
+  function writeRs() {
+    if (wroteRs || gone || dup()) return;
+    wroteRs = true;
+    const path = `${nodePath()}/rs`;
+    expectRefusal(path, 'freefall rs: already written (a rejoin) or the rules are not re-published yet', 90_000);
+    dbSet(dbRef(path), RULES_DEFAULT).catch(() => { /* the judge reads no `rs` as classic */ });
+  }
   function askGo() {
     const m = matchId, path = `${nodePath()}/go`;
     return new Promise(res => {
@@ -149,7 +159,7 @@ export function createView() {
       const fin = G => { done = true; clearTimeout(goTimer); started = true; res(G); };
       const proof = goAt => {
         if (stale()) return;
-        go = goAt; proven = true; whyNot = ''; wroteE = false; capN = -1; W.reset();
+        go = goAt; proven = true; whyNot = ''; wroteE = false; capN = -1; W.reset(); wroteRs = false; writeRs();
         fin({ seed: seedOf(code, matchId, go), t0: perfOf(go + START_LEAD_MS), note: '' });
       };
       /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never
@@ -184,7 +194,8 @@ export function createView() {
     expectRefusal(path, 'freefall: a hold\'s stamp — the rules are not re-published yet, or the match moved on', STAMP_WAIT_MS + 4000);
     return new Promise(res => {
       const t = setTimeout(() => res(0), STAMP_WAIT_MS);
-      const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); });
+      const stamp = () => dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => { clearTimeout(t); const v = snap.val(); if (typeof v === 'number' && holdSrv > 0 && v - holdSrv > HOLD_MAX_MS) { pauseWhy = 'long'; res(-1); return; }   // (FIX C — S5: the judge cuts at a hold that long)
+        res(!gone && m === matchId && typeof v === 'number' && v > 0 ? perfOf(v) : 0); });
       // F4B — THE PAUSE GAP: WAS THIS PAUSE GRANTED? The hold's own … view.js#25
       granted(i, holdSrv).then(ok => { if (ok === false) { clearTimeout(t); res(-1); return null; } return stamp(); }).catch(() => { clearTimeout(t); res(0); });
     });
@@ -215,7 +226,7 @@ export function createView() {
   function unstamped() {
     if (!proven || !S) return '';
     if (capN < 0) capN = finalCount(S.run()); // view#28
-    return NOT_COUNTED.pause;
+    return NOT_COUNTED[pauseWhy] || NOT_COUNTED.pause;
   }
   /** PLAY AGAIN on the stage's OWN card (an UNPROVEN run, NO SIGNAL): this match's one GO is spent and its match never ended (no `e`) — the
    *  host (this phone, a room of one) marks the run ended (`game.x/{uid}`: director.js ends the match), then THE INSTANT AGAIN starts a NEW
@@ -255,7 +266,7 @@ export function createView() {
     if (node && node.go > 0) { haveGo = true; return; }
     const tryAgain = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { goAsked = false; }, 420); else refused(); };
     // (THE PROOF PASS: the stamp + the GO are the kit's — kit/proof-io.js#writeMatchGo, JAYWALK's + HIGH RISE's too)
-    writeMatchGo(treePath(), uid, 'freefall', runs).then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else tryAgain(); }, tryAgain);
+    writeMatchGo(treePath(), uid, 'freefall', runs).then(ok => { if (gone || m !== matchId) return; if (ok) { haveGo = true; wroteRs = false; writeRs(); } else tryAgain(); }, tryAgain);
   }
   // "YOUR OWN PHONE MISSED THE GO": has a ball NOBODY STEERED … view.js#31
   function ballGone(St) {
@@ -469,7 +480,7 @@ ${sub}`;
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       // (F4B — THE PAUSE GAP: a HELD run's log — the hold with it — … view.js#59
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, lookLock: () => { const L = isMatch && st && st.game ? st.game.look : ''; return L === 'day' || L === 'night' ? L : null; }, matchT0: () => (isMatch && adopted && mPlayAt > 0 ? perfOf(mPlayAt) : null), hide: held => { if (S && started && !S.state().over) { if (held) { holdSrv = serverNow(); holdN = finalCount(S.run()); } flush(held ? 'now' : true); } }, leave };
+      cur = { go: askGo, resume, unstamped, again, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { followPick = nextFollow(S.ghostRows(), followUid); }, shotKey: () => matchId, lookLock: () => { const L = isMatch && st && st.game ? st.game.look : ''; return L === 'day' || L === 'night' ? L : null; }, matchT0: () => (isMatch && adopted && mPlayAt > 0 ? perfOf(mPlayAt) : null), hide: held => { if (S && started && !S.state().over) { if (held) { holdSrv = serverNow(); pauseWhy = 'pause'; holdN = finalCount(S.run()); } flush(held ? 'now' : true); } }, leave };
       const had = unpark();
       if (had) { S = had; S.moveTo(el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

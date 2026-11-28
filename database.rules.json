@@ -909,6 +909,10 @@
                   ".validate": "$i.matches(/^[0-2]$/) && newData.isNumber() && newData.val() === now"
                 }
               },
+              "rs": {
+                ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/ff/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/ff/' + $match + '/' + $uid + '/go').val() + 10000 && !newData.parent().child('e').exists() && !newData.parent().child('c').exists()",
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && newData.val().matches(/^[a-z0-9-]+$/)"
+              },
               "e": {
                 ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/ff/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/ff/' + $match + '/' + $uid + '/go').val() + 10800000",
                 ".validate": "newData.hasChildren(['f', 't'])",

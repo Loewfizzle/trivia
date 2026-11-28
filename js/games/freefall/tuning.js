@@ -94,10 +94,10 @@ export const RULE_SETS = Object.freeze({
       hug: [[40, 56], [80, 88], [120, 128], [160, 200], [200, 240]],
       redFrom: 10, hugFrom: 40, belowUntil: 120, windowRamp: 40,
       // (F5B — THE BLIND FLOORS, the owner: the floors the skylight … tuning.js#8
-      blind: [40, 120],
+      blind: [40, 120, 201],   // (FIX C — N6: floor 201 is landed on in THE BOTTOM's impact — ring, dust, the camera's kick — never red under the ball there)
       redMax: 8, safeMin: 3, gapSlicesMax: 6,
       lap: { from: 200, every: 40, red: 128, hug: 8 },
-      move: { from: 201, pace: 45, max: 4, chance: 154, lap: 51, two: 3 },
+      move: { from: 202, pace: 45, max: 4, chance: 154, lap: 51, two: 3 },
     },
     modes: {
       solo: { finish: null, capTicks: 30 * 60 * TICK_HZ, holds: 3 },

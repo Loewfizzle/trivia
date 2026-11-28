@@ -92,7 +92,7 @@ export function replay({ seed, mode = 'solo', log = [], until = null, rules = RU
  * the run was over ('past the end').
  */
 export function judgeRun(input) {
-  const { seed, mode, log, rules, until } = input !== null && typeof input === 'object' ? input : {};
+  const { seed, mode, log, rules, until, ev = null } = input !== null && typeof input === 'object' ? input : {};
   const R = rulesOf(rules);
   if (!R) return { ok: false, why: 'rules' };
   if (!modeRow(mode, R)) return { ok: false, why: 'mode' };
@@ -102,7 +102,7 @@ export function judgeRun(input) {
   if (live && !tickOk(until)) return { ok: false, why: 'until' };
   const bad = logProblem(log, mode, R);
   if (bad) return { ok: false, why: bad };
-  const r = replay({ seed, mode, log, rules: R.id, until: live ? until : null });
+  const r = replay({ seed, mode, log, rules: R.id, until: live ? until : null, ev: Array.isArray(ev) ? ev : null });   // (FIX C: `ev` — the server's COPYCAT check reads the landings)
   if (r.bad >= 0) return { ok: false, why: r.why };
   if (!live && !r.over) return { ok: false, why: 'never ended' }; // replay#8
   return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, bounces: r.bounces, shatters: r.shatters, blazes: r.blazes, bestRun: r.bestRun, moves: r.moves, feats: r.feats, ...(r.holds ? { holds: r.holds } : {}), ...(live ? { over: r.over } : {}) };

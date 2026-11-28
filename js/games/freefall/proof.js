@@ -1,6 +1,6 @@
 // FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; … proof.js#1
 import { judgeRun, unpackLog, isHold, packMove } from './replay.js';
-import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX, MODES } from './tuning.js';
+import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX, MODES, RULES_DEFAULT } from './tuning.js';
 import { seedOf } from './logic.js';
 import { overChunkCeiling } from '../../core/proof.js';
 
@@ -33,6 +33,12 @@ export const CLOCK = Object.freeze({ ahead: 2 * TICK_HZ, behind: 8 * TICK_HZ, gr
  *  the phone's own margin — it calls a pause GRANTED only when the hold's chunk was stamped this long after the hold at the most (tighter
  *  than the judge's CLOCK.grant: the phone's idea of the server's clock is a network's beat off) */
 export const GRANT_PHONE_MS = 1500;
+/** FIX C — S5 A HOLD's LONGEST: a hold whose way back was stamped more than this after the hold's own wall time has no way back — the run
+ *  is CUT at that hold (a hold at tick 2 = the clock stopped for hours with the seed known: it would beat any human-likeness check) */
+export const HOLD_MAX_MS = 10 * 60 * 1000;
+/** FIX C — S4 A MATCH's END-BURST: a run that ENDS inside a dropped-signal burst counts that burst only when its silence was this short at
+ *  most (else it is CUT where the silence began — slow motion at the end of a match is never taken whole) */
+export const END_BURST_MS = 20 * 1000;
 const MS = 1000 / TICK_HZ;
 
 // ---- the writer's half: the run's own log (engine.js: … proof.js#3
@@ -143,7 +149,7 @@ export function stampsOf(node) {
  * → null (honest) | { why: 'go' | 'chunks' | 'clock' | 'ahead' | 'hold clock' } (refused) |
  *   { why: 'behind' | 'pause', tick, events (the events before the cut — the run counts up to them) } | { why: 'hold', tick, seg (the segments that have a clock) }
  */
-export function clockProblem(go, times, holdTicks = [], stamps = []) {
+export function clockProblem(go, times, holdTicks = [], stamps = [], endBurst = 0) {
   if (typeof go !== 'number' || !(go > 0)) return { why: 'go' };
   if (!Array.isArray(times)) return { why: 'chunks' };
   // the segments' clocks: base[s] = the server time segment s's first tick T[s] stands at
@@ -157,6 +163,7 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     if (ci < times.length && times[ci].at > paused + CLOCK.grant * MS) { frozen = s; break; }
     if (s >= stamps.length) break;
     if (stamps[s] < paused - CLOCK.ahead * MS) return { why: 'hold clock' };
+    if (stamps[s] - paused > HOLD_MAX_MS) break;   // (FIX C — S5: too long a hold = no way back: cut at it)
     T.push(holdTicks[s]); base.push(stamps[s] + RESUME_LEAD_MS);
   }
   /** THE RUN's CLOCK at a server time: the tick the run stands at (frozen at a hold until its way back) */
@@ -186,10 +193,12 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     else {
       const silence = Math.min(k.at - prev, CLOCK.drop);
       if (k.t0 < runTick(k.at - silence) - CLOCK.behind) return { why: 'behind', tick: k.t0, events };
-      drop = { tick: k.t0, events, until: k.at + CLOCK.catchUp, lag: now - k.t0 };
+      drop = { tick: k.t0, events, until: k.at + CLOCK.catchUp, lag: now - k.t0, silence };
     }
     events += k.n;
   }
+  // (FIX C — S4: the run ENDED inside a burst — a match takes it only after a short silence)
+  if (drop && endBurst > 0 && drop.silence > endBurst) return { why: 'behind', tick: drop.tick, events: drop.events };
   return null;
 }
 
@@ -205,8 +214,11 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
  * `mirror` = THE HOST's PODIUM judging its own LIVE mirror (a chunk still in flight carries the phone's ESTIMATE of the server's time):
  * the times are taken as never running backwards. THE SERVER never sets it — strict.
  */
-export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
+export function judgeNode({ seed, mode = 'solo', node, mirror = false, ev = null, rules = null } = {}) {
   if (!node || typeof node !== 'object' || !(Number(node.go) > 0)) return { ok: false, why: 'no go' };
+  // (FIX C — N7 THE RULE SET: the node's own `rs` — none = "classic"; `rules` = the set a MATCH is played on: a node naming another is refused)
+  const rs = node.rs == null ? RULES_DEFAULT : node.rs;
+  if (rules != null && rs !== rules) return { ok: false, why: 'rules' };
   if (overChunkCeiling(node, CHUNKS_PER_SEC)) return { ok: false, why: 'too many chunks' };   // (before anything is unpacked)
   const L = logFromChunks(node.c), times = chunkTimes(node.c, L);
   if (!L || !times) return { ok: false, why: 'chunks' };
@@ -217,7 +229,7 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   for (const e of log) if (isHold(e)) holdTicks.push(e.t);
   // (F4B: more holds than the mode has — a match / the daily: … proof.js#9
   if (holdTicks.length > ((Object.prototype.hasOwnProperty.call(MODES, mode) && MODES[mode].holds) || 0) && Object.prototype.hasOwnProperty.call(MODES, mode)) return { ok: false, why: 'too many holds' };
-  const c = clockProblem(go, times, holdTicks, stampsOf(node));
+  const c = clockProblem(go, times, holdTicks, stampsOf(node), mode === 'match' ? END_BURST_MS : 0);
   let cut = null;
   if (c && c.why !== 'behind' && c.why !== 'hold' && c.why !== 'pause') return { ok: false, why: c.why === 'ahead' ? 'ahead of the clock' : c.why === 'clock' ? 'the chunks\' clock' : c.why };
   if (c && (c.why === 'behind' || c.why === 'pause')) { cut = { why: c.why, tick: c.tick }; log = log.slice(0, c.events); }
@@ -227,14 +239,14 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
     for (; n < log.length; n++) if (isHold(log[n]) && ++h === c.seg) { n++; break; }
     cut = { why: 'hold', tick: c.tick }; log = log.slice(0, n);
   }
-  const j = judgeRun({ seed, mode, log });
+  const j = judgeRun({ seed, mode, log, ev, rules: rs });
   return j.ok && cut ? { ...j, cut } : j;
 }
 /** F4B — a MATCH's node: judged on THE FIRST GO's seed + clock — tick 0 = `playAt` (logic.js#matchStart: the first GO + its lead) for
  *  everyone, whatever the node's own GO says (it only proves the player was there on time: core/proof.js#onTime — the caller's check).
  *  NO HOLDS (the judge refuses one by name), THE FINISH at floor 200, the 3:00 cap. */
-export const judgeMatch = ({ seed, node, playAt, mirror = false } = {}) => (node && Number(node.go) > 0 && Number(playAt) > 0
-  ? judgeNode({ seed, mode: 'match', node: { ...node, go: Number(playAt) - START_LEAD_MS }, mirror }) : { ok: false, why: 'no go' });
+export const judgeMatch = ({ seed, node, playAt, mirror = false, ev = null, rules = null } = {}) => (node && Number(node.go) > 0 && Number(playAt) > 0
+  ? judgeNode({ seed, mode: 'match', node: { ...node, go: Number(playAt) - START_LEAD_MS }, mirror, ev, rules }) : { ok: false, why: 'no go' });
 // a SOLO run's node: the seed = logic.js#seedOf(code, … proof.js#10
 export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0
   ? judgeNode({ seed: seedOf(String(code), String(matchId), Number(node.go)), mode: 'solo', node, mirror }) : { ok: false, why: 'no go' });

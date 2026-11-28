@@ -40,7 +40,7 @@ export function scoreMatchNode(game, node) {
   if (!node || !(Number(node.go) > 0) || !game.seed) return { ...NONE };
   // (THE PROOF PASS — the server's guard, on the host's podium … director.js#5
   if (game.g0 > 0 && !onTime(node, game.g0)) return { ...NONE, bad: 'late go' };
-  return rowOf(judgeMatch({ seed: game.seed, node, playAt: game.playAt, mirror: true }), node, false);
+  return rowOf(judgeMatch({ seed: game.seed, node, playAt: game.playAt, mirror: true, rules: game.rs || null }), node, false);   // (FIX C — N7: the match's rule set)
 }
 export function finalPatch(game0, runs, now, code) {
   if (game0.mode === 'solo') {
@@ -66,7 +66,7 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
   if (game.phase === 'count') {
     if (game.mode === 'solo') return now >= game.playAt ? { phase: 'play', phaseStartAt: game.playAt } : null;
     const S = matchStart(code, game.matchId, runs);
-    if (S) return now >= S.playAt ? { phase: 'play', phaseStartAt: S.playAt, playAt: S.playAt, seed: S.seed, g0: S.g0 } : null;
+    if (S) return now >= S.playAt ? { phase: 'play', phaseStartAt: S.playAt, playAt: S.playAt, seed: S.seed, g0: S.g0, rs: S.rs } : null;
     return now >= game.playAt + NO_GO_MS ? { phase: 'play', phaseStartAt: now, playAt: now + 800, seed: seedOf(code, game.matchId, `u${now}`), unproven: 1 } : null;
   }
   if (game.phase === 'final') return rescore(game, runs, now, code);
@@ -76,7 +76,7 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
     if (game.unproven) {
       // (a FIRST GO the server stamped before this host gave up = a … director.js#7
       const S = matchStart(code, game.matchId, runs);
-      if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 };
+      if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0, rs: S.rs };
       return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
     }
     const done = ids.length > 0 && ids.every(u => endedFor(game, runs[u], now, !online || !!online[u]));

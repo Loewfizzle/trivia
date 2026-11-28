@@ -448,10 +448,18 @@ function highriseExtra(game, uid, out) {
 // run) · `terminal` (15 floors in a row without a bounce) · `bottom` (floor 200, solo or match). THE AVERAGE (the owner: as JAYWALK's):
 // a SOLO run's floors (`av` — a floor-0 run is `empty`: the step skips it, as JAYWALK's lane-0 run). NOTHING of this is ever written while counting is OFF (api/report.js: the switch returns before any credit).
 export const FF_FEATS = Object.freeze({ reachedHarbor: 'harbor', terminal: 'terminal', reachedBottom: 'bottom' });
+/** FIX C — S3 THE HOLD (the owner, Nov 27: anti-cheat ships with FREEFALL): a judged row TOO PERFECT FOR A HUMAN — a no-bounce run of
+ *  `bestRun` floors or more, or fewer than `rate` bounces a floor over `from`+ floors. The sims' bots (tests/freefall-hold.test.mjs —
+ *  sloppy · good · great · human, solo + match, 200 seeds each): best no-bounce run ≤ 18, ≥ 0.53 bounces a floor; a script that reads the
+ *  tower: 401 floors / 1 bounce at MAX SPIN, a no-bounce run of 76–126 at a human's spin. HELD = the XP is paid (the run was played and
+ *  proven), the board row, the AVERAGE and the cards are NOT written — named in `rejected` as 'held' for /admin. */
+export const FF_HOLD = Object.freeze({ bestRun: 40, from: 100, rate: 0.3 });
+export const ffTooPerfect = r => !!r && (num(r.br) >= FF_HOLD.bestRun || (num(r.f) >= FF_HOLD.from && num(r.b) / num(r.f) < FF_HOLD.rate));
 function freefallExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};
   if (r.bad) { out.rejected.push({ uid, board: 'freefall-solo', v: r.bad }); return; }
   if (game.sv !== 1) return;
+  if (ffTooPerfect(r)) { out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)) }); return; }
   const solo = Object.keys(game.participants || {}).length === 1;
   if (num(r.f) > 0) out.rec[solo ? 'freefall' : 'freefall-solo'] = Math.floor(num(r.f));
   for (const k of String(r.ft || '').split(' ')) if (Object.prototype.hasOwnProperty.call(FF_FEATS, k)) (out.f ||= {})[FF_FEATS[k]] = 1;

@@ -322,7 +322,7 @@ test('F2 — FLOORS 0–200 ARE F1\'s, TO THE BIT: the moving red changes nothin
   const seen = makeRuleSet({ ...plainF, id: 'seen', gen: { ...plainF.gen, blind: [] } });
   for (let s = 0; s < 300; s++) { const h = seedHash(`d${s}`); for (let i = 0; i <= 200; i++) { const f = GEN.blind.includes(i) ? floorAt(h, i, seen) : floorAt(h, i); hsh.update(`${f.twist},${f.gap},${f.red};`); assert.equal(f.m1 | f.m2, 0, `floor ${i}: no mover above the trench`); } }
   assert.equal(hsh.digest('hex').slice(0, 16), '01feecfdacd61711', 'floors 0–200 of 300 towers: twist, gaps, red — F1\'s, bit for bit');
-  assert.deepEqual(MOVE, { from: 201, pace: 45, max: 4, chance: 154, lap: 51, two: 3 });
+  assert.deepEqual(MOVE, { from: 202, pace: 45, max: 4, chance: 154, lap: 51, two: 3 });
   // a what-if row without the rule builds F1's trench too (the static red is only ever touched by a mover's own track)
   const plain = JSON.parse(JSON.stringify(RULE_SETS.classic)); delete plain.reach; delete plain.hop;
   const still = makeRuleSet({ ...plain, id: 'still', gen: { ...plain.gen, move: null } });
@@ -418,14 +418,14 @@ test('F2 — MOVING RED\'s SLICE IS A PURE FUNCTION OF (seed, floor, tick): a fi
 
 // ---- F5B — THE BLIND FLOORS (the owner: the skylight + the water hide floors 40 + 120 until their breakthrough — a landing made blind)
 test('F5B — THE BLIND FLOORS: floors 40 + 120 carry NO red on 2,400 towers; every other floor 0 … 320 is the plain row\'s, bit for bit (twist, gaps, red, movers)', () => {
-  assert.deepEqual([...GEN.blind], [40, 120], 'the classic row names the two floors the skylight + the water hide');
+  assert.deepEqual([...GEN.blind], [40, 120, 201], 'the classic row names the two floors the skylight + the water hide + (FIX C — N6) floor 201, landed on in THE BOTTOM\'s impact');
   const plain = JSON.parse(JSON.stringify(RULE_SETS.classic)); delete plain.reach; delete plain.hop;
   const seen = makeRuleSet({ ...plain, id: 'seen', gen: { ...plain.gen, blind: [] } });
   let had = 0;
   for (let k = 0; k < 2400; k++) {
     const h = seedHash(`blind${k}`);
-    for (const i of [40, 120]) { const f = floorAt(h, i), was = floorAt(h, i, seen); assert.equal(f.red, 0, `tower ${k}, floor ${i}: no red`); assert.equal(f.gap, was.gap); assert.equal(f.twist, was.twist); assert.equal(f.m1 | f.m2, 0); if (was.red) had++; }
-    if (k < 120) for (let i = 0; i <= 320; i++) { if (i === 40 || i === 120) continue; assert.deepEqual(floorAt(h, i), floorAt(h, i, seen), `tower ${k}, floor ${i}: unchanged`); }
+    for (const i of [40, 120, 201]) { const f = floorAt(h, i), was = floorAt(h, i, seen); assert.equal(f.red, 0, `tower ${k}, floor ${i}: no red`); assert.equal(f.gap, was.gap); assert.equal(f.twist, was.twist); assert.equal(f.m1 | f.m2, 0); if (was.red) had++; }
+    if (k < 120) for (let i = 0; i <= 320; i++) { if (i === 40 || i === 120 || i === 201) continue; assert.deepEqual(floorAt(h, i), floorAt(h, i, seen), `tower ${k}, floor ${i}: unchanged`); }
   }
   assert.ok(had > 3000, `the rule did something: ${had} of 4,800 blind floors had red before it`);
   const f = buildFloor('poster1', 120); assert.ok(f.slices.every(x => x !== RED), 'buildFloor (the judge and the view) agrees');

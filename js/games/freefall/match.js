@@ -1,6 +1,6 @@
 // FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE … match.js#1
 import { CALL_MS, callBonus } from '../../core/playlist.js';
-import { TICK_HZ, MODES } from './tuning.js';
+import { TICK_HZ, MODES, RULES_DEFAULT, ruleSet } from './tuning.js';
 import { seedOf, gameStandings } from './logic.js';
 import { firstGo, inMatch, fullDraw, liveGoers, onTime, GO_WINDOW_MS } from '../../core/proof.js';
 
@@ -28,7 +28,16 @@ export const CALL_WINDOW_MS = CALL_MS + 6000;
 export const MATCH_MIN = 2, MATCH_MAX = 8;
 
 // PURE: the phones, the host's director and the server derive … match.js#4
-export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(String(code), String(matchId), g0) } : null; };
+export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(String(code), String(matchId), g0), rs: matchRules(runs, g0) } : null; };
+/** FIX C — N7: a MATCH's rule set = the one THE FIRST GO's player named (none = "classic"; a set nobody knows is never the match's; two GOs in
+ *  one millisecond: the LOWEST uid's) — HIGH RISE's matchRules: the phones, the host and the server agree */
+export function matchRules(runs, g0 = firstGo(runs)) {
+  if (!(g0 > 0)) return RULES_DEFAULT;
+  let first = null;
+  for (const u of Object.keys(runs || {})) { const n = runs[u]; if (n && Number(n.go) === g0 && (first === null || u < first)) first = u; }
+  const rs = first === null ? null : runs[first].rs;
+  return rs != null && ruleSet(rs) ? rs : RULES_DEFAULT;
+}
 
 /**
  * THE NODES ARE THE TRUTH (JAYWALK H4B): the seed + tick 0 a phone PLAYS (and the host scores) = THE FIRST GO among the proof nodes it

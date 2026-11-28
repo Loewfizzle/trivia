@@ -1746,7 +1746,8 @@ test('FREEFALL F4A — the ff proof node: THE STAMP then GO once, append-only ch
   await assertFails(set(ref(db('p3'), `${R}/ff/fm1/p3/go`), serverTimestamp()), 'seated but not in the match');
   await assertFails(set(ref(db('p2'), `${R}/ff/fm2/p2/go`), serverTimestamp()), 'only the match that is on');
   await assertFails(set(ref(db('p2'), `${N}/go2`), 1), 'no other field');
-  await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'no rule-set leaf (FREEFALL plays "classic")');
+  await assertSucceeds(set(ref(db('p2'), `${N}/rs`), 'classic'), 'FIX C — N7: the rule-set leaf, behind GO, before the log');
+  await assertFails(set(ref(db('p2'), `${N}/rs`), 'turbo-2'), '… written once');
   await assertFails(set(ref(db('p2'), N), { go: 1 }), 'never the whole node at once (its leaves only)');
   await assertFails(update(ref(db('host'), `${R}/ff/fm1/host`), { go: serverTimestamp(), 'c/0': { s: '+1', at: serverTimestamp() }, e: { f: 1, t: 30, w: 'red' } }), 'never GO + a chunk + the end at once');
   // the chunks
@@ -2095,6 +2096,28 @@ test("HIGH RISE S4B — the proof node's `rs`: the run's rule set — own uid, o
   await assertFails(set(ref(db('host'), `${R}/hr/mm1/host/rs`), 'classic'), 'no rule set after the end');
   await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));
   await assertFails(set(ref(db('p2'), `${R}/hr/mm1/p2/rs2`), 'classic'), 'no other field on the node');
+});
+
+// FREEFALL FIX C — N7 THE RULE-SET LEAF (HIGH RISE's S4B): rooms/{CODE}/ff/{matchId}/{uid}/rs — the rule set the run is played on, its
+// player's, ONCE, behind their GO (10 s), before their first chunk + their end; a short id (the judge refuses one it does not know)
+test("FREEFALL FIX C — the proof node's `rs`: own uid, once, after GO, before the log + the end, a short id", async () => {
+  const room = playingRoom('play');
+  room.rooms[CODE].game = { id: 'freefall', matchId: 'fr1', phase: 'play', participants: { host: true, p2: true }, playAt: now() - 5000, seed: 's', mode: 'match' };
+  await seed(room);
+  const N = `${R}/ff/fr1/p2`, C = s => ({ s, at: serverTimestamp() });
+  await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'no rule set before GO');
+  await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO');
+  for (const bad of ['', 'Classic', 'classic ', 'a_b', 'x'.repeat(17), 7, true, { a: 1 }]) await assertFails(set(ref(db('p2'), `${N}/rs`), bad), `not a rule-set id: ${JSON.stringify(bad)}`);
+  await assertFails(set(ref(db('host'), `${N}/rs`), 'classic'), 'never another player\'s');
+  await assertFails(set(ref(db('p2'), `${R}/ff/fr2/p2/rs`), 'classic'), 'only the match that is on');
+  await assertSucceeds(set(ref(db('p2'), `${N}/rs`), 'classic'), 'the rule set');
+  await assertFails(set(ref(db('p2'), `${N}/rs`), 'turbo-2'), 'written once');
+  await assertFails(set(ref(db('p2'), `${N}/rs`), null), '… and never taken back');
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/0`), C('.c+2r')), 'the log goes on as ever');
+  await assertSucceeds(update(ref(db('host'), `${R}/ff/fr1/host`), { go: serverTimestamp() }));
+  await assertFails(update(ref(db('host'), `${R}/ff/fr1/host`), { rs: 'classic', 'c/0': C('+1') }), 'never in one write with the first chunk');
+  await assertSucceeds(set(ref(db('host'), `${R}/ff/fr1/host/c/0`), C('+1')), 'the first chunk');
+  await assertFails(set(ref(db('host'), `${R}/ff/fr1/host/rs`), 'classic'), 'no rule set once the log has begun');
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------

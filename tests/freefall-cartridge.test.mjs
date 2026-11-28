@@ -179,7 +179,7 @@ test('ON (the pure step — what credit() runs once the switch is flipped): the 
   const row = { ...serverRow({ ok: true, floor: deep.live.floor, tick: deep.live.tick, cause: deep.live.cause, end: deep.live.end, feats: deep.live.feats }) };
   assert.equal(N.run.floor, deep.live.floor);
   assert.ok(/reachedHarbor/.test(row.ft) && /reachedBottom/.test(row.ft), `the feats of a run to floor ${deep.live.floor}: ${row.ft}`);
-  const game = { id: 'freefall', matchId: M, phase: 'final', mode: 'solo', sv: 1, participants: { u1: true }, settings: {}, results: { u1: { ...row, ft: 'reachedHarbor terminal reachedBottom' } } };
+  const game = { id: 'freefall', matchId: M, phase: 'final', mode: 'solo', sv: 1, participants: { u1: true }, settings: {}, results: { u1: { ...row, b: deep.live.bounces, br: deep.live.bestRun, ft: 'reachedHarbor terminal reachedBottom' } } };   // (FIX C: the judged row's b + br — THE HOLD reads them)
   const ex = extractMatch(game);
   assert.deepEqual(ex.rows.u1.f, { harbor: 1, terminal: 1, bottom: 1 });
   const res = matchStep(null, { key: `${CODE}_${M}`, gid: 'freefall', row: ex.rows.u1, n: 1, now: GO + 400000, at: GO + 400000, gap: 0 });
@@ -189,7 +189,7 @@ test('ON (the pure step — what credit() runs once the switch is flipped): the 
   assert.ok(res.next.pa.gf['freefall-harbor'] === 1 && res.next.pa.gf['freefall-terminal'] === 1 && res.next.pa.gf['freefall-bottom'] === 1, 'the flags');
   for (const [card, ach] of [['card-splashdown', 'splashdown'], ['card-terminalvelocity', 'terminal-velocity'], ['card-rockbottom', 'rock-bottom']]) assert.ok(res.next.it[card] && res.next.ac[ach], `${card} awarded by the step`);
   // only the feat a run really has: floor 130 without a 15-run → SPLASHDOWN alone
-  const g2 = { ...game, results: { u1: { f: 130, t: 5000, w: 'red', e: 5100, ft: 'reachedHarbor' } } };
+  const g2 = { ...game, results: { u1: { f: 130, t: 5000, w: 'red', e: 5100, b: 95, br: 11, ft: 'reachedHarbor' } } };
   const r2 = matchStep(null, { key: 'k2', gid: 'freefall', row: extractMatch(g2).rows.u1, n: 1, now: GO + 400000, at: GO + 400000, gap: 0 });
   assert.ok(r2.next.it['card-splashdown'] && !r2.next.it['card-terminalvelocity'] && !r2.next.it['card-rockbottom']);
   // … and an unknown feat word is nothing ('constructor' never a flag)
@@ -210,7 +210,7 @@ test('THE BOARD + THE AVERAGE (the owner: "like JAYWALK, in all the same spots")
   assert.deepEqual(GAME_BOARDS.freefall.records.map(r => r.id), [BOARD]); assert.deepEqual(boardDef('jaywalk-solo').avg, def.avg, 'JAYWALK\'s own numbers');
   assert.equal(fmtValue(def, 141), '141');
   // five counted SOLO runs (the server's `sv` rows) over two days → the average shows; four → a dash
-  const row = f => extractMatch({ id: 'freefall', matchId: M, phase: 'final', mode: 'solo', sv: 1, participants: { u1: true }, settings: {}, results: { u1: { f, t: f * 40, w: 'red', e: f * 40 + 30 } } }).rows.u1;
+  const row = f => extractMatch({ id: 'freefall', matchId: M, phase: 'final', mode: 'solo', sv: 1, participants: { u1: true }, settings: {}, results: { u1: { f, t: f * 40, w: 'red', e: f * 40 + 30, b: Math.ceil(f * 0.7), br: 9 } } }).rows.u1;   // (FIX C: a human's bounces — THE HOLD)
   let s = null;
   const floors = [40, 60, 100, 20, 80];
   floors.forEach((f, i) => { const r = matchStep(s, { key: `k${i}`, gid: 'freefall', row: row(f), n: 1, now: GO + i * 600_000 + (i >= 3 ? 86_400_000 : 0), at: GO + i * 600_000 + (i >= 3 ? 86_400_000 : 0), gap: 0 }); assert.ok(!r.skip, `run ${i}: ${r.skip}`); s = r.next; if (i === 3) assert.equal(avgOf(s.av[BOARD]).avg, null, 'four runs: no average yet'); });
@@ -257,7 +257,7 @@ test('THE CARTRIDGE\'s SCREEN (static): GO behind THE STAMP → the seed + tick 
   const v = read('js/games/freefall/view.js'), st = read('js/games/freefall/stage.js');
   assert.match(v, /return stampT0\(treePath\(\), 'freefall'\)\.then\(\(\) => \(stale\(\) \? Promise\.reject\(new Error\('the run stopped waiting'\)\) : runTransaction\(dbRef\(path\), cur => \(cur == null \? serverTimestamp\(\) : undefined\), \{ applyLocally: false \}\)\)\);/, 'THE STAMP, then the GO — the server\'s time, a TRANSACTION never applied locally (F4B — the review: a plain set showed the phone\'s own guess of the time in its mirror, and a look took it for the GO)');
   // F4B — THE PAUSE GAP on the phone (the review's HIGH): the hold's chunk is asked about only once its write is ACKNOWLEDGED — never read off the mirror's pending copy
-  assert.ok(v.includes('if (W.state().acked >= need) { read().then(res, rej); return; }') && v.includes('if (held) { holdSrv = serverNow(); holdN = finalCount(S.run()); } flush(held ? \'now\' : true);'), 'granted(): acknowledged first, then the server\'s stamp');
+  assert.ok(v.includes('if (W.state().acked >= need) { read().then(res, rej); return; }') && v.includes('if (held) { holdSrv = serverNow(); pauseWhy = \'pause\'; holdN = finalCount(S.run()); } flush(held ? \'now\' : true);'), 'granted(): acknowledged first, then the server\'s stamp');
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go \+ START_LEAD_MS\), note: '' \}\);/, 'the seed from the GO read back; tick 0 = GO + the lead');
   assert.match(v, /if \(r\.c \|\| serverNow\(\) - r\.go > START_LATE_MS\) \{ unproven\(r\.c \? 'again' : 'late'\); return; \}/, 'a GO answered too late starts no proven run');
   assert.match(v, /count: \(\) => \{ if \(!S \|\| !proven\) return 0; const n = finalCount\(S\.run\(\)\); return capN >= 0 && n > capN \? capN : n; \}, pack: \(a, b\) => packRange\(S\.run\(\), a, b\), entriesOf: eventsOf,/, 'the writer sends FINAL events only — and nothing past a hold that got no stamp (the review)');

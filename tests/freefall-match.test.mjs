@@ -54,14 +54,14 @@ test('THE STEPS: count → (THE FIRST GO: the seed + tick 0 for all) → play �
   const runs = { bot1: { go: GO + 90 }, bot0: { go: GO } };
   assert.equal(nextStep(g, { now: GO + 1999, live: { runs }, code: CODE }), null);
   const p = nextStep(g, { now: GO + 2000, live: { runs }, code: CODE });
-  assert.deepEqual(p, { phase: 'play', phaseStartAt: GO + 2000, playAt: GO + 2000, seed: seedOf(CODE, MID, GO), g0: GO });
-  assert.deepEqual(M.startOf(g, runs, CODE), { g0: GO, playAt: GO + 2000, seed: p.seed }, 'THE NODES ARE THE TRUTH — in the count already');
+  assert.deepEqual(p, { phase: 'play', phaseStartAt: GO + 2000, playAt: GO + 2000, seed: seedOf(CODE, MID, GO), g0: GO, rs: 'classic' });   // (FIX C — N7: + the match's rule set)
+  assert.deepEqual(M.startOf(g, runs, CODE), { g0: GO, playAt: GO + 2000, seed: p.seed, rs: 'classic' }, 'THE NODES ARE THE TRUTH — in the count already');
   // no GO anywhere: UNPROVEN after NO_GO_MS — a stand-in seed, never counted
   const u = nextStep(g, { now: g.playAt + M.NO_GO_MS, live: { runs: {} }, code: CODE });
   assert.equal(u.unproven, 1); assert.equal(u.phase, 'play'); assert.notEqual(u.seed, p.seed);
   const gu = { ...g, ...u };
   // … a FIRST GO stamped BEFORE the host gave up: the mark is taken back, the match is the GO's
-  assert.deepEqual(nextStep(gu, { now: gu.playAt + 100, live: { runs }, code: CODE }), { unproven: null, playAt: GO + 2000, seed: p.seed, g0: GO });
+  assert.deepEqual(nextStep(gu, { now: gu.playAt + 100, live: { runs }, code: CODE }), { unproven: null, playAt: GO + 2000, seed: p.seed, g0: GO, rs: 'classic' });
   // … one stamped AFTER it never moves a match already falling on its stand-in; it ends unscored after UNPROVEN_MS
   const late = { bot0: { go: gu.phaseStartAt + 50 } };
   assert.equal(nextStep(gu, { now: gu.playAt + 100, live: { runs: late }, code: CODE }), null);

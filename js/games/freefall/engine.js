@@ -68,7 +68,7 @@ function landing(run, L, ev) {
   const R = run.R, f = run.floor, fl = floorNow(run), s = sliceUnder(run.a, fl.twist), kind = kindAtTick(fl, s, L, R);
   const after = run.sh;   // (this landing is the one right after a shatter)
   run.ll = L; run.sh = false;
-  if (ev) ev.push({ e: 'land', floor: f, slice: s, kind, t: L });
+  if (ev) ev.push({ e: 'land', floor: f, slice: s, kind, t: L, a: run.a });   // (FIX C: + the tower's angle — THE COPYCAT's signature)
   if (kind !== GAP && !run.blaze) {
     const saved = kind === RED && after && R.shatterSafe === true;
     if (kind === RED && !saved) return finish(run, 'out', 'red', L, ev);
