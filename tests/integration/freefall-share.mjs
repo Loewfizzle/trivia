@@ -173,7 +173,7 @@ for (const [name, query, play, extra, want, looks = LOOKS, endMs = 60000] of RUN
         // (2) the test page's own SHARE (a real press + lift on its button)
         got.length = 0;
         const b = document.querySelector('.ff-share'), at = (type, id) => b.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: id, isPrimary: true }));
-        at('pointerdown', 7); at('pointerup', 7);
+        at('pointerdown', 7); at('pointerup', 7); b.click();   // (FIX C — N12: the page's SHARE acts on the real click)
         const pageSync = got.length;
         await new Promise(r => setTimeout(r, 50));
         const pd = got[0] || {}, pf = pd.files && pd.files[0];

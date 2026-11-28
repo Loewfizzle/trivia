@@ -128,11 +128,11 @@ function celebrate(c, box, shot) {
       const x0 = cx + Math.cos(ang) * r0, y0 = cy + Math.sin(ang) * r0, x1 = cx + Math.cos(ang) * r1, y1 = cy + Math.sin(ang) * r1;
       const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, `${col}00`); g.addColorStop(0.35, col); g.addColorStop(0.88, col); g.addColorStop(1, tip);
       c.shadowColor = col; c.shadowBlur = 18; c.strokeStyle = g; c.lineWidth = 8; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
-      c.shadowBlur = 12; c.fillStyle = tip; c.beginPath(); c.arc(x1, y1, 6.5, 0, Math.PI * 2); c.fill();
+      c.shadowBlur = 12; c.fillStyle = tip; c.fillRect(x1 - 5.5, y1 - 5.5, 11, 11);   // (a spark at the tip)
     }
     // (its heart: a small hot flash — a burst, never a hole)
     const f = c.createRadialGradient(cx, cy, 0, cx, cy, R * 0.22); f.addColorStop(0, tip); f.addColorStop(0.45, `${col}cc`); f.addColorStop(1, `${col}00`);
-    c.shadowBlur = 0; c.fillStyle = f; c.beginPath(); c.arc(cx, cy, R * 0.22, 0, Math.PI * 2); c.fill();
+    c.shadowBlur = 0; c.fillStyle = f; c.fillRect(cx - R * 0.22, cy - R * 0.22, R * 0.44, R * 0.44);   // (the gradient is round; the rect only holds it)
   });
   c.restore();
 }
