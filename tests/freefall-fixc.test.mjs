@@ -134,3 +134,12 @@ test('GROUP 3 — THE TEST PAGE: the bot match (botmatch.js — lazy, page only;
   assert.ok(lab.includes("document.removeEventListener('keydown', onKeyDown); document.removeEventListener('keyup', onKeyUp);"));
   assert.match(readFileSync('js/ui/help.js', 'utf8'), /'A MATCH never pauses\.'/, 'N5');
 });
+
+test('GROUP 4 — THE FINISH CARD: bigger coloured bursts (gold + cyan by night, gold + teal by day) where the words are not, a dark vignette by day — fixed shapes, only on THE BOTTOM\'s gold card', () => {
+  return import('../js/games/freefall/card.js').then(({ BURSTS }) => {
+    assert.deepEqual(BURSTS.night, ['#ffc83c', '#00f0ff', '#ffc83c']); assert.deepEqual(BURSTS.day, ['#ffc83c', '#14d6cf', '#ffc83c']);
+    for (const [fx, fy, fr] of BURSTS.at) assert.ok(fy - fr * 0.8 >= 0 && fy + fr <= 0.75 && !(fx < 0.55 && fy < 0.3), `a burst at ${fx}, ${fy} keeps clear of the cause's tab + the floors`);
+    const src = readFileSync('js/games/freefall/card.js', 'utf8');
+    assert.match(src, /if \(gold\) celebrate\(c, box, shot\);/); assert.doesNotMatch(src.slice(src.indexOf('function celebrate'), src.indexOf('/** the middle')), /Math\.random/);
+  });
+});

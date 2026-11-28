@@ -109,6 +109,33 @@ export function drawFfHead(c, card, logo) {
   c.shadowBlur = 0; c.fillStyle = '#8cf6f8'; spacedText(c, card.mode || 'SOLO', W / 2 + 4, HEAD.modeY, 8, { maxW: W - 160 });
   c.restore();
 }
+/** FIX C — THE FINISH's CELEBRATION (the reviewer + the owner: "bigger coloured bursts + a dark vignette by day"): by DAY the frame's edges
+ *  go dark round the ball (the card is never milky), then THREE big neon bursts — gold + cyan by night, gold + teal by day — where the words
+ *  are not (the top right, the two sides at the ball's height). Fixed shapes (no randomness: the same run = the same card). Px of 1080. */
+export const BURSTS = Object.freeze({ at: [[0.8, 0.2, 0.2], [0.13, 0.5, 0.15], [0.87, 0.55, 0.15]], rays: 18, night: ['#ffc83c', '#00f0ff', '#ffc83c'], day: ['#ffc83c', '#14d6cf', '#ffc83c'], vignette: 'rgba(4,14,36,0.82)' });
+function celebrate(c, box, shot) {
+  const { x, y, w, h } = box, day = !!shot && shot.look === 'day', bx = x + w * (shot && shot.ballX != null ? shot.ballX : 0.5), by = y + h * (shot && shot.ballY != null ? shot.ballY : 0.42);
+  c.save();
+  if (day) { const v = c.createRadialGradient(bx, by, w * 0.2, bx, by, w * 0.74); v.addColorStop(0, 'rgba(4,14,36,0)'); v.addColorStop(0.5, 'rgba(4,14,36,0.5)'); v.addColorStop(1, BURSTS.vignette); c.fillStyle = v; c.fillRect(x, y, w, h); }
+  const cols = day ? BURSTS.day : BURSTS.night;
+  c.lineCap = 'round';
+  BURSTS.at.forEach(([fx, fy, fr], i) => {
+    const cx = x + w * fx, cy = y + h * fy, R = w * fr, col = cols[i % cols.length], tip = col === '#ffc83c' ? '#fff4cc' : '#dcffff', n = BURSTS.rays;
+    // (a soft dark ground behind the burst: its colour reads on the pale frame — never washed to white)
+    const d = c.createRadialGradient(cx, cy, 0, cx, cy, R * 1.15); d.addColorStop(0, 'rgba(6,4,20,0.42)'); d.addColorStop(0.7, 'rgba(6,4,20,0.3)'); d.addColorStop(1, 'rgba(6,4,20,0)'); c.fillStyle = d; c.fillRect(cx - R * 1.2, cy - R * 1.2, R * 2.4, R * 2.4);
+    for (let k = 0; k < n; k++) {
+      const ang = (k / n) * Math.PI * 2 + i * 0.37, j = 0.78 + 0.22 * (((k * 7 + i * 3) % 5) / 4), r0 = R * 0.2, r1 = R * j;
+      const x0 = cx + Math.cos(ang) * r0, y0 = cy + Math.sin(ang) * r0, x1 = cx + Math.cos(ang) * r1, y1 = cy + Math.sin(ang) * r1;
+      const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, `${col}00`); g.addColorStop(0.35, col); g.addColorStop(0.88, col); g.addColorStop(1, tip);
+      c.shadowColor = col; c.shadowBlur = 18; c.strokeStyle = g; c.lineWidth = 8; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+      c.shadowBlur = 12; c.fillStyle = tip; c.beginPath(); c.arc(x1, y1, 6.5, 0, Math.PI * 2); c.fill();
+    }
+    // (its heart: a small hot flash — a burst, never a hole)
+    const f = c.createRadialGradient(cx, cy, 0, cx, cy, R * 0.22); f.addColorStop(0, tip); f.addColorStop(0.45, `${col}cc`); f.addColorStop(1, `${col}00`);
+    c.shadowBlur = 0; c.fillStyle = f; c.beginPath(); c.arc(cx, cy, R * 0.22, 0, Math.PI * 2); c.fill();
+  });
+  c.restore();
+}
 /** the middle: THE RUN's FRAME (lifted by night) under the words — the cause's tab, the floors, the area + the blazes — or, with no
  *  frame on this phone (a refresh on the podium), the night's dark */
 export function drawFfMiddle(c, box, card, shot) {
@@ -123,6 +150,7 @@ export function drawFfMiddle(c, box, card, shot) {
     // (F5A: THE BOTTOM's gold frame is NOT lifted — the night gold card was a white blob)
     if (shot.look !== 'day' && !gold) { c.globalCompositeOperation = 'screen'; c.globalAlpha = SHOT_LIFT; c.drawImage(src, dx, dy, dw, dh); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
   } else { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#14102c'); g.addColorStop(1, '#090716'); c.fillStyle = g; c.fillRect(x, y, w, h); }
+  if (gold) celebrate(c, box, shot);
   // THE LIGHTS WENT OUT: the darkness itself (DARK) — the ball in the last pool of light
   if (card.cause === 'dark') {
     const day = !!shot && shot.look === 'day', col = day ? DARK.day : DARK.night, rx = w * DARK.rx;
