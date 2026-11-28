@@ -251,8 +251,9 @@ try {
       // (THE END-BOARD SWITCH-ON, Nov 27: YOUR TABLE = THE END-SCREEN BOARD's ☐ FRIENDS ONLY — the shared block (ui/end-board.js) mounted again
       //  with the tick on + its reads forgotten, so the re-seeded table is asked again through the real /api/profile)
       await P.ev(`(async () => { const EB = await import('/js/ui/end-board.js'), C = await import('/js/games/highrise/index.js'); EB.forgetReads(); localStorage.setItem(EB.FRIENDS_KEY, '1'); const el = document.querySelector('.hi-final .final-eb'); el.replaceChildren(); el.className = 'final-eb'; EB.mountEndBoard(el, C.END_BOARD, { solo: true }); return 1; })()`);
-      // k friends + you: 0 → NO FRIENDS YET (the world stays) · 1 → you + 1 · 3 → the top 3 (you 3rd, 119) · 8 → the top 3 + "YOU · 5TH · 119 FLOORS"
-      const want = { 0: [0, ''], 1: [2, ''], 3: [3, ''], 8: [3, 'YOU · 5TH · 119 FLOORS'] }[k];
+      // k friends + you: 0 → NO FRIENDS YET (the world stays) · 1 → you + 1 · 3 → all four · 8 → all nine (the window scrolls; you 5th, in view)
+      // (THE FREEFALL CITY PASS — the owner's 12:06 pm: FRIENDS ONLY = ALL your table in the three-row window, your row in it: no YOU line)
+      const want = { 0: [0, ''], 1: [2, ''], 3: [4, ''], 8: [9, ''] }[k];
       if (k) ok(await P.waitFor(`document.querySelectorAll('.hi-final .eb-list li').length === ${want[0]} && document.querySelector('.hi-final .eb-you').textContent === '${want[1]}' && [...document.querySelectorAll('.hi-final .eb-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `FRIENDS ONLY with ${k} friend${k === 1 ? '' : 's'}: ${want[0]} rows${want[1] ? ` + "${want[1]}"` : ' (you among them)'}`);
       // (FREEFALL FIX C — S11: a REMEMBERED tick with no friends at all unticks itself + remembers '0'; the line "NO FRIENDS YET" only on
       //  the TAP that asked — this mount had no tap, so it stays quiet: the old "on every later end screen" bug)

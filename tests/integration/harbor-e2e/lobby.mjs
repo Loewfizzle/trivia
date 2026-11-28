@@ -144,11 +144,11 @@ G('trivision-rebuild', async () => {
     await waitFor(p, "!!(window.__district && window.__district.harbor && window.__district.harbor() && document.querySelector('.nd-scene'))", 'the city rebuilt', 25000);
     await harborUp(p);
     const want = open_ ? 'jaywalk-open' : 'jaywalk';
-    // the forced clock turns every 8 s: three faces = one 24 s cycle once the picture lands (5 s after the first ask)
-    await waitFor(p, `(() => { const t = window.__district.tri(); const seen = new Set([t.board, ...t.turns.map(x => x.to)]); return seen.has('${want}') && seen.has('highrise') && [...seen].some(f => /^holdem/.test(f)); })()`, 'all three faces', 45000).catch(() => {});
+    // the forced clock turns every 8 s: four faces (+ FREEFALL) = one 32 s cycle once the picture lands (5 s after the first ask)
+    await waitFor(p, `(() => { const t = window.__district.tri(); const seen = new Set([t.board, ...t.turns.map(x => x.to)]); return seen.has('${want}') && seen.has('highrise') && seen.has('freefall') && [...seen].some(f => /^holdem/.test(f)); })()`, 'all four faces', 60000).catch(() => {});
     const t = await ev(p, 'window.__district.tri()');
     const seen = [...new Set([t.board, ...t.turns.map(x => x.to)])];
-    ok(w0[warmKey] && inFlight && (t.faces || []).length === 3 && seen.includes(want) && seen.includes('highrise') && seen.some(f => /^holdem/.test(f)),   // (CITY PART 1: HIGH RISE replaced THE DROP's face)
+    ok(w0[warmKey] && inFlight && (t.faces || []).length === 4 && seen.includes(want) && seen.includes('highrise') && seen.includes('freefall') && seen.some(f => /^holdem/.test(f)),   // (CITY PART 1: HIGH RISE replaced THE DROP's face · THE FREEFALL CITY PASS: + FREEFALL — four faces, a 32 s cycle)
       `THE ROOF BOARD after a rebuild mid-load${open_ ? ' (OPEN DAY — the OPEN NOW poster)' : ''}: the faces ${(t.faces || []).join(' · ') || 'none'} — turned to ${t.turns.map(x => x.to).join(' → ') || 'nothing'} (the first scene's picture request in flight at the teardown: ${inFlight})`);
     await Q.ctx.close();
   }

@@ -454,6 +454,7 @@ G('crew', async () => {
   const D = await open({ slot: 'crd', qs: 'when=2026-11-03T21:00' }); await harborUp(D.page);
   const [cpid, dpid] = [await pidOf(C.page), await pidOf(D.page)], [cuid, duid] = [await uidOf(C.page), await uidOf(D.page)];
   ok(!!(cpid && dpid && cuid && duid), `CREW: two friends with profiles (${cpid}, ${dpid})`);
+  await dbPut('radio/crew', null);   // (THE FREEFALL CITY PASS: a clean crew — an earlier run that stopped mid-group left its two in it, and CAP 10 filled)
   // ---- THE OWNER grants: by the uid he tapped (the player's card) + by name tag (THE LEDGER)
   const peek = await call(O.page, { action: 'radioCrewPeek', uid: cuid });
   const g1 = await call(O.page, { action: 'radioCrewSet', uid: cuid, on: true });
@@ -499,7 +500,11 @@ G('crew', async () => {
   await ev(D.page, `import('/js/room.js').then(m => m.joinRoom('${code}', { name: 'CREW TWO', color: 'pink', avatar: 'star' })).catch(e => e.message)`);
   await waitFor(D.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'D in the lobby', 15000);
   await ev(D.page, 'sessionStorage.clear()');
-  await D.page.reload(); await waitFor(D.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'D back in the lobby', 20000);
+  // (THE FREEFALL CITY PASS — the housekeeping pass's carried cloud red: the check's own `import('/js/store.js')`, polled from the first
+  //  instant after the reload, ran BEFORE THE FIRST-VISIT BUNDLE's import map — Chrome then drops the map's rule for store.js ("conflicted
+  //  with already resolved module specifiers") and the check read a SECOND, empty store while the app's own had rejoined. The app's live
+  //  state hub (window.__arcade) is what a check reads across a reload)
+  await D.page.reload(); await waitFor(D.page, `(() => { const a = window.__arcade; return !!(a && a.state.code === '${code}' && a.state.meta); })()`, 'D back in the lobby', 20000);
   await waitFor(D.page, '!!document.querySelector(".rd-btn")', 'the crew button (D)', 20000);
   await waitFor(D.page, '!!document.querySelector(".rd-btn.is-locked")', 'the button locked (D)', 15000).catch(() => {});
   const Cst = await call(C.page, { action: 'radioState', room: code }), Dst = await call(D.page, { action: 'radioState', room: code });

@@ -187,6 +187,9 @@ export async function partyRoom(o = {}) {
     profiles[pid] = { n: `P${i}`, nk: `p${i}`, t: String(2000 + i), a: 'star', c: 'cyan', x: 5000, at: now - 86400000, cd: 'card-sg-ufo', m: 5 };
   }
   await dbPatch('profiles', profiles); await dbPatch(`rooms/${code}/players`, players); await dbPatch(`rooms/${code}/presence`, presence);
+  // (THE FREEFALL CITY PASS — the housekeeping pass's carried cloud red: since S8 (THE CITY POLISH PASS) a profile is readable only by a player
+  //  SEATED in the same room — the seven guests are seated here as their own devices would be, or the host reads none of their cards)
+  await dbPatch('seats', Object.fromEntries(Object.values(players).map((pl, i) => [pl.pid, { code, uid: `pr${i}`, at: now }])));
   await waitFor(p, '(() => { const r = window.__district.room(); return r && r.people.length === 8 && r.people.every(x => x.s && x.s.pose === "wait"); })()', 'settled', 60000).catch(() => {});
   await ev(p, "document.querySelector('.rdk-guests').click()");
   await waitFor(p, "document.querySelectorAll('.vl-strip[data-card=\"card-sg-ufo\"]').length >= 8", 'the 8 legendary strips', 15000).catch(() => {});

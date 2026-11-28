@@ -1839,7 +1839,7 @@ texture masters, `.psd` / `.kra`, audio masters `.wav` / `.flac`); **only the BA
 - **SIX NAMES ON FOUR SIGNS:** roof A · roof B · the hotel blade · the speakeasy blade = four different games a night, every one of the six up
   each week (`tests/city-b-signs.test.mjs`). THE WEEK'S ROTATION stepped `d × 3 mod 6` = 0 · 3 · 0 · 3 — OVERCLOCK sat out a whole week; it now
   steps one more at each wrap (`assignSigns`: `st + floor(st / pool)`).
-- **THE BOOT BUDGET:** NOT raised — the trims before this pass had left 5.3 KB; FREEFALL's city side costs ~1.3 KB (4.0 KB left, 6500 KB).
+- **THE BOOT BUDGET:** NOT raised — the trims before this pass had left 5.3 KB; the pass spent ~3 KB (FREEFALL's city side, the late-proof hubs, the accent table): **2.3 KB left** of 6500 KB.
 - **ONE GAME ACCENT TABLE** (`core/marks.js#GAME_ACC`): the PLAY shelf's + PICK A GAME's icon glow and the title's game cards — JAYWALK's +
   HIGH RISE's marks glowed ICE (`#d6f0ff`): title.js's `ACC` had no key for them (PICK A GAME read `tube-logo.js#LOGO_ACC` instead — another
   colour for the same game). `LOGO_ACC` (the tube logos) + `SIGN_ACC` (the signs) stay their own.

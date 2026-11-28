@@ -2910,3 +2910,14 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - HIGH RISE's STORED AVERAGE (server-side — JAYWALK's JT2 path): `core/boards.js` `avg: { days: 14, min: 5 }` + `core/match-report.js#highriseExtra` puts a counted SOLO run's FLOORS (never the sort number) into `pstats.av` — from this deploy; NO backfill (the stored results keep no per-run floor).
 - ONE ICON PER GAME: HOW TO PLAY's tabs = `ui/mark-svg.js#markSvg` (the PLAY sheet's neon marks); `game-art.js` = the game card sheet's 120-pt poster only. CLAUDE.md: THE INBOX WRITE RULE.
 - Tools: `tests/integration/endboard-preview.html` (every opted-in game's real end screen, a board fixture), `shots.mjs --probe`, `end-board.js#forgetReads` (E2E re-asks).
+
+## THE FREEFALL CITY PASS (Nov 28, 2026 — docs/harbor/passes/freefall-city.md; no rules change, no /api change)
+- FREEFALL ON THE SIGNS: `SIGN_HOLD = []`; a roof sign = FREE / FALL stacked (FREE `#ff4fa8` · FALL `#27e0e6` — `SIGN_ACC` / `SIGN_ACC2`); the speakeasy blade = FREE over FALL in ONE column (`BLADE_COLUMN` + `BLADE_AS`); never the hotel blade; its day face = enamel (rose + sea-cream on petrol-teal, gold leaf — `DAY_PAINT.freefall`). Every city mark painter reads a tube's own width (`t.w` — FREEFALL's thin core).
+- THE ROW FACES (`core/harbor-trivision.js#ROW_FACES`): HIGH RISE's "lit by its GAMES row" face made ONE path; FREEFALL's OPEN NOW billboard (`screens/harbor/freefall-art.js`, lazy); the rotation FREEFALL → HIGH RISE → JAYWALK → HOLD'EM, the board opens on FREEFALL.
+- SIX NAMES ON FOUR SIGNS: the week's rotation stepped 0 · 3 · 0 · 3 with six names — it now steps past a wrap (every game up each week).
+- THE BOOT BUDGET not raised (6500 KB; 2.3 KB left after the pass).
+- THE END SCREENS (the shared frame + block): the XP = ONE line under SHARE · HOME (`.final-xp`); `END_ACCENT` (THE CONTRACT) — JAYWALK's end screens in its sneaker red; GLOBAL TOP 3 + ☐ FRIENDS ONLY; THE DECO MEDALS for 1–3; FRIENDS = the whole table in a three-row window; the block grows into the room (`container-type: size`, 46 → 72-pt rows); `END_BOARD.soloCounts: false` → THIS BOARD COUNTS ROOM MATCHES (OVERCLOCK, PRISM DROP); the foot over THE YOU ROW's glow; OVERCLOCK's 2–3 player match on one screen.
+- THE LATE PROOF CHUNK: a refused proof write after the room / the match = the quiet `late-proof`; the writer sends nothing once the phone left its room (never a kick).
+- ONE game accent table (`core/marks.js#GAME_ACC`): the PLAY shelf's JAYWALK + HIGH RISE glowed ice — title.js's table had no key for them.
+- The duplicate-tab banner: full width, a rect, no pills, no slot id.
+- Tools: the end-board preview takes FREEFALL, FRIENDS (a fake sign-in — it never rendered there before) + `&many=1`.

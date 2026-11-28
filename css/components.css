@@ -1484,7 +1484,8 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .eb-list.is-scroll.is-up { -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px); mask-image: linear-gradient(180deg, transparent, #000 22px); }
 .eb-list.is-scroll.is-up.is-down { -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 22px), transparent); }
 .eb-list:empty { display: none; }
-.eb-list li { display: grid; grid-template-columns: var(--eb-mw) minmax(0, 1fr) var(--eb-side); align-items: center; column-gap: 8px; --eb-mw: clamp(28px, calc(var(--eb-rh) * 0.56), 40px); }
+.eb-list li { display: grid; grid-template-columns: var(--eb-mw) minmax(0, 1fr) var(--eb-side); align-items: center; column-gap: 8px; --eb-mw: clamp(22px, min(calc(var(--eb-rh) * 0.56), calc(100vw - 338px)), 40px); }   /* (under 375 wide the medal gives the card its room back: a 12-letter name stays whole at 360) */
+@media (max-width: 370px) { .eb-list li { column-gap: 6px; } }
 .eb-n { display: grid; place-items: center; font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
 /* (the medal from rankMedal carries its own inline --rk: the column's size wins here) */
 .eb-n .rk-medal { width: var(--eb-mw); height: var(--eb-mw); }   /* (THE DECO MEDALS for 1 / 2 / 3 — the column only as wide as the medal; a plain number from 4) */

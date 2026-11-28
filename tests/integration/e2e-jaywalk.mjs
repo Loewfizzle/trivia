@@ -250,7 +250,7 @@ try {
   ok(await P.waitFor("document.body.dataset.look === 'night'", 6000) && await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:evening', '… back to NIGHT for the rest: the evening deck');
   ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'HOME']), `END-SCREEN STANDARD A (CITY F) — the foot: ${end.foot.join(' · ')} (THE BAR first — never "HOP AGAIN"; then the quiet SHARE · CITY)`);
   { const bar = await P.ev("(() => { const b = document.querySelector('.jw-final .final-bar.final-again'), cs = getComputedStyle(b), r = b.getBoundingClientRect(), l = [...document.querySelectorAll('.jw-final .final-link')].map(x => { const q = x.getBoundingClientRect(); return [q.width, q.height, getComputedStyle(x).backgroundColor, getComputedStyle(x).borderTopWidth]; }); return { rad: parseFloat(cs.borderRadius), h: r.height, w: r.width, vw: innerWidth, bg: cs.backgroundColor, ink: cs.color, l }; })()");
-    ok(bar.rad >= 10 && bar.rad <= 14 && bar.h >= 60 && bar.w >= bar.vw - 40 && bar.bg === 'rgb(255, 79, 196)' && bar.ink === 'rgb(11, 10, 20)', `… THE BAR: solid JAYWALK pink (${bar.bg}), dark words (${bar.ink}), ${Math.round(bar.w)} × ${Math.round(bar.h)} of ${bar.vw}, ${bar.rad} px corners (never a pill)`);
+    ok(bar.rad >= 10 && bar.rad <= 14 && bar.h >= 60 && bar.w >= bar.vw - 40 && bar.bg === 'rgb(255, 51, 68)' && bar.ink === 'rgb(11, 10, 20)', `… THE BAR: solid JAYWALK red — its END_ACCENT (THE FREEFALL CITY PASS) — (${bar.bg}), dark words (${bar.ink}), ${Math.round(bar.w)} × ${Math.round(bar.h)} of ${bar.vw}, ${bar.rad} px corners (never a pill)`);
     ok(bar.l.length === 2 && bar.l.every(([w, h, bg, bw]) => w >= 44 && h >= 44 && /rgba\(0, 0, 0, 0\)|transparent/.test(bg) && bw === '0px'), `… the quiet links: no box, each ≥ 44 pt (${bar.l.map(([w, h]) => `${Math.round(w)} × ${Math.round(h)}`).join(' · ')})`); }
   // THE SHARE IMAGE (H4B's add-on — THE FRAME IS THE HERO, the cause ONCE): the run's own frame on the share kit's card (drawn on the phone)
   const card = await P.p.evaluate(async () => {
@@ -303,14 +303,15 @@ try {
   const ebTick = async on => { if (await P.ev("(() => { const t = document.querySelector('.jw-final .eb-tick'); return t ? t.getAttribute('aria-checked') : ''; })()") !== String(on)) await P.p.click('.jw-final .eb-tick'); };
   ok(await P.waitFor("!!document.querySelector('.jw-final .eb-tick')", 10000), 'THE END-SCREEN BOARD on the solo end screen (☐ FRIENDS ONLY)');
   await ebTick(true);
-  ok(await P.waitFor("document.querySelectorAll('.jw-final .eb-list li').length === 3 && /^YOU · 4TH · \\d+ LANES$/.test(document.querySelector('.jw-final .eb-you').textContent)", 12000), `FRIENDS ONLY: your 3 friends + "${await P.ev("(document.querySelector('.jw-final .eb-you') || {}).textContent")}" (12 · 10 · 8-letter names; 3-digit + 2-digit bests)`);
+  // (THE FREEFALL CITY PASS — the owner's 12:06 pm: FRIENDS ONLY = ALL your table (you 4th of 4) in the three-row window; your row in it, so no YOU line)
+  ok(await P.waitFor("document.querySelectorAll('.jw-final .eb-list li').length >= 4 && !!document.querySelector('.jw-final .eb-list li.is-me') && !document.querySelector('.jw-final .eb-you').textContent && document.querySelector('.jw-final .eb-k').textContent === 'FRIENDS TOP 3'", 12000), `FRIENDS ONLY: you + your 3 friends — the whole table in the window, no YOU line (${await P.ev("document.querySelectorAll('.jw-final .eb-list li').length")} rows)`);
   for (const [w, hgt] of [[360, 780], [390, 844], [430, 932], [1440, 900]]) {
     await P.p.setViewport({ width: w, height: hgt, deviceScaleFactor: w > 500 ? 1 : 2, isMobile: true, hasTouch: true });   // (isMobile kept: changing it reloads the page)
     await sleep(500);
     await P.ev("import('/js/ui/fit.js').then(m => document.querySelectorAll('.jw-final .eb-card .vl-name').forEach(m.refit))");
     await sleep(250);
     const t = await P.ev(`(() => { const f = document.querySelector('.jw-final .final'), nm = [...document.querySelectorAll('.jw-final .eb-card .vl-name')].map(x => ({ t: x.textContent, cut: x.classList.contains('fit-cut') || x.scrollWidth > x.clientWidth + 1, px: parseFloat(getComputedStyle(x).fontSize) })); return { over: f.scrollHeight - f.clientHeight, nm }; })()`);
-    ok(t.over <= 6 && t.nm.length === 3 && t.nm.every(x => !x.cut && x.px >= 12), `THE END SCREEN + THE BLOCK at ${w} × ${hgt}: nothing scrolls (${t.over} px over), every name whole (${t.nm.map(x => x.t + ' ' + x.px + 'px').join(' · ')})`);
+    ok(t.over <= 6 && t.nm.length >= 3 && t.nm.every(x => !x.cut && x.px >= 12), `THE END SCREEN + THE BLOCK at ${w} × ${hgt}: nothing scrolls (${t.over} px over), every name whole (${t.nm.map(x => x.t + ' ' + x.px + 'px').join(' · ')})`);
     await P.shot(`endboard-${w}.png`);
   }
   await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
@@ -321,7 +322,7 @@ try {
   ok(await P.waitFor("(document.querySelector('.jw-final .eb-list li') || { classList: { contains: () => false } }).classList.contains('is-me')", 12000), 'YOUR TABLE re-asked (the friends now under you): YOUR card first');
   const gy = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-final .eb-list li')], me = li.find(x => x.classList.contains('is-me')), st = me && me.querySelector('.vl-strip'), b = st ? getComputedStyle(st, '::after') : null;
     return { sb: !!(st && st.classList.contains('sb-me')), sbN: document.querySelectorAll('.jw-final .eb-list .sb-me').length, anim: b ? b.animationName : '', rank: getComputedStyle(me.querySelector('.eb-n')).color, h: [...new Set(li.map(x => Math.round(x.getBoundingClientRect().height)))] }; })()`);
-  ok(gy.sb && gy.sbN === 1 && gy.anim === 'sb-breathe' && gy.rank === 'rgb(255, 79, 196)' && gy.h.length === 1, `THE YOU ROW: the shared breathing glow on YOUR card only (${gy.sbN}, ${gy.anim}); your rank in JAYWALK's own colour (${gy.rank} = #ff4fc4 — the owner's add-on: the block wears the game's look); every row one height`);
+  ok(gy.sb && gy.sbN === 1 && gy.anim === 'sb-breathe' && gy.rank === 'rgb(255, 51, 68)' && gy.h.length === 1, `THE YOU ROW: the shared breathing glow on YOUR card only (${gy.sbN}, ${gy.anim}); your rank in JAYWALK's own end colour (${gy.rank} = #ff3344, its END_ACCENT — the owner's add-on: the block wears the game's look); every row one height`);
   for (const look of ['night', 'day']) {
     await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${look}'))`);
     await P.waitFor(`document.querySelector('.jw-game').dataset.look === '${look}'`, 6000); await sleep(400);
