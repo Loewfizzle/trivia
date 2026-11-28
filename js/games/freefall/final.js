@@ -1,4 +1,4 @@
-// FREEFALL — THE END SCREEN's BODY in the cartridge (F4A · F4B — docs/freefall.md "THE END SCREEN"; HIGH RISE's final.js is the pattern): (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE END SCREEN's BODY in the cartridge (F4A · … final.js#1
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { END_WORDS, gameStandings } from './logic.js';
@@ -7,8 +7,7 @@ import { BEST_KEY, cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY } from './lines.js';
 
 const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
-// (F5B — SHARE = THE PICTURE ONLY: the card is drawn + encoded at the end screen; the TAP must reach the share sheet in its own turn — so
-//  the share module, once the end screen has loaded it, is called DIRECTLY: no import's promise between the tap and navigator.share)
+// (F5B — SHARE = THE PICTURE ONLY: the card is drawn + … final.js#2
 let SH = null;
 const shareMod = () => lazyImport(import('./share.js'), './share.js').then(m => (SH = m));
 const warmShare = (game, state) => shareMod().then(m => (typeof m.warmShare === 'function' ? m.warmShare(game, state) : null)).catch(() => {});
@@ -36,7 +35,7 @@ function serverAnswer(el, EC, game, code) {
 export function finalScene(el, game, state) {
   const solo = !game || game.mode === 'solo', uid = state && state.uid, code = state && state.code;
   el.classList.add('ff-fin'); el.dataset.mode = solo ? 'solo' : 'match';
-  // (a MATCH: the console's own list of every place is replaced by the shared block's TOP 3 — ui/end-board.js, mounted by the frame)
+  // (a MATCH: the console's own list of every place is replaced … final.js#3
   if (!solo) el.dataset.podium = 'all';
   const mine = !!(game && game.participants && game.participants[uid]);
   if (!mine) return;   // (a watcher — a late joiner: nothing of their own; the frame's block shows the match)
@@ -47,15 +46,14 @@ export function finalScene(el, game, state) {
   el.replaceChildren(EC.el);
   const c = !solo && (game.calls || {})[uid];
   if (c) el.append(h('div.ff-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
-  // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own); the server's answer puts it right.
-  // F5C — "YOUR BEST n · AVG n": the AVG = your profile's STORED average (the room's mirror — profile/public.js, no read; a dash under 5 runs)
+  // YOUR BEST as this phone knows it (the server's last answer … final.js#4
   EC.best(cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), false, 0, null);
   lazyImport(import('../../profile/public.js'), '../../profile/public.js').then(P => {
     const av = ((P.pubOf(state.players && state.players[uid]) || {}).av || {})[BOARD];
     if (av != null && el.isConnected && !EC.el.classList.contains('is-new')) EC.best(cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), false, 0, av);
   }).catch(() => {});
   if (!solo) {
-    // (the winner's moment: the console's own sting is off for this game — a match plays it here, once the crown lands; a draw: none)
+    // (the winner's moment: the console's own sting is off for … final.js#5
     const first = gameStandings(game).filter(x => x.rank === 1);
     if (first.length === 1) setTimeout(() => { if (el.isConnected) lazyImport(import('../../audio/progress-sfx.js'), '../../audio/progress-sfx.js').then(m => m.pgSfx('victory')).catch(() => {}); }, 2500);
   }

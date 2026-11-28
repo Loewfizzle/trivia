@@ -1,6 +1,6 @@
-// FREEFALL — THE BAKED NUMBER (F2 — docs/freefall.md "THE BAKED HUD"; HIGH RISE's bakedtext.js, its S5 EFFECTS REBUILD): a glowing number (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE BAKED NUMBER (F2 — docs/freefall.md "THE … bakedtext.js#1
 
-/** "rgb(255, 0, 0) 0px 0px 14px, rgba(…) 0px 3px 0px" → [{ color, x, y, blur }] (the computed style's own order: the FIRST on top) */
+// "rgb(255, 0, 0) 0px 0px 14px, rgba(…) 0px 3px 0px" → [{ … bakedtext.js#2
 export function parseShadows(s) {
   const out = [];
   if (!s || s === 'none') return out;
@@ -21,7 +21,7 @@ export const SETS_KEPT = 2;
 const fontReady = f => { try { return !document.fonts || !document.fonts.check || document.fonts.check(f); } catch { return true; } };
 const zero = list => { for (const g of list) { g.width = 0; g.height = 0; } };
 
-/** the number's overlay: `node` = .ff-num (its digit boxes stay for the layout + the reading) → { set(n), dirty(), warm(), info(), destroy() } */
+// the number's overlay: `node` = .ff-num (its digit boxes … bakedtext.js#3
 export function bakedNumber(node) {
   const cv = document.createElement('canvas');
   cv.className = 'ff-numc'; cv.setAttribute('aria-hidden', 'true');
@@ -57,8 +57,7 @@ export function bakedNumber(node) {
       const c = g.getContext('2d');
       c.scale(dpr, dpr); c.font = font; c.textBaseline = 'alphabetic';
       const x = pad + px * 0.15, y = pad + base;
-      // the shadows under the digit, the LAST of the list at the bottom (CSS paints the first on top) — each alone: the digit itself drawn
-      // far off the canvas, only its shadow offset back onto it
+      // the shadows under the digit, the LAST of the list at the … bakedtext.js#4
       for (let i = shadows.length - 1; i >= 0; i--) {
         const s = shadows[i], off = 10000;
         c.save(); c.shadowColor = s.color; c.shadowBlur = s.blur * dpr; c.shadowOffsetX = (s.x + off) * dpr; c.shadowOffsetY = s.y * dpr; c.fillStyle = '#000';
@@ -88,9 +87,9 @@ export function bakedNumber(node) {
   const api = {
     /** the floor number (a floor passed: 1 – 3 bitmaps copied — no blur, no text) */
     set(n) { if (!glyphs) bake(); if (n === shown) return; shown = n; draw(n); },
-    /** the number's style changed (gold · a resize): the ten digits are baked again (or their kept set picked), then drawn */
+    // the number's style changed (gold · a resize): the ten … bakedtext.js#5
     dirty() { if (!glyphs) return; if (bake() && shown >= 0) { const n = shown; shown = -1; api.set(n); } },
-    /** bake the set of the number's CURRENT style now (the warm-up: the stage dresses itself, asks, and dresses back) */
+    // bake the set of the number's CURRENT style now (the … bakedtext.js#6
     warm() { bake(); },
     info: () => ({ key, pad, dpr, glyphs: glyphs ? glyphs.length : 0, sets: sets.size, w: cv.width, h: cv.height }),
     destroy() { cv.remove(); node.classList.remove('is-baked'); },

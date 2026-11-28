@@ -1,4 +1,4 @@
-// FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE SHARE CARD"; HIGH RISE S5's shot.js is the pattern): the picture of the moment a (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE RUN's FRAME (F4B — docs/freefall.md "THE … shot.js#1
 
 let held = null;
 /** keep this run's frame — { key, canvas (THE BOX's size: the picture round the ball), cause, made, floor, blazes, look } — the one before
@@ -18,10 +18,8 @@ export const SHOT_BOX = Object.freeze({ w: 984, h: 792 });
  *  the bell at once · THE BOTTOM 390 = THE IMPACT — the ball on the seabed (it lands 300 ms after the run's last tick), the shockwave
  *  ring wide in the picture, the dust rising, the last floor's shards in the air (at 600 the ring has left the frame; from 1100 the
  *  dust covers the bed). stage.js holds the end card END_HOLD_MS / END_HOLD_MADE_MS: the frame is always taken before it. */
-// (F4B — the screen review: at 90 ms the slice was still WHITE-HOT — under a HIT THE RED tab the frame read as a white wedge. At 200 ms
-//  the slice is RED again, a pale flash still on it, the sparks spread in the air: it reads as the hit.)
-// (F5A: THE BOTTOM 390 → 410 — the GOLD ring stands round the ball, inside the picture)
-export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 600 });   // (FIX A — N3: 600 — the gold ring at its widest, the camera pulled back: the game's top result its best card)
+// (F4B — the screen review: at 90 ms the slice was still … shot.js#2
+export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 600 }); // shot#3
 /** F5A — THE HERO FRAME TELLS THE STORY (the owner's real SHARE read as noise: taken AFTER the crash — no ball, a white hit-flash slice,
  *  random spark streaks): the frame is STAGED — the scene draws the moment a beat BEFORE the end once more, for the card alone
  *  (night.js#shot: zoomed out a little, no hit flash, no sparks; the screen never shows it) —
@@ -31,9 +29,9 @@ export const SHOT_AT = Object.freeze({ red: 200, dark: 240, cap: 60, made: 600 }
  *  · SHOT_ZOOM: how far the camera steps back for it (2–3 floors of context under the ball; THE BOTTOM keeps the finish's own pose)
  *  · SHOT_BLOOM: the glow's share (THE BOTTOM's kept LOW — the night gold card was a white blob) · SHOT_GLOW: the red slice's own glow */
 export const SHOT_BEFORE = Object.freeze({ red: 9, dark: 9, cap: 0, made: 0 });
-export const SHOT_ZOOM = Object.freeze({ red: 1.32, dark: 1.28, cap: 1.28, made: 0.5 });   // (FIX B: THE BOTTOM zoomed IN — the ball + its gold ring BIG, the celebration round them: the fresh-eyes reviewer was right, FIX A's "pulled back" was wrong)   // (the camera's distance × this: FIX A — N3, the finish pulled back a little)
+export const SHOT_ZOOM = Object.freeze({ red: 1.32, dark: 1.28, cap: 1.28, made: 0.5 }); // shot#4
 export const SHOT_BLOOM = Object.freeze({ red: 0.75, dark: 0.75, cap: 0.75, made: 0.16 });   // (F5B: THE BOTTOM 0.3 → 0.12 — still a hazy white blur at 360 px)
-export const SHOT_GLOW = 1.15;   // (THE MARK's own light under the ball, wide + red-hot — a white flash would whiten the slice: it must read RED)
+export const SHOT_GLOW = 1.15; // shot#5
 const own = (T, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(T, k);   // (the table's own rows only: never 'constructor')
 export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.cap);
 /** where the ball stands DOWN the frame (0 … 1 of its height), per cause: clear of the cause's tab above it and of the floors' number
@@ -41,7 +39,7 @@ export const shotMs = cause => (own(SHOT_AT, cause) ? SHOT_AT[cause] : SHOT_AT.c
 export const BALL_AT = Object.freeze({ red: 0.42, dark: 0.4, cap: 0.4, made: 0.42 });
 export const ballAt = cause => (own(BALL_AT, cause) ? BALL_AT[cause] : BALL_AT.cap);
 /** the staged frame's numbers for a cause → { before, zoom, bloom, glow, alive } (an unknown cause: the bell's) */
-export const stagingOf = cause => { const k = own(SHOT_ZOOM, cause) ? cause : 'cap'; return { before: SHOT_BEFORE[k], zoom: SHOT_ZOOM[k], bloom: SHOT_BLOOM[k], glow: k === 'red' ? SHOT_GLOW : 0, alive: k !== 'made', party: k === 'made' }; };   // (FIX B — `party`: THE BOTTOM's celebration — the dust, the fireworks, the ring's light — stays in the picture)
+export const stagingOf = cause => { const k = own(SHOT_ZOOM, cause) ? cause : 'cap'; return { before: SHOT_BEFORE[k], zoom: SHOT_ZOOM[k], bloom: SHOT_BLOOM[k], glow: k === 'red' ? SHOT_GLOW : 0, alive: k !== 'made', party: k === 'made' }; }; // shot#6
 /**
  * PURE: the part of a `sw` × `sh` picture the frame shows — the phone's COLUMN wide (`col` = its width : its height, night.js#CAM.aspectMax:
  * a wide screen is framed as the phone's), of THE BOX's shape, centred across on the ball (`bx`, `by`: 0 … 1 of the picture), the ball

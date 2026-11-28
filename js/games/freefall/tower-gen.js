@@ -1,4 +1,4 @@
-// FREEFALL — THE TOWER (F1 — docs/freefall.md "THE TOWER" · "FAIR BY CONSTRUCTION"): a floor = a ring of 12 slices round the pillar — (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE TOWER (F1 — docs/freefall.md "THE TOWER" · … tower-gen.js#1
 import { hashString } from '../../core/rng.js';
 import { TURN, SLICES, BALL, SAFE, GAP, RED, RULE_SETS, RULES_DEFAULT, rampOf } from './tuning.js';
 
@@ -15,11 +15,11 @@ const pick = (h, i, salt) => mix((h ^ Math.imul(i, 0x9e3779b1) ^ salt) >>> 0);
 export const wrap = (x, m = TURN) => ((x % m) + m) % m;
 /** the SHORTEST signed way from angle `from` to angle `to`: −TURN / 2 … TURN / 2 − 1 */
 export const angDiff = (to, from) => wrap(to - from + TURN / 2) - TURN / 2;
-/** the first angle unit of slice `s` (0 … SLICES; SLICES → TURN): the slices are 341 or 342 units wide, every unit in exactly one */
+// the first angle unit of slice `s` (0 … SLICES; SLICES → … tower-gen.js#2
 export const sliceStart = s => Math.floor((s * TURN + SLICES - 1) / SLICES);
 /** the slice a floor-local angle (0 … TURN − 1) lies in */
 export const sliceOf = u => Math.floor(u * SLICES / TURN);
-/** THE SLICE UNDER THE BALL on a floor with `twist`, the tower at angle `a`: floor(((BALL − A − twist) mod 4096) × 12 / 4096) */
+// THE SLICE UNDER THE BALL on a floor with `twist`, the tower … tower-gen.js#3
 export const sliceUnder = (a, twist) => sliceOf(wrap(BALL - a - twist));
 /** a slice's kind on a floor { gap, red } (two 12-bit masks) */
 export const kindAt = (fl, s) => ((fl.gap >> s) & 1 ? GAP : (fl.red >> s) & 1 ? RED : SAFE);
@@ -34,7 +34,7 @@ const count256 = (v, roll) => Math.floor(v / 256) + ((roll & 255) < (v & 255) ? 
 /** a floor's TWIST: its rotation offset, 0 … TURN − 1 — the seed's pick */
 export const twistOf = (h, i) => pick(h, i, 0x7715a1) % TURN;
 
-/** a floor's GAPS (a 12-bit mask) — a function of (seed, floor) alone: how many, each 2 slices wide or 1, never touching each other */
+// a floor's GAPS (a 12-bit mask) — a function of (seed, … tower-gen.js#4
 export function gapsOf(h, i, R = CLASSIC) {
   const G = R.gen;
   let n = count256(rampOf(G.gaps, i), pick(h, i, 0x1a9e01));
@@ -97,7 +97,7 @@ export function windowOk(red, twist, gapUp, twistUp, reach) {
 export function reachOk(gap, red, hop) {
   if (!red) return true;
   if (red === FULL) return false;
-  // walk the ring from the first slice after a red one: the stretches of not-red slices, and the red run that follows each
+  // walk the ring from the first slice after a red one: the … tower-gen.js#5
   let s0 = 0;
   while (!((red >> s0) & 1)) s0++;
   while ((red >> s0) & 1) s0 = (s0 + 1) % SLICES;
@@ -134,7 +134,7 @@ export function reachAt(i, R = CLASSIC) {
   return Math.floor(R.reach * (i - G.belowUntil) / G.windowRamp);
 }
 
-/** a floor's RED slices (a 12-bit mask): laid one at a time, in the seed's order — and only where every fairness rule still holds */
+// a floor's RED slices (a 12-bit mask): laid one at a time, … tower-gen.js#6
 function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   const G = R.gen;
   if (i < G.redFrom || G.blind.includes(i)) return 0;   // (F5B — THE BLIND FLOORS: hidden under the skylight + the water)
@@ -173,9 +173,9 @@ function redOf(h, i, R, gap, twist, gapUp, twistUp) {
   return red;
 }
 
-// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ gen.move.from — solo; a match / a daily ends ON floor 200 and never lands there). (→ §2, docs/freefall.md MODULE NOTES)
+// ---- MOVING RED (F2 — THE TRENCH only: floors ≥ … tower-gen.js#7
 
-/** the slices of a floor (`twist`) that lie straight below a gap of the floor above (`gapUp` / `twistUp`) — any shared point counts → a 12-bit mask */
+// the slices of a floor (`twist`) that lie straight below a … tower-gen.js#8
 export function underGaps(twist, gapUp, twistUp) {
   let m = 0;
   for (let s = 0; s < SLICES; s++) {
@@ -199,7 +199,7 @@ export function moverSlice(m, t, R = CLASSIC) {
   return ((m & 15) + (j < n ? j : per - j)) % SLICES;
 }
 
-/** one more mover for the floor in `out` (its `red` loses the track's own static red) → the mover, or 0 = no room; `other` = the mover the floor already has (0 = none) */
+// one more mover for the floor in `out` (its `red` loses the … tower-gen.js#9
 function layMover(h, i, R, out, gapUp, twistUp, cand, salt, other) {
   const G = R.gen, MV = G.move, gap = out.gap, twist = out.twist, reach = reachAt(i, R);
   const oTrack = trackMask(other), oS = other & 15, oN = (other >> 4) & 15;
@@ -228,7 +228,7 @@ function layMover(h, i, R, out, gapUp, twistUp, cand, salt, other) {
   }
   return 0;
 }
-/** a floor's MOVING RED, written INTO `out` (`m1` · `m2` — 0 = none) — and `out.red` without the tracks' own static red */
+// a floor's MOVING RED, written INTO `out` (`m1` · `m2` — 0 = … tower-gen.js#10
 function moversInto(h, i, R, out, gapUp, twistUp) {
   out.m1 = 0; out.m2 = 0;
   const G = R.gen, MV = G.move;
@@ -256,7 +256,7 @@ export const trackOf = fl => trackMask(fl.m1) | trackMask(fl.m2);
 /** a slice's kind AT TICK `t` — the static layout + the moving red (the engine's landings read THIS) */
 export const kindAtTick = (fl, s, t, R = CLASSIC) => ((fl.gap >> s) & 1 ? GAP : ((fl.red >> s) & 1) || (fl.m1 && ((moversAt(fl, t, R) >> s) & 1)) ? RED : SAFE);
 
-/** floor `i` of the tower with seed hash `h`, written INTO `out` { i, twist, gap, red, m1, m2 } (the engine keeps ONE record a run) → out */
+// floor `i` of the tower with seed hash `h`, written INTO … tower-gen.js#11
 export function floorInto(h, i, R, out) {
   const twist = twistOf(h, i), gap = gapsOf(h, i, R), gapUp = i > 0 ? gapsOf(h, i - 1, R) : 0, twistUp = i > 0 ? twistOf(h, i - 1) : 0;
   out.i = i; out.twist = twist; out.gap = gap;

@@ -1,14 +1,14 @@
-// FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE DEPTH RAIL" · "THE MATCH"): the DOM over the scene in a match — 3 · 2 · 1 + the (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE MATCH's HUD (F4B — docs/freefall.md "THE … matchhud.js#1
 import { h } from '../../ui/dom.js';
 import { MODES } from './tuning.js';
 import { OUT_CALL_MS, OUT_CALL_MAX, LAST_CARD_MS } from './ghosts.js';
 
 /** THE BOTTOM — the rail's foot (a match's finish) */
 const FOOT = MODES.match.finish || 200;
-/** FIX A — THE RAIL's NAMES: a name's line height (px — names closer than this are nudged apart) · the longest name shown (trimmed: '…') */
+// FIX A — THE RAIL's NAMES: a name's line height (px — names … matchhud.js#2
 export const NAME_GAP = 14, NAME_MAX = 7;
 export const railName = s => { const t = String(s || '').toUpperCase(); return t.length > NAME_MAX ? `${t.slice(0, NAME_MAX - 1)}…` : t; };
-/** FIX A — the rivals' names beside their dots: [{ y }] (sorted by y IN PLACE) → each its own `ny`, never closer than `gap`, inside 0 … h (PURE) */
+// FIX A — the rivals' names beside their dots: [{ y }] … matchhud.js#3
 export function spreadNames(list, gap, h) {
   list.sort((a, b) => a.y - b.y);
   for (let i = 0; i < list.length; i++) list[i].ny = i ? Math.max(list[i].y, list[i - 1].ny + gap) : Math.max(list[i].y, 0);
@@ -28,7 +28,7 @@ export function createMatchHud({ busy = () => false } = {}) {
   const outs = h('div.ff-outs', { 'aria-live': 'polite' }), outQ = [];
   let outN = 0, lastCard = null, outTotal = 0, lastTotal = 0;
   const el = h('div.ff-match', rail, clock, count, outs, over, watch);
-  let outWait = 0, gen = 0;   // (FIX B — Grok's G3: `gen` = the reset count — a callout's timer from before a reset() never touches the new count)
+  let outWait = 0, gen = 0; // matchhud#4
   function nextOut() {
     // (FIX A — the callouts live in the BANDS' zone under the number now: one waits while an arrival band is up)
     if (outQ.length && busy()) { if (!outWait) outWait = setTimeout(() => { outWait = 0; nextOut(); }, 250); return; }
@@ -52,7 +52,7 @@ export function createMatchHud({ busy = () => false } = {}) {
       if (key !== countKey) { countKey = key; countN.textContent = key; count.hidden = !key; countN.classList.toggle('is-go', key === 'GO'); countN.classList.toggle('is-word', key.length > 2); }
       if (names !== namesKey) { namesKey = names; countNames.replaceChildren(...(names || []).map(p => h(`span.ff-count-name${p.me ? '.is-me' : ''}`, { style: { '--c': p.hex } }, p.me ? `${p.name} · YOU` : p.name))); }
     },
-    /** THE DEPTH RAIL: rows [{ uid, hex, floor, over, end ('out' | 'made' | 'cap' | ''), lost, me }] — a dot is made once a player, moved by one transform when its floor changed */
+    // THE DEPTH RAIL: rows [{ uid, hex, floor, over, end ('out' | … matchhud.js#5
     rail(rows) {
       if (rail.hidden) rail.hidden = false;
       if (!railH) railH = railIn.clientHeight;
@@ -86,7 +86,7 @@ export function createMatchHud({ busy = () => false } = {}) {
     last(words) {
       if (busy()) { const g0 = gen; setTimeout(() => { if (g0 === gen) this.last(words); }, 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
       if (lastCard) lastCard.remove();
-      // (FIX B: TWO lines, the dot ENDS the first — "CHARLIE HIT THE BOTTOM ·" / "KEEP FALLING FOR 2ND" — never leading the second)
+      // (FIX B: TWO lines, the dot ENDS the first — "CHARLIE HIT … matchhud.js#6
       const W = String(words), k = W.indexOf(' · '), sub = k < 0 ? h('span', W) : h('span', h('i', `${W.slice(0, k)} ·`), h('i', W.slice(k + 3)));
       const c = lastCard = h('div.ff-last', { role: 'status' }, h('b', 'LAST ONE STANDING'), sub);   // (FIX A: a wrapped line breaks AFTER the dot)
       el.append(c); lastTotal++;   // (never in .ff-over: that layer hides the rail — Call the Winner's sheet)
@@ -94,7 +94,7 @@ export function createMatchHud({ busy = () => false } = {}) {
     },
     /** the last half minute: "0:27" ('' = hidden) */
     clock(text) { if (text !== clockKey) { clockKey = text; clockT.data = text; clock.hidden = !text; } },
-    /** OUT / THE BOTTOM / TIME'S UP — the cause's words over the scene for a moment: { kicker, words, floors, made, ms } */
+    // OUT / THE BOTTOM / TIME'S UP — the cause's words over the … matchhud.js#7
     outCard(o) {
       if (outCard) { outCard.remove(); outCard = null; }
       if (!o) return;

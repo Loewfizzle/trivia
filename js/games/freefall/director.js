@@ -1,11 +1,11 @@
-// FREEFALL — THE DIRECTOR (F4A — docs/freefall.md "THE CARTRIDGE"; HIGH RISE's S4A director is the pattern): the PURE host step. THE GAME (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE DIRECTOR (F4A — docs/freefall.md "THE … director.js#1
 import { cleanSettings } from './meta.js';
 import { modeOf, seedOf } from './logic.js';
 import { judgeSolo, judgeMatch } from './proof.js';
 import { onTime } from '../../core/proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, matchStart, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
-/** FIX B — S1: the nodes whose END had landed when the podium was written (`game.ends` — a re-score is owed when another one lands) */
+// FIX B — S1: the nodes whose END had landed when the podium … director.js#2
 const endsOf = (ids, runs) => { const o = { _: 1 }; for (const u of ids) if (runs[u] && runs[u].e) o[u] = 1; return o; };   // (`_`: never an empty object — the database would drop it, and with it the re-score)
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
@@ -13,7 +13,7 @@ export function createGame({ matchId, settings, participants, now, seed, look = 
   const mode = modeOf(participants), solo = mode === 'solo';
   return {
     id: 'freefall', matchId, settings: cleanSettings(settings), participants, mode,
-    seed: solo ? String(seed) : '',   // (a MATCH's seed is picked AFTER GO — the step count → play; a SOLO run's from its own GO — never this)
+    seed: solo ? String(seed) : '', // director#3
     phase: solo ? 'play' : 'count', phaseStartAt: now, playAt: solo ? now : now + COUNT_MS,
     ...(!solo && (look === 'day' || look === 'night') ? { look } : {}),   // (THE LOOK LOCK: the host's look, every phone's for the whole match)
   };
@@ -35,10 +35,10 @@ export function scoreNode(code, matchId, node, mirror = true) {
   if (!node || !(Number(node.go) > 0)) return { ...NONE };
   return rowOf(judgeSolo({ code, matchId, node, mirror }), node, true);
 }
-/** F4B — a MATCH's node: judged on THE FIRST GO's seed + clock (tick 0 = game.playAt — exactly as the server's freefallMatch does) */
+// F4B — a MATCH's node: judged on THE FIRST GO's seed + clock … director.js#4
 export function scoreMatchNode(game, node) {
   if (!node || !(Number(node.go) > 0) || !game.seed) return { ...NONE };
-  // (THE PROOF PASS — the server's guard, on the host's podium too: a GO later than the window after THE FIRST GO is no run)
+  // (THE PROOF PASS — the server's guard, on the host's podium … director.js#5
   if (game.g0 > 0 && !onTime(node, game.g0)) return { ...NONE, bad: 'late go' };
   return rowOf(judgeMatch({ seed: game.seed, node, playAt: game.playAt, mirror: true }), node, false);
 }
@@ -48,8 +48,7 @@ export function finalPatch(game0, runs, now, code) {
     for (const uid of Object.keys(game0.participants || {})) results[uid] = scoreNode(code, game0.matchId, runs[uid]);
     return { phase: 'final', phaseStartAt: now, endAt: now, results };
   }
-  // (THE NODES ARE THE TRUTH: a match is scored on THE FIRST GO's seed + clock, as the server's own count is; if the game ever said
-  //  otherwise the patch puts it right)
+  // (THE NODES ARE THE TRUTH: a match is scored on THE FIRST … director.js#6
   const S = startOf(game0, runs, code), moved = !!S && (S.seed !== game0.seed || S.playAt !== game0.playAt);
   const game = moved ? { ...game0, seed: S.seed, playAt: S.playAt, g0: S.g0 } : game0;
   const results = {};
@@ -75,8 +74,7 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
   if (game.mode !== 'solo') {
     if (now >= capAt(game) + END_GRACE_MS) return finalPatch(game, runs, now, code);
     if (game.unproven) {
-      // (a FIRST GO the server stamped before this host gave up = a hiccup of the host's, not a match without proof: the unproven mark is
-      //  taken back and the match falls on the GO's seed + tick 0 — the phones' own startOf already does)
+      // (a FIRST GO the server stamped before this host gave up = a … director.js#7
       const S = matchStart(code, game.matchId, runs);
       if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 };
       return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
@@ -84,9 +82,7 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
     const done = ids.length > 0 && ids.every(u => endedFor(game, runs[u], now, !online || !!online[u]));
     return done ? finalPatch(game, runs, now, code) : null;
   }
-  // (THE FRESH-EYES REVIEW — AN UNPROVEN RUN's MATCH ENDS TOO: a SOLO run with no GO never writes `e` — its match stayed `play` for ever and
-  //  PLAY AGAIN on its card could only start over in the spent match, uncounted. The host — the same phone, a room of one — marks it
-  //  ended (`game.x/{uid}`, view.js#again): the match closes with the judge's row of a node that is not there — floor 0, never counted)
+  // (THE FRESH-EYES REVIEW — AN UNPROVEN RUN's MATCH ENDS TOO: … director.js#8
   const gone = u => game.mode === 'solo' && !!game.x && !!game.x[u];
   return ids.length > 0 && ids.every(u => (runs[u] && runs[u].e) || gone(u)) ? finalPatch(game, runs, now, code) : null;
 }

@@ -1,33 +1,33 @@
-// FREEFALL — THE GHOSTS (F4B — docs/freefall.md "THE GHOSTS"; JAYWALK's ghosts.js is the pattern: STEPPED conf → run). PURE (no DOM, no (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE GHOSTS (F4B — docs/freefall.md "THE GHOSTS"; … ghosts.js#1
 import { createRun, stepTo, setAngle, isOver } from './engine.js';
 import { TURN, BALL, MODES } from './tuning.js';
 import { wrap, angDiff } from './tower-gen.js';
 
 /** a late chunk's catch-up lasts this long (ms) + this per floor it has to close, never longer than the max */
 export const CATCH_MS = 110, CATCH_FLOOR_MS = 60, CATCH_MAX_MS = 320;
-/** a HELD ghost (it would go out / finish, unconfirmed) is drawn where it stood this long (ms) — the network's beat; past it: not drawn until news of it */
+// a HELD ghost (it would go out / finish, unconfirmed) is … ghosts.js#2
 export const HELD_SHOW_MS = 900;
-/** a ghost this many ticks past its last LANDED move with no end here = NO SIGNAL (a ball nobody steers is out in 9 s: their phone is away) */
+// a ghost this many ticks past its last LANDED move with no … ghosts.js#3
 export const SILENT_TICKS = 600;
-/** the ball's own arc between two landings, in world units (pinned equal to night.js#SHAPE by tests/freefall-match.test.mjs — this file imports no view) */
+// the ball's own arc between two landings, in world units … ghosts.js#4
 export const LIFT = Object.freeze({ H: 1, HOP: 0.42 });
-/** a ghost this many floors or more away from me gets an EDGE MARKER (it is off the picture) · at most this many markers each way */
+// a ghost this many floors or more away from me gets an EDGE … ghosts.js#5
 export const MARK_FLOORS = 5, MARKS_MAX = 3;
-/** … ABOVE me the picture ends sooner (the ball's floor lies a third down the screen: two floors up are under the HUD) */
+// … ABOVE me the picture ends sooner (the ball's floor lies a … ghosts.js#6
 export const MARK_UP = 2;
 /** a ghost this close to my ball (floors) fades to an OUTLINE with no tag (it never hides my own ball's landing) */
 export const NEAR_FLOORS = 1.2;
 /** WATCH THE LEADER: the watched player is played back this many ticks behind the world (1.5 s) — a move is FINAL only at the landing
  *  after it (≤ 0.6 s) + the next flush (0.25 s) + the line: by then their moves are here, the playback is exact, tick for tick */
 export const WATCH_DELAY = 90;
-/** … on a slower line the delay grows with the rival's own lateness (the stage: + half a second at each rebuild), up to this (5 s) */
+// … on a slower line the delay grows with the rival's own … ghosts.js#7
 export const WATCH_DELAY_MAX = 300;
 
 const FIELDS = ['t', 'st', 'a', 'pa', 'mt', 'floor', 'at', 'fl', 'pl', 'nl', 'll', 'clean', 'blaze', 'nb', 'maxNb', 'bounces', 'shatters', 'blazes', 'sf', 'sh', 'saves', 'holds', 'dk', 'dn', 'area', 'cause', 'end'];
-/** a run's whole state into another run of the SAME seed + mode (their logs are never copied: the drawn run is only ever stepped) */
+// a run's whole state into another run of the SAME seed + … ghosts.js#8
 export function copyState(to, from) { for (let i = 0; i < FIELDS.length; i++) { const k = FIELDS[i]; to[k] = from[k]; } return to; }
 
-/** the ball's height over its floor's top at `tau` ticks, in world units — the VIEW's arc (night.js#ballLift's own shape) */
+// the ball's height over its floor's top at `tau` ticks, in … ghosts.js#9
 export function liftOf(run, tau) {
   const span = run.nl - run.pl, u = span > 0 ? Math.min(1, Math.max(0, (tau - run.pl) / span)) : 1;
   if (run.st !== 'live') return 0;
@@ -39,15 +39,15 @@ export function liftOf(run, tau) {
 export function createGhost(seed, mode = 'match') {
   return {
     seed, mode, conf: createRun({ seed, mode }), run: createRun({ seed, mode }), keep: createRun({ seed, mode }),
-    n: 0, pt: -1, pa: 0, moves: 0,           // the chunks read · the log's own carry (the tick + the angle of the move before) · the moves landed
+    n: 0, pt: -1, pa: 0, moves: 0, // ghosts#10
     lt: [], la: [],                          // their LANDED log (WATCH's playback reads it)
-    done: false, bad: false, fresh: false, seen: false,   // their own end is here · a chunk the engine refused (the judge will refuse that log) · confirmed news since the last frame
+    done: false, bad: false, fresh: false, seen: false, // ghosts#11
     held: false, heldAt: 0,                  // the drawn run stands before a step that would end it, unconfirmed
-    off: false, oa: 0, oy: 0, ot0: 0, oms: 1,   // the catch-up: the angle (units) + the height (world units) still to close, from when, for how long
-    a: 0, y: 0, floor: 0, lost: false, lostAt: 0, over: false, end: '', capped: false,   // WHAT IS DRAWN: their tower's angle · the ball's height (world y) · its floor · not drawn (no news) · ended (how)
+    off: false, oa: 0, oy: 0, ot0: 0, oms: 1, // ghosts#12
+    a: 0, y: 0, floor: 0, lost: false, lostAt: 0, over: false, end: '', capped: false, // ghosts#13
   };
 }
-/** the match's seed moved (THE FIRST GO landed late on this phone): the ghost starts again on it — their chunks are read again */
+// the match's seed moved (THE FIRST GO landed late on this … ghosts.js#14
 export function resetGhost(G, seed, mode = G.mode) {
   G.seed = seed; G.mode = mode; G.conf = createRun({ seed, mode }); G.run = createRun({ seed, mode }); G.keep = createRun({ seed, mode });
   G.n = 0; G.pt = -1; G.pa = 0; G.moves = 0; G.lt.length = 0; G.la.length = 0; G.done = false; G.bad = false; G.fresh = false; G.seen = false; G.held = false; G.off = false;
@@ -107,10 +107,9 @@ export function feedGhost(G, node) {
 export function stepGhost(G, tau, now) {
   const cf = G.conf, r = G.run, target = Math.floor(tau);
   const moved = G.fresh, wasA = G.a, wasY = G.y, wasFloor = G.floor;
-  // (the confirmed run may END at their last landed move's own tick — the log itself says so — a beat before their `e` is here: the
-  //  drawn run then stands where it stood until the end is signalled: OUT ONLY ONCE CONFIRMED BY THEIR OWN END)
+  // (the confirmed run may END at their last landed move's own … ghosts.js#15
   if (moved) { G.fresh = false; if (cf.st === 'live' || G.done) { copyState(r, cf); G.held = false; } else if (!G.held) { G.held = true; G.heldAt = now; } }
-  // THE DRAWN RUN: on to the world's tick with no new move assumed. A landing that would END it is not taken until their own end says so
+  // THE DRAWN RUN: on to the world's tick with no new move … ghosts.js#16
   if (!G.held && r.st === 'live') {
     for (;;) {
       const next = r.nl <= r.dn ? r.nl : r.dn;
@@ -143,28 +142,27 @@ export function stepGhost(G, tau, now) {
   // not drawn: held too long with no news (their signal) — or a log the judge will refuse past here
   const wasLost = G.lost;
   G.lost = !over && ((G.held && now - G.heldAt > HELD_SHOW_MS) || (!G.done && target > (G.pt < 0 ? 0 : G.pt) + SILENT_TICKS));
-  if (G.lost && !wasLost) G.lostAt = now;   // (FIX B — S7: since when — a row LOST longer than LOST_GONE_MS is `gone`: out of the count + LAST ONE STANDING)
+  if (G.lost && !wasLost) G.lostAt = now; // ghosts#17
   return G;
 }
-/** WHERE A GHOST IS DRAWN ROUND MY TOWER: the world angle (units, 0 = the front where MY ball is) = (the ball's angle − their tower's) + MY tower's */
+// WHERE A GHOST IS DRAWN ROUND MY TOWER: the world angle … ghosts.js#18
 export const ghostPhi = (theirA, myA) => wrap(BALL - theirA + myA);
 
 // ---- THE DEPTH RAIL + THE EDGE MARKERS + THE PLACE (pure: rows { uid, name, floor, over, end, me })
 
 /** your place = 1 + the players strictly deeper (a level player shares it) */
 export function placeOf(rows, floor) { let p = 1; for (let i = 0; i < rows.length; i++) if (!rows[i].me && rows[i].floor > floor) p++; return p; }
-// ---- F5C — THE MATCH MOMENTS (the owner, Nov 27 — JAYWALK's are the pattern: docs/jaywalk.md "THE MATCH MOMENTS")
-/** RIVAL OUT: the callout's words — "MIA IS OUT" (never for my own out: I have the crash) */
+// ---- F5C — THE MATCH MOMENTS (the owner, Nov 27 — JAYWALK's … ghosts.js#19
 export const outWords = name => `${name} IS OUT`;
 /** RIVAL OUT: how long a callout stays (ms) · at most this many lines at once (a third waits for a line to leave) */
 export const OUT_CALL_MS = 1500, OUT_CALL_MAX = 2;
 /** LAST ONE STANDING: a match of at least this many players (me included) · the card's time (JAYWALK's LAST_MS) */
 export const LAST_MIN_PLAYERS = 3, LAST_CARD_MS = 2600;
-/** LAST ONE STANDING's line (lead = my floors − the deepest rival's): "+23 FLOORS AHEAD · KEEP FALLING" · "12 FLOORS TO THE LEAD · KEEP FALLING" */
+// LAST ONE STANDING's line (lead = my floors − the deepest … ghosts.js#20
 export const lastWords = (lead, made = null) => (made ? `${made.name} HIT THE BOTTOM · KEEP FALLING FOR ${ORD[made.n] || `${made.n + 1}TH`}`
   : lead > 0 ? `+${lead} ${lead === 1 ? 'FLOOR' : 'FLOORS'} AHEAD · KEEP FALLING` : lead === 0 ? 'LEVEL WITH THE LEAD · KEEP FALLING' : `${-lead} ${lead === -1 ? 'FLOOR' : 'FLOORS'} TO THE LEAD · KEEP FALLING`);
 const ORD = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'];
-/** FIX A — S14: the rivals who HIT THE BOTTOM (floor 200 — the lead can not be taken from them) → { name: the first of them, n: how many } · null = none */
+// FIX A — S14: the rivals who HIT THE BOTTOM (floor 200 — the … ghosts.js#21
 export function madeAhead(rows) {
   let n = 0, name = '';
   for (let i = 0; i < rows.length; i++) { const r = rows[i]; if (!r.me && r.end === 'made') { if (!n) name = String(r.name || 'A RIVAL').toUpperCase(); n++; } }
@@ -172,7 +170,7 @@ export function madeAhead(rows) {
 }
 /** LAST ONE STANDING (PURE): rows { me, over, floor } → my lead over the deepest rival when I'm the LAST still falling in a match of
  *  LAST_MIN_PLAYERS or more · null = not (yet) */
-/** FIX B — S7: a rival with no news this long (a dead phone, a dropped signal) is `gone` — not "PLAYING", never in the way of LAST ONE STANDING, never WATCHED on */
+// FIX B — S7: a rival with no news this long (a dead phone, a … ghosts.js#22
 export const LOST_GONE_MS = 2000;
 /** … and one with no news THIS long is OUT of "n PLAYING" + LAST ONE STANDING's way (the fresh-eyes review: 2 s let a network blip fire the
  *  once-a-match card; a held projection is lost after 0.9 s) */
@@ -213,19 +211,19 @@ export function edgeMarks(rows, floor, into) {
 // ---- WATCH THE LEADER (after an out — JAYWALK's: the leader first, a tap = the next player)
 
 const deepFirst = (a, b) => (b.floor - a.floor) || (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0);
-/** whom to follow: `stay` while they are still falling — else THE LEADER among the ones still falling — else the deepest of all ('' = nobody) */
+// whom to follow: `stay` while they are still falling — else … ghosts.js#23
 export function follow(rows, stay = '') {
   let lead = null, any = null;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (r.me) continue;
-    if (r.uid === stay && !r.over && !r.gone) return stay;   // (FIX B — S7: the one followed stays while they fall — not once their phone has been silent > LOST_GONE_MS)
+    if (r.uid === stay && !r.over && !r.gone) return stay; // ghosts#24
     if (!r.over && !r.lost && (!lead || deepFirst(r, lead) < 0)) lead = r;   // (… and THE LEADER is the deepest one we HEAR falling)
     if (!any || deepFirst(r, any) < 0) any = r;
   }
   return lead ? lead.uid : stay && rows.some(r => r.uid === stay && !r.gone) ? stay : any ? any.uid : '';
 }
-/** a TAP = the next player: the ones still falling, deepest first, round and round (nobody still falling: everyone, deepest first) */
+// a TAP = the next player: the ones still falling, deepest … ghosts.js#25
 export function nextFollow(rows, cur) {
   let list = rows.filter(r => !r.me && !r.over && !r.gone);
   if (!list.length) list = rows.filter(r => !r.me);
@@ -250,9 +248,7 @@ export function stepWatch(W, G, tick, ev) {
   }
   const r = W.run;
   while (W.i < G.lt.length && G.lt[W.i] <= tick && r.st === 'live') { setAngle(r, G.lt[W.i], G.la[W.i], ev); W.i++; }
-  // (their end here: the whole run. Else the ball goes on by the rules with the tower held — and a landing that would END the run WAITS for
-  //  their own `e`, the fatal landing at their last landed move's own tick too: THE FRESH-EYES REVIEW — the playback showed that out a
-  //  beat before the end was signalled)
+  // (their end here: the whole run. Else the ball goes on by … ghosts.js#26
   if (r.st === 'live') {
     if (G.done) stepTo(r, tick, ev);
     else {
@@ -268,7 +264,7 @@ export function stepWatch(W, G, tick, ev) {
   }
   return rebuilt;
 }
-/** would the next landing / the darkness's next step END this run? (asked on a scratch copy — the watched run itself is never taken there unconfirmed) */
+// would the next landing / the darkness's next step END this … ghosts.js#27
 function endsAt(W, r, next) {
   const k = W.keep || (W.keep = createRun({ seed: W.seed, mode: W.mode }));
   copyState(k, r);

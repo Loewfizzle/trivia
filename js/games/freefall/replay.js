@@ -1,6 +1,4 @@
-// FREEFALL — THE REPLAY + THE JUDGE (F1 — docs/freefall.md "THE JUDGE"): PURE — the SAME code the phone runs (engine.js). The phone shows
-// the replay after every run (REPLAY = LIVE: the owner's determinism check on a real iPhone); the server's judge (api/_lib/freefall.js)
-// = judgeRun. + THE INPUT LOG's packed form.
+// FREEFALL — THE REPLAY + THE JUDGE (F1 — docs/freefall.md … replay.js#1
 import { TURN, MAX_LOG, HOLDS_MAX, SEED_MAX, ENTRY_CHARS_MAX, RULE_SETS, RULES_DEFAULT, ruleSet } from './tuning.js';
 import { createRun, stepTo, turn, hold, isOver, resultOf, modeRow, angDiff } from './engine.js';
 
@@ -8,10 +6,10 @@ const CLASSIC = RULE_SETS[RULES_DEFAULT];
 /** the rule set a log names: none named = "classic"; an unknown one = null (THE JUDGE refuses it) */
 export const rulesOf = rules => (rules == null ? CLASSIC : ruleSet(rules));
 
-/** a seed = 1 … 64 printable ASCII characters, no space (seedOf makes [0-9a-z]) — nothing a transport could normalise into another seed */
+// a seed = 1 … 64 printable ASCII characters, no space … replay.js#2
 export const seedProblem = seed => (typeof seed !== 'string' || seed.length > SEED_MAX || !/^[!-~]+$/.test(seed) ? 'seed' : null);
 
-/** F2 — a HOLD in a log (engine.js#hold): { k: 'hold', t: the PLAY tick the run was held at }. A log = moves { t, a } + holds, in order (a move at a hold's own tick comes before it) */
+// F2 — a HOLD in a log (engine.js#hold): { k: 'hold', t: the … replay.js#3
 export const isHold = x => x !== null && typeof x === 'object' && x.k === 'hold';
 /** the most entries a `mode` run's log can hold: ONE move a tick, every tick before its cap — + the mode's holds */
 export const maxEntries = (mode, R = CLASSIC) => { const M = modeRow(mode, R); return (M && M.capTicks != null ? Math.min(M.capTicks, MAX_LOG) : MAX_LOG) + ((M && M.holds) || 0); };
@@ -37,7 +35,7 @@ export function logProblem(log, mode, R = CLASSIC) {
     if (e === null || typeof e !== 'object') return 'entry';
     const t = e.t, a = e.a;
     if (isHold(e)) {
-      // (THE REVIEW, F3: exactly its two OWN keys — { k: 'hold', t, a: 'x' } or a `k` inherited from a prototype was judged as a hold: two JSON texts for one log)
+      // (THE REVIEW, F3: exactly its two OWN keys — { k: 'hold', t, … replay.js#4
       if (!tickOk(t) || !Object.prototype.hasOwnProperty.call(e, 'k') || Object.keys(e).length !== 2) return 'entry';
       if (t < pt || t <= ph) return 'ticks not rising';
       if (M.capTicks != null && t >= M.capTicks) return 'past the cap';
@@ -69,14 +67,14 @@ export function replay({ seed, mode = 'solo', log = [], until = null, rules = RU
   for (let i = 0; i < log.length; i++) {
     const e = log[i];
     if (until != null && e.t > until) break;
-    // (a HOLD — F3: EXACT RESUME — everything up to + at its tick happens, then nothing moves: engine.js#hold; refused = not a log the engine wrote)
+    // (a HOLD — F3: EXACT RESUME — everything up to + at its tick … replay.js#5
     if (isHold(e)) {
       if (hold(run, e.t, ev)) { used++; continue; }
       bad = i; why = isOver(run) ? 'past the end' : 'hold';
       break;
     }
     const d = angDiff(e.a, run.a);
-    // (the engine's own turn(): it must count AT the entry's tick and land ON the entry's angle — anything else is not a log the engine wrote)
+    // (the engine's own turn(): it must count AT the entry's tick … replay.js#6
     if (!isOver(run) && d !== 0 && turn(run, e.t, d, ev) === d && run.mt === e.t && run.a === e.a) { used++; continue; }
     bad = i;
     why = isOver(run) ? 'past the end' : d === 0 ? 'no change' : 'spin';
@@ -99,19 +97,18 @@ export function judgeRun(input) {
   if (!R) return { ok: false, why: 'rules' };
   if (!modeRow(mode, R)) return { ok: false, why: 'mode' };
   if (seedProblem(seed)) return { ok: false, why: 'seed' };
-  // (`until` — A RUN SCORED AS IT STANDS at a tick, a match still going: a whole tick ≥ 0 or nothing; the answer then says `over`)
+  // (`until` — A RUN SCORED AS IT STANDS at a tick, a match … replay.js#7
   const live = until !== undefined && until !== null;
   if (live && !tickOk(until)) return { ok: false, why: 'until' };
   const bad = logProblem(log, mode, R);
   if (bad) return { ok: false, why: bad };
   const r = replay({ seed, mode, log, rules: R.id, until: live ? until : null });
   if (r.bad >= 0) return { ok: false, why: r.why };
-  if (!live && !r.over) return { ok: false, why: 'never ended' };   // (can not happen: the darkness or the cap ends every run — kept as the judge's own floor)
+  if (!live && !r.over) return { ok: false, why: 'never ended' }; // replay#8
   return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, bounces: r.bounces, shatters: r.shatters, blazes: r.blazes, bestRun: r.bestRun, moves: r.moves, feats: r.feats, ...(r.holds ? { holds: r.holds } : {}), ...(live ? { over: r.over } : {}) };
 }
 
-// ---- THE PACKED LOG (F4's run node): event after event, no separator between them — (→ §1, docs/freefall.md MODULE NOTES)
-/** ONE move as the packed log writes it — after the event at tick `pt` (the angle before: `pa`); F4A: the proof's chunks are cut from the same text (proof.js) */
+// ---- THE PACKED LOG (F4's run node): event after event, no … replay.js#9
 export const packMove = (pt, pa, t, a) => { const gap = t - pt, d = angDiff(a, pa); return (gap === 1 ? '' : `.${gap.toString(36)}`) + (d < 0 ? `-${(-d).toString(36)}` : `+${d.toString(36)}`); };
 export function packLog(log) {
   let s = '', pt = -1, pa = 0;
@@ -135,11 +132,11 @@ export function packRun(run) {
   }
   return s;
 }
-/** → the log [{ t, a } | { k: 'hold', t }], or null (a bad string — or one longer than `maxLen` characters: refused before it is read); '' = an empty log */
+// → the log [{ t, a } | { k: 'hold', t }], or null (a bad … replay.js#10
 export function unpackLog(str, maxLen = ENTRY_CHARS_MAX * (MAX_LOG + HOLDS_MAX)) {
   if (typeof str !== 'string' || str.length > maxLen) return null;
   const out = [], n = str.length;
-  let i = 0, t = -1, a = 0, moved = false;   // (`moved` = the event before was a MOVE: only then may a hold stand at its very tick — "!0")
+  let i = 0, t = -1, a = 0, moved = false; // replay#11
   // (a hand-written reader — one pass, no regex over an unbounded string, no recursion)
   const num = max => {   // base-36 digits from i: no leading zero, at most `max` digits → the value, or −1
     let v = 0, k = 0;

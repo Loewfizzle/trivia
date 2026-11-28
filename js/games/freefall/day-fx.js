@@ -1,6 +1,6 @@
-// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — docs/freefall.md "THE DAY LOOK"; night.js builds the ONE scene both looks share, night-fx.js (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE DAY LOOK's SHADER PIECES (F3 — … day-fx.js#1
 
-/** THE CAUSTICS (the shader's own — ff-caustics.png is not used): the bright net where ripples of light cross, moving */
+// THE CAUSTICS (the shader's own — ff-caustics.png is not … day-fx.js#2
 export const CAUST = /* glsl */`
 float caust1(vec2 p, float t) {
   vec2 q = p + 0.35 * vec2(sin(p.y * 1.7 + t * 0.9), cos(p.x * 1.9 - t * 0.8));
@@ -36,7 +36,7 @@ vec3 wallDay(sampler2D t, float have, float flip, vec3 tint, vec2 uv, float area
   return c;
 }`;
 
-/** the wall shader's DAY half (inside its main: `d` the ray, `on` it met the wall, `hit` where, `uv` the wall's own coordinates, `k` 0 = wall A … 1 = wall B below the seam) */
+// the wall shader's DAY half (inside its main: `d` the ray, … day-fx.js#3
 export const DAY_MAIN = /* glsl */`
     vec3 fogC = mix(uFogA, uFogB, k);
     if (on) {

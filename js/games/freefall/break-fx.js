@@ -1,4 +1,4 @@
-// FREEFALL — THE BREAKTHROUGHS' SHADERS (F3B — docs/freefall.md "THE BREAKTHROUGHS"; breaks.js builds the pieces, night.js owns the ONE (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE BREAKTHROUGHS' SHADERS (F3B — … break-fx.js#1
 
 /** the breakthroughs' moments on the rules' clock: the ball leaves the floor above at the `area` event's tick — it meets the surface
  *  `HIT_TICKS` later (the skylight's glass, the water) · the cracks race out at `CRACK` world units a second */
@@ -11,7 +11,7 @@ const HASH = /* glsl */`
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }`;
 
-// ---- THE SPRITES (a FIXED pool of quads, flown HERE — the tiers trim how many are shed, never the pool): dust + foam + mist (soft (→ §2, docs/freefall.md MODULE NOTES)
+// ---- THE SPRITES (a FIXED pool of quads, flown HERE — the … break-fx.js#2
 export const BURST_V = /* glsl */`
 attribute vec3 aO, aV;
 attribute vec4 aT, aK, aC;
@@ -58,7 +58,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- A PANE THAT BREAKS (the skylight's glass · the seabed that cracks open): ONE instanced mesh of TRIANGLES — the pieces it will break (→ §3, docs/freefall.md MODULE NOTES)
+// ---- A PANE THAT BREAKS (the skylight's glass · the seabed … break-fx.js#3
 export const FRACT_V = /* glsl */`
 attribute vec3 aB, aP0, aP1, aP2, aV;
 attribute vec4 aR;
@@ -124,10 +124,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE SKYLIGHT's FRAME (instanced boxes: aP its place, aS its size, aQ = its kind — 0 the outer frame · 1 a glazing bar · 2 a NEON
-// TUBE —, its number round the frame, a seed): by night the tubes outline the frame; the hit SHORTS them — they flicker out one after the
-// other round it (uBreakT); the glazing bars fall away with the glass. By day the tubes are unlit.
-/** F4B — the skylight's outer frame + its tubes are gone this long after the break (the deck's own 0.25 s — DECK_F) */
+// ---- THE SKYLIGHT's FRAME (instanced boxes: aP its place, … break-fx.js#4
 export const FRAME_GONE_S = 0.25;
 export const FRAME_V = /* glsl */`
 attribute vec3 aP, aS, aQ;
@@ -189,9 +186,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE ROOF's DECK round the skylight (the painting itself on the roof's own plane — the same picture the roof below shows, with a fine
-// grain of its own for when it is close; it fades out all round into it): a hole where the skylight's own glass is; by night the neon
-// tubes' light lies on it (until they short).
+// ---- THE ROOF's DECK round the skylight (the painting … break-fx.js#5
 export const DECK_V = 'varying vec3 vW, vL; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vL = position; gl_Position = projectionMatrix * viewMatrix * w; }';
 export const DECK_F = /* glsl */`
 uniform sampler2D tRoof, tGrain;
@@ -228,9 +223,9 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane across the shaft. F5A — THE WATER SURFACE REBUILT to the owner's two targets (→ §4, docs/freefall.md MODULE NOTES)
+// ---- THE WATER (THE SPLASHDOWN — floor 120): a real plane … break-fx.js#6
 export const WATER_V = 'varying vec3 vW; varying vec4 vClip; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vClip = projectionMatrix * viewMatrix * w; gl_Position = vClip; }';
-/** FIX A — the ripple map's slopes were stretched × RIP_K when it was baked (scripts/build-freefall-assets.py#RIP_K) */
+// FIX A — the ripple map's slopes were stretched × RIP_K when … break-fx.js#7
 export const RIP_K = 10;
 export const WATER_F = /* glsl */`
 uniform sampler2D tWall, tRip;
@@ -365,9 +360,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE SEABED (THE BOTTOM — floor 200): real sand (Ground 055 S: colour + normal), lit from above; the tower's own glow + the ball's
-// light lie on it; by day the water's caustics. THE IMPACT: a shockwave ring of sand + light runs out from under the ball (uImpT).
-// SAND = the look, shared by the plane (SEABED_F — outside the square that cracks) and the pieces (CHUNK_F — the square that cracks open).
+// ---- THE SEABED (THE BOTTOM — floor 200): real sand (Ground … break-fx.js#8
 const SAND = /* glsl */`
 ${HASH}
 uniform sampler2D tSand, tSandN;
@@ -516,7 +509,7 @@ void main() {
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
-/** … a rock's SHADOW on the sand (a soft dark pool under it, thrown a little away from the light — the same instances as the rocks) */
+// … a rock's SHADOW on the sand (a soft dark pool under it, … break-fx.js#9
 export const RSHADOW_V = /* glsl */`
 attribute vec4 aP;
 attribute vec3 aS;
@@ -541,9 +534,7 @@ void main() {
   gl_FragColor = vec4(vec3(0.0), a);
 }`;
 
-// ---- THE DAY FINISH's SUN RAYS (F5A — THE DAY CELEBRATION): shafts of sunlight falling through the water from high above onto the spot
-// where the ball came down — a fan of soft moving rays on one upright card behind the ball (turned to the camera in its vertex shader),
-// pure added light; it comes with the burst of bubbles (uT0) and is gone 3.4 s later.
+// ---- THE DAY FINISH's SUN RAYS (F5A — THE DAY CELEBRATION): … break-fx.js#10
 export const RAYS_V = /* glsl */`
 uniform vec3 uO;
 varying vec2 vP;

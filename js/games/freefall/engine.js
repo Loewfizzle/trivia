@@ -1,4 +1,4 @@
-// FREEFALL — THE ENGINE (F1 — docs/freefall.md "THE ENGINE"): THE ONE RULE — the same seed + the same INPUT LOG = the exact same run on (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE ENGINE (F1 — docs/freefall.md "THE ENGINE"): … engine.js#1
 import { TURN, GAP, RED, MODE_IDS, MAX_LOG, HARBOR_FLOOR, BOTTOM_FLOOR, TERMINAL_RUN, RULE_SETS, RULES_DEFAULT, ruleSet, isRuleRow, AREAS, darkPaceAt } from './tuning.js';
 import { seedHash, floorInto, sliceUnder, kindAtTick, wrap, angDiff } from './tower-gen.js';
 import { areaIndex } from './logic.js';
@@ -26,15 +26,15 @@ export function createRun({ seed, mode = 'solo', rules = RULES_DEFAULT } = {}) {
     a: 0,                                   // THE TOWER's ANGLE (0 … TURN − 1) — as of the last logged tick, held since
     pa: 0, mt: -1,                          // the angle before the log's last entry · the latest tick a move counted at
     lt: [], la: [],                         // THE INPUT LOG: the ticks A changed at (rising) · A from that tick on
-    floor: 0, at: 0,                        // THE FLOORS PASSED (= the floor the ball is on / falling to) · the tick that floor was reached (THE RANKING)
+    floor: 0, at: 0, // engine#2
     fl: 'drop',                             // the ball's flight: 'drop' (the start) | 'bounce' | 'fall'
     pl: 0, nl: R.first,                     // … the tick it began · THE NEXT LANDING's tick
     ll: -1,                                 // the last landing DECIDED (a move can not count at or before it)
-    clean: 0, blaze: false,                 // floors fallen in a row without a bounce since the last bounce / shatter · THE BLAZE is lit
-    nb: 0, maxNb: 0,                        // THE NO-BOUNCE RUN (gaps + shatters, reset only by a bounce) · its best (TERMINAL VELOCITY)
+    clean: 0, blaze: false, // engine#3
+    nb: 0, maxNb: 0, // engine#4
     bounces: 0, shatters: 0, blazes: 0,
     sf: -1,                                 // the floor the LAST SHATTER dropped the ball to (−1 = none yet)
-    sh: false, saves: 0,                    // (F2) the NEXT landing is the one right after a shatter (never an out) · how often that rule saved the run
+    sh: false, saves: 0, // engine#5
     holds: 0, ht: [],                       // (F2 — THE HOLD) the holds used · their ticks
     dk: -R.dark.lead, dn: R.dark.grace + R.dark.pace,   // THE DARKNESS: the floor it has reached · the tick of its next floor down
     area: 0,                                // the area the ball's floor is in (tuning.js#AREAS)
@@ -95,8 +95,7 @@ function landing(run, L, ev) {
   if (lit && ev) ev.push({ e: 'blaze', floor: run.floor, t: L });
   const k = areaIndex(run.floor);
   if (k !== run.area) { run.area = k; if (ev) ev.push({ e: 'area', id: AREAS[k].id, floor: run.floor, t: L }); }
-  // THE DARKNESS is never more than `lead` floors above the deepest floor the ball has reached (and its pace starts again from there —
-  // F3B: THE PACE EASES WITH DEPTH, by the floor the ball is on: tuning.js#darkPaceAt)
+  // THE DARKNESS is never more than `lead` floors above the … engine.js#6
   if (run.floor - R.dark.lead > run.dk) {
     run.dk = run.floor - R.dark.lead; run.dn = L + darkPaceAt(R, run.floor);
     if (ev) ev.push({ e: 'dark', floor: run.dk, t: L });
@@ -155,7 +154,7 @@ export function turn(run, T, d, ev) {
   const R = run.R, cap = R.modes[run.mode].capTicks;
   if (cap != null && te >= cap) return 0;
   const n = run.lt.length, same = n > 0 && run.lt[n - 1] === te, base = same ? run.pa : run.a, had = same ? angDiff(run.a, base) : 0;
-  if (!same && n >= MAX_LOG) return 0;   // (the log is full — one entry a tick at most, so only a rule set with no cap could get here)
+  if (!same && n >= MAX_LOG) return 0; // engine#7
   let want = had + d;
   if (want > R.maxSpin) want = R.maxSpin; else if (want < -R.maxSpin) want = -R.maxSpin;
   if (want === had) return 0;
@@ -169,7 +168,7 @@ export function turn(run, T, d, ev) {
   return want - had;
 }
 
-/** … the same, by the angle to reach: the tower turns the SHORTEST way from where it stands towards `a` (0 … 4095), clamped to MAX SPIN → the units it turned */
+// … the same, by the angle to reach: the tower turns the … engine.js#8
 export function setAngle(run, T, a, ev) {
   if (!Number.isSafeInteger(a) || a < 0 || a >= TURN) return 0;
   return turn(run, T, angDiff(a, run.a), ev);
@@ -191,17 +190,17 @@ export function hold(run, T, ev) {
   if (!Number.isSafeInteger(T) || T < 0 || run.st !== 'live') return false;
   const M = run.R.modes[run.mode];
   if (run.holds >= (M.holds || 0)) return false;
-  if (T <= run.t) return false;   // (a tick the run was already stepped to: what happened there stands — the page holds at the NEXT tick)
+  if (T <= run.t) return false; // engine#9
   if (T < run.mt) return false;
   if (M.capTicks != null && T >= M.capTicks) return false;
-  stepTo(run, T, ev);             // (what is due at T happens: a hold takes nothing away — the landing, the darkness's step)
+  stepTo(run, T, ev); // engine#10
   if (run.st !== 'live') return false;
   run.holds++; run.ht.push(T + 0); run.mt = T + 1;
   if (ev) ev.push({ e: 'hold', t: T });
   return true;
 }
 
-/** THE INPUT LOG as the judge reads it: [{ t, a }] — the ticks A changed at, rising — and (F2) its HOLDS { k: 'hold', t } in their place (a move at a hold's own tick comes before it) */
+// THE INPUT LOG as the judge reads it: [{ t, a }] — the ticks … engine.js#11
 export function logOf(run) {
   const out = [];
   let k = 0;
@@ -213,7 +212,7 @@ export function logOf(run) {
   return out;
 }
 
-/** the slice under the ball on the floor it is on / falling to, at the angle the tower stands at (for the VIEW + the bots) */
+// the slice under the ball on the floor it is on / falling … engine.js#12
 export const sliceNow = run => sliceUnder(run.a, floorNow(run).twist);
 /** how many floors THE DARKNESS is above the ball's floor (0 = it has it) */
 export const darkGap = run => run.floor - run.dk;

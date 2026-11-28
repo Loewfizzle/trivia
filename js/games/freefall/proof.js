@@ -1,10 +1,10 @@
-// FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; HIGH RISE's `hr` node is the pattern: js/games/highrise/proof.js). PURE — the (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE PROOF (F4A — docs/freefall.md "THE PROOF"; … proof.js#1
 import { judgeRun, unpackLog, isHold, packMove } from './replay.js';
 import { TICK_HZ, ENTRY_CHARS_MAX, MAX_LOG, HOLDS_MAX, MODES } from './tuning.js';
 import { seedOf } from './logic.js';
 import { overChunkCeiling } from '../../core/proof.js';
 
-/** the most chunks a second this game's writer can send (one burst at a time, every FLUSH_MS at the soonest — the kit's stop-and-wait) */
+// the most chunks a second this game's writer can send (one … proof.js#2
 export const CHUNKS_PER_SEC = 7;
 /** tick 0 = the GO's server time + this: the first drag writes GO, the answer is back, the sounds are decoded — the ball always drops in
  *  from the same height (the opening's camera sweeps down meanwhile) */
@@ -35,7 +35,7 @@ export const CLOCK = Object.freeze({ ahead: 2 * TICK_HZ, behind: 8 * TICK_HZ, gr
 export const GRANT_PHONE_MS = 1500;
 const MS = 1000 / TICK_HZ;
 
-// ---- the writer's half: the run's own log (engine.js: run.lt · run.la the moves, run.ht the holds), read in its merged order
+// ---- the writer's half: the run's own log (engine.js: … proof.js#3
 
 /** how many of the run's log events are FINAL now (the engine can not change them again): all of them once the run is over; else the
  *  moves at or before the last landing DECIDED / the last hold, + every hold. ZERO GARBAGE: read from a frame. */
@@ -121,7 +121,7 @@ export function chunkTimes(c, L = logFromChunks(c)) {
   }
   return out;
 }
-/** a node's resume stamps → [h0, h1, …] as far as they go without a gap (a number each — the SERVER's time; anything else ends the list) */
+// a node's resume stamps → [h0, h1, …] as far as they go … proof.js#4
 export function stampsOf(node) {
   const h = node && node.h, out = [];
   if (h && typeof h === 'object') for (let i = 0; i < HOLD_STAMPS; i++) { const v = h[i]; if (typeof v !== 'number' || !(v > 0)) break; out.push(v); }
@@ -148,13 +148,12 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
   if (!Array.isArray(times)) return { why: 'chunks' };
   // the segments' clocks: base[s] = the server time segment s's first tick T[s] stands at
   const T = [0], base = [go + START_LEAD_MS];
-  // (the server's time each hold's OWN chunk arrived at — the chunks are in the log's order: the s-th hold is in the first chunk whose holds reach it)
+  // (the server's time each hold's OWN chunk arrived at — the … proof.js#5
   let frozen = holdTicks.length, hi = 0, ci = 0;
   for (let s = 0; s < holdTicks.length; s++) {
     const paused = base[s] + (holdTicks[s] - T[s]) * MS;   // (the wall time the run was held at)
     while (ci < times.length && hi + (times[ci].hn || 0) <= s) { hi += times[ci].hn || 0; ci++; }
-    // (THE PAUSE GAP: the hold's chunk arrived too late — no pause was granted, the clock ran on: it never froze at this hold. A hold
-    //  whose chunk is not there yet froze nothing either — nothing lies past it.)
+    // (THE PAUSE GAP: the hold's chunk arrived too late — no … proof.js#6
     if (ci < times.length && times[ci].at > paused + CLOCK.grant * MS) { frozen = s; break; }
     if (s >= stamps.length) break;
     if (stamps[s] < paused - CLOCK.ahead * MS) return { why: 'hold clock' };
@@ -176,10 +175,10 @@ export function clockProblem(go, times, holdTicks = [], stamps = []) {
     last = k.at;
     // (THE PAUSE GAP: this chunk carries the hold that was NOT granted — the run counts up to the events before it)
     holds += k.hn || 0;
-    if (holds > frozen) return { why: 'pause', tick: holdTicks[frozen], events: drop ? drop.events : events };   // (… or before the silence that is still open: late moves are no part of a pause that was never granted)
+    if (holds > frozen) return { why: 'pause', tick: holdTicks[frozen], events: drop ? drop.events : events }; // proof#7
     // (events past a hold whose way back was never stamped: no clock — the run counts up to that hold)
     if (k.s1 >= base.length) return { why: 'hold', tick: holdTicks[base.length - 1], seg: base.length };
-    // (AHEAD of its own segment's clock. In the run's FIRST segment: a log made in advance — refused. PAST A HOLD (the fresh-eyes review's (→ §2, docs/freefall.md MODULE NOTES)
+    // (AHEAD of its own segment's clock. In the run's FIRST … proof.js#8
     if (base[k.s1] + (k.t1 - T[k.s1]) * MS > k.at + CLOCK.ahead * MS) return k.s1 > 0 ? { why: 'hold', tick: holdTicks[k.s1 - 1], seg: k.s1 } : { why: 'ahead' };
     const now = runTick(k.at);
     if (k.t0 >= now - CLOCK.behind) drop = null;   // (on the clock — a drop before it is settled)
@@ -216,7 +215,7 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   let log = L.log;
   const holdTicks = [];
   for (const e of log) if (isHold(e)) holdTicks.push(e.t);
-  // (F4B: more holds than the mode has — a match / the daily: ANY hold — is refused by name BEFORE the clock: a cut never turns it into a shorter honest run)
+  // (F4B: more holds than the mode has — a match / the daily: … proof.js#9
   if (holdTicks.length > ((Object.prototype.hasOwnProperty.call(MODES, mode) && MODES[mode].holds) || 0) && Object.prototype.hasOwnProperty.call(MODES, mode)) return { ok: false, why: 'too many holds' };
   const c = clockProblem(go, times, holdTicks, stampsOf(node));
   let cut = null;
@@ -236,6 +235,6 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
  *  NO HOLDS (the judge refuses one by name), THE FINISH at floor 200, the 3:00 cap. */
 export const judgeMatch = ({ seed, node, playAt, mirror = false } = {}) => (node && Number(node.go) > 0 && Number(playAt) > 0
   ? judgeNode({ seed, mode: 'match', node: { ...node, go: Number(playAt) - START_LEAD_MS }, mirror }) : { ok: false, why: 'no go' });
-/** a SOLO run's node: the seed = logic.js#seedOf(code, matchId, its own GO) — picked AFTER GO, nobody can shop for a tower */
+// a SOLO run's node: the seed = logic.js#seedOf(code, … proof.js#10
 export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0
   ? judgeNode({ seed: seedOf(String(code), String(matchId), Number(node.go)), mode: 'solo', node, mirror }) : { ok: false, why: 'no go' });

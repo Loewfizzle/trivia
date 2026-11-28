@@ -1,9 +1,9 @@
-// FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2; F4B — THE LOGO HEADER: docs/freefall.md "THE END SCREEN"; HIGH RISE's (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE END SCREEN's BODY = JAYWALK'S STANDARD (F2; … endscreen.js#1
 import { h } from '../../ui/dom.js';
 
-/** FREEFALL's ACCENT = title-05's colours (F3 — the owner, Nov 26: docs/games/plan.md "FREEFALL — F3"; replaces F2's ultraviolet + lime): HOT PINK + ELECTRIC TEAL */
+// FREEFALL's ACCENT = title-05's colours (F3 — the owner, Nov … endscreen.js#2
 export const NEON = Object.freeze({ pink: '#ff4fa8', teal: '#27e0e6', mode: '#cfeff5', gold: '#ffc83c' });
-/** the lettering's cache key (= night.js#FF_ART_REV — pinned equal by tests/freefall-play.test.mjs: this file imports no scene) */
+// the lettering's cache key (= night.js#FF_ART_REV — pinned … endscreen.js#3
 export const LOGO_REV = 1;
 const whole = n => Math.max(0, Math.floor(Number(n) || 0));
 const say = n => whole(n).toLocaleString('en-US');
@@ -21,14 +21,14 @@ export function warmLogo() {
   if (warmImg || typeof Image !== 'function') return;
   try { warmImg = new Image(); warmImg.sizes = LOGO_ATTRS.sizes; warmImg.srcset = LOGO_ATTRS.srcset; warmImg.src = LOGO_ATTRS.src; if (warmImg.decode) warmImg.decode().catch(() => {}); } catch { /* polish */ }
 }
-/** THE LOGO HEADER: the lettering (a 390-wide phone at 3× takes the 780 — it is drawn ≈ 226 pt wide) + the mode in small teal caps — one node, a heading */
+// THE LOGO HEADER: the lettering (a 390-wide phone at 3× … endscreen.js#4
 export function endLogo(mode = 'solo') {
   const m = modeWords(mode);
   return h('div.ff-ec-logo', { role: 'heading', 'aria-level': '1', 'aria-label': `Freefall, ${m.toLowerCase()}` },
     h('img.ff-ec-logo-img', { alt: '', decoding: 'sync', fetchpriority: 'high', draggable: 'false', ...LOGO_ATTRS }),
     h('div.ff-ec-mode', { 'aria-hidden': 'true' }, m));
 }
-/** "12 BOUNCES · 3 BLAZES · BEST RUN 9" (1 BOUNCE · 1 BLAZE) — F5B: "0 BLAZES" never shows (no blaze lit = the part is left out) */
+// "12 BOUNCES · 3 BLAZES · BEST RUN 9" (1 BOUNCE · 1 BLAZE) — … endscreen.js#5
 export const statsLine = (bounces, blazes, bestRun) => [many(bounces, 'BOUNCE'), whole(blazes) > 0 ? many(blazes, 'BLAZE') : '', `BEST RUN ${say(bestRun)}`].filter(Boolean).join(' · ');
 /** THE AVERAGE's words beside YOUR BEST (JAYWALK's JT2 — core/board-avg.js): a number = "AVG 62" · anything else = fewer than 5 counted
  *  runs (or none known here — the test page, counting OFF): "AVG —" (F5C — the owner: the AVG always shows, a dash under 5 runs) */

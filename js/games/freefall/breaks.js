@@ -1,4 +1,4 @@
-// FREEFALL — THE BREAKTHROUGHS (F3B — docs/freefall.md "THE BREAKTHROUGHS"): THE SKYLIGHT (floor 40, the rooftop → the offices) · THE (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE BREAKTHROUGHS (F3B — docs/freefall.md "THE … breaks.js#1
 import * as THREE from 'three';
 import { HIT_TICKS, CRACK, BURST_V, BURST_F, FRACT_V, GLASS_F, FRAME_V, FRAME_F, DECK_V, DECK_F, WATER_V, WATER_F, SEABED_V, SEABED_F, CHUNK_F, ROCK_V, ROCK_F, RSHADOW_V, RSHADOW_F, RAYS_V, RAYS_F } from './break-fx.js';
 
@@ -11,16 +11,16 @@ export const BURSTS = 176, BURST_K = Object.freeze([0.45, 0.7, 1]);
 /** … and its ring of foam (seven large puffs — by night they ADD: the near-white cloud of the plunge) */
 export const FOAM_RING = Object.freeze({ day: Object.freeze([0.26, 0.5, 0.62]), night: Object.freeze([0.1, 0.28, 0.34]) });
 export const CROWN = Object.freeze({ day: Object.freeze([0.34, 0.62, 0.74]), night: Object.freeze([0.16, 0.4, 0.48]) });   // (night: they ADD + bloom — held well under white)
-/** the skylight: its glass's half size (the ring is 1 wide: it passes inside the frame) · how far above floor 40 the pane lies · its frame's bar */
+// the skylight: its glass's half size (the ring is 1 wide: it … breaks.js#2
 export const SKYLIGHT = Object.freeze({ half: 1.25, up: 0.4, bar: 0.07 });
-/** the water: how far above floor 120 the surface lies · THE WATERLINE's sweep up the screen (s after the plunge, for how long) */
+// the water: how far above floor 120 the surface lies · THE … breaks.js#3
 export const WATER = Object.freeze({ up: 0.45, lineAt: 0.05, lineFor: 0.3 });   // (F4A — THE HAZE: the surface is off the floors 0.35 s after the plunge — it was 0.6 s)
-/** the seabed: how far under floor 200's top it lies in SOLO (under that floor's own slab — a finish has no floor 200: the bed IS the floor) · the square that cracks open */
-export const SEABED = Object.freeze({ down: 0.26, half: 3.3, mouth: 1.14 });   // (mouth — SOLO: the half-width of THE TRENCH's MOUTH, the cleft the tower goes on down: the rings' 1.0 + a margin)
-/** a break is only PLAYED when its moment is fresh: an event this many ticks old (a batch that came back from a hidden page) just happens */
+// the seabed: how far under floor 200's top it lies in SOLO … breaks.js#4
+export const SEABED = Object.freeze({ down: 0.26, half: 3.3, mouth: 1.14 }); // breaks#5
+// a break is only PLAYED when its moment is fresh: an event … breaks.js#6
 const STALE = 90;
 
-/** the pieces a square pane breaks into: triangles laid out round the point of impact (ix, iz) — `sectors` round it, `rings` out to the pane's own edge (its four corners are among the rays: the pane is covered exactly) */
+// the pieces a square pane breaks into: triangles laid out … breaks.js#7
 export function fractureGeo(half, ix, iz, sectors, rings, seed, throwK = 1, up = 0.2, spinK = 1) {
   let s = seed >>> 0;
   const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
@@ -104,7 +104,7 @@ export function createBreaks(X) {
   const burstMat = new THREE.ShaderMaterial({ vertexShader: BURST_V, fragmentShader: BURST_F, uniforms: burstU, depthWrite: false, ...blend });
   const bursts = add(new THREE.Mesh(bGeo, burstMat), 6.5, burstMat);
   let burstN = 0, burstDirty = false, burstUntil = -1, time = 0, tierK = 1, day = false, fxHave = -1;
-  /** one sprite into the pool: its start, its throw, its life, its size (birth → end), its cell, its gravity, its drag, how far it swirls, its spin, its colour, how much it covers */
+  // one sprite into the pool: its start, its throw, its life, … breaks.js#8
   function puff(x, y, z, vx, vy, vz, life, s0, s1, cell, grav, drag, swirl, spin, r, g, b, cover) {
     const i = burstN++ % BURSTS, i3 = i * 3, i4 = i * 4;
     bO.array[i3] = x; bO.array[i3 + 1] = y; bO.array[i3 + 2] = z;
@@ -119,14 +119,14 @@ export function createBreaks(X) {
   /** how many of `n` this tier sheds (never none) */
   const share = n => { const k = Math.round(n * tierK); return k < 1 ? 1 : k; };
 
-  // ---- THE SKYLIGHT: the deck round it (the roof's own painting, at the skylight's true size), its frame + neon tubes, its glass
+  // ---- THE SKYLIGHT: the deck round it (the roof's own … breaks.js#9
   const skyY = -BREAK_FLOORS.skylight * SHAPE.H + SKYLIGHT.up, H = SKYLIGHT.half;
   const breakT = { value: 1e9 };
   const deckU = { tRoof: { value: null }, tGrain: { value: null }, uHaveG: { value: 0 }, uHaveR: { value: 0 }, uFlipR: { value: 0 }, uDay: G.uDay, uBloom: G.uBloom, uNear: { value: 0 }, uHalf: { value: H + 0.07 }, uWide: { value: 2 * (H + 0.07) / (2 * ROOF.sky) }, uTime: G.uTime, uBreakT: breakT, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) } };
   const deckMat = new THREE.ShaderMaterial({ vertexShader: DECK_V, fragmentShader: DECK_F, uniforms: deckU, ...blend });
   const deckGeo = plane(9); deckGeo.translate(0, -0.05, 0);
   const deck = add(new THREE.Mesh(deckGeo, deckMat), 1.5, deckMat);
-  // (the frame: four outer bars · the glazing bars — 5 each way, the painting's 6 × 6 panes · eight neon tubes, two a side)
+  // (the frame: four outer bars · the glazing bars — 5 each … breaks.js#10
   const boxes = [];
   const bar = 0.07, tube = 0.035;
   for (const [x, z, sx, sz] of [[0, H + bar / 2, 2 * H + 2 * bar, bar], [0, -H - bar / 2, 2 * H + 2 * bar, bar], [H + bar / 2, 0, bar, 2 * H], [-H - bar / 2, 0, bar, 2 * H]]) boxes.push([x, 0, z, sx, 0.09, sz, 0, 0, rnd()]);
@@ -141,7 +141,7 @@ export function createBreaks(X) {
   boxes.forEach((b, i) => { fP.set([b[0], b[1], b[2]], i * 3); fS.set([b[3], b[4], b[5]], i * 3); fQ.set([b[6], b[7], b[8]], i * 3); });
   fGeo.setAttribute('aP', new THREE.InstancedBufferAttribute(fP, 3)); fGeo.setAttribute('aS', new THREE.InstancedBufferAttribute(fS, 3)); fGeo.setAttribute('aQ', new THREE.InstancedBufferAttribute(fQ, 3));
   fGeo.instanceCount = boxes.length;
-  // (THE ROOF's PLANE — night.js's own matrix, set every frame: the skylight rides the roof seen far below, and IS the true roof at the hit)
+  // (THE ROOF's PLANE — night.js's own matrix, set every frame: … breaks.js#11
   const roofM = { value: X.roofM };
   const frameMat = new THREE.ShaderMaterial({ vertexShader: FRAME_V, fragmentShader: FRAME_F, uniforms: { uTime: G.uTime, uBreakT: breakT, uM: roofM, uDay: G.uDay, uBloom: G.uBloom }, ...blend });
   const frame = add(new THREE.Mesh(fGeo, frameMat), 1.6, frameMat);
@@ -153,7 +153,7 @@ export function createBreaks(X) {
   // ---- THE WATER
   const waterY = -BREAK_FLOORS.splash * SHAPE.H + WATER.up;
   const W = X.wallU;
-  // (F5A — THE WATER SURFACE: worked out in its shader — the wall's own painting is all it reads; its ripple LINES need the derivatives)
+  // (F5A — THE WATER SURFACE: worked out in its shader — the … breaks.js#12
   const waterU = { tWall: W.tA, uHaveW: W.uHaveA, uTileW: W.uTileA, uTime: G.uTime, uDay: G.uDay, uBloom: G.uBloom, uRW: { value: SHAPE.RW }, uRP: { value: SHAPE.RI },
     uSplashT: { value: 1e9 }, uLine: { value: -2 }, uBall: { value: new THREE.Vector3() }, uImpact: { value: new THREE.Vector2(0, SHAPE.RB) }, uRO: { value: SHAPE.RO },
     tRip: { value: null }, uHaveR: { value: 0 } };   // (FIX A — THE WATER's ripple map: Grok's water-normal, two layers scrolled)
@@ -171,11 +171,10 @@ export function createBreaks(X) {
   const chunkU = { ...sandU(), uBreakT: bedBreak, uGrav: { value: -3.4 }, uLife: { value: 1.5 }, uM: bedM, uCrack: { value: CRACK } };
   const chunkMat = new THREE.ShaderMaterial({ vertexShader: FRACT_V, fragmentShader: CHUNK_F, uniforms: chunkU, extensions: derivs, side: THREE.DoubleSide, ...blend });
   const chunks = add(new THREE.Mesh(fractureGeo(SEABED.half, 0, SHAPE.RB, 12, [0.15, 0.45, 1], 0x5eabed, 0.35, -0.6, 0.22), chunkMat), 1.52, chunkMat);
-  // (… + FRONT_ROCKS more in front of the ball, a FINISH's only — the last ones of the list: the bed there is whole, and never an empty beach)
+  // (… + FRONT_ROCKS more in front of the ball, a FINISH's only … breaks.js#13
   const FRONT_ROCKS = 5, rockN = 9 + FRONT_ROCKS, rGeo = new THREE.InstancedBufferGeometry(), ico = new THREE.IcosahedronGeometry(1, 3);
-  { // F5A — A BOULDER WORN BY THE WATER (it was the ball of a coarse icosahedron with every corner knocked its own way: a spiky low-poly
-    // lump): a finer ball pushed about by a SLOW noise of its direction — broad shoulders + hollows, no spikes —, flatter than it is wide;
-    // its normal is the pushed surface's own (two near directions, their cross): smooth light, the same at a shared corner
+  { // breaks#14
+    // lump): a finer ball pushed about by a SLOW noise of its … breaks.js#15
     const p = ico.getAttribute('position'), nn = ico.getAttribute('normal');
     const push = (x, y, z) => 0.84 + 0.17 * Math.sin(2.3 * x + 1.1 * y + 0.7) + 0.13 * Math.sin(3.1 * z - 1.9 * x + 2.0) + 0.1 * Math.sin(2.7 * y + 1.4 * z + 4.0) + 0.045 * Math.sin(6.1 * x + 5.3 * y + 4.7 * z);
     const at = (x, y, z, o, i) => { const l = Math.hypot(x, y, z) || 1, k = push(x / l, y / l, z / l); o[i] = x / l * k; o[i + 1] = y / l * k * 0.62; o[i + 2] = z / l * k; };
@@ -201,7 +200,7 @@ export function createBreaks(X) {
     // (round the tower's foot, behind + beside it — the front sector is the ball's)
     const back = rockN - FRONT_ROCKS, a = (0.2 + 0.6 * (i + 0.5 * rnd()) / back) * 2 * Math.PI + Math.PI * 0.8, r = 1.3 + rnd() * 0.65, size = 0.1 + rnd() * 0.17;
     if (i >= back) { const j = i - back, fx = (j & 1 ? 1 : -1) * (0.35 + rnd() * 0.75) + (j === 4 ? 0.2 : 0), fz = SHAPE.RB + 0.75 + j * 0.42 + rnd() * 0.2, fs = 0.09 + rnd() * 0.13; rP.set([fx, fs * 0.3, fz, fs], i * 4); rS.set([0.8 + rnd() * 0.5, 0.7 + rnd() * 0.4, rnd() * 6.2832], i * 3); continue; }
-    // (… and never in THE TRENCH's MOUTH — the cleft that runs from the tower toward the viewer: a rock there would hang in the air in SOLO)
+    // (… and never in THE TRENCH's MOUTH — the cleft that runs … breaks.js#16
     let x = Math.sin(a) * r;
     const z = Math.cos(a) * r;
     if (z > -SEABED.mouth && Math.abs(x) < SEABED.mouth + 0.42) x = (x < 0 ? -1 : 1) * (SEABED.mouth + 0.42 + rnd() * 0.5);
@@ -222,7 +221,7 @@ export function createBreaks(X) {
   const raysMat = new THREE.ShaderMaterial({ vertexShader: RAYS_V, fragmentShader: RAYS_F, uniforms: raysU, depthWrite: false, ...blend });
   const rays = add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), raysMat), 5.5, raysMat);
 
-  // ---- the state (numbers only): each breakthrough's stage · the tick its moment is due · the scene time it happened at
+  // ---- the state (numbers only): each breakthrough's stage · … breaks.js#17
   let fin = -1;
   let skSt = 0, skHit = -1, skT = 1e9;                       // THE SKYLIGHT: 0 whole · 1 breaking · 2 gone
   let spSt = 0, spHit = -1, spT = 1e9, spBub = 0, spWake = 0; // THE SPLASHDOWN: 0 calm · 1 plunged (the waterline sweeping) · 2 under
@@ -236,7 +235,7 @@ export function createBreaks(X) {
     boSt = 0; boHit = -1; boT = 1e9; boCrack = -1; boCT = 1e9; fwAt = 1e9; fwN = 0; played = 0; raysUntil = -1; raysU.uT0.value = -100;
     breakT.value = 1e9; waterU.uSplashT.value = 1e9; waterU.uLine.value = -2; bedImp.value = 1e9; bedBreak.value = 1e9; bedU.uOuter.value = 1;
     rGeo.instanceCount = shGeo.instanceCount = fin === BREAK_FLOORS.bottom ? rockN : rockN - FRONT_ROCKS;
-    bedHole.value = fin === BREAK_FLOORS.bottom ? 0 : SEABED.mouth;   // (SOLO: the tower goes on down THE TRENCH's MOUTH — the floor under the ball is always in sight)
+    bedHole.value = fin === BREAK_FLOORS.bottom ? 0 : SEABED.mouth; // breaks#18
     bedY = -BREAK_FLOORS.bottom * SHAPE.H - (fin === BREAK_FLOORS.bottom ? 0 : SEABED.down);
     bed.position.set(0, bedY, 0); bed.updateMatrix(); bed.matrixWorld.copy(bed.matrix);
     bedOrigin.value.set(0, bedY, 0); bedM.value.makeTranslation(0, bedY, 0);
@@ -244,7 +243,7 @@ export function createBreaks(X) {
     bT.needsUpdate = true; burstUntil = -1;
     out[0] = 0; out[1] = 1; out[2] = -1000; out[3] = 1; out[4] = fin === BREAK_FLOORS.bottom ? 1 : 0;
   }
-  /** an event of the run (engine.js) at the run's clock `tau`: an `area` event's tick is the tick the ball leaves the floor above */
+  // an event of the run (engine.js) at the run's clock `tau`: … breaks.js#19
   function feed(e, tau) {
     if (e.e === 'area') {
       const fresh = tau - e.t < STALE;
@@ -264,7 +263,7 @@ export function createBreaks(X) {
     for (let k = 0; k < share(6); k++) puff((rnd() - 0.5) * 0.7, y + 0.1 + rnd() * 0.3, SHAPE.RB + (rnd() - 0.5) * 0.6, (rnd() - 0.5) * 1.2, 0.6 + rnd(), (rnd() - 0.5) * 1.2, 0.3 + rnd() * 0.3, 0.05, 0.26, 5, -2, 0, 0, 3, 1, 1, 1, 0);
     // a puff of glass dust
     for (let k = 0; k < share(5); k++) puff((rnd() - 0.5) * 1.2, y, SHAPE.RB * 0.5 + (rnd() - 0.5) * 1.2, (rnd() - 0.5) * 0.6, -0.4 - rnd() * 0.6, (rnd() - 0.5) * 0.6, 0.28 + rnd() * 0.14, 0.2, 0.6, 1, -0.3, 1.2, 0.05, 0.6, day ? 0.42 : 0.3, day ? 0.45 : 0.27, day ? 0.5 : 0.42, day ? 0.3 : 0.25);   // (F4A — THE HAZE: gone in 0.4 s — it lay over the floors below for a second)
-    // THE SHORT (night): the neon tubes throw a shower of sparks — white-blue + orange — from all round the frame; by day a few white glints of glass
+    // THE SHORT (night): the neon tubes throw a shower of sparks … breaks.js#20
     for (let k = 0; k < n; k++) {
       const side = k & 3, u = (rnd() - 0.5) * 2 * H, e = H + 0.12, x = side === 0 ? u : side === 1 ? e : side === 2 ? u : -e, z = side === 0 ? e : side === 1 ? u : side === 2 ? -e : u;
       const hot = rnd() < 0.5, v = 1.2 + rnd() * 2.6, a = rnd() * 6.2832;
@@ -280,10 +279,10 @@ export function createBreaks(X) {
     spSt = 1; spT = time; waterU.uSplashT.value = time; played++; spBub = time + 0.16; spWake = time + 3.2;
     const y = waterY;
     // the crown: drops thrown up + out in a cone (lit from above by night), spray, a ring of foam
-    for (let k = 0; k < (X.reduce ? 6 : share(22)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.007 + rnd() * 0.007, day ? 0.5 : 0.6, day ? 0.64 : 0.54, day ? 0.68 : 0.42); }   // (F5A — the review: fewer, finer, under white — the crown was a clipped white core with hard bars)
+    for (let k = 0; k < (X.reduce ? 6 : share(22)); k++) { const a = rnd() * 6.2832, o = 0.5 + rnd() * 1.5, up = 1.8 + rnd() * 2.6; X.spark(bx + Math.cos(a) * 0.12, y + 0.04, bz + Math.sin(a) * 0.12, Math.cos(a) * o, up, Math.sin(a) * o * 0.8, 0.45 + rnd() * 0.45, 0.007 + rnd() * 0.007, day ? 0.5 : 0.6, day ? 0.64 : 0.54, day ? 0.68 : 0.42); } // breaks#21
     X.sparksDirty();
-    for (let k = 0; k < share(6); k++) { const a = k / 6 * 6.2832 + rnd() * 0.6, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.24, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.07, 0.24, 4, -5.5, 0, 0, 2, day ? CROWN.day[0] : CROWN.night[0], day ? CROWN.day[1] : CROWN.night[1], day ? CROWN.day[2] : CROWN.night[2], 0.3); }   // (F5B — THE CROWN CAPPED: six puffs spread round the ring, never piled on one point, in the water's own aqua / cyan at most CROWN's light — it flashed near-white for a frame; F5A: by day a touch of the water's own aqua, born smaller + clear of the surface — the crown was one clipped white lump cut flat by the water)
-    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, day ? FOAM_RING.day[0] : FOAM_RING.night[0], day ? FOAM_RING.day[1] : FOAM_RING.night[1], day ? FOAM_RING.day[2] : FOAM_RING.night[2], 0.28); }   // (F5B: the ring of foam in the water's own colour — its seven large puffs piled up into the white cloud)
+    for (let k = 0; k < share(6); k++) { const a = k / 6 * 6.2832 + rnd() * 0.6, o = 0.6 + rnd() * 1.1; puff(bx + Math.cos(a) * 0.24, y + 0.12, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 1.6 + rnd() * 1.6, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.07, 0.24, 4, -5.5, 0, 0, 2, day ? CROWN.day[0] : CROWN.night[0], day ? CROWN.day[1] : CROWN.night[1], day ? CROWN.day[2] : CROWN.night[2], 0.3); } // breaks#22
+    for (let k = 0; k < share(7); k++) { const a = k / 7 * 6.2832 + rnd() * 0.5, o = 0.7 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.25, y + 0.05, bz + Math.sin(a) * 0.25, Math.cos(a) * o, 0.2 + rnd() * 0.3, Math.sin(a) * o, 0.3 + rnd() * 0.12, 0.14, 0.46, k & 1, -0.4, 1.5, 0, 0.5, day ? FOAM_RING.day[0] : FOAM_RING.night[0], day ? FOAM_RING.day[1] : FOAM_RING.night[1], day ? FOAM_RING.day[2] : FOAM_RING.night[2], 0.28); } // breaks#23
     X.kick(0.32, 0.5);
   }
   /** SOLO: a place on the bed's own sand — the shelves beside the mouth (two of three) or behind the tower — and the way out from it → sx, sz, svx, svz.
@@ -297,12 +296,11 @@ export function createBreaks(X) {
   function hitBottom(bx, bz) {
     boSt = 1; boT = time; bedImp.value = time; played++;
     const y = bedY, n = X.reduce ? 4 : share(16), solo = fin < 0;
-    // the dust cloud: sand lifted off the bed, rolling out + up, slowed by the water (a FINISH: all round the ball · SOLO: off the shelves)
+    // the dust cloud: sand lifted off the bed, rolling out + up, … breaks.js#24
     for (let k = 0; k < n; k++) {
       const a = k / n * 6.2832 + rnd() * 0.6, o = 0.8 + rnd() * 1.1, c = 0.85 + rnd() * 0.3;
       if (solo) shelf(k); else { sx = bx + Math.cos(a) * 0.3; sz = bz + Math.sin(a) * 0.3; svx = Math.cos(a) * o; svz = Math.sin(a) * o; }
-      // (F5A — SOFT: many thin veils of lifted sand in the sand's own lit colour — never a few heavy dark blobs)
-      // (a veil's light is its colour × its cover: piled up, the veils come to the dust's own colour — never to white)
+      // (F5A — SOFT: many thin veils of lifted sand in the sand's … breaks.js#25
       puff(sx, y + 0.16, sz, svx, 0.35 + rnd() * 0.7, svz, 1.5 + rnd() * 0.9, 0.3, solo ? 0.82 : 1.0, k & 1, -0.12, 2.2, 0.05, 0.4, (day ? 0.075 : 0.04) * c, (day ? 0.07 : 0.036) * c, (day ? 0.055 : 0.07) * c, day ? -0.3 : -0.42);
     }
     for (let k = 0; k < share(7); k++) {
@@ -314,10 +312,10 @@ export function createBreaks(X) {
     if (!day) for (let k = 0; k < share(22); k++) { const a = rnd() * 6.2832, r = 0.3 + rnd() * 1.4, cy = rnd() < 0.55; puff(bx + Math.cos(a) * r, y + 0.1, bz + Math.sin(a) * r, Math.cos(a) * 0.5, 0.25 + rnd() * 0.55, Math.sin(a) * 0.5, 2 + rnd() * 1.1, 0.07, 0.022, 2, 0.05, 1.2, 0.28, 0, cy ? 0.3 : 0.75, cy ? 0.95 : 0.4, 1, 0); }
     X.kick(0.3, 1);
     X.flashFloors(BREAK_FLOORS.bottom - 2, BREAK_FLOORS.bottom, 0.6);
-    // a FINISH: the celebration comes right after — by night the firework, by day THE DAY CELEBRATION (F5A: bubbles + sun rays)
+    // a FINISH: the celebration comes right after — by night the … breaks.js#26
     if (fin === BREAK_FLOORS.bottom && !X.reduce) { fwAt = time + 0.9; fwN = 0; }
   }
-  /** one firework-style burst: glowing stars thrown out all round a point, slowed by the water, + a glint at its heart */
+  // one firework-style burst: glowing stars thrown out all … breaks.js#27
   function firework(x, y, z, r, g, b) {
     played++;
     // (the fresh-eyes review: its heart is a GLINT in a soft glow — the scorch's cell read as a dark spiky disc)
@@ -376,8 +374,7 @@ export function createBreaks(X) {
     if (skSt === 0 && skHit >= 0 && tau >= skHit) breakSkylight();
     const skNear = skSt < 2 && camY < 46.5;   // (it rides the roof below from the title screen on — sharp at every distance)
     if (skSt === 1 && camY >= 46.5) skSt = 2;
-    // (F4B — THE FRAME BAR: once the pane breaks nothing of the skylight / the roof stays between the camera and the floors — the deck +
-    //  the outer frame + its tubes are gone in 0.25 s (their shaders), the glazing bars fall with the shards: not drawn at all 1.6 s on)
+    // (F4B — THE FRAME BAR: once the pane breaks nothing of the … breaks.js#28
     deck.visible = skNear && (skSt === 0 || now - skT < 0.3); frame.visible = skNear && (skSt === 0 || now - skT < 0.8); glass.visible = skNear && (skSt === 0 || now - skT < 2.2);
     if (skNear) {
       deck.matrixWorld.copy(X.roofM);
@@ -403,10 +400,10 @@ export function createBreaks(X) {
         for (let i = 0; i < share(16); i++) { const a = rnd() * 6.2832, o = 0.2 + rnd() * 0.6; puff(bx + Math.cos(a) * 0.15, by + (rnd() - 0.3) * 0.5, bz + Math.sin(a) * 0.15, Math.cos(a) * o, 0.7 + rnd() * 1.3, Math.sin(a) * o, 1 + rnd() * 0.7, 0.035, 0.08, 3, 0.5, 0.8, 0.06, 0, 0.8, 1, 1, 0.12); }
       }
     }
-    const spNear = spSt < 2 && camY > 104 && camY < 128;   // (asked AFTER the sweep's own step: the plane is gone in the very frame the camera is under)
+    const spNear = spSt < 2 && camY > 104 && camY < 128; // breaks#29
     water.visible = spNear;
     if (spNear) { waterU.uBall.value.set(bx, by, bz); if (waterU.uHaveR.value !== pics.rip.have) { waterU.tRip.value = pics.rip.tex; waterU.uHaveR.value = pics.rip.have; } }
-    // THE WAKE under the surface: by night glowing cyan PLANKTON swirls where the ball has just been; by day a trail of small bubbles
+    // THE WAKE under the surface: by night glowing cyan PLANKTON … breaks.js#30
     if (spSt > 0 && now < spWake && !X.reduce) {
       const rate = (day ? 14 : 26) * tierK * (now < spT + 1.6 || !day ? 1 : 0);
       spWakeOwed += sec * rate;
@@ -426,7 +423,7 @@ export function createBreaks(X) {
     if (boSt === 1 && boCrack >= 0 && tau >= boCrack) crackOpen(bx, bz);
     if (boSt === 0 && boCrack >= 0 && tau >= boCrack + 30) boSt = 3;
     if (now >= fwAt) {
-      // (the fresh-eyes review: ROUND THE BALL — over the sand, between the ball and the band; never up at the number or off the sides)
+      // (the fresh-eyes review: ROUND THE BALL — over the sand, … breaks.js#31
       if (fwN === 0) { if (day) { bubbles(bx - 0.48, by + 0.42, bz - 0.25); raysU.uT0.value = now; raysU.uO.value.set(bx, bedY, bz - 0.28); raysUntil = now + 3.5; } else firework(bx - 0.48, by + 0.42, bz - 0.25, 1, 0.76, 0.22); fwN = 1; fwAt = now + 0.3; }
       else if (fwN === 1) { if (day) bubbles(bx + 0.52, by + 0.62, bz - 0.35); else firework(bx + 0.52, by + 0.62, bz - 0.35, 0.25, 0.92, 1); fwN = 2; fwAt = now + 0.34; }
       else { if (day) bubbles(bx + 0.02, by + 0.95, bz - 0.6); else firework(bx + 0.02, by + 0.95, bz - 0.6, 1, 0.84, 0.36); fwAt = 1e9; }
@@ -454,14 +451,14 @@ export function createBreaks(X) {
   }
   let spWakeOwed = 0, forced = false, raysUntil = -1, quiet = false;
 
-  /** THE WARM FRAME's share: every piece drawn once (their programs — the picture's + the bloom pass's — are built behind the opening) */
+  // THE WARM FRAME's share: every piece drawn once (their … breaks.js#32
   function force(on) { forced = !!on; for (let i = 0; i < meshes.length; i++) meshes[i].visible = forced; }
   reset({ R: { modes: { solo: { finish: null } } }, mode: 'solo' });
   return {
     reset, feed, update, setLook, out, meshes, force,
-    /** (F5A — THE SHARE CARD's staged frame of THE BOTTOM: the sprites — the dust over the ball — are left out of that one picture) */
+    // (F5A — THE SHARE CARD's staged frame of THE BOTTOM: the … breaks.js#33
     quiet(on) { quiet = !!on; },
-    /** F5B — THE BOTTOM's SHARE PICTURE (night.js#shot): the gold ring CRISP + tight round the ball, the flash under it held down (the gold card read as a hazy white blur at 360 px) — never in play */
+    // F5B — THE BOTTOM's SHARE PICTURE (night.js#shot): the gold … breaks.js#34
     crisp(on) { bedCrisp.value = on ? 1 : 0; },
     /** the seabed's height (a finish: the ball comes to rest on it) */
     bedY: () => bedY,

@@ -1,11 +1,11 @@
-// FREEFALL — THE GHOSTS' LAYER (F4B — docs/freefall.md "THE GHOSTS"): what a rival LOOKS like on my tower. Its own small scene, drawn (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE GHOSTS' LAYER (F4B — docs/freefall.md "THE … ghost-fx.js#1
 import * as THREE from 'three';
 
 /** the most ghosts a match shows (8 players: 7 rivals — the test page's bot room may ask for 8) */
 export const GHOSTS_MAX = 8;
 /** a tag's box in CSS px (the atlas row) · its text */
 export const TAG_W = 132, TAG_H = 24, TAG_FONT = '800 13.5px "Chakra Petch", system-ui, sans-serif';
-/** a ghost's record in the stage's array: [phi (radians round MY tower, 0 = the front), y (the ball's foot, world), r, g, b, alpha (0 = not drawn), near (0 … 1: 1 = an outline, no tag), tag (its atlas row, −1 = none)] */
+// a ghost's record in the stage's array: [phi (radians round … ghost-fx.js#2
 export const GHOST_STRIDE = 8;
 
 const BODY_V = /* glsl */`
@@ -85,7 +85,7 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
   scene.matrixAutoUpdate = false; scene.matrixWorldAutoUpdate = false;
 
   let key = '', count = 0, baked = 0, shown = 0, tagged = 0;
-  /** THE ATLAS: a row a ghost — the name in the player's colour (lifted toward white: it must read) on a dark rim, at the screen's own sharpness */
+  // THE ATLAS: a row a ghost — the name in the player's colour … ghost-fx.js#3
   function names(list, dpr) {
     const s = Math.max(1, Math.min(3, dpr || 1)), k = `${s}|${list.map(g => `${g.name}:${g.hex}`).join('|')}`;
     if (k === key) return;
@@ -101,14 +101,14 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       try { g.letterSpacing = '0.6px'; } catch { /* an older canvas: plain spacing */ }
       g.strokeStyle = 'rgba(6, 3, 16, 0.94)'; g.lineWidth = 4.2; g.strokeText(name, x, y);
       g.fillStyle = list[i].hex || '#00f0ff'; g.fillText(name, x, y);
-      g.fillStyle = 'rgba(255, 255, 255, 0.2)'; g.fillText(name, x, y);   // (lifted a little toward white: a dark colour still reads — the player's colour stays the colour)
+      g.fillStyle = 'rgba(255, 255, 255, 0.2)'; g.fillText(name, x, y); // ghost-fx#4
     }
     g.setTransform(1, 0, 0, 1, 0, 0);
-    tex.dispose();   // (the atlas changed SIZE with the names / the sharpness: the texture's storage is made again — an upload into the old one overflows it)
+    tex.dispose(); // ghost-fx#5
     tex.needsUpdate = true;
   }
   const V = new THREE.Vector3(), tx = new Float32Array(GHOSTS_MAX), ty = new Float32Array(GHOSTS_MAX);
-  /** the stage's records → the instances; the tags: over each ghost, away from MY ball, stacked when two would overlap — whole device pixels */
+  // the stage's records → the instances; the tags: over each … ghost-fx.js#6
   function place(n, data, w, h, dpr, ballX, ballY) {
     const P = aPos.array, C = aCol.array, K = aK.array, T = aAt.array;
     count = n > GHOSTS_MAX ? GHOSTS_MAX : n; shown = 0; tagged = 0;
@@ -121,14 +121,13 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       T[i * 3 + 2] = -1;
       if (a <= 0.001) continue;
       shown++;
-      if (row < 0 || near > 0.5 || a < 0.5) continue;   // (the screen review: a tag never FADES with its ball — it is whole, or it is gone and the edge marker names the rival)
+      if (row < 0 || near > 0.5 || a < 0.5) continue; // ghost-fx#7
       V.set(x, y + R_BALL, z).project(cam);   // (the top of the ball: the tag sits just over it)
       if (V.z > 1 || V.x < -1.1 || V.x > 1.1 || V.y < -1.1 || V.y > 1.1) continue;
       let sx = (V.x + 1) * 0.5 * w, sy = (1 - V.y) * 0.5 * h - TAG_H * 0.5 - 2;
       // away from MY ball: a tag that would lie on it steps to the side its ghost is on
       if (Math.abs(sx - ballX) < 58 && Math.abs(sy - ballY) < 44) sx += (sx >= ballX ? 1 : -1) * (58 - Math.abs(sx - ballX));
-      // stacked when two would overlap (the ghosts start on the same slice) — FIX A: asked again until it clears EVERY tag placed (one pass
-      // could push it onto a third), a full tag's height apart: never two tags over each other
+      // stacked when two would overlap (the ghosts start on the … ghost-fx.js#8
       for (let pass = 0, hit = true; hit && pass < GHOSTS_MAX; pass++) { hit = false; for (let j = 0; j < tagged; j++) if (Math.abs(tx[j] - sx) < TAG_W * 0.66 && Math.abs(ty[j] - sy) < TAG_H * 0.92) { sy = ty[j] - TAG_H * 0.95; hit = true; } }
       tx[tagged] = sx; ty[tagged] = sy; tagged++;
       const px = Math.round(sx * dpr) / dpr, py = Math.round(sy * dpr) / dpr;
@@ -147,7 +146,7 @@ export function createGhostLayer({ renderer, cam, uDay, RB, R_BALL }) {
       renderer.autoClear = false; renderer.render(scene, cam); renderer.autoClear = auto;
     },
     clear() { count = 0; shown = 0; geo.instanceCount = 0; tGeo.instanceCount = 0; },
-    /** THE WARM FRAME's share: the three programs built behind the opening (one ghost drawn once, off the picture's way) */
+    // THE WARM FRAME's share: the three programs built behind the … ghost-fx.js#9
     warm() { aPos.array[0] = 0; aPos.array[1] = 0; aPos.array[2] = RB; aK.array[0] = 0.01; aK.array[1] = 0; aAt.array[0] = 0; aAt.array[1] = 0; aAt.array[2] = 0.01; geo.instanceCount = 1; tGeo.instanceCount = 1; aPos.needsUpdate = aK.needsUpdate = aAt.needsUpdate = true; const auto = renderer.autoClear; renderer.autoClear = false; renderer.render(scene, cam); renderer.autoClear = auto; geo.instanceCount = count; tGeo.instanceCount = count; },
     info: () => ({ ghosts: count, shown, tagged, baked, atlas: [atlas.width, atlas.height] }),
     dispose() { geo.dispose(); ball0.dispose(); tGeo.dispose(); quad.dispose(); tex.dispose(); seen.material.dispose(); xray.material.dispose(); tags.material.dispose(); },

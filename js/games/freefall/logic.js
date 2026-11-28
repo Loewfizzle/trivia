@@ -1,6 +1,4 @@
-// FREEFALL — THE RUN's WORDS, SEEDS, AREAS + SCORING (F1 — docs/freefall.md): PURE (no DOM, no clock). The solo run node, the match and
-// the daily arrive in F2–F5; what every one of them will share lives here: the end's words, the seed a run is played on, the tick of a
-// touch, THE AREAS, THE RANKING, the feats.
+// FREEFALL — THE RUN's WORDS, SEEDS, AREAS + SCORING (F1 — … logic.js#1
 import { hashString } from '../../core/rng.js';
 import { TICK_HZ, AREAS, GEN } from './tuning.js';
 
@@ -8,7 +6,7 @@ import { TICK_HZ, AREAS, GEN } from './tuning.js';
 export const END_WORDS = Object.freeze({
   red: 'HIT THE RED',
   dark: 'THE LIGHTS WENT OUT',
-  made: 'YOU HIT THE BOTTOM',   // (F5B — ONE wording for the floor-200 ending everywhere: the end screen, the share card, the band)
+  made: 'YOU HIT THE BOTTOM', // logic#2
   cap: 'TIME’S UP',
 });
 /** a result → its words ('' = the run is still going) */
@@ -20,7 +18,7 @@ export const endWords = result => { const c = result && result.cause; return typ
  * daily module's server-sealed day set — never from the date.)
  */
 export const seedOf = (code, matchId, go) => `f${hashString(`${code}:${matchId}:${go}`).toString(36)}${hashString(`ff:${go}:${matchId}:${code}`).toString(36)}`;
-/** a tick ↔ a clock: tick 0 = `t0` (ms) — the ONE mapping (FAIR INPUT: a move's event.timeStamp → the nearest tick; 60 Hz and 120 Hz phones are equal) */
+// a tick ↔ a clock: tick 0 = `t0` (ms) — the ONE mapping … logic.js#3
 export const tickOf = (ms, t0) => Math.round((ms - t0) * TICK_HZ / 1000) + 0;   // (+ 0: never a negative zero)
 
 /**
@@ -37,7 +35,7 @@ export function areaOf(floor) {
   return { id: A.id, name: A.name, from: A.from, index: k, lap: A.id === 'trench' ? Math.floor((floor - A.from) / GEN.lap.every) + 1 : 0 };
 }
 
-/** THE ARRIVALS (F3 — the banners): the floor the NEXT area begins at after `floor` — the areas' own starts (40 · 80 · 120 · 160 · 200 · 201), then THE TRENCH's laps (241 · 281 · …) */
+// THE ARRIVALS (F3 — the banners): the floor the NEXT area … logic.js#4
 export function nextArrival(floor) {
   for (let i = 0; i < AREAS.length; i++) if (AREAS[i].from > floor) return AREAS[i].from;
   const T = AREAS[AREAS.length - 1].from, L = GEN.lap.every;
@@ -56,7 +54,7 @@ export const featsOf = r => Object.keys((r && r.feats) || {}).filter(k => r.feat
 /** THE RANKING (F5C — THE TIE-BREAK, the owner, Nov 27): THE FLOORS first; equal floors → who reached that final floor FIRST (the earlier
  *  tick); then → MORE BLAZES; still equal = a DRAW (a shared place). Match + daily alike. (a < 0 = a is ahead) */
 export const rankCompare = (a, b) => (b.floor - a.floor) || (a.tick - b.tick) || ((b.blazes || 0) - (a.blazes || 0));
-/** rows { uid, floor, tick, blazes } → [{ uid, rank, floor, tick, blazes }] — the same floor at the same tick with as many blazes shares the place */
+// rows { uid, floor, tick, blazes } → [{ uid, rank, floor, … logic.js#5
 export function standings(rows) {
   const n = v => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
   const list = (rows || []).map(r => ({ uid: r.uid, floor: n(r.floor), tick: n(r.tick), blazes: n(r.blazes) }));

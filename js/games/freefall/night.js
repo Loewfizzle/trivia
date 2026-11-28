@@ -1,4 +1,4 @@
-// FREEFALL — THE SCENE: THE NIGHT LOOK (F2) + THE DAY LOOK (F3 — ONE scene, a LOOK: `setLook('day' | 'night')`, read LIVE; every material (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE SCENE: THE NIGHT LOOK (F2) + THE DAY LOOK … night.js#1
 import * as THREE from 'three';
 import { TURN, SLICES, AREAS, FIRST, FALL, RULE_SETS, RULES_DEFAULT } from './tuning.js';
 import { floorInto, sliceStart, sliceUnder, moversAt } from './tower-gen.js';
@@ -8,6 +8,7 @@ import { WALL_V, WALL_F, SKY_V, SKY_F, COPY_V, COPY_F, SLICE_V, SLICE_F, PILLAR_
 import { MOTE_V, MOTE_F } from './day-fx.js';
 import { createBreaks, SKYLIGHT, BREAK_FLOORS } from './breaks.js';
 import { createGhostLayer, GHOST_STRIDE } from './ghost-fx.js';
+import { createVeil } from './veil.js';
 
 /** bump when a picture is replaced (the walls' cache key) */
 export const FF_ART_REV = 1;
@@ -15,16 +16,15 @@ export const FF_ART_REV = 1;
  *  from the pillar (RI) out to RO; the ball rides at RB. The ball is drawn a little smaller than the graybox's (its CENTRE decides: less
  *  of it hangs over the neighbour) — still ≥ 34 pt at 390 wide; a red slice stands RISE proud of the floor */
 export const SHAPE = Object.freeze({ H: 1, RO: 1, RI: 0.2, RB: 0.66, R_BALL: 0.125, THICK: 0.2, HOP: 0.42, RISE: 0.1, RW: 2.7 });
-/** THE CAMERA (the graybox's): in front of the ball, `pitch`° down, a `fov`° lens; `ballY` = where the ball's floor sits on the screen */
+// THE CAMERA (the graybox's): in front of the ball, `pitch`° … night.js#2
 export const CAM = Object.freeze({ fov: 46, pitch: 33, fill: 0.8, ballY: 0.34, aspectMax: 0.47 });
-/** THE POSES: `play` (the graybox's camera) · `open` (THE OPENING: high over the tower top, further back — the skyline in sight) */
+// THE POSES: `play` (the graybox's camera) · `open` (THE … night.js#3
 export const POSE = Object.freeze({ play: Object.freeze({ pitch: 33, back: 1, ballY: 0.34 }), open: Object.freeze({ pitch: 27, back: 0.94, ballY: 0.56 }),
-  // (F3B — the fresh-eyes review: THE FINISH's own camera — the ball lower on the screen, the bed + what bursts over it in the picture's middle)
+  // (F3B — the fresh-eyes review: THE FINISH's own camera — the … night.js#4
   finish: Object.freeze({ pitch: 29, back: 0.9, ballY: 0.55 }) });
-/** a FINISH: the tower's core ends as a broken stump in the sand beside the ball — this tall (never a ball on an empty beach) */
-/** F5B — THE BOTTOM's share picture: the ball's round halo at this share of its own (the gold card's white pool round the ball) */
+// a FINISH: the tower's core ends as a broken stump in the … night.js#5
 export const SHOT_HALO = 0.35;
-export const STUMP = 0;   // (F5B — the fresh-eyes review: the stump stood BEHIND the ball, its foot hidden by it — it read as a block FLOATING over the ball in the hero moment + on the gold card: the core now ends in the sand)
+export const STUMP = 0; // night#6
 export const POSE_MS = 950;
 /** the floors drawn under the ball's (only the nearest ~10 are ever in sight) */
 export const BELOW = 9;
@@ -32,7 +32,7 @@ const RAD = Math.PI / 180, UNIT = 2 * Math.PI / TURN, WEDGE = 2 * Math.PI / SLIC
 const RING = 32;                 // the floors kept (a ring of records)
 const MAXI = (BELOW + 3) * SLICES;
 const SHARDS = 48, SPARKS = 192, LIGHTS = 8, PUNCH0 = 3, PUNCHES = 4;
-/** THE BLAZE's flame sprites: a FIXED pool — the tiers trim how many are lit a second (FLAME_RATE: tier 0 · 1 · 2), never the pool */
+// THE BLAZE's flame sprites: a FIXED pool — the tiers trim … night.js#7
 export const FLAMES = 96, FLAME_RATE = Object.freeze([46, 84, 128]), EMBER_RATE = Object.freeze([10, 22, 36]);
 /** a flame's longest life in seconds (F3 — the owner: the column ~2× longer, a little wider; F2's was 0.41): the ball falls away from its flames, so a
  *  flame's life IS the column's length — the pool still holds every flame alive at once (128 a second × ≤ 0.82 s × ¾ on average < 96) */
@@ -46,16 +46,16 @@ export const WALLS = Object.freeze([null, 'offices', 'speakeasy', 'harbor', 'dee
  *  lattice at 4). Linear light. THE NIGHT WALLS v2 (the add-on, Nov 26: offices · harbor · deep, relit from the day walls) are shown near
  *  their own light (the old offices wall was held down to 0.5, the old harbor wall pushed × 2). */
 const DEEP_N = [1.25, 1.25, 1.4, 0, 0, 0, 0, 0, 0, 0, 0, 2], DEEP_D = [0.9, 1.0, 1.5, 0.004, 0.012, 0.05, 0.006, 0.02, 0.022, 0, 2, 4];
-// (F5B — THE WATER SWAP: UNDER THE HARBOR by night is UNDER THE WATER too — the day's water in night inks: its `1` + its rising bubbles)
+// (F5B — THE WATER SWAP: UNDER THE HARBOR by night is UNDER … night.js#8
 export const AREA_NIGHT = Object.freeze([[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.3, 1.3, 1.45, 0, 0, 0, 0, 0, 0, 0, 0, 4], [0.95, 0.86, 1, 0, 0, 0, 0, 0, 0, 0, 0, 4], [1.05, 1.1, 1.15, 0, 0, 0, 0, 0, 0, 1, 1, 4], DEEP_N, DEEP_N, DEEP_N]);
 export const AREA_DAY = Object.freeze([
   [1, 1, 1, 0.56, 0.74, 0.93, 0.09, 0.105, 0.15, 0, 0, 4],           // THE ROOFTOP: the open air · THE STORM CLOUD
-  [0.5, 0.62, 0.86, 0.2, 0.37, 0.72, 0.03, 0.04, 0.08, 0, 3, 4],       // THE OFFICES: sunlit glass, daylight blue (the wall held down: white floors read on it) — F5A's add-on: its haze a DEEPER blue (it was the floors' own pale periwinkle: 0.5, 0.68, 0.92)
+  [0.5, 0.62, 0.86, 0.2, 0.37, 0.72, 0.03, 0.04, 0.08, 0, 3, 4], // night#9
   [0.82, 0.68, 0.6, 0.5, 0.33, 0.22, 0.035, 0.02, 0.02, 0, 3, 4],      // THE SPEAKEASY: brick + brass, a warm dusty haze
   [1, 1.08, 1.1, 0.0018, 0.042, 0.107, 0.012, 0.045, 0.04, 1, 1, 4],   // UNDER THE HARBOR: the water (#063a5c below) · THE MURK · bubbles
   DEEP_D, DEEP_D, DEEP_D,                                             // THE DEEP: deep blue, the wreck's warm lamps · drifting particles
 ]);
-/** an area's haze strength by day (how far the tower's lower floors fade into it): THE ROOFTOP has almost none — F3B: NO fog wash over the roof below */
+// an area's haze strength by day (how far the tower's lower … night.js#10
 export const FOG_K = Object.freeze([0.2, 1, 1, 1, 1, 1, 1]);
 /** F5A's ADD-ON — THE DAY OFFICES FOG (the owner's iPhone: by day the offices' floors washed into pale blue from the 3rd floor under the
  *  ball, ~40 % down the screen — the speakeasy + the harbor fade from 60 – 70 %): how far down the haze STARTS, as a share of its 7 floors
@@ -71,7 +71,7 @@ export const ROOF = Object.freeze({ cx: 0.505, cy: 0.472, sky: 0.130, s0: 0.92, 
 /** … ONE PLANE ALL THE WAY DOWN: from floor `to` to floor `land` the roof's plane settles into THE TRUE ROOF — the painting at the skylight's
  *  real size (this many world units wide), level, at the skylight's own height: the 3D skylight that rode on it is then exactly where the ball hits it */
 export const ROOF_WIDE = (SKYLIGHT.half + SKYLIGHT.bar) / ROOF.sky, ROOF_Y = -BREAK_FLOORS.skylight * SHAPE.H + SKYLIGHT.up;
-/** THE MOTES by kind: [the shader's kind (1 a bubble · 2 a soft dot), its speed in floors a second (+ = rising), its size, its strength, its colour] */
+// THE MOTES by kind: [the shader's kind (1 a bubble · 2 a … night.js#11
 export const MOTE_KINDS = Object.freeze([null, [1, 0.55, 0.05, 0.9, 0.85, 1, 1], [2, -0.07, 0.024, 0.7, 0.75, 0.9, 1], [2, 0.04, 0.015, 0.5, 1, 0.98, 0.9]]);
 /** F5B — THE WATER SWAP: the night's bubbles glow CYAN on the dark teal (the day's are white-aqua) · F5C: brighter + MOTE_NIGHT_SIZE bigger —
  *  as clearly seen as DAY UNDER's */
@@ -87,7 +87,7 @@ export const MOTES = 48, MOTE_N = Object.freeze([18, 32, 48]), MOTE_SPAN = 12;
 const GOLD = 0xffc83c, GOLD_DAY = 0xe89400, LAP = 40, TRENCH_FROM = 201;
 
 const wedgeGeo = () => {
-  // a slice = a wedge of the ring: its top, its outer wall, its two cut sides (the foot + the pillar's side are never seen)
+  // a slice = a wedge of the ring: its top, its outer wall, its … night.js#12
   const P = [], N = [], E = [];
   const { RO, RI, THICK } = SHAPE, a0 = MARGIN, a1 = WEDGE - MARGIN;
   const pt = (r, th, y) => [r * Math.sin(th), y, r * Math.cos(th)];
@@ -144,22 +144,22 @@ export function createNight(host, o = {}) {
   const R = RULE_SETS[RULES_DEFAULT], PACE = R.gen.move.pace;
   const col = new THREE.Color();
   const lin = hex => { col.set(hex); return [col.r, col.g, col.b]; };
-  // (the palettes in linear light, flat: an area's 15 numbers — a · b · rim · day · dayRim; the trench's laps after the areas')
+  // (the palettes in linear light, flat: an area's 15 numbers — … night.js#13
   const PL = new Float32Array((PALETTES.length + TRENCH_PALETTES.length) * 15);
   [...PALETTES, ...TRENCH_PALETTES].forEach((p, i) => { PL.set([...lin(p.a), ...lin(p.b), ...lin(p.rim), ...lin(p.day), ...lin(p.dayRim)], i * 15); });
 
   // ---- the uniforms every material shares (ONE object each: a twin material in the bloom pass reads the same values)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uSpin: { value: 0 }, uAspect: { value: 1 }, uGrey: { value: 0 },
-    // (F3 — THE LOOK) 1 = day · by day a light COVERS what is behind it (added light is lost on a bright ground) · the haze the tower fades into · the caustics on the slices
+    // (F3 — THE LOOK) 1 = day · by day a light COVERS what is … night.js#14
     uDay: { value: 0 }, uCover: { value: 0 }, uFog: { value: new THREE.Vector3(0.62, 0.84, 0.98) }, uCaust: { value: 0 },
-    // (F4A — THE HAZE FOLLOWS THE FLOOR: the area BELOW the border in sight has its own haze, strength + caustics — uFogSeam = that border's height)
+    // (F4A — THE HAZE FOLLOWS THE FLOOR: the area BELOW the … night.js#15
     uFogB: { value: new THREE.Vector3(0.62, 0.84, 0.98) }, uFogKB: { value: FOG_K[0] }, uCaustB: { value: 0 }, uFogSeam: { value: -1e5 },
     // (F3B) how strongly the tower fades into that haze (the area's — THE ROOFTOP: almost none)
     uFogK: { value: FOG_K[0] }, uFogS: { value: 0 }, uFogSB: { value: 0 },
     // (F3B) the pillar is not drawn under this height: THE ROOF is shut until the skylight breaks
     uCutY: { value: -1e9 } };
   const TWINS = [];
-  // (a twin is BUILT from the material's own pieces + the SAME uniforms object — never cloned: a clone copies every uniform, the wall's target too)
+  // (a twin is BUILT from the material's own pieces + the SAME … night.js#16
   const twin = (mesh, mat) => {
     const t = new THREE.ShaderMaterial({ vertexShader: mat.vertexShader, fragmentShader: mat.fragmentShader, uniforms: mat.uniforms, extensions: mat.extensions, transparent: mat.transparent, depthTest: mat.depthTest, depthWrite: mat.depthWrite, side: mat.side, blending: mat.blending, blendEquation: mat.blendEquation, blendSrc: mat.blendSrc, blendDst: mat.blendDst });
     TWINS.push([mesh, t, null]);
@@ -176,7 +176,7 @@ export function createNight(host, o = {}) {
     uSeamY: { value: -1e4 }, uBallY: { value: 0 }, uDarkY: { value: 1e4 }, uTime: G.uTime, uRW: { value: SHAPE.RW }, uTileA: { value: 4 }, uTileB: { value: 4 }, uGlow: { value: PANO.glow },
     uDay: G.uDay, uAreaA: { value: 0 }, uAreaB: { value: 0 }, uWetA: { value: 0 }, uWetB: { value: 0 }, uSurfY: { value: -AREAS[3].from * SHAPE.H },
     uFogA: { value: new THREE.Vector3() }, uFogB: { value: new THREE.Vector3() }, uDarkA: { value: new THREE.Vector3() }, uDarkB: { value: new THREE.Vector3() },
-    // (F3B — THE BREAKTHROUGHS) the room's lights come on under a broken skylight · the light shafts under the harbor's surface
+    // (F3B — THE BREAKTHROUGHS) the room's lights come on under a … night.js#17
     uLitT: { value: -1000 }, uLitY: { value: -AREAS[1].from * SHAPE.H }, uShafts: { value: 1 },
   };
   const wallScene = new THREE.Scene(), wallCam = new THREE.Camera();
@@ -187,24 +187,22 @@ export function createNight(host, o = {}) {
   const copyMat = new THREE.ShaderMaterial({ vertexShader: COPY_V, fragmentShader: COPY_F, uniforms: copyU, depthTest: false, depthWrite: false });
   const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), copyMat);
   backdrop.frustumCulled = false; backdrop.renderOrder = -100; scene.add(backdrop); twin(backdrop, copyMat);
-  // THE ROOFTOP's SKY (the add-on, Nov 26): FREEFALL's own panorama on a FULL-RESOLUTION quad over the half-res wall — drawn only while
-  // the rooftop is on screen (the opening + floors 0–39); it shares the wall's camera + seam + darkness uniforms (the same objects)
+  // THE ROOFTOP's SKY (the add-on, Nov 26): FREEFALL's own … night.js#18
   const skyU = { tPano: { value: null }, uHave: { value: 0 }, uFlip: { value: 0 }, uCam: wallU.uCam, uRight: wallU.uRight, uUp: wallU.uUp, uFwd: wallU.uFwd, uDarkA: wallU.uDarkA,
     uTan: wallU.uTan, uAspect: G.uAspect, uSeamY: wallU.uSeamY, uBallY: wallU.uBallY, uDarkY: wallU.uDarkY, uTime: G.uTime, uRW: wallU.uRW, uRise: { value: 0 }, uShift: { value: Number(o.skyShift) || 0 },
     uDay: G.uDay, uBloom: G.uBloom, uSpanAz: { value: PANO.az }, uSpanEl: { value: PANO.el }, uTopEl: { value: PANO.top }, uGlow: wallU.uGlow,
-    // THE ROOF BELOW (F3B): the painting + the city's tile, its plane (set every frame — draw()), how much of it is there, the skylight open
+    // THE ROOF BELOW (F3B): the painting + the city's tile, its … night.js#19
     tRoof: { value: null }, tCity: { value: null }, uHaveR: { value: 0 }, uFlipR: { value: 0 }, uHaveC: { value: 0 }, uFlipC: { value: 0 },
     uGN: { value: new THREE.Vector3(0, 1, 0) }, uGV: { value: new THREE.Vector3(0, 0, -1) }, uGC: { value: new THREE.Vector3(0, -80, -60) }, uGK: { value: -80 }, uGW: { value: 0.01 },
     uGA: { value: 1 }, uGCurl: { value: ROOF.curl }, uOpen: { value: 0 }, uRoof: { value: new THREE.Vector2(ROOF.cx, ROOF.cy) },
-    tGrain: { value: null }, uHaveG: { value: 0 }, uGrain: { value: 0 } };   // (F5A — THE ROOF GRAIN: its detail tile · how much of it is in — 0 far below, 1 over the landing)
+    tGrain: { value: null }, uHaveG: { value: 0 }, uGrain: { value: 0 } }; // night#20
   const skyMat = new THREE.ShaderMaterial({ vertexShader: SKY_V, fragmentShader: SKY_F, uniforms: skyU, depthTest: false, depthWrite: false,
-    // (NOT `transparent`: three.js draws every transparent mesh after the opaque ones — the sky would lie over the pillar + the ball. It is
-    //  an opaque-pass mesh, second in the scene's order, that blends itself over the wall by its own alpha)
+    // (NOT `transparent`: three.js draws every transparent mesh … night.js#21
     transparent: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor });
   const skyQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), skyMat);
   skyQuad.frustumCulled = false; skyQuad.renderOrder = -99; scene.add(skyQuad); twin(skyQuad, skyMat);
 
-  // the pictures: decoded off the frame (createImageBitmap) and uploaded AT ONCE (HIGH RISE's LAG RULES 1) — never at their first draw
+  // the pictures: decoded off the frame (createImageBitmap) and … night.js#22
   const texs = new Map();   // name → { tex, flip, have }
   let gone = false, workAt = 0;
   const viaImg = url => new Promise((res, rej) => { const im = new Image(); im.onload = () => (im.decode ? im.decode().then(() => res({ image: im, flip: 0 }), () => res({ image: im, flip: 0 })) : res({ image: im, flip: 0 })); im.onerror = rej; im.src = url; });
@@ -219,38 +217,35 @@ export function createNight(host, o = {}) {
     loadPicture(url).then(({ image, flip }) => {
       if (gone) { if (image.close) image.close(); return; }
       const tex = new THREE.Texture(image);
-      // (`repeat`: true = it tiles both ways · 2 = THE PANORAMA, round the compass only · 3 = THE CITY's tile, MIRRORED both ways · 4 = ONE picture, never repeated)
+      // (`repeat`: true = it tiles both ways · 2 = THE PANORAMA, … night.js#23
       tex.wrapS = tex.wrapT = repeat === true ? THREE.RepeatWrapping : repeat === 3 ? THREE.MirroredRepeatWrapping : THREE.ClampToEdgeWrapping;
       if (repeat !== true && repeat !== 3 && repeat !== 4) tex.wrapS = THREE.RepeatWrapping;
       tex.generateMipmaps = !!repeat; tex.minFilter = repeat ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
-      // (`repeat` 2 = THE PANORAMA: it repeats on u only, its mipmaps + the GPU's anisotropy keep its windows windows at every tier)
+      // (`repeat` 2 = THE PANORAMA: it repeats on u only, its … night.js#24
       if (repeat === 2) { try { tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); } catch { /* none */ } }
       tex.flipY = false; tex.needsUpdate = true;
       try { renderer.initTexture(tex); } catch { /* it uploads at its first draw */ }
-      // (F3B: every picture of the look is in memory at once now — once it is ON THE GPU its decoded bitmap is let go: half the memory.
-      //  A lost context builds the whole scene again from the network's cache — night.js never uploads a texture twice)
+      // (F3B: every picture of the look is in memory at once now — … night.js#25
       try { if (flip === 1 && image.close && renderer.properties.get(tex).__webglTexture) image.close(); } catch { /* kept, then */ }
       t.tex = tex; t.flip = flip; t.have = 1; workAt = performance.now(); wK = -1; landed++;
     }).catch(() => { texs.delete(name); });
     return t;
   }
-  // (a wall's name + its address by look, made ONCE — a frame builds no string: [night, day][the area]; the night's keys are the walls' own names)
+  // (a wall's name + its address by look, made ONCE — a frame … night.js#26
   const WALL_KEY = ['night', 'day'].map(lk => WALLS.map(name => (name ? (lk === 'day' ? `${name}-day` : name) : null)));
   const WALL_URL = ['night', 'day'].map(lk => WALLS.map(name => (name ? new URL(`../../../assets/freefall/walls/${name}-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href : null)));
   const wantWall = k => { const L = day ? 1 : 0; return WALL_KEY[L][k] ? picture(WALL_KEY[L][k], WALL_URL[L][k], true) : null; };
-  // THE ROOFTOP: FREEFALL's own panoramas — the night's, the day's (the look's own is the only one asked for; JAYWALK's skyline is no longer used)
+  // THE ROOFTOP: FREEFALL's own panoramas — the night's, the … night.js#27
   const PANO_URL = ['night', 'day'].map(lk => new URL(`../../../assets/freefall/sky/rooftop-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href);
   const skyNow = () => (day ? picture('pano-day', PANO_URL[1], 2) : picture('pano', PANO_URL[0], 2));
   // THE ROOF BELOW (F3B): the building's own roof from above + the city round it, by look
   const ROOF_URL = ['night', 'day'].map(lk => [new URL(`../../../assets/freefall/roof/below-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href, new URL(`../../../assets/freefall/roof/city-${lk}.webp?v=${FF_ART_REV}`, import.meta.url).href]);
   const roofNow = () => (day ? picture('roof-day', ROOF_URL[1][0], 4) : picture('roof', ROOF_URL[0][0], 4));
   const cityNow = () => (day ? picture('city-day', ROOF_URL[1][1], 3) : picture('city', ROOF_URL[0][1], 3));
-  // THE BREAKTHROUGHS' textures (F3B): the sprites, the seabed's sand (F5A: the water is worked out in its shader — Water 001's normal map is gone)
+  // THE BREAKTHROUGHS' textures (F3B): the sprites, the … night.js#28
   const fxUrl = name => new URL(`../../../assets/freefall/fx/${name}.webp?v=${FF_ART_REV}`, import.meta.url).href;
   const PICS = { roof: roofNow, pano: () => skyNow(), burst: picture('burst', fxUrl('burst'), false), grain: picture('grain', new URL(`../../../assets/freefall/roof/grain.webp?v=${FF_ART_REV}`, import.meta.url).href, true), sand: picture('sand', fxUrl('sand'), true), sandN: picture('sand-normal', fxUrl('sand-normal'), true), rip: picture('water-normal', fxUrl('water-normal'), true) };
-  // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run): a picture's first upload mid-run was a long frame — EVERY picture of the look on
-  // screen is asked for behind the opening (the four walls, the panorama, the roof below + its city; the breakthroughs' textures above):
-  // nothing is decoded or uploaded while a run is on (a look that turns mid-run asks for its own set at once)
+  // THE STUTTERS (F3B — the owner's iPhone: HITCH 9 a run): a … night.js#29
   let landed = 0;
   function preload() { for (let k = 1; k <= 4; k++) wantWall(k); skyNow(); roofNow(); cityNow(); }
   // (THE BLAZE's sprites — Kenney's Particle Pack: two flames, the hot speckle, the smoke, side by side)
@@ -277,7 +272,7 @@ export function createNight(host, o = {}) {
   const ball = new THREE.Mesh(new THREE.SphereGeometry(SHAPE.R_BALL, 28, 18), ballMat);
   ball.frustumCulled = false; scene.add(ball); twin(ball, ballMat);
 
-  // ---- THE SHARDS + THE SPARKS + THE LIGHTS (pools — a shatter writes into the next free records, the shaders fly them)
+  // ---- THE SHARDS + THE SPARKS + THE LIGHTS (pools — a … night.js#30
   const cGeo = chipGeo(), cO = inst(cGeo, 'aO', SHARDS, 3), cV = inst(cGeo, 'aV', SHARDS, 3), cAx = inst(cGeo, 'aAx', SHARDS, 3), cC = inst(cGeo, 'aC', SHARDS, 3), cT = inst(cGeo, 'aT', SHARDS, 4);
   for (let i = 0; i < SHARDS; i++) { cT.array[i * 4] = -100; cT.array[i * 4 + 1] = 1; cAx.array[i * 3 + 1] = 1; }
   cGeo.instanceCount = SHARDS;
@@ -308,8 +303,7 @@ export function createNight(host, o = {}) {
   ribbon.frustumCulled = false; scene.add(ribbon); twin(ribbon, ribbonMat);
   const lights = new THREE.Mesh(lGeo, lightMat);
   lights.frustumCulled = false; scene.add(lights); twin(lights, lightMat);
-  // THE MOTES (F3 — by day: UNDER THE HARBOR's rising bubbles, THE DEEP's drifting particles, the dust in a sunlit room): a FIXED pool of
-  // quads flown in their shader (a mote's place is a pure function of the time) — the tiers trim how many are drawn
+  // THE MOTES (F3 — by day: UNDER THE HARBOR's rising bubbles, … night.js#31
   const mGeo = quadGeo(), mS = inst(mGeo, 'aS', MOTES, 4);
   for (let i = 0; i < MOTES * 4; i++) mS.array[i] = Math.random();
   mGeo.instanceCount = MOTES;
@@ -317,10 +311,9 @@ export function createNight(host, o = {}) {
   const moteMat = new THREE.ShaderMaterial({ vertexShader: MOTE_V, fragmentShader: MOTE_F, uniforms: moteU, ...addOpt });
   const motes = new THREE.Mesh(mGeo, moteMat);
   motes.frustumCulled = false; motes.visible = false; scene.add(motes); twin(motes, moteMat);
-  /** THE ROOF's PLANE in the world (set every frame — roofPlane()): the roof below's painting, the skylight's deck, frame + glass all lie on it */
+  // THE ROOF's PLANE in the world (set every frame — … night.js#32
   const roofM = new THREE.Matrix4();
-  // THE BREAKTHROUGHS (F3B — breaks.js): the skylight (its deck, frame + glass), the water, the seabed + its rocks, the sprites — each drawn
-  // only while its floor is near; they read the scene through these few hands (the spark pool, the camera's kick, a flash on the floors)
+  // THE BREAKTHROUGHS (F3B — breaks.js): the skylight (its … night.js#33
   const BX = {
     scene, twin, G, SHAPE, ROOF, FALL, PAL: PALETTES, pics: PICS, wallU, lin, reduce, roofM,
     spark: (x, y, z, vx, vy, vz, life, wid, r, g, b) => spark(x, y, z, vx, vy, vz, life, wid, r, g, b),
@@ -329,18 +322,18 @@ export function createNight(host, o = {}) {
     flashFloors(from, to, v) { for (let f = from; f <= to; f++) { if (f < 0) continue; floorRec(f); const o = (f % RING) * SLICES; for (let s = 0; s < SLICES; s++) flash[o + s] = v; } },
   };
   const breaks = createBreaks(BX);
-  // (the draw order, fixed once: the shaft · the pillar · the slices · the breakthroughs' planes · the tape · the shards · the motes · the fire's ribbon + flames · the ball — its white heart on top of its own fire · the lights · the sparks · the sprites)
+  // (the draw order, fixed once: the shaft · the pillar · the … night.js#34
   backdrop.renderOrder = -100; pillar.renderOrder = 0; slices.renderOrder = 1; tape.renderOrder = 2; shards.renderOrder = 3; motes.renderOrder = 3.2; ribbon.renderOrder = 3.4; flames.renderOrder = 3.6; ball.renderOrder = 4; lights.renderOrder = 5; sparks.renderOrder = 6;
   scene.children.sort((a, b) => a.renderOrder - b.renderOrder);
 
-  // ---- the floors in sight: a ring of records written INTO (never a new object in play) + what happened to each (broken · cracked · its flashes)
+  // ---- the floors in sight: a ring of records written INTO … night.js#35
   let run0 = null, h = 0, RR = R;
   const FL = [], FLi = new Int32Array(RING).fill(-1), broken = new Uint16Array(RING), cracked = new Uint16Array(RING), flash = new Float32Array(RING * SLICES), fcol = new Float32Array(RING * 3), frim = new Float32Array(RING * 3), fday = new Float32Array(RING * 3), fdrim = new Float32Array(RING * 3);
   for (let i = 0; i < RING; i++) FL.push({ i: -1, twist: 0, gap: 0, red: 0, m1: 0, m2: 0 });
   /** a floor's palette (its place in PL): its area's — THE TRENCH's by its lap */
   const palOf = i => { const k = areaIndex(i); return (k >= 6 ? PALETTES.length + Math.floor((i - TRENCH_FROM) / LAP) % TRENCH_PALETTES.length : k) * 15; };
   function colourOf(i, slot) {
-    // THE AREA PALETTE, DEPTH-RELATIVE: this floor's own colour — a → b down its area; its last three floors lean to the next area's
+    // THE AREA PALETTE, DEPTH-RELATIVE: this floor's own colour — … night.js#36
     const k = areaIndex(i), p = palOf(i), from = k >= 6 ? TRENCH_FROM + Math.floor((i - TRENCH_FROM) / LAP) * LAP : AREAS[k].from, len = k === 5 ? 1 : LAP;
     const t = len > 1 ? (i - from) / (len - 1) : 0, d = from + len - i, q = d <= 3 ? palOf(i + d) : p, tt = q !== p ? (4 - d) / 4 : 0;
     const s3 = slot * 3, lean = i & 1 ? 0.9 : 1;   // (a floor a shade off its neighbours: every second one a little deeper)
@@ -367,14 +360,14 @@ export function createNight(host, o = {}) {
   const CAMY = 0, KICK = 1, SQUASH = 2, BLAZE = 3, TIME = 4, GH0 = 5, GH1 = 6, GT0 = 7, GT1 = 8, PITCH = 9, BACK = 10, BALLY = 11, PF = 12, PT = 13, OUTK = 14, BEST = 15, LANDT = 16, SHAKE = 17, LASTFLOOR = 18, ENDAGE = 19, ROOFA = 20;
   S[GH0] = S[GH1] = -1; S[PITCH] = POSE.play.pitch; S[BACK] = 1; S[BALLY] = POSE.play.ballY; S[BEST] = 0; S[LANDT] = -10; S[ROOFA] = 1;
   let poseFrom = POSE.play, poseTo = POSE.play, poseT0 = -1e9, state = 'live', tier = o.tier == null ? 2 : o.tier, bloom = null, day = o.look === 'day';
-  // FIX B — THE TEST PAGE's A/B SWITCHES (`o.ab` — play.js; the cartridge passes none: everything on) · the frame's own clocks for `?fps=2`
+  // FIX B — THE TEST PAGE's A/B SWITCHES (`o.ab` — play.js; the … night.js#37
   const AB = o.ab || {}, AB_BLOOM = AB.bloom !== false, AB_FX = AB.fx !== false, AB_WALL = AB.wall !== false, AB_GHOSTS = AB.ghosts !== false;
   const plainC = new THREE.Color(), keepC = new THREE.Color(), drawnV = new Float64Array(3);
   let subAt = 0;
   let shardN = 0, sparkN = 0, punchN = 0, flameN = 0, flameOwed = 0, emberOwed = 0, fxHave = 0, wK = -1, wA = 0, wB = 0, wS = 0, wR = 0, wC = 0, areaA = 0, moteKind = 0, moteA = 0, fogSnap = true;
-  /** a FINISH's floor (match + daily: THE BOTTOM — no floor is drawn from there down: the seabed is the floor) · −1 = endless */
+  // a FINISH's floor (match + daily: THE BOTTOM — no floor is … night.js#38
   let fin = -1, tauNow = 0;
-  // (F5A — THE SHARE CARD's STAGED frame, shot() below: the camera's step back · the glow's share · no punch light, no sparks)
+  // (F5A — THE SHARE CARD's STAGED frame, shot() below: the … night.js#39
   let staged = false, shotZoom = 1, shotBloom = 1, shotGlow = 0;
   const SV = new Float64Array(24);
   const punchAt = new Float64Array(PUNCHES).fill(-10);
@@ -467,7 +460,7 @@ export function createNight(host, o = {}) {
     }
   }
 
-  /** a scene built again mid-run (a lost context): what the events so far did to the floors still in sight — no effect is played again */
+  // a scene built again mid-run (a lost context): what the … night.js#40
   function adopt(run, events, n = events.length) {
     for (let k = 0; k < n; k++) {
       const e = events[k];
@@ -486,7 +479,7 @@ export function createNight(host, o = {}) {
   ro.observe(host);
   measure();
   function place(c, pitchDeg, back, ballY, camY, kick) {
-    // the camera looks at a point below the ball's floor so that floor sits `ballY` down the screen (the graybox's maths)
+    // the camera looks at a point below the ball's floor so that … night.js#41
     const p = pitchDeg * RAD, cp = Math.cos(p), sp = Math.sin(p), n = 1 - 2 * ballY, t = Math.tan(CAM.fov * RAD / 2), d = dist * back, drop = n * t * d / (cp + n * t * sp);
     const lookY = -camY * SHAPE.H - drop + kick;
     c.position.set(0, lookY + d * sp, SHAPE.RB + d * cp);
@@ -510,7 +503,7 @@ export function createNight(host, o = {}) {
     const bw = Math.max(2, Math.round(w * dpr)), bh = Math.max(2, Math.round(hh * dpr));
     wallRT.setSize(Math.max(2, bw >> 1), Math.max(2, bh >> 1));
     if (bloom) bloom.size(bw, bh);
-    // the screen pixels ONE RADIAN of tower turn moves the ring under the ball IN THE PLAY POSE (the drag's 1 : 1 — never the opening's)
+    // the screen pixels ONE RADIAN of tower turn moves the ring … night.js#42
     place(pcam, POSE.play.pitch, 1, POSE.play.ballY, 0, 0);
     V.set(0, 0, SHAPE.RB).project(pcam); const x0 = V.x;
     V.set(0.05, 0, SHAPE.RB).project(pcam);
@@ -532,10 +525,10 @@ export function createNight(host, o = {}) {
     if (now) { S[PITCH] = to.pitch; S[BACK] = to.back; S[BALLY] = to.ballY; }
   }
 
-  /** the ball's height over its floor's top (world units) at `tau` ticks — the VIEW's own arc between the landings the engine gave */
+  // the ball's height over its floor's top (world units) at … night.js#43
   function ballLift(run, tau) {
     const span = run.nl - run.pl, u = span > 0 ? Math.min(1, Math.max(0, (tau - run.pl) / span)) : 1;
-    if (run.st === 'made') return SHAPE.H * (1 - u) * (1 - 0.45 * u);   // (F3B — THE BOTTOM: the finish's last drop onto the seabed is the VIEW's own — `tau` runs on past the run's end)
+    if (run.st === 'made') return SHAPE.H * (1 - u) * (1 - 0.45 * u); // night#44
     if (run.st !== 'live') return run.cause === 'red' ? 0 : SHAPE.HOP * 0.5;
     if (run.fl === 'bounce') return SHAPE.HOP * 4 * u * (1 - u);
     if (run.fl === 'drop') return SHAPE.HOP * 0.55 * 4 * u * (1 - u);   // (the start: one small hop on floor 0 — the ball was resting there)
@@ -543,7 +536,7 @@ export function createNight(host, o = {}) {
     return SHAPE.H * (1 - u) * (1 - 0.45 * u);
   }
 
-  /** the walls the shaft shows now: the camera's area (A) + the next one (B), the seam between them at a world height — in the LOOK's own pictures + numbers */
+  // the walls the shaft shows now: the camera's area (A) + the … night.js#45
   function walls(floor) {
     const k = areaIndex(Math.max(0, floor - 5));   // (the seam stays in sight a few floors after the ball crossed it)
     const nk = Math.min(AREAS.length - 1, k + 1), seam = k === nk ? -1e5 : -AREAS[nk].from * SHAPE.H;
@@ -615,11 +608,11 @@ export function createNight(host, o = {}) {
     G.uCutY.value = breaks.out[0] > 0.5 ? -1e9 : Cy;   // (the roof is shut: the pillar ends where it goes into it)
   }
 
-  // F4B — THE GHOSTS (ghost-fx.js): the match's rivals on MY tower — their own small scene over the picture's depth; the stage hands the
-  // records (ghosts.js steps them), this only places + draws them
+  // F4B — THE GHOSTS (ghost-fx.js): the match's rivals on MY … night.js#46
+  const veil = createVeil(renderer, reduce);   // (FIX C — THE VEIL: the darkness + the shade, the frame's last pass)
   const ghostLayer = createGhostLayer({ renderer, cam, uDay: G.uDay, RB: SHAPE.RB, R_BALL: SHAPE.R_BALL });
   let ghostN = 0, ghostData = null;
-  /** a rival passed a BREAKTHROUGH (the skylight · the splashdown · THE BOTTOM): a small echo only — a few sparks in their colour where their ball is */
+  // a rival passed a BREAKTHROUGH (the skylight · the … night.js#47
   function ghostEcho(i) {
     if (!ghostData || i < 0 || i >= ghostN || reduce) return;
     const o = i * GHOST_STRIDE, phi = ghostData[o], x = SHAPE.RB * Math.sin(phi), y = ghostData[o + 1] + SHAPE.R_BALL, z = SHAPE.RB * Math.cos(phi);
@@ -628,14 +621,14 @@ export function createNight(host, o = {}) {
   }
 
   let frames = 0;
-  /** one frame: the run, `tau` = the clock in ticks (a fraction into the next one), `dt` ms since the last frame, `extra` = angle units the tower shows ahead of the run (the finger's moves before tick 0) */
+  // one frame: the run, `tau` = the clock in ticks (a fraction … night.js#48
   function draw(run, tau, dt, extra = 0) {
     if (!sized) size();
     if (!w) return;
     frames++;
     const sec = dt / 1000;
     S[TIME] += sec;
-    // (F3B — a FINISH: the run is over at the tick the 200th floor is passed, the ball's last drop onto THE BOTTOM is the view's — its clock runs on)
+    // (F3B — a FINISH: the run is over at the tick the 200th … night.js#49
     S[ENDAGE] = run.st === 'live' ? 0 : S[ENDAGE] + sec;
     if (run.st === 'made') { tau = run.end + S[ENDAGE] * 60; if (S[ENDAGE] >= 0.3 && S[ENDAGE] - sec < 0.3) { S[SQUASH] = 1; S[LANDT] = S[TIME]; } if (poseTo !== POSE.finish) pose('finish'); }
     tauNow = tau;
@@ -652,9 +645,9 @@ export function createNight(host, o = {}) {
     S[KICK] *= Math.exp(-sec * 9); S[SHAKE] *= Math.exp(-sec * 11);
     const shake = S[SHAKE] > 0.01 ? Math.sin(time * 71) * 0.035 * S[SHAKE] : 0;
     const lookY = place(cam, S[PITCH], S[BACK] * shotZoom, S[BALLY], S[CAMY], -S[KICK] + shake);
-    // (a FINISH: over the last floor's fall the core stays behind as a STUMP in the sand — it stops going down with the ball a little short of the bed)
+    // (a FINISH: over the last floor's fall the core stays behind … night.js#50
     const stump = fin >= 0 && S[CAMY] > fin - 1 ? STUMP * (S[CAMY] - fin + 1 > 1 ? 1 : S[CAMY] - fin + 1) : 0;
-    pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22 + stump; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix);   // (its cap flush with the ball's floor — the dark eye in the middle of the top ring; it goes down with the BALL's own glide: never a stub over the floor it lands on)
+    pillar.position.y = -(want > S[CAMY] ? want : S[CAMY]) * SHAPE.H - 0.004 - 22 + stump; pillar.updateMatrix(); pillar.matrixWorld.copy(pillar.matrix); // night#51
     G.uSpin.value = (run.a + extra) * UNIT;
     G.uTopY.value = -S[CAMY] * SHAPE.H;
 
@@ -662,7 +655,7 @@ export function createNight(host, o = {}) {
     for (let i = 0; i < RING * SLICES; i++) if (flash[i] > 0) { flash[i] -= sec * 3.2; if (flash[i] < 0) flash[i] = 0; }
     // the slices: the deepest floor first, the ball's last, then the floors just passed (fading out)
     let n = 0;
-    // (a finish: no floor from THE BOTTOM down — the seabed is the floor · THE ROOF is shut until the skylight breaks: nothing under it shows)
+    // (a finish: no floor from THE BOTTOM down — the seabed is … night.js#52
     const roofAt = breaks.out[0] > 0.5 ? 1e9 : BREAK_FLOORS.skylight;
     for (let i = run.floor + BELOW; i >= run.floor; i--) if ((fin < 0 || i < fin) && i < roofAt) n = putFloor(i, n, 1, 0, tick);
     for (let gi = 0; gi < 2; gi++) {
@@ -699,7 +692,7 @@ export function createNight(host, o = {}) {
     const P = lP.array, Q = lQ.array, LC = lC.array, alive = state === 'live' || state === 'made' || state === 'cap' ? 1 : 0, bz = S[BLAZE];
     P[0] = 0; P[1] = ball.position.y; P[2] = SHAPE.RB; P[3] = SHAPE.R_BALL * (3.6 + 1.6 * bz);
     Q[0] = 0; Q[1] = (day ? 0.34 + 0.56 * bz : 0.5 + 0.45 * bz) * alive; Q[2] = 0; Q[3] = 0;
-    LC[0] = 1; LC[1] = day ? 0.09 + 0.13 * bz : 0.42 - 0.2 * bz; LC[2] = day ? 0.42 + 0.16 * bz : 0.36 + 0.22 * bz;   // (lit: the fire's own neon-pink outer glow; unlit: as it was — by day the pink ball's own #ff50aa)
+    LC[0] = 1; LC[1] = day ? 0.09 + 0.13 * bz : 0.42 - 0.2 * bz; LC[2] = day ? 0.42 + 0.16 * bz : 0.36 + 0.22 * bz; // night#53
     const falling = run.st === 'live' && run.fl === 'fall' ? 1 : 0;
     P[4] = 0; P[5] = ball.position.y; P[6] = SHAPE.RB; P[7] = SHAPE.R_BALL * (1.25 + 0.5 * bz);
     Q[4] = 1; Q[5] = falling * 0.3 * (1 - bz) * alive; Q[6] = 0.55; Q[7] = 1.7;   // (the plain fall's faint streak; THE BLAZE has its ribbon + its flames)
@@ -717,8 +710,7 @@ export function createNight(host, o = {}) {
     for (let p = 0; p < PUNCHES; p++) { const age = (time - punchAt[p]) / 0.5, q = (PUNCH0 + p) * 4; Q[q] = 3; Q[q + 1] = !staged && age >= 0 && age < 1 ? 1.2 : 0; Q[q + 2] = Math.min(1, Math.max(0, age)); Q[q + 3] = 0; }
     lP.needsUpdate = lQ.needsUpdate = lC.needsUpdate = true;
 
-    // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames shed where it has just been (it falls away from them: a billowing
-    // column), embers drifting off it — a fixed budget, the tier trims the rate
+    // THE BLAZE = NEON FIRE: the ribbon behind the ball, flames … night.js#54
     ribbonU.uAt.value.set(0, ball.position.y, SHAPE.RB); ribbonU.uOn.value = bz * alive; ribbonU.uLen.value = 0.9 + 1.0 * falling;
     if (fxTex.have !== fxHave) { fxHave = fxTex.have; flameU.tFx.value = fxTex.tex; flameU.uHave.value = 1; flameU.uFlip.value = fxTex.flip; }
     if (bz > 0.4 && alive && !reduce) {
@@ -745,7 +737,7 @@ export function createNight(host, o = {}) {
     tape.visible = best > 0 && best >= run.floor && best <= run.floor + BELOW;
     if (tape.visible) { tape.position.y = -best * SHAPE.H - 0.045; tape.updateMatrix(); tape.matrixWorld.copy(tape.matrix); tapeU.uGlow.value = 0.85 + 0.15 * Math.sin(time * 3); }
 
-    // THE LOOK's own (F3 — by day): the haze the tower fades into (the ball's area's — it eases across a border), THE CAUSTICS on the slices (→ §2, docs/freefall.md MODULE NOTES)
+    // THE LOOK's own (F3 — by day): the haze the tower fades into … night.js#55
     const fa = areaIndex(run.floor), fn = fa + 1 < AREAS.length && AREAS[fa + 1].from <= run.floor + BELOW + 1 ? fa + 1 : fa, fk = fn > fa ? fa : fa > 0 ? fa - 1 : fa;
     const AD = AREA_DAY[fa], FA = AREA_DAY[fk], FB = AREA_DAY[fn > fa ? fn : fa];
     G.uFog.value.set(FA[3], FA[4], FA[5]); G.uFogB.value.set(FB[3], FB[4], FB[5]);
@@ -774,11 +766,11 @@ export function createNight(host, o = {}) {
     wallU.uDarkY.value = run.st === 'live' || state === 'dark' ? -run.dk * SHAPE.H : 1e4;
     skyQuad.visible = wallU.uSkyA.value > 0.5;   // (only while the rooftop is on screen — no full-screen pass below it)
     skyU.uRise.value = Math.min(PANO.rise, S[CAMY] * PANO.riseK);
-    // THE BREAKTHROUGHS' word back: the skylight open (the room below shows under the seam), the roof below gone, the room's lights, the shafts
+    // THE BREAKTHROUGHS' word back: the skylight open (the room … night.js#56
     const BO = breaks.out;
     skyU.uOpen.value = BO[0]; wallU.uLitT.value = BO[2]; wallU.uShafts.value = BO[3];
     S[ROOFA] += (BO[1] - S[ROOFA]) * Math.min(1, sec * 6); skyU.uGA.value = S[ROOFA];
-    if (staged) { sparks.visible = false; if (state === 'made') shards.visible = false; }   // (… and THE BOTTOM's picture without the last floor's red shards: red is the death colour — never the subject of the WIN card)
+    if (staged) { sparks.visible = false; if (state === 'made') shards.visible = false; } // night#57
     if (!AB_FX) { sparks.visible = flames.visible = ribbon.visible = shards.visible = motes.visible = false; }
     drawnV[0] = G.uSpin.value; drawnV[1] = S[CAMY]; drawnV[2] = ball.position.y;
     subAt = performance.now();
@@ -787,13 +779,14 @@ export function createNight(host, o = {}) {
     else { const f = G.uFog.value, a0 = renderer.getClearAlpha(); renderer.getClearColor(keepC); plainC.setRGB(f.x, f.y, f.z); renderer.setClearColor(plainC, 1); renderer.clear(true, false, false); renderer.setClearColor(keepC, a0); }
     renderer.setRenderTarget(null);
     renderer.render(scene, cam);
-    if (bloom && tier === 2) bloom.render(scene, cam, TWINS, (day ? 0.4 : 1) * shotBloom);   // (by day only the ball + the fire give light — and less of it: the scene is bright already)
-    // F4B — THE GHOSTS: over the finished picture, on its own depth (seen · x-ray where the tower hides them · the name tags on top)
+    if (bloom && tier === 2) bloom.render(scene, cam, TWINS, (day ? 0.4 : 1) * shotBloom); // night#58
+    // F4B — THE GHOSTS: over the finished picture, on its own … night.js#59
     if (ghostN > 0 && AB_GHOSTS) {
       V.copy(ball.position).project(cam);
       ghostLayer.place(ghostN, ghostData, w, hh, dpr, (V.x + 1) * 0.5 * w, (1 - V.y) * 0.5 * hh);
       ghostLayer.draw();
     }
+    if (!staged) veil.draw(subAt);
   }
 
   // (a static scene: no mesh composes its matrix a frame — the ones that move set theirs in draw)
@@ -802,16 +795,16 @@ export function createNight(host, o = {}) {
   cam.matrixWorldAutoUpdate = false;   // (place() sets it — once a frame)
   size();
 
-  /** THE WARM FRAME: one of everything, drawn once before the first drag — every program built, every buffer uploaded (HIGH RISE's LAG RULES 3) */
+  // THE WARM FRAME: one of everything, drawn once before the … night.js#60
   function warm(run) {
     if (!w) return false;
     try {
       const t = S[TIME];
       shatter(BELOW, false); burst(4, -3, 1, 1, 1, 1, 1); tape.visible = true; ribbonU.uOn.value = 1; skyQuad.visible = true;
-      breaks.force(true);   // (F3B: the breakthroughs' pieces drawn once too — in the picture AND the bloom pass: no program is built at floor 30)
+      breaks.force(true); // night#61
       renderer.compile(scene, cam); renderer.compile(wallScene, wallCam);
       draw(run, FIRST, 16);
-      ghostLayer.warm();   // (F4B: the ghosts' three programs too — a match builds nothing at its first rival)
+      ghostLayer.warm(); veil.warm();   // (F4B: the ghosts' three programs too — a match builds nothing at its first rival)
       breaks.force(false);
       for (let i = 0; i < SHARDS; i++) cT.array[i * 4] = -100;
       for (let i = 0; i < SPARKS; i++) pT.array[i * 3] = -100;
@@ -822,17 +815,17 @@ export function createNight(host, o = {}) {
   }
 
   const proj = (x, y, z, c = cam) => { V.set(x, y, z).project(c); return [(1 + V.x) / 2, (1 - V.y) / 2]; };
-  /** THE LOOK, live (F3): 'day' | 'night' — at once (the other look's pictures come in off the frame; until one lands its wall shows the area's tint) */
+  // THE LOOK, live (F3): 'day' | 'night' — at once (the other … night.js#62
   function setLook(l) {
     day = l === 'day';
     G.uDay.value = day ? 1 : 0; G.uCover.value = day ? 1 : 0;
     tapeLook();
     breaks.setLook(day);
     if (moteKind > 0) moteKind = -1;   // (F5B: the motes' colour is the look's — they come back in its own)
-    preload();   // (the look's own pictures — asked for at once: a look that turns mid-run has them a moment later)
+    preload(); // night#63
     wK = -1; fogSnap = true;
   }
-  /** YOUR BEST's tape: gold — but on GOLD floors (THE SPEAKEASY's brass) WHITE with a dark edge, in both looks (F3B — the owner) */
+  // YOUR BEST's tape: gold — but on GOLD floors (THE … night.js#64
   function tapeLook() {
     const gold = S[BEST] > 0 && GOLD_AREAS.includes(areaIndex(S[BEST]));
     if (gold) tapeU.uCol.value.setRGB(1.15, 1.15, 1.15); else tapeU.uCol.value.set(day ? GOLD_DAY : GOLD);
@@ -848,6 +841,9 @@ export function createNight(host, o = {}) {
     ghosts(n, data) { ghostN = data ? n : 0; ghostData = data || null; if (!ghostN) ghostLayer.clear(); },
     ghostNames(list) { ghostLayer.names(list, dpr); workAt = performance.now(); },
     ghostEcho,
+    /** FIX C — THE VEIL: the stage's darkness step (0 · 1 · 2 · 3) + the shade + the ink's area */
+    veil(dark, shade, area) { veil.set(dark, shade, day, area); },
+    veilInfo: () => veil.info(),
     ghostInfo: () => ghostLayer.info(),
     /** YOUR BEST's floor (0 = none): the gold tape lies round its rim */
     setBest(floor) { S[BEST] = floor > 0 ? floor : 0; tapeLook(); },
@@ -893,9 +889,9 @@ export function createNight(host, o = {}) {
           const span = runX.nl - runX.pl, u = runX.fl === 'fall' && span > 0 ? Math.min(1, Math.max(0, (tauX - runX.pl) / span)) : 1;
           S[CAMY] = runX.floor - (1 - u);
         }
-        if (!o.alive) { if (!o.party) breaks.quiet(true); breaks.crisp(true); lightMat.uniforms.uHalo.value = SHOT_HALO; }   // (FIX B — `party`: the finish's celebration stays in the zoomed-in picture)   // (THE BOTTOM: the ball on the seabed in its gold ring — the dust would lie over it; F5B: the ring crisp, the ball's halo small)
+        if (!o.alive) { if (!o.party) breaks.quiet(true); breaks.crisp(true); lightMat.uniforms.uHalo.value = SHOT_HALO; } // night#65
         shotGlow = o.glow > 0 ? o.glow : 0;
-        // (the slice under the ball wears no leftover flash in the picture: it reads RED — its glow is THE MARK's, red-hot, in draw())
+        // (the slice under the ball wears no leftover flash in the … night.js#66
         if (shotGlow > 0) { const fr = floorRec(runX.floor), su = sliceUnder(runX.a, fr.twist); fi = (runX.floor % RING) * SLICES + su; f0 = flash[fi]; flash[fi] = 0; }
         draw(runX, tauX, 0);
         return this.snap(bw, bh, rect);
@@ -905,7 +901,7 @@ export function createNight(host, o = {}) {
         S.set(SV); state = st0; sparks.visible = sv0; shards.visible = sh0; staged = false; shotZoom = 1; shotBloom = 1; shotGlow = 0; frames--;
       }
     },
-    /** where things are on the screen — the page's own check: the ball (its centre + its size in px), its floor's line, the floors in sight under it */
+    // where things are on the screen — the page's own check: the … night.js#67
     frame(run) {
       const c = proj(ball.position.x, ball.position.y, ball.position.z), top = proj(0, ball.position.y + SHAPE.R_BALL, SHAPE.RB), bot = proj(0, ball.position.y - SHAPE.R_BALL, SHAPE.RB), edge = proj(SHAPE.R_BALL, ball.position.y, SHAPE.RB);
       const rows = [];
@@ -913,9 +909,9 @@ export function createNight(host, o = {}) {
       const ringL = proj(-SHAPE.RO, -run.floor * SHAPE.H, 0), ringR = proj(SHAPE.RO, -run.floor * SHAPE.H, 0);
       return { ball: { x: c[0] * w, y: c[1] * hh, d: Math.max(Math.abs(bot[1] - top[1]) * hh, Math.abs(edge[0] - c[0]) * w * 2) }, floorY: proj(0, -run.floor * SHAPE.H, SHAPE.RB)[1], rows, ring: [ringL[0], ringR[0]], w, h: hh };
     },
-    /** the screen y (0 … 1) of the TOP of the ball at the top of a bounce on its floor, in the PLAY pose — the HUD must end above it */
+    // the screen y (0 … 1) of the TOP of the ball at the top of a … night.js#68
     apexY(run) { place(pcam, POSE.play.pitch, 1, POSE.play.ballY, run.floor, 0); return proj(0, -run.floor * SHAPE.H + 2 * SHAPE.R_BALL + SHAPE.HOP, SHAPE.RB, pcam)[1]; },
-    /** FIX A — THE TITLE's FIRST LOOK: the look's panorama + the roof below + its city are in (the opening holds dark until then) */
+    // FIX A — THE TITLE's FIRST LOOK: the look's panorama + the … night.js#69
     skyIn: () => !!(skyNow().have && roofNow().have && cityNow().have),
     info: () => ({ breaks: breaks.info(), landed, roof: [S[ROOFA], skyU.uGW.value, skyU.uHaveR.value, skyU.uHaveC.value], look: day ? 'day' : 'night', motes: motes.visible ? mGeo.instanceCount : 0, moteKind, caust: S[CAMY] * SHAPE.H > -G.uFogSeam.value ? G.uCaustB.value : G.uCaust.value, fog: [G.uFog.value.x, G.uFog.value.y, G.uFog.value.z, G.uFogB.value.x, G.uFogB.value.y, G.uFogB.value.z, G.uFogSeam.value, G.uFogK.value, G.uFogKB.value], flames: FLAMES, fx: fxTex.have, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h: hh, tier, bloom: !!bloom && tier === 2, slices: sGeo.instanceCount, area: areaA, walls: [...texs.entries()].map(([k, t]) => `${k}:${t.have}`).join(' '), frames, pose: [S[PITCH], S[BACK], S[BALLY]] }),
     /** YOUR BEST's tape as it is drawn (the checks): its colour, its dark edge */
@@ -929,7 +925,7 @@ export function createNight(host, o = {}) {
       for (const t of texs.values()) if (t.tex) { const im = t.tex.image; t.tex.dispose(); if (im && im.close) im.close(); }
       for (const m of [pillar, slices, tape, ball, shards, sparks, flames, ribbon, lights, motes, backdrop, skyQuad, wallQuad, ...breaks.meshes]) { m.geometry.dispose(); m.material.dispose(); }
       for (const t of TWINS) t[1].dispose();
-      wallRT.dispose(); if (bloom) bloom.dispose(); ghostLayer.dispose();
+      wallRT.dispose(); if (bloom) bloom.dispose(); ghostLayer.dispose(); veil.dispose();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.remove();

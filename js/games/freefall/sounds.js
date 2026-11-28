@@ -1,5 +1,4 @@
-// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — all CC0; two are JAYWALK's). (→ §1, docs/freefall.md MODULE NOTES)
-/** a sound: `file` in audio/<dir>/, played at `rate`, `gain` into the limiter, its priority; `play` = it sounds in a run today */
+// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE … sounds.js#1
 const snd = (id, label, dir, gain, pri, play = true, more = null) => Object.freeze({ id, label, file: id, dir, rate: 1, gain, pri, play, ...more });
 export const SOUNDS = Object.freeze([
   snd('bounce', 'BOUNCE — THE NOTE', 'freefall', 0.5, 1, true, { scale: true }),
@@ -11,21 +10,15 @@ export const SOUNDS = Object.freeze([
   snd('bottom', 'THE BOTTOM (THE SEABED)', 'freefall', 1.1, 4),
   snd('area-arrive', 'AREA ARRIVAL', 'jaywalk', 1.25, 3),
   snd('new-best', 'NEW BEST', 'jaywalk', 1.45, 3),
-  // F3B — THE BREAKTHROUGHS (CC0). skylight + splashdown come in ≈ 7 dB quieter than the rest (−23.4 / −23.7 LUFS against ≈ −16 — the
-  // delivery's own measure): LOUDNESS-MATCHED HERE, by their gain (× 2.34 = + 7.4 dB · × 2.43 = + 7.7 dB over a shatter's 0.85 — the
-  // build machine has no MP3 encoder; the limiter holds their peaks). fireworks: soft, on purpose.
+  // F3B — THE BREAKTHROUGHS (CC0). skylight + splashdown come … sounds.js#2
   snd('skylight', 'THE SKYLIGHT (FLOOR 40)', 'freefall', 2.0, 4),
   snd('splashdown', 'THE SPLASHDOWN (FLOOR 120)', 'freefall', 2.05, 4),
   snd('fireworks', 'FIREWORKS (A FINISH)', 'freefall', 0.5, 3),
-  // F5C — THE MATCH MOMENTS: JAYWALK's own two files (referenced, never copied — audio/jaywalk/); a match only. Gains = THE MIX's: the
-  // out-drop LOUDER than JAYWALK's 0.28 (−27 dB as played would be lost under the bounces + the whooshes: here ≈ −18 dB)
+  // F5C — THE MATCH MOMENTS: JAYWALK's own two files … sounds.js#3
   snd('out-drop', 'A RIVAL OUT (A MATCH)', 'jaywalk', 0.8, 3),
   snd('last-standing', 'LAST ONE STANDING', 'jaywalk', 1.1, 4),
 ]);
-// F5C — THE MIX (docs/games/passes/freefall-f5c.md "THE MIX"): every file DECODED + measured (its loudest 300 ms, RMS) with its gain against
-// JAYWALK's table on the SAME limiter + trim — the shared files (AREA ARRIVAL · NEW BEST) at JAYWALK's own gains; the outs, the
-// breakthroughs + the bottom ≈ −12 … −16 dB as played (JAYWALK's HIT −11, its arrival −13); the bounce STAYS SOFT (−18), the whoosh −28.
-/** THE MUSIC DUCKS under the big moments (JAYWALK's flyers.js#DUCK): to this share of its level, in / out over these seconds */
+// F5C — THE MIX (docs/games/passes/freefall-f5c.md "THE … sounds.js#4
 export const DUCK = Object.freeze({ level: 0.5, inS: 0.25, outS: 0.9 });
 /** … the cues that duck it + how long it stays down from the cue's own start (ms) */
 export const DUCK_MS = Object.freeze({ crash: 1300, 'lights-out': 1800, skylight: 1800, splashdown: 2300, bottom: 2400, 'last-standing': 1800 });
@@ -35,7 +28,7 @@ export const SOUND_FILES = Object.freeze(SOUNDS.map(s => Object.freeze([s.dir, s
 export const VOICES = 8;
 /** a bounce: gain ± 1.5 dB — never the same twice (its pitch is the scale's: never bent) */
 export const BOUNCE_VARY_DB = 1.5;
-/** THE MUSIC (F4's cartridge — the console plays it; the test page has none, as HIGH RISE's): the site's mood stations, the evening deck by night */
+// THE MUSIC (F4's cartridge — the console plays it; the test … sounds.js#5
 export const MUSIC = Object.freeze(['mood:evening', 'menu']);
 
 /**
@@ -43,13 +36,13 @@ export const MUSIC = Object.freeze(['mood:evening', 'menu']);
  * recorded note (C4 — do re mi so la do′ re′ mi′).
  */
 export const SCALE_STEPS = Object.freeze([0, 2, 4, 7, 9, 12, 14, 16]);
-/** the note's pitch (a playback rate) for `n` clean floors in a row (1 = the first fall after a bounce; 0 = a bounce: the note itself) */
+// the note's pitch (a playback rate) for `n` clean floors in … sounds.js#6
 export function scaleRate(n) {
   const i = n < 1 ? 0 : n > SCALE_STEPS.length ? SCALE_STEPS.length - 1 : Math.floor(n) - 1;
   return Math.pow(2, SCALE_STEPS[i] / 12);
 }
 
-/** F3B — the breakthroughs' moments after their `area` event (s): the glass + the water 8 ticks on · the seabed a whole fall (18 ticks) on */
+// F3B — the breakthroughs' moments after their `area` event … sounds.js#7
 export const BREAK_HIT_S = 8 / 60, BOTTOM_HIT_S = 18 / 60;
 /** the floors whose arrival is a BREAKTHROUGH (its own sound takes the arrival's place) */
 export const BREAK_AT = Object.freeze({ skylight: 40, splash: 120, seabed: 200 });
@@ -59,11 +52,10 @@ export const CUE_FIREWORKS = Object.freeze({ id: 'fireworks', delay: BOTTOM_HIT_
 const CUE = Object.freeze({
   bounce: Object.freeze({ id: 'bounce', vary: true }), whoosh: Object.freeze({ id: 'whoosh' }), blaze: Object.freeze({ id: 'blaze' }), shatter: Object.freeze({ id: 'shatter' }),
   crash: Object.freeze({ id: 'crash' }), crack: Object.freeze({ id: 'crash', rate: 1.6, vol: 0.45 }), dark: Object.freeze({ id: 'lights-out' }), bottom: Object.freeze({ id: 'bottom' }), area: Object.freeze({ id: 'area-arrive', delay: 0.12 }),
-  // F3B — THE BREAKTHROUGHS, each at the moment the ball gets there (the `area` event is the tick it leaves the floor above: the glass / the
-  // water 8 ticks on, the seabed a whole fall on)
+  // F3B — THE BREAKTHROUGHS, each at the moment the ball gets … sounds.js#8
   skylight: Object.freeze({ id: 'skylight', delay: BREAK_HIT_S }), splash: Object.freeze({ id: 'splashdown', delay: BREAK_HIT_S }), seabed: Object.freeze({ id: 'bottom', delay: BOTTOM_HIT_S }),
 });
-/** the note's eight cues (one a step of the scale), a little quieter than a bounce (it rings on every floor of a dive) */
+// the note's eight cues (one a step of the scale), a little … sounds.js#9
 const CUE_NOTE = Object.freeze(SCALE_STEPS.map((_, i) => Object.freeze({ id: 'bounce', rate: scaleRate(i + 1), vol: 0.85 })));
 export const CUE_NEW_BEST = Object.freeze({ id: 'new-best' });
 
@@ -78,7 +70,7 @@ export function cuesOf(events, late = false, out = [], from = 0) {
   for (let i = from; i < events.length; i++) {
     const e = events[i];
     if (e.e === 'out') { out.push(e.cause === 'dark' ? CUE.dark : CUE.crash); continue; }
-    if (e.e === 'made') { if (!bed) out.push(CUE.bottom); continue; }   // (a finish: the seabed's hit was cued by the arrival just before it — a late batch has only this)
+    if (e.e === 'made') { if (!bed) out.push(CUE.bottom); continue; } // sounds#10
     if (late) continue;
     if (e.e === 'bounce') { out.push(CUE.bounce); if (e.red) out.push(CUE.crack); }
     else if (e.e === 'shatter') out.push(CUE.shatter);

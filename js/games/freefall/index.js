@@ -1,21 +1,21 @@
-// FREEFALL — THE CARTRIDGE (F4A — docs/freefall.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md; HIGH RISE's (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE CARTRIDGE (F4A — docs/freefall.md "THE … index.js#1
 import { createGame, nextStep, nextRun } from './director.js';
 import { gameStandings } from './logic.js';
 import { nightBonus as bonus, MATCH_MAX } from './match.js';
 import { BOARD } from './lines.js';
-// (THE THIN META: DEFAULT_SETTINGS, OPTIONS, estimateMinutes, MUSIC, LOOKS, SOLO, the banner, the chat's lock, cleanSettings — meta.js)
+// (THE THIN META: DEFAULT_SETTINGS, OPTIONS, estimateMinutes, … index.js#2
 export * from './meta.js';
 import { lazyView } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { currentLook, resolveLook, sunUpNow } from '../kit/look.js';
 
-/** THE MUSIC FOLLOWS THE LOOK (JAYWALK's rule — the existing mood stations): the day deck by day, the evening deck by night */
+// THE MUSIC FOLLOWS THE LOOK (JAYWALK's rule — the existing … index.js#3
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
 
-// (the stage's own sheet — css/freefall-play.css, the test page's: ONE look for both; three.js through the import map — Safari < 16.4 gets a clear card)
+// (the stage's own sheet — css/freefall-play.css, the test … index.js#4
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), ['kit', 'freefall-play'], { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('FREEFALL') : null });
 
-// THE PROOF NODE (rooms/{CODE}/ff/{matchId}/{uid} — proof.js): written by the player AT GO + their input log in chunks as they play
+// THE PROOF NODE (rooms/{CODE}/ff/{matchId}/{uid} — … index.js#5
 export const livePaths = g => ({ runs: `ff/${g.matchId}` });
 
 /** (a stand-in only: a run's seed is picked AFTER its GO — logic.js#seedOf — never this) */
@@ -32,7 +32,7 @@ export async function start({ matchId, settings, participants, now }) {
   if (n < 1 || n > MATCH_MAX) return null;
   return createGame({ matchId, settings, participants, now, seed: newSeed(), look: n > 1 ? await hostLook() : '' });
 }
-/** THE LOOK LOCK (FIX A): a match plays in the HOST's look on every phone — its Game look setting, AUTO = the sun at the host's place */
+// THE LOOK LOCK (FIX A): a match plays in the HOST's look on … index.js#6
 const hostLook = () => sunUpNow(Date.now()).then(up => resolveLook(currentLook(), up), () => resolveLook(currentLook(), true));
 
 export function prepare() { /* nothing to top up: the phone runs its own tower */ }
@@ -44,13 +44,13 @@ export const nightBonus = bonus;
 export function preload() {
   lazyImport(import('./sfx.js'), './sfx.js').then(S => S.fetchSounds()).catch(() => {});
 }
-/** PLAY AGAIN after a solo run — the console's INSTANT AGAIN (games/kit/again.js): the next run as a match of its own, no walk inside */
+// PLAY AGAIN after a solo run — the console's INSTANT AGAIN … index.js#7
 export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });
 export { finalScene } from './final.js';
 /** SHARE (F4B): THE SHARE CARD (share.js — the run's real end frame, the floors, the cause, the area + the blazes) on the site's share kit; the
  *  console's universal footer shows SHARE for a cartridge with it (ui/final.js) — solo + match */
-export { shareNow as shareRun } from './final.js';   // (F5B — the picture alone, the share sheet in the tap's own turn: final.js holds the loaded module)
-/** F5B — THE END-SCREEN BOARD (ui/end-board.js — the podium's shared block, opt-in): solo = the board's top 3 (THE WORLD · FRIENDS), a match = its own top 3 */
+export { shareNow as shareRun } from './final.js'; // index#8
+// F5B — THE END-SCREEN BOARD (ui/end-board.js — the podium's … index.js#9
 export const END_BOARD = Object.freeze({ b: BOARD, word: 'FLOORS', avg: true });
 
 export const finalRanks = game => gameStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));

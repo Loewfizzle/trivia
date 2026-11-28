@@ -24,6 +24,9 @@
    the screen, 1 = it is on the floor above — the edge down to the ball's bounce + the screen's sides closing in round a clear window
    where the ball is. NEVER over the ball or its floor; the HUD lies on top of it (the number stays read). One transform + one opacity,
    each written at a step — never in a frame. --ff-dk = its colour (the night's black-violet; by day the storm cloud's slate, the murk). */
+/* FIX C — THE VEIL: the darkness + the shade's top fall are DRAWN IN THE CANVAS now (veil.js — the frame's last pass: no full-screen
+   HTML layer composited over the 3D picture at 3× every frame). The layers below stay in the page, never shown — their rules are the record. */
+.ff-dark, .ff-shade::before { display: none !important; }
 .ff-dark { position: absolute; inset: 0; pointer-events: none; opacity: 0.001; transition: opacity 0.45s linear; --ff-dk: 3, 0, 10; --ff-dk-edge: 150, 100, 255; }
 .ff-stage:is([data-dark='3'], [data-dark='2'], [data-dark='1']) .ff-dark { opacity: 1; }
 /* (F5B — THE WATER HITCHES: at rest the layer + its veil are ALL BUT CLEAR (0.001 — never 0: a clear layer is dropped and painted again
@@ -138,7 +141,9 @@
 .ff-hint { display: inline-flex; align-items: center; gap: 10px; color: #fff; }
 .ff-hint-a { font: 700 40px/0.8 var(--font-ui); font-style: normal; text-shadow: 0 0 10px rgba(39, 224, 230, 0.8); }
 .ff-hint-track { position: relative; display: block; width: 132px; height: 34px; background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0 1.6px, transparent 2px) 0 50% / 12px 34px repeat-x; }
-.ff-hint-dot { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid var(--ff-teal); background: radial-gradient(circle, #fff 0 5px, #07040f 6px); box-shadow: 0 0 12px rgba(39, 224, 230, 0.8); animation: ff-sweep 2.4s ease-in-out infinite; will-change: transform; }
+.ff-hint-dot { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid var(--ff-teal); background: radial-gradient(circle, #fff 0 5px, #07040f 6px); box-shadow: 0 0 12px rgba(39, 224, 230, 0.8); }
+/* (FIX C: the sweep runs ONLY while the foot shows — it ran the whole run before, an animated layer under an invisible foot) */
+.ff-stage:is(.is-open, .is-teach) .ff-hint-dot { animation: ff-sweep 2.4s ease-in-out infinite; will-change: transform; }
 @keyframes ff-sweep { 0%, 100% { transform: translateX(-46px); } 50% { transform: translateX(46px); } }
 .ff-foot-t { margin-top: 14px; font: 900 clamp(22px, calc(var(--ff-w) * 0.07), 28px)/1 var(--font-display); letter-spacing: 0.08em; text-indent: 0.08em; color: #fff; text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 168, 0.95), 0 2px 0 rgba(8, 4, 20, 0.7); }
 
@@ -252,7 +257,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ff-dark::before { transition: none; }
-  .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
+  .ff-stage:is(.is-open, .is-teach) .ff-hint-dot, .ff-ec-best.is-new { animation: none; } .ff-stage.is-near .ff-warn { animation: none; } .ff-again { transition: none; }
   /* THE GLINT: ONE sweep only (+ its star once), then nothing moves */
   .ff-stage.is-open .ff-title { animation: none; } .ff-stage.is-open .ff-title.is-ready .ff-glint::before { animation: ff-glint-once 0.8s cubic-bezier(0.45, 0, 0.3, 1) 0.35s 1 both; } .ff-stage.is-open .ff-title.is-ready .ff-star { animation: ff-star-once 0.9s ease-in-out 0.95s 1 both; }
 }
@@ -415,3 +420,5 @@
   .ff-outcard { padding: 12px 30px; }
 }
 @media (prefers-reduced-motion: reduce) { .ff-rail-dot { transition: none; } }
+/* FIX C — `?hud=0` (the test page's A/B only): every HTML layer over the canvas hidden while a run is on */
+.ff-stage.ff-nohud:is(.is-live, .is-starting) :is(.ff-hud, .ff-best, .ff-banners, .ff-match, .ff-fps, .ff-note, .ff-snd, .ff-foot) { visibility: hidden; }

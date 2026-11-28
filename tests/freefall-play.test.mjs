@@ -81,7 +81,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   const own = g.files.filter(f => f.startsWith(FF)).map(f => f.slice(FF.length));
   // (F4B — THE MATCH on the page: the ghosts + the match's HUD are the stage's own; THE BOT ROOM — matchsim.js + the sims' bots + the proof's
   //  pure chunk maths — is LAZY: loaded only with `?mode=match&rivals=N`; nothing of it writes or counts)
-  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
+  assert.deepEqual(own, ['audition.js', 'bakedtext.js', 'banner.js', 'best.js', 'bot.js', 'break-fx.js', 'breaks.js', 'card.js', 'day-fx.js', 'empty.js', 'endscreen.js', 'engine.js', 'ghost-fx.js', 'ghosts.js', 'logic.js', 'matchhud.js', 'matchsim.js', 'night-fx.js', 'night.js', 'palettes.js', 'play.js', 'proof.js', 'replay.js', 'send.js', 'sfx.js', 'shot.js', 'sounds.js', 'stage.js', 'tower-gen.js', 'tuning.js', 'veil.js'], 'the game\'s own modules (never the lab or the graybox; the bots only in the lazy bot room; F5B: the share picture — card.js + send.js — lazy, at the end card)');
   // F5B — the page's SHARE: the picture kit is lazy, and nothing on the page sends through the share kit's own senders (send.js does)
   const fromDaily = g.files.filter(f => /from '[^']*daily\/share\.js'/.test(code(f)));
   assert.deepEqual(fromDaily, [`${FF}card.js`, 'js/games/kit/share-run.js'], 'the drawing reaches daily/share.js through card.js + the kit alone');
@@ -313,7 +313,7 @@ test('THE ADD-ONS (the owner, Nov 26) — THE LIGHTS GO OUT = JAYWALK-STYLE PRES
   const n = code(`${FF}night.js`), fx = read(`${FF}night-fx.js`), st = code(`${FF}stage.js`), sf = code(`${FF}sfx.js`), css = read('css/freefall-play.css').replace(/\/\*[\s\S]*?\*\//g, '');
   // THE PRESSURE: the rule's numbers (the rules tests prove what they do); the stage's data-dark = the floors the darkness is above the ball
   assert.deepEqual(DARK, { grace: 180, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 }, 'a stopped ball has 6 s (F3B: easing to 8 s from floor 160); the darkness is never more than 3 floors above');
-  assert.match(st, /stage\.dataset\.dark = on \? String\(Math\.max\(1, Math\.min\(3, gap\)\)\) : '';/);
+  assert.match(st, /vDark = on \? Math\.max\(1, Math\.min\(3, gap\)\) : 0;\n    stage\.dataset\.dark = vDark \? String\(vDark\) : '';/);   // (FIX C: the step also feeds THE VEIL — veil.js draws it in the canvas)
   assert.match(css, /\.ff-stage\[data-dark='3'\] \.ff-dark::before \{ transform: translate3d\(0, -80%, 0\); \}/, '3 floors off: a faint edge at the very top — a calm run sees no more');
   assert.match(css, /\.ff-stage\[data-dark='2'\] \.ff-dark::before \{ transform: translate3d\(0, -36%, 0\); \}/); assert.match(css, /\.ff-stage\[data-dark='1'\] \.ff-dark::before \{ transform: translate3d\(0, 0, 0\); \}/, 'it creeps down IN STEP: one transform a step');
   assert.match(css, /\.ff-dark::before \{[^}]*height: 24%;/, 'the edge ends above the ball\'s bounce: never over the ball or its floor');

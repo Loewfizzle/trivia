@@ -1,10 +1,8 @@
-// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT LOOK · F3: every material reads `uDay` and takes its day half from day-fx.js — (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE SCENE's SHADERS + THE BLOOM (F2: THE NIGHT … night-fx.js#1
 import * as THREE from 'three';
 import { CAUST, NOISE, DAY_WALLS, DAY_MAIN, DAY_SLICE } from './day-fx.js';
 
-// ---- THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov 26): a WHITE core → YELLOW → ORANGE → NEON PINK outer flame (synthwave
-// fire). ONE ramp for everything that burns (the flame sprites, the ribbon, the ball, the shockwave): `heat` 1 = white-hot … 0 = out.
-// The white-yellow heart is the brightest thing on the screen (it reads with the colour removed); pink is only the outer edge.
+// ---- THE BLAZE = NEON FIRE (the F2 add-on — the owner, Nov … night-fx.js#2
 export const FIRE_RAMP = /* glsl */`
 vec3 fire(float h) {
   vec3 c = mix(vec3(1.0, 0.07, 0.6), vec3(1.0, 0.36, 0.04), smoothstep(0.08, 0.26, h));  // neon pink → orange
@@ -12,7 +10,7 @@ vec3 fire(float h) {
   return mix(c, vec3(1.0, 1.0, 0.92), smoothstep(0.74, 0.95, h));                           // → white
 }`;
 
-// ---- THE SHAFT (the backdrop — drawn into a HALF-RES target, then copied up: a wall is soft by nature). A screen-filling quad: each (→ §2, docs/freefall.md MODULE NOTES)
+// ---- THE SHAFT (the backdrop — drawn into a HALF-RES … night-fx.js#3
 export const WALL_V = /* glsl */`
 varying vec2 vS;
 void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9999, 1.0); }`;
@@ -118,7 +116,7 @@ void main() {
   // (written DISPLAY-READY into its half-res target — 8 bits of linear light would band in the dark; the copy up is a plain copy)
   gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(0.4545)), 1.0);
 }`;
-// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL RESOLUTION (the add-on, Nov 26 — the owner: JAYWALK's skyline stretched round the (→ §3, docs/freefall.md MODULE NOTES)
+// ---- THE ROOFTOP's SKY = FREEFALL's OWN PANORAMA, AT FULL … night-fx.js#4
 export const SKY_V = 'varying vec2 vS; void main() { vS = position.xy; gl_Position = vec4(position.xy, 0.9998, 1.0); }';
 export const SKY_F = /* glsl */`
 uniform sampler2D tPano, tRoof, tCity, tGrain;
@@ -209,7 +207,7 @@ void main() {
 export const COPY_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }';
 export const COPY_F = 'precision highp float; uniform sampler2D tMap; uniform float uBloom; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb * (1.0 - uBloom), 1.0); }';
 
-// ---- THE SLICES: ONE instanced mesh for every solid slice in sight. A slice = a wedge of the ring (aE = its own coordinates: across the (→ §4, docs/freefall.md MODULE NOTES)
+// ---- THE SLICES: ONE instanced mesh for every solid slice … night-fx.js#5
 export const SLICE_V = /* glsl */`
 attribute vec4 aE, aI, aC, aF;
 attribute vec3 aR;
@@ -366,7 +364,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE BALL: a white-hot core (its CENTRE decides — the hottest point IS the centre), a warm edge; THE BLAZE turns it to fire
+// ---- THE BALL: a white-hot core (its CENTRE decides — the … night-fx.js#6
 export const BALL_V = /* glsl */`
 uniform vec3 uSquash;
 varying vec3 vN, vW;
@@ -408,7 +406,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE LIGHTS (one instanced quad, added light): aP = (its place, its half size) · aQ = (its kind, its strength, stretch up — a (→ §5, docs/freefall.md MODULE NOTES)
+// ---- THE LIGHTS (one instanced quad, added light): aP = … night-fx.js#7
 export const LIGHT_V = /* glsl */`
 attribute vec4 aP, aQ;
 attribute vec3 aC;
@@ -467,7 +465,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack — assets/freefall/fx/blaze.webp: two flames, the hot speckle, the smoke), (→ §6, docs/freefall.md MODULE NOTES)
+// THE FLAMES: billowing flame SPRITES (Kenney's Particle Pack … night-fx.js#8
 export const FLAME_V = /* glsl */`
 attribute vec3 aO, aV;
 attribute vec4 aT;
@@ -513,8 +511,7 @@ void main() {
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
-// THE RIBBON: the fire's tail behind the ball — a strip that waves like a flame (it bends more towards its tip), in the same ramp:
-// white along its heart at the ball, yellow, orange, neon pink at its edges + its tip
+// THE RIBBON: the fire's tail behind the ball — a strip that … night-fx.js#9
 export const RIBBON_V = /* glsl */`
 uniform vec3 uAt;
 uniform float uLen, uWid, uTime;
@@ -545,8 +542,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE SHARDS: a shattered slice's pieces — real 3D chips thrown out + down, tumbling, flown HERE (a shard = its start, its throw,
-// its tumble axis, (its birth, its life, its size, its spin), its colour: nothing is stepped on the CPU)
+// ---- THE SHARDS: a shattered slice's pieces — real 3D chips … night-fx.js#10
 export const SHARD_V = /* glsl */`
 attribute vec3 aO, aV, aAx, aC;
 attribute vec4 aT;
@@ -575,8 +571,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE SPARKS (HIGH RISE's): a spark = its start (aO), its throw (aV), (its birth s, its life s, its width) in aT, its colour — a
-// streak from where it was 35 ms ago to where it is, under gravity. Added light.
+// ---- THE SPARKS (HIGH RISE's): a spark = its start (aO), … night-fx.js#11
 export const SPARK_V = /* glsl */`
 attribute vec3 aO, aV, aT, aC;
 uniform float uTime, uAspect, uGrav;
@@ -608,8 +603,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- YOUR BEST's GOLD TAPE (HIGH RISE's idea, round a ring): ONE thin line of gold light round the rim of your best floor + a soft glow
-// off it — never a fill. The line covers what is behind it (its gold stays gold on a pink floor); held down in the bloom pass.
+// ---- YOUR BEST's GOLD TAPE (HIGH RISE's idea, round a … night-fx.js#12
 export const TAPE_V = /* glsl */`
 varying float vY;
 void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
@@ -631,8 +625,7 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-// ---- THE HALF-RES BLOOM (HIGH RISE's — tier 2 only): the scene's LIGHTS again (every material's uBloom pass) → a half-res target →
-// blurred at a quarter → added back over the picture
+// ---- THE HALF-RES BLOOM (HIGH RISE's — tier 2 only): the … night-fx.js#13
 const QUAD_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const BLUR_F = `precision highp float; uniform sampler2D tMap; uniform vec2 uStep; varying vec2 vUv;
 void main() {

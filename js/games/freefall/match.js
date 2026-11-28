@@ -1,4 +1,4 @@
-// FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE MATCH"; HIGH RISE's match.js is the pattern, JAYWALK's start number for number): (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE MATCH's RULES (F4B — docs/freefall.md "THE … match.js#1
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { TICK_HZ, MODES } from './tuning.js';
 import { seedOf, gameStandings } from './logic.js';
@@ -9,7 +9,7 @@ export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
 /** THE MATCH's START (JAYWALK's exact start): every phone writes its own GO in the count's last 2 s; THE FIRST GO to land picks the seed
  *  AND sets tick 0 = that time + this, for everyone */
 export const GO_LEAD_MS = 2000;
-/** no GO at all this long after the count's end (no signal anywhere, the rules not published) → the match plays UNPROVEN, never counted */
+// no GO at all this long after the count's end (no signal … match.js#2
 export const NO_GO_MS = 3000;
 /** after the 3:00 cap: the last chunks land — longer than the judge's own lateness (proof.js CLOCK.behind, 8 s: THE FRESH-EYES REVIEW — at
  *  HIGH RISE's 4 s a capped run on a 5 s line was scored a floor short by the host's step while the server already had every chunk) */
@@ -22,12 +22,12 @@ export const DROP_WAIT_MS = 75000;
 export const IDLE_OUT_MS = 18000;
 /** an UNPROVEN match (no proof can be written — nobody's end can be signalled) simply ends after this (JAYWALK's) */
 export const UNPROVEN_MS = 90000;
-/** Call the Winner: a call counts when it was made within this of the caller's own end (the out is seen first, then the kit's window) */
+// Call the Winner: a call counts when it was made within this … match.js#3
 export const CALL_WINDOW_MS = CALL_MS + 6000;
 /** the fewest · the most players of a match (the console's room holds 8) */
 export const MATCH_MIN = 2, MATCH_MAX = 8;
 
-/** PURE: the phones, the host's director and the server derive the same start from the same proof nodes. null = no GO yet. */
+// PURE: the phones, the host's director and the server derive … match.js#4
 export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(String(code), String(matchId), g0) } : null; };
 
 /**
@@ -44,13 +44,13 @@ export function startOf(game, runs, code) {
 /** A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A): a FIRST GO the server stamped BEFORE the host gave up (the unproven step's own time)
  *  means the GO was there all along — the match is proven on the GO's seed + tick 0 (the director takes the unproven mark back) */
 export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseStartAt);
-/** a match's clock: a server time → its tick (tick 0 = game.playAt) · the moment the 3:00 cap falls (ms, a server time) */
+// a match's clock: a server time → its tick (tick 0 = … match.js#5
 export const tickAt = (game, now) => Math.floor((now - game.playAt) * TICK_HZ / 1000);
 export const capAt = game => game.playAt + Math.ceil(MODES.match.capTicks * 1000 / TICK_HZ);
 /** a result row's ball was STILL FALLING when the match ended — the finish (floor 200) or the 3:00 cap: never "out" */
 export const stoodToEnd = r => !!r && (r.w === 'made' || r.w === 'cap');
 
-/** when a player's proof last moved (ms, a server time): their newest chunk's arrival, else their GO, else the match's tick 0 */
+// when a player's proof last moved (ms, a server time): their … match.js#6
 export function lastSeen(game, node) {
   let at = game.playAt;
   if (node && node.go > at) at = node.go;
@@ -85,7 +85,7 @@ export function liveOf({ code, matchId, tree, now, online = null }) {
  */
 export function scoreCalls(game, runs, results) {
   const out = {}, ids = Object.keys(game.participants || {}), first = gameStandings({ participants: game.participants, results }).filter(r => r.rank === 1).map(r => r.uid);
-  // (core/proof.js: a player with NO RUN (no GO on time) is never "still in" (they ended before anyone: −1); a FULL DRAW pays nobody)
+  // (core/proof.js: a player with NO RUN (no GO on time) is … match.js#7
   const g0 = firstGo(runs), endOf = u => { const r = results[u] || {}; return !inMatch(runs, u, g0) ? -1 : stoodToEnd(r) || !(r.e >= 0) ? Infinity : r.e; };
   if (fullDraw(first, ids)) return out;
   for (const uid of ids) {

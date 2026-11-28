@@ -1,4 +1,4 @@
-// FREEFALL — THE ARRIVAL BANNERS (F3 — docs/freefall.md "THE ARRIVAL BANNERS"): on reaching an area a band crosses the screen — "THE (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE ARRIVAL BANNERS (F3 — docs/freefall.md "THE … banner.js#1
 import { h } from '../../ui/dom.js';
 import { parseShadows } from './bakedtext.js';
 
@@ -21,7 +21,7 @@ export const BANNER_SAY_MS = 350;
 const fontOf = cs => `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
 const fontReady = f => { try { return !document.fonts || !document.fonts.check || document.fonts.check(f); } catch { return true; } };
 
-/** createBanner() → { el, prepare(name, sub, cls?), ready(name, sub), show(name, sub, onDone, cls?) → shown?, dirty(), showing(), clear(), info(), destroy() } */
+// createBanner() → { el, prepare(name, sub, cls?), … banner.js#2
 export function createBanner() {
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const live = h('span.ff-banner-live', { role: 'status', 'aria-live': 'polite' });
@@ -29,7 +29,7 @@ export function createBanner() {
   const bands = new Map();   // "name|sub" → { node, nameEl, subEl, cv, cls, name, sub }
   let anim = null, until = 0, bakes = 0, shows = 0, gone = false, shown = '', lastBake = 0, sayTimer = 0;
   const keyOf = (name, sub) => `${name}|${sub}`;
-  /** one line, drawn letter by letter at its own spacing (a canvas has no letter-spacing everywhere), its shadows under it — the LAST of the list at the bottom */
+  // one line, drawn letter by letter at its own spacing (a … banner.js#3
   function line(c, text, cs, cx, cy, dpr) {
     const font = fontOf(cs), ls = parseFloat(cs.letterSpacing) || 0, shadows = parseShadows(cs.textShadow);
     c.font = font; c.textBaseline = 'middle'; c.textAlign = 'left';
@@ -54,7 +54,7 @@ export function createBanner() {
     if (bands.size > BANNER_KEEP) { const first = bands.keys().next().value; if (first !== shown) { bands.get(first).node.remove(); bands.delete(first); } }
     return b;
   }
-  /** a band's two lines into its own canvas, from their OWN computed styles (the look's inks + glows) — never called in a frame a ball lands in */
+  // a band's two lines into its own canvas, from their OWN … banner.js#4
   function bake(b) {
     if (gone || !b.node.isConnected) return false;
     const box = b.node.getBoundingClientRect();
@@ -79,7 +79,7 @@ export function createBanner() {
   }
   return {
     el,
-    /** a band made ready AHEAD of its arrival (the stage: every area's at a restart — behind the opening; a later lap's between two arrivals). Kept: asked again, nothing is done. Never while a band is up. */
+    // a band made ready AHEAD of its arrival (the stage: every … banner.js#5
     prepare(name, sub, cls) {
       if (bands.has(keyOf(name, sub)) || performance.now() < until) return;
       bake(build(name, sub, cls));
@@ -88,7 +88,7 @@ export function createBanner() {
     ready: (name, sub) => bands.has(keyOf(name, sub)),
     /** the look (or the size) changed: every kept band is baked again in its new inks */
     dirty() { if (performance.now() >= until) for (const b of bands.values()) bake(b); },
-    /** the band crosses: ONE one-shot (opacity + transform) on its own node — nothing else is touched → false = a band is still up (the caller keeps this one for after it) */
+    // the band crosses: ONE one-shot (opacity + transform) on its … banner.js#6
     show(name, sub, onDone, cls) {
       if (performance.now() < until) return false;
       let b = bands.get(keyOf(name, sub));

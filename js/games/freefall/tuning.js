@@ -1,11 +1,10 @@
-// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — docs/freefall.md "THE NUMBERS" · "THE RULE-SET TABLE"): EVERY NUMBER OF THE RULES lives (→ §1, docs/freefall.md MODULE NOTES)
+// FREEFALL — THE TUNING + THE RULE-SET TABLE (F1 — … tuning.js#1
 
-/** THE FIXED STEP: the rules count TICKS, never milliseconds — 60 a second. (The view turns its clock into ticks; the rules never read one.) */
+// THE FIXED STEP: the rules count TICKS, never milliseconds — … tuning.js#2
 export const TICK_HZ = 60;
 export const TICK_MS = 1000 / TICK_HZ;
 
-// ---- THE TOWER's SHAPE (the same for every rule set: the input log's angles are written in these units)
-/** ONE TURN of the tower = 4096 angle units: the tower angle A is an integer 0 … 4095 */
+// ---- THE TOWER's SHAPE (the same for every rule set: the … tuning.js#3
 export const TURN = 4096;
 /** a floor = a ring of 12 slices round the pillar */
 export const SLICES = 12;
@@ -14,7 +13,7 @@ export const BALL = 0;
 /** a slice's kind */
 export const SAFE = 0, GAP = 1, RED = 2;
 
-/** a curve by floor: knots [floor, value], straight lines between them (integers), held before the first + after the last */
+// a curve by floor: knots [floor, value], straight lines … tuning.js#4
 export function rampOf(K, x) {
   if (x <= K[0][0]) return K[0][1];
   for (let i = 1; i < K.length; i++) {
@@ -36,10 +35,9 @@ export const isRuleRow = r => r !== null && typeof r === 'object' && ROWS.has(r)
  * to try a number (scripts/freefall-sim.mjs) — a run can be played on one, but THE JUDGE only ever takes a row's ID that THE TABLE holds.
  */
 export const makeRuleSet = r => {
-  // (derived — never tuned by hand)
-  // THE FALL WINDOW's reach: the angle a HUMAN-PACED spin covers between a gap and the landing below it (after the reaction)
+  // (derived — never tuned by … tuning.js#5
   const reach = (r.fall > r.human.react ? r.fall - r.human.react : 0) * r.human.spin;
-  // THE HOP: the longest run of red slices a human-paced spin crosses inside ONE bounce (after the reaction), a slice of slack kept
+  // THE HOP: the longest run of red slices a human-paced spin … tuning.js#6
   const sliceMax = Math.floor((TURN + SLICES - 1) / SLICES);
   const hop = Math.floor(((r.bounce > r.human.react ? r.bounce - r.human.react : 0) * r.human.spin) / sliceMax) - 1;
   const row = Object.freeze({
@@ -86,7 +84,7 @@ export const RULE_SETS = Object.freeze({
     first: 18, bounce: 36, fall: 18,
     blaze: 3,
     shatterSafe: true,
-    // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner Nov 26: it was 4 s · 150 · 6 — a stopped ball had 15 s and nobody ever SAW (→ §2, docs/freefall.md MODULE NOTES)
+    // (F3 — THE LIGHTS GO OUT = JAYWALK-STYLE PRESSURE, the owner … tuning.js#7
     dark: { grace: 3 * TICK_HZ, pace: 120, lead: 3, paceDeep: 160, easeFrom: 100, easeTo: 160 },
     human: { react: 12, spin: 68 },
     gen: {
@@ -95,8 +93,7 @@ export const RULE_SETS = Object.freeze({
       red: [[10, 384], [40, 768], [80, 960], [120, 1152], [160, 1408], [200, 1664]],
       hug: [[40, 56], [80, 88], [120, 128], [160, 200], [200, 240]],
       redFrom: 10, hugFrom: 40, belowUntil: 120, windowRamp: 40,
-      // (F5B — THE BLIND FLOORS, the owner: the floors the skylight (40) + the water (120) hide until their breakthrough carry NO red — the
-      //  first landing under them is made blind. A layout rule of the row: nothing counted yet (THE SWITCH is off) — no new rule-set row)
+      // (F5B — THE BLIND FLOORS, the owner: the floors the skylight … tuning.js#8
       blind: [40, 120],
       redMax: 8, safeMin: 3, gapSlicesMax: 6,
       lap: { from: 200, every: 40, red: 128, hug: 8 },
@@ -127,7 +124,7 @@ export const RULES_ID_MAX = 16;
 /** an id → its row, or null (an unknown id · anything that is not a plain id: never 'constructor' / '__proto__') */
 export const ruleSet = id => (typeof id === 'string' && id.length <= RULES_ID_MAX && /^[a-z0-9-]+$/.test(id) && Object.prototype.hasOwnProperty.call(RULE_SETS, id) ? RULE_SETS[id] : null);
 
-// ---- THE CLASSIC ROW BY NAME (for the views, the sims + the tests — never a second copy; THE ENGINE + THE JUDGE read `run.R`)
+// ---- THE CLASSIC ROW BY NAME (for the views, the sims + the … tuning.js#9
 const C = RULE_SETS.classic;
 export const MAX_SPIN = C.maxSpin;
 export const FIRST = C.first;
@@ -143,12 +140,11 @@ export const HUMAN = C.human;
 export const GEN = C.gen;
 export const REACH = C.reach;
 export const HOP = C.hop;
-/** THE MODES: `finish` = the floor that ends the run as MADE IT (null = endless) · `capTicks` = the tick the run ends where it stands */
+// THE MODES: `finish` = the floor that ends the run as MADE … tuning.js#10
 export const MODES = C.modes;
 export const MODE_IDS = Object.freeze(Object.keys(MODES));
 
-// ---- THE AREAS (by floor — pure, for the views; logic.js#areaOf reads them): THE TRENCH = everything past THE BOTTOM (solo only — the
-// other modes end ON floor 200), the deep's palettes cycled, one LAP every `GEN.lap.every` floors
+// ---- THE AREAS (by floor — pure, for the views; … tuning.js#11
 export const AREAS = Object.freeze([
   Object.freeze({ id: 'rooftop', from: 0, name: 'THE ROOFTOP' }),
   Object.freeze({ id: 'offices', from: 40, name: 'THE OFFICES' }),
@@ -169,9 +165,9 @@ export const TERMINAL_RUN = 15;
 
 // ---- THE INPUT LOG's BOUNDS
 export const SEED_MAX = 64;
-/** a run's whole log at most: ONE entry a tick (the ticks rise) — so never more entries than the longest mode has ticks */
+// a run's whole log at most: ONE entry a tick (the ticks … tuning.js#12
 export const MAX_LOG = Object.values(C.modes).reduce((m, v) => (v.capTicks > m ? v.capTicks : m), 0);
 /** F2 — THE HOLD: the most holds any mode allows (the log's bound: its entries + this many holds) */
 export const HOLDS_MAX = Object.values(C.modes).reduce((m, v) => ((v.holds || 0) > m ? v.holds : m), 0);
-/** the longest a packed entry is: '.' + a gap (≤ 4 base-36 digits: 108000 = "2bc0") + a sign + a turn (≤ 3 digits: 2048 = "1kw") */
+// the longest a packed entry is: '.' + a gap (≤ 4 base-36 … tuning.js#13
 export const ENTRY_CHARS_MAX = 9;

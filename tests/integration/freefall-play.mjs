@@ -1109,7 +1109,9 @@ async function checks5() {
     await waitFor(t.p, "window.__ffPlay.state().darkAttr === '2'", 12000);
     await sleep(700);
     if (OUT) await shot(t.p, 'f4a-dark-day-step2.png');
-    const edges = await t.p.evaluate(() => { const st = document.querySelector('.ff-stage'), d = document.querySelector('.ff-dark'), out = {}, was = st.dataset.area; for (const a of ['rooftop', 'offices', 'speakeasy', 'harbor', 'deep']) { st.dataset.area = a; out[a] = getComputedStyle(d).getPropertyValue('--ff-dk-edge').split(',').map(Number); } st.dataset.area = was; return out; });
+    const edges = await t.p.evaluate(async () => { const { veilInk } = await import('/js/games/freefall/veil.js'), out = {}; for (const a of ['rooftop', 'offices', 'speakeasy', 'harbor', 'deep']) out[a] = veilInk(true, a)[1]; return out; });   // (FIX C — THE VEIL: the colours are veil.js's table now)
+    const vs = await t.p.evaluate(() => window.__ffPlay.state().veil);
+    ok(vs && vs.on > 0.9 && Math.abs(vs.edge + 0.36) < 0.02 && vs.shade > 0.9 && vs.day === 1, `THE VEIL (FIX C) draws step 2 in the canvas — on ${vs && vs.on} · edge ${vs && vs.edge} · shade ${vs && vs.shade}`);
     ok(Object.values(edges).every(e => e.length === 3 && Math.max(...e) < 60), `by day THE DARKNESS's edge is a DARKER rim in every area — no pale stripe through the big number (${Object.entries(edges).map(([k, v]) => `${k} ${v.join(' ')}`).join(' · ')})`);
     await t.close();
     const u = await open(390, 844, 2, '?seed=f4a-blaze&look=day&floor=84');
@@ -1524,7 +1526,45 @@ async function fixb() {
   await t.close();
 }
 
+// ======================================================================================== FIX C (Nov 27) — THE SWITCHES, THE VEIL, THE TEST PAGE
+async function fixc() {
+  const S = 'window.__ffPlay.state()';
+  // (1) `?hud=0`: no HTML layer over the canvas while a run is on; the fps line + the end card come back at the end
+  let t = await open(390, 844, 3, '?seed=fixc1&fps=2&hud=0');
+  await start(t); await auto(t.p, 'play');
+  await waitFor(t.p, `${S}.floor >= 4`, 20000);
+  const vis = await t.p.evaluate(() => [...document.querySelectorAll('.ff-hud, .ff-best, .ff-banners, .ff-match, .ff-fps, .ff-note')].map(e => [e.className, getComputedStyle(e).visibility]));
+  let s = await st(t.p);
+  ok(vis.length >= 5 && vis.every(v => v[1] === 'hidden') && s.veil.on === 0 && s.veil.shade === 0, `?hud=0: every HTML layer hidden in play + no veil (${vis.map(v => `${v[0].split(' ')[0]} ${v[1]}`).join(' · ')} · veil ${s.veil.on}/${s.veil.shade})`);
+  if (OUT) await shot(t.p, 'fixc-hud0-play.png');
+  await auto(t.p, 'red'); await waitFor(t.p, `${S}.shown`, 30000); await sleep(500);
+  s = await st(t.p);
+  const fpsVis = await t.p.evaluate(() => getComputedStyle(document.querySelector('.ff-fps')).visibility);
+  ok(fpsVis === 'visible' && /AB hud 0/.test(s.fpsLine) && /RUN · \d+ s · /.test(s.fpsLine) && /WHY/.test(s.fpsLine), `… the end: the fps line is back, named "hud 0", with the run's seconds + WHY (${s.fpsLine.replace(/\n/g, ' | ').slice(0, 160)})`);
+  if (OUT) await shot(t.p, 'fixc-hud0-end.png');
+  ok(!t.errs.length, `… no page error (${t.errs.join(' | ') || 'none'})`);
+  await t.close();
+  // (2) `?empty=1`: THE CONTROL — the canvas alone (no stage, no HTML layer), 30 s, then the line
+  {
+    const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [];
+    p.on('pageerror', e => errs.push(String(e.message || e)));
+    await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    await p.goto(guardUrl(`${BASE}/freefall-play?fps=2&empty=1`, 'freefall-play'), { waitUntil: 'load' });
+    await waitFor(p, '!!window.__ffEmpty && window.__ffEmpty.state().frames > 30', 20000);
+    const n = await p.evaluate(() => ({ stage: !!document.querySelector('.ff-stage'), canvases: document.querySelectorAll('canvas').length, kids: document.querySelector('.ff-empty').children.length, shown: getComputedStyle(document.querySelector('.ff-empty').lastElementChild).display }));
+    ok(!n.stage && n.canvases === 1 && n.shown === 'none', `?empty=1: one canvas, no game stage, nothing shown over it while it counts (${JSON.stringify(n)})`);
+    await waitFor(p, 'window.__ffEmpty.state().done', 40000);
+    const e = await p.evaluate(() => window.__ffEmpty.state());
+    ok(e.done && e.frames > 600 && e.dpr === 3 && /EMPTY \(the control\) · 30 s/.test(e.line) && /HITCH \d+/.test(e.line), `… 30 s later THE LINE (${e.line.replace(/\n/g, ' | ')})`);
+    if (OUT) await p.screenshot({ path: join(OUT, 'fixc-empty-end.png') });
+    ok(!errs.length, `… no page error (${errs.join(' | ') || 'none'})`);
+    await ctx.close();
+  }
+  if (argv.includes('--fixc-g0')) return;
+}
+
 if (LOOK) await look();
+else if (argv.includes('--fixc') || argv.includes('--fixc-g0')) await fixc();
 else if (argv.includes('--watershot')) await watershot();
 else if (argv.includes('--fixb')) await fixb();
 else if (argv.includes('--contrast')) await contrast();
