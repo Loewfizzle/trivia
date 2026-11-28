@@ -1002,3 +1002,10 @@
 - **ANTI-CHEAT SHIPS WITH FREEFALL (Ben, Nov 27):** the too-perfect HOLD (S3) + the COPYCAT check (S2); JAYWALK + HIGH RISE get them later in
   their own passes.
 - **THE FINISH SHARE CARD:** the reviewer's bigger coloured bursts + a dark vignette by day (Ben: yes).
+
+## FREEFALL — FIX D: THE IN-PLAY HUD INSIDE THE 3D PICTURE (Nov 27)
+- **THE SPEED CAUSE, FOUND (Ben's iPhone, Nov 27, `?fps=2`):** after FIX C 15 hitches / 75 floors (2.0 per 10 floors; FIX C's veil move cut
+  ~40 %) · `&hud=0`: 4 / 65 (0.6 per 10) · `&empty=1`: 0 hitches in 1,800 frames. iPhone Safari is fine; the stutter = the HTML HUD layers
+  over the canvas (re-rasterised with their glows on every change, composited over WebGL). FIX D draws the in-play HUD inside the WebGL picture.
+- **GO-LIVE gets (Ben, Nov 27):** a small /admin HELD list + RELEASE button for runs the anti-cheat holds.
+- **HOW TO PLAY:** "Multiplayer never pauses" (not "a match never pauses").
