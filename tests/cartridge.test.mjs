@@ -33,11 +33,11 @@ export const EXEMPT = FROZEN_IDS;   // (FIXES R2 — B1: config.js#FROZEN_IDS, t
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear', 'drop']);   // (THE DROP A: + THE DROP)
 /** HE3 — BEING BUILT: a GAMES row with playable: false + `preview: true` (no sign, never offered; a local emulator page may start it), NOT
  *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable (HOLD'EM: HE10). */
-export const BUILDING = Object.freeze(['freefall']);   // (FREEFALL F4A — the hidden cartridge, until its go-live pass flips `playable`)   // (HIGH RISE's GO-LIVE, Nov 20: it went playable — the third game through the whole road)   // (THE GO-LIVE PASS, Nov 17: JAYWALK went playable — the second game through the whole road)
+export const BUILDING = Object.freeze([]);   // (FREEFALL's GO-LIVE, Nov 28: it went playable — the fourth game through the whole road; the next game being built brings a row back)   // (HIGH RISE's GO-LIVE, Nov 20: it went playable — the third game through the whole road)   // (THE GO-LIVE PASS, Nov 17: JAYWALK went playable — the second game through the whole road)
 const CHECKED = [...PLAYABLE, ...DAILY_ONLY, ...BUILDING];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
-  assert.deepEqual([...PLAYABLE].sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);   // (HE10: + HOLD'EM · THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE)
+  assert.deepEqual([...PLAYABLE].sort(), ['freefall', 'highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);   // (HE10: + HOLD'EM · THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE · FREEFALL's GO-LIVE: + FREEFALL)
   for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT, BUILDING].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt / being built`);
   for (const id of BUILDING) { const g = GAMES.find(x => x.id === id); assert.ok(g && g.playable === false && g.preview === true && !g.sign, `${id}: a GAMES row, playable false, preview, NO sign (never offered)`); }
   for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);
@@ -114,7 +114,7 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
   // (CITY PART 1 — THE ONE META MODULE: the registry imports js/games/metas.js alone — a ROW for each playable game, a new game = a row)
   assert.deepEqual(statics.filter(s => /meta/.test(s)), ['./metas.js'], 'the boot’s game data = ONE module');
   const { META: ROWS } = await import('../js/games/metas.js');
-  assert.deepEqual(Object.keys(ROWS).sort(), [...PLAYABLE, ...BUILDING].sort(), 'a row for every playable game + the one being built (FREEFALL F4A: a hidden row — THE ONE META MODULE), no other');
+  assert.deepEqual(Object.keys(ROWS).sort(), [...PLAYABLE, ...BUILDING].sort(), 'a row for every playable game + any being built (FREEFALL F4A: a hidden row — THE ONE META MODULE; playable since its GO-LIVE), no other');
   assert.equal(registered.length, 19);   // (FREEFALL F4A: + FREEFALL, being built)   // (HIGH RISE S4A: + HIGH RISE, being built)   // (HE3: + HOLD'EM, being built; THE DROP A: + THE DROP — daily-only; JAYWALK H1: + JAYWALK, being built)
   for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);

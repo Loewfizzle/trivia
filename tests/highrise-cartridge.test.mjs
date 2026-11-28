@@ -47,9 +47,9 @@ test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11
   assert.match(read('js/games/metas.js'), /^  highrise: Object\.freeze\(\{/m, 'its thin meta at boot — its ROW in THE ONE META MODULE (CITY PART 1)');
   assert.match(read('js/ui/help.js'), /RULES\.highrise = \{/); assert.match(read('js/ui/help.js'), /highrise: 'HR'/, 'HOW TO PLAY + its tab');
   assert.match(read('js/ui/game-art.js'), /highrise: \(\) => HIGHRISE/, 'its tile (THE TOWER)');
-  assert.match(read('js/board/view.js'), /'jaywalk', 'highrise'\]\);/, 'its tab on THE BOARD');
+  assert.match(read('js/board/view.js'), /'jaywalk', 'highrise'(, 'freefall')?\]\);/, 'its tab on THE BOARD');
   // THE SIGN HOLD — LIFTED by CITY PART 1 (Nov 20) with HIGH RISE's signs: the hold is empty, the roster's filter stays (the next game's go-live)
-  assert.match(read('js/core/harbor-neon.js'), /export const SIGN_HOLD = Object\.freeze\(\[\]\);/);
+  assert.match(read('js/core/harbor-neon.js'), /export const SIGN_HOLD = Object\.freeze\(\[('freefall')?\]\);/);   // (HIGH RISE never held now; FREEFALL's GO-LIVE holds FREEFALL alone)
   assert.match(read('js/core/harbor-neon.js'), /!SIGN_HOLD\.includes\(g\.id\)/, 'the roster still reads the hold');
   assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)/, 'the neon (the signs + the billboard) reads the same roster');
   // the server: counted for everyone (the owner-only branch never matches a playable row)
@@ -243,7 +243,7 @@ test('THE CARDS: ABOVE THE CLOUDS (floor 60) + TOP OF THE WORLD (floor 200) in t
     assert.ok(appr.includes(`'${id}'`), `${id}: its art ships (approved.js#SHIPPED — no mark needed)`);
   }
   assert.match(appr, /for \(const id of SHIPPED\) out\.add\(id\);/); assert.match(appr, /if \(SHIPPED\.includes\(id\)\) return true;/);
-  assert.match(lab, /export const SHIPPED_TIERS = Object\.freeze\(\{ 'card-abovetheclouds': 'rare', 'card-topoftheworld': 'legendary' \}\);/, 'their tiers without a lab row');
+  assert.match(lab, /export const SHIPPED_TIERS = Object\.freeze\(\{ 'card-abovetheclouds': 'rare', 'card-topoftheworld': 'legendary'[,}]/, 'their tiers without a lab row (FREEFALL’s three after them since its GO-LIVE)');
 });
 
 test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one at a time; the tag\'s words; the landing over their floor crosses it; the table\'s values are towers (one sort number) or plain floors', () => {

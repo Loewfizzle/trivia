@@ -29,7 +29,7 @@ test('the catalog: HOLD\'EM has a board + a tab; the tab shows ONE board — TOU
   assert.ok(BOARD_GAMES.includes('holdem'));
   assert.ok(GOAL_GAMES.includes('holdem'), 'a playable board game can be the weekly goal\'s featured game');
   const view = readFileSync(new URL('../js/board/view.js', import.meta.url), 'utf8');   // (the view needs a browser — read its list)
-  assert.ok(view.includes("export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise']);"), 'SEVEN TABS (THE GO-LIVE PASS: + JAYWALK · HIGH RISE\'s GO-LIVE: + HIGH RISE)');
+  assert.ok(view.includes("export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise', 'freefall']);"), 'EIGHT TABS (THE GO-LIVE PASS: + JAYWALK · HIGH RISE\'s GO-LIVE: + HIGH RISE · FREEFALL\'s GO-LIVE: + FREEFALL)');
   const d = boardDef('holdem-tw');
   assert.equal(d.game, 'holdem');
   assert.equal(d.tie, 'ko');

@@ -57,13 +57,13 @@ function perfect(floors) {
   return { ...nodeOf(logOf(run), { seed }), seed, live: resultOf(run) };
 }
 
-test('REGISTERED — HIDDEN: a `preview` GAMES row (never playable, never frozen, the owner\'s live test only); its row in THE ONE META MODULE; the loader; its proof node in every list; solo only', async () => {
+test('REGISTERED — PLAYABLE (THE GO-LIVE, Nov 28 — was F4A\'s hidden `preview` row): playable: true, live 2026-11-28, no preview, never frozen — every phone; its row in THE ONE META MODULE; the loader; its proof node in every list; solo + THE MATCH', async () => {
   const g = GAMES.find(x => x.id === 'freefall');
-  assert.ok(g && g.playable === false && g.preview === true && g.name === 'FREEFALL' && g.theme === 'freefall' && g.tag && g.blurb && !g.live);
-  assert.equal(isPlayable('freefall'), false); assert.equal(isOwnerTest('freefall'), false); assert.ok(!FROZEN_IDS.includes('freefall'));
+  assert.ok(g && g.playable === true && !g.preview && g.live === '2026-11-28' && g.name === 'FREEFALL' && g.theme === 'freefall' && g.tag && g.blurb);
+  assert.equal(isPlayable('freefall'), true, 'every phone'); assert.equal(isOwnerTest('freefall'), false, 'no owner test — it is live'); assert.ok(!FROZEN_IDS.includes('freefall'));
   setOwnerPhone(true);
-  try { assert.equal(isOwnerTest('freefall'), true, 'the owner\'s phone: his to test'); assert.equal(isPlayable('freefall'), true); } finally { setOwnerPhone(false); }
-  assert.equal(isPlayable('freefall'), false, 'nobody else');
+  try { assert.equal(isPlayable('freefall'), true); } finally { setOwnerPhone(false); }
+  assert.equal(isPlayable('freefall'), true, 'everybody');
   assert.ok(GAME_IDS.includes('freefall') && ROWS.freefall && ROWS.freefall.SOLO === true && ROWS.freefall.BANNER_NAME === 'FREEFALL');
   assert.equal(META.SOLO, true); assert.deepEqual(META.OPTIONS, []); assert.deepEqual(META.cleanSettings({ x: 1 }), {}); assert.deepEqual(META.LOOKS, ['day', 'night']);
   assert.equal(ROWS.freefall.CONTROLLER, undefined, 'no controller mark: a drag game');
@@ -74,7 +74,7 @@ test('REGISTERED — HIDDEN: a `preview` GAMES row (never playable, never frozen
   assert.match(idx, /if \(n < 1 \|\| n > MATCH_MAX\) return null;/, 'F4B: one player = the solo run · 2 … 8 = THE MATCH (the console gate says WHO may start it)');
   assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), \['kit', 'freefall-play'\]/, 'the SAME stage + sheet as the test page');
   assert.match(idx, /export const soloAgain = /); assert.match(idx, /export \{ finalScene \} from '\.\/final\.js';/);
-  assert.doesNotMatch(read('js/config.js'), /id: 'freefall'[^\n]*playable: true/, 'NEVER playable before its go-live pass');
+  assert.match(read('js/config.js'), /id: 'freefall'[^\n]*playable: true, live: '2026-11-28' \}/, 'PLAYABLE since its go-live pass');
 });
 
 test('THE DIRECTOR (PURE): `play` from the start; the player\'s `e` → `final` with THE JUDGE\'s own row (never the phone\'s numbers); PLAY AGAIN = the next run, a match of its own', () => {
@@ -136,8 +136,8 @@ test('THE JUDGE ON THE SERVER: a SOLO run counted ONLY from the server\'s replay
   assert.deepEqual(serverRow({ ok: false, why: 'spin' }), { f: 0, t: 0, w: '', e: -1, bad: 'spin' });
 });
 
-test('THE SWITCH — OFF (the owner: nothing counts until go-live): /api/report judges, answers WOULD COUNT before any claim / credit, writes nothing; the emulators\' own flip; the would-be line', () => {
-  assert.equal(FREEFALL_COUNTS, false, 'OFF — the go-live pass flips this ONE line');
+test('THE SWITCH — ON since THE GO-LIVE (Nov 28); the OFF path KEPT as the one-line kill switch: /api/report judges, answers WOULD COUNT before any claim / credit, writes nothing; the emulators\' own TWO-WAY flip; the would-be line', () => {
+  assert.equal(FREEFALL_COUNTS, true, 'ON — THE GO-LIVE flipped this ONE line (false = the kill switch)');
   const rep = code('api/report.js');
   assert.ok(rep.includes("export const freefallCounts = async () => { if (emulated()) { const t = await val('testFreefallCounts'); if (t === true || t === false) return t; } return FREEFALL_COUNTS; };"), 'the test flip is honoured on the emulators only');
   assert.match(rep, /export const SWITCHED = Object\.freeze\(Object\.assign\(Object\.create\(null\), \{/, 'the switch table has no inherited key');
@@ -222,14 +222,14 @@ test('THE BOARD + THE AVERAGE (the owner: "like JAYWALK, in all the same spots")
   assert.equal(matchStep(s, { key: 'k9', gid: 'freefall', row: row(0), n: 1, now: GO + 90_000_000, at: GO + 90_000_000, gap: 0 }).skip, 'empty');
   // the end card's line, wired for F4B
   assert.equal(bestAvgLine(141, 62), 'YOUR BEST 141 · AVG 62'); assert.equal(bestAvgLine(141, null), 'YOUR BEST 141 · AVG —'); assert.equal(bestAvgLine(0, 5), '');
-  // THE BOARD's tab: wired, hidden (the owner's phone only), never in TABS before the go-live
+  // THE BOARD's tab: PUBLIC since THE GO-LIVE (Nov 28 — the eighth; it was wired + hidden on the owner's phone from F4A)
   const bv = read('js/board/view.js');
-  assert.match(bv, /export const HIDDEN_TABS = Object\.freeze\(\['freefall'\]\);/);
-  assert.match(bv, /export const TABS = Object\.freeze\(\['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise'\]\);/, 'not a public tab');
+  assert.match(bv, /export const HIDDEN_TABS = Object\.freeze\(\[\]\);/, 'nothing hidden');
+  assert.match(bv, /export const TABS = Object\.freeze\(\['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise', 'freefall'\]\);/, 'a public tab');
   assert.match(bv, /freefall: \['#27e0e6', '#ff4fa8'\]/);
 });
 
-test('THE CARDS\' ART: three WebPs, 1280 × 720, small; the crops in ONE place (ff-specs.js = the CSS); the slim card\'s face to the RIGHT (0.75 – 0.85), the left dark; THE LAB 231 – 236; raw masters never in git', async () => {
+test('THE CARDS\' ART: three WebPs, 1280 × 720, small; the crops in ONE place (ff-specs.js = the CSS); the slim card\'s face to the RIGHT (0.75 – 0.85), the left dark; OUT OF THE LAB at THE GO-LIVE (the owner approved all six — they ship as they are); raw masters never in git', async () => {
   assert.deepEqual(Object.keys(FF_SPECS), ['card-splashdown', 'card-terminalvelocity', 'card-rockbottom']); assert.deepEqual([FF_AW, FF_AH], [1280, 720]);
   const css = read('css/vault.css'), lab = read('js/vault/catalog.js'), text = read('api/_lib/lab-text.js'), strip = read('js/vault/strip.js');
   const { HERO, heroMisses } = await import('../js/vault/hero.js');
@@ -244,9 +244,9 @@ test('THE CARDS\' ART: three WebPs, 1280 × 720, small; the crops in ONE place (
     assert.ok(strip.includes(`'${id}': { mat: 'ff-${k}' },`), `${id}: its material`);
     const cx = HERO[id][0][0] + HERO[id][0][2] / 2;
     assert.ok(cx >= 0.75 && cx <= 0.85, `${id}: its hero ${cx.toFixed(3)} across the strip (the face to the RIGHT)`);
-    for (const x of [id, `full-${id}`]) { assert.ok(lab.includes(`{ id: '${x}',`), `${x}: in THE LAB`); assert.ok(text.includes(`"${x}"`), `${x}: its lab text`); }
+    for (const x of [id, `full-${id}`]) { assert.ok(!lab.includes(`{ id: '${x}',`), `${x}: OUT of THE LAB`); assert.ok(!text.includes(`"${x}"`), `${x}: no lab text left`); assert.ok(read('js/vault/approved.js').includes(`'${x}'`), `${x}: SHIPPED (approved.js)`); }
   }
-  assert.match(lab, /\{ id: 'card-splashdown', kind: 'card', tier: 'rare', n: 231 \},\n  \{ id: 'card-terminalvelocity', kind: 'card', tier: 'epic', n: 232 \},\n  \{ id: 'card-rockbottom', kind: 'card', tier: 'legendary', n: 233 \},/);
+  assert.match(lab, /'card-splashdown': 'rare', 'card-terminalvelocity': 'epic', 'card-rockbottom': 'legendary' \}\);/, 'their tiers without a lab row (SHIPPED_TIERS)');
   // RAW ART OFF GIT: the builder reads the masters outside the repo; no PNG master in art/
   const b = read('scripts/build-freefall-cards.mjs');
   assert.match(b, /import \{ ART_SRC \} from '\.\/art-src\.mjs';/); assert.match(b, /'terminal-velocity': 'terminal-velocity-v1\.png'/, 'the ORANGE fire one — never terminal-velocity.png');

@@ -5,7 +5,7 @@
 //   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{game:1}}, last, m{key: at},
 //                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only), st (THE STREAK —
 //                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them), xw (BOARD 2.0 A — the XP earned THIS WEEK: { wk, x }) … }
-import { boardDef, better, BOARD_GAMES, GOAL_GAMES } from './boards.js';
+import { boardDef, better, BOARD_GAMES, goalGames } from './boards.js';
 import { matchXp, soloXp, weeklyGoal, goalProgress, GOAL_XP, SOLO_DAY_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { SIGN_EMBLEMS } from './items.js';
@@ -154,7 +154,7 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   if (solo) { day.so = (day.so || 0) + 1; if (!oldWeek) next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
   // the weekly goal: paid once, the match that completes it
-  const goal = weeklyGoal(wk, GOAL_GAMES);
+  const goal = weeklyGoal(wk, goalGames(wk));
   if (!solo && !oldWeek && next.gd !== wk && goalProgress(goal, next.gw, next.gs).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
   payXp(next, from, xp.total, at);   // (BOARD 2.0 A: + this week's XP — THE OVERALL BOARD; THE ONE DAY LINE: the MATCH's week)
@@ -252,6 +252,35 @@ export function playDay(next, now, outage, day = streakDay(now)) {
   const fav = ev.milestones.reduce((a, m) => a + (m.favor || 0), 0);
   if (fav) next.fv = (next.fv || 0) + fav;
   return { ev, items };
+}
+
+/**
+ * FREEFALL GO-LIVE — THE /admin RELEASE (PURE; api/_lib/held.js): a run THE HOLD kept off (core/match-report.js#ffTooPerfect — its XP WAS
+ * paid) reaches its board, THE AVERAGE (a solo run — + its counted play) and the cards AS IF it had counted — exactly once (pstats.rl/{id});
+ * never XP, never the streak, never a win. h = { id, b (the board), v (the floors), solo, ft ('harbor terminal bottom' — the replay's
+ * feats), gid, at (THE MATCH TIME — the board's week, the average's day) } → { skip } | { next, pbs, av, items, ach, prevStats }
+ */
+export const RELEASE_KEEP = 40;
+export function releaseStep(s0, h, now, { founderOpen = false } = {}) {
+  const s = s0 || {};
+  if (!h || !h.id || (s.rl && s.rl[h.id])) return { skip: 'released' };
+  const at = Math.min(Number(h.at) || now, now), wk = weekKey(at), dk = streakDay(at), def = boardDef(h.b), v = Math.max(0, Math.floor(Number(h.v) || 0));
+  const next = { ...s, b: { ...(s.b || {}) }, rl: { ...(s.rl || {}), [h.id]: now } };
+  const keys = Object.keys(next.rl);
+  if (keys.length > RELEASE_KEEP) keys.sort((a, b) => next.rl[a] - next.rl[b]).slice(0, keys.length - RELEASE_KEEP).forEach(k => delete next.rl[k]);
+  const pbs = [];
+  let av = null;
+  if (def && v > 0) {
+    const old = s.b && s.b[h.b], b = { ...(old || {}) }, prevAll = old ? old.a : null, prevWeek = old && old.wk === wk ? old.w : null;
+    if (better(def, v, prevAll)) { b.a = v; pbs.push({ b: h.b, v, prev: prevAll, first: prevAll == null }); }
+    if (!(old && old.wk && wk < old.wk) && better(def, v, prevWeek)) { b.w = v; b.wk = wk; }
+    next.b[h.b] = b;
+  }
+  if (h.solo && def && def.avg && v > 0) { next.av = { ...(s.av || {}), [h.b]: avgStep(s.av && s.av[h.b], dk, v, def.avg.days) }; av = { [h.b]: avgOf(next.av[h.b], def.avg.min).avg }; next.cp = countedPlays(s) + 1; }
+  const flags = String(h.ft || '').split(' ').filter(Boolean);
+  if (flags.length) next.pa = { ...(s.pa || {}), gf: { ...((s.pa && s.pa.gf) || {}), ...Object.fromEntries(flags.map(k => [`${h.gid}-${k}`, 1])) } };
+  const aw = awardAll(next, now, { founderOpen });
+  return { next, pbs, av, items: aw.items, ach: aw.ach, prevStats: s };
 }
 
 /**

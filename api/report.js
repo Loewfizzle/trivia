@@ -26,7 +26,7 @@ import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
-import { freefallSolo, freefallMatch, FREEFALL_COUNTS } from './_lib/freefall.js';   // (FREEFALL F4A — the solo run's proof node; its counting OFF)
+import { freefallSolo, freefallMatch, FREEFALL_COUNTS } from './_lib/freefall.js';   // (FREEFALL F4A — the solo run's proof node; its counting ON since THE GO-LIVE)
 import { goUids, firstGo, onTime, liveRetryMs, VERIFIED_SOLO } from '../js/core/proof.js';
 import { liveOf as jaywalkLive } from '../js/games/jaywalk/director.js';   // (THE CONSOLE FIX: the live runs — PURE, the host's own rule)
 import { liveOf as highriseLive } from '../js/games/highrise/match.js';
@@ -130,7 +130,7 @@ for (const id of VERIFIED_SOLO) if (!PROOF_GAMES[id] || !PROOF_TREES[id] || !GO_
  * never honoured in production (`emulated()`).
  */
 export const highriseCounts = async () => { if (emulated()) { const t = await val('testHighriseCounts'); if (t === true || t === false) return t; } return HIGHRISE_COUNTS; };
-/** FREEFALL F4A — THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS — OFF until its go-live): the same rule, its own emulator flip `testFreefallCounts` */
+/** FREEFALL F4A — THE SWITCH (api/_lib/freefall.js#FREEFALL_COUNTS — ON since THE GO-LIVE, Nov 28): the same rule, its own emulator flip `testFreefallCounts` */
 export const freefallCounts = async () => { if (emulated()) { const t = await val('testFreefallCounts'); if (t === true || t === false) return t; } return FREEFALL_COUNTS; };
 /** the games behind a SWITCH → is its counting ON? · its board · its cards by their FEAT (the achievement's id → the feat's word — never an item's name: ITEM NAMES ONLY TO OWNERS) */
 export const SWITCHED = Object.freeze(Object.assign(Object.create(null), {   // (no inherited key: 'constructor' is no game)
@@ -426,6 +426,8 @@ async function credit({ key, uid, myPid, ex, pids, now, room, at, src }) {
   }
   if (!tried.o) await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
+  // (FREEFALL GO-LIVE — THE HELD LIST: a row THE HOLD kept off waits on /admin for the owner's RELEASE / REJECT — api/_lib/held.js)
+  if (ex.rejected.some(r => r && r.v === 'held')) await import('./_lib/held.js').then(H => H.recordHeld({ key, ex, pids, at, now })).catch(e => console.warn('held', e && e.message));
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };
 }

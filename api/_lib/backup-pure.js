@@ -7,7 +7,7 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 /** every node a restore needs — the players' progress, their keys, the boards, the dailies' results, the Lab, the radio, the city */
 export const DURABLE = Object.freeze(['profiles', 'pstats', 'uids', 'seats', 'progress', 'lb', 'dly', 'results', 'ppriv', 'pkeys', 'pfr', 'flink', 'tags',
   'vault', 'radio', 'city2', 'members', 'gifts', 'streak', 'gplay', 'pcount', 'pkc', 'pkx', 'audit', 'flags', 'logstats', 'errlog', 'phonelog', 'backups',
-  'nocount']);   // (CITY I — DON'T COUNT: the owner's decisions — no address in it)
+  'nocount', 'ffheld']);   // (CITY I — DON'T COUNT: the owner's decisions — no address in it · FREEFALL GO-LIVE: THE HELD LIST — api/_lib/held.js)
 /** left out — live / ephemeral (a room's nodes, presence, the rate limits, caches, a passkey's one-time challenge, the 7-day share pictures) */
 export const LIVE = Object.freeze(['rooms', 'hush', 'chats', 'fleets', 'glsonar', 'spy', 'hsbet', 'rrp', 'rrsec', 'seal', 'hole', 'hrec', 'rl', 'here', 'wx',
   'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate', 'testHostTrustOff',

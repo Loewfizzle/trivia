@@ -922,7 +922,7 @@ const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m
 
 // ---- CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
 /** THE SIGN HOLD (HIGH RISE's GO-LIVE, Nov 20): a playable game kept OFF every city sign until THE CITY PASS lifts it (docs/highrise.md) */
-export const SIGN_HOLD = Object.freeze([]);   // (CITY PART 1, Nov 20: LIFTED — HIGH RISE's signs are in: the B1 tri-vision face, the HIGH / RISE roof sign + its day enamel, the speakeasy blade)
+export const SIGN_HOLD = Object.freeze(['freefall']);   // (FREEFALL's GO-LIVE, Nov 28: held until THE CITY PASS installs its sign + day face + billboard and lifts it — HIGH RISE's was lifted by CITY PART 1)
 /** the games a city sign may name: the playable ones (never a frozen game, never a daily), minus THE SIGN HOLD */
 export function signRoster(games) {
   return (games || []).filter(g => g && g.playable && !g.daily && !SIGN_HOLD.includes(g.id));

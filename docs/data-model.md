@@ -350,6 +350,12 @@ dly/{game}/{day}/x/{pid}: 1            ← DM1 — a NON-COUNTING result (THE TH
 ```
 A run's calls name its own day (DFIX1): today's or yesterday's with a start there. Never pruned yet (THE DAILY MODULE's; before ~500 players a day).
 
+## ffheld/ — THE HELD LIST (FREEFALL's go-live, Nov 28 — server only; `api/_lib/held.js`, docs/freefall.md "THE HELD LIST")
+`ffheld/{code_matchId_pid}` = { pid, n, t, g: 'freefall', key, at (the match time), f, b, br, ff (the feats waiting: 'harbor terminal
+bottom'), so (1 solo · 0 match), why, rec, st?/bt? (a RELEASE's claim) } — written by the report when THE HOLD keeps a run off; read + removed
+by /admin's RELEASE / REJECT (owner-only, audited). No client rule (the root denies). DURABLE (`api/_lib/backup-pure.js`). A RELEASE marks
+`pstats/{pid}/rl/{id}` (the last 40 kept — exactly once).
+
 ## gifts/ (SHELL 2.0 B2 — server only)
 ```
 gifts/{card id}: { pid, at, by }    ← THE GIFT TOOL's lock (api/_lib/gifts.js): a 1-of-1 gift card belongs to ONE profile EVER — taken in a

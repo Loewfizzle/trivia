@@ -1,18 +1,18 @@
 // FREEFALL F4B — THE MATCH end to end, on the emulators + scripts/serve.mjs --emu (NEVER THE LIVE SITE): e2e-highrise-match.mjs is the
-// template; the owner's set-up + the hooks are e2e-freefall.mjs's. FREEFALL is HIDDEN: only THE OWNER's phone starts it (on the emulators
-// testAdmins/{pid}); THE SWITCH is OFF (the server answers WOULD COUNT, writes nothing).
+// template; the hooks are e2e-freefall.mjs's. FREEFALL is PLAYABLE since THE GO-LIVE (Nov 28): a PLAIN host starts it (no owner, no flag) and
+// THE SWITCH is ON (the code's own): every player's run is COUNTED from the server's replay (results/, XP, the best on freefall-solo, the cards).
 //   A (sections 1–5, `--fast` stops after it) — ONE ROOM, three matches:
-//     1. A REAL 3-PLAYER MATCH: the owner hosts + starts; 3 · 2 · 1 + the names; every phone writes its GO; THE FIRST GO = the same seed +
+//     1. A REAL 3-PLAYER MATCH: a plain host starts; 3 · 2 · 1 + the names; every phone writes its GO; THE FIRST GO = the same seed +
 //        tick 0 on all; the proof nodes fill with server-stamped chunks; THE GHOSTS (2 rivals a phone, their floors follow the real ones);
 //        THE DEPTH RAIL (a dot a player, each rival's NAME beside it — FIX A: no edge markers); an OUT → the cause's words → Call the Winner (`k`) →
 //        WATCHING THE LEADER (a tap = the next player); THE FINISH AT THE BOTTOM (floor 200: `made`); the podium FREEFALL · MATCH, the
-//        rows = the judge's replay (the server's freefallMatch on the nodes read over REST); WOULD COUNT, nothing written outside
-//        rooms/; REMATCH in place (a new match, a new count, a new seed)
+//        rows = the judge's replay (the server's freefallMatch on the nodes read over REST); COUNTED for all — each best = the judge's
+//        floor, ALICE's dive to 200 = ROCK BOTTOM (+ SPLASHDOWN on the way); REMATCH in place (a new match, a new count, a new seed)
 //     4. A PHONE THAT LOCKS (the page hidden): no hold in a match — never PAUSED, the run goes on, the proof stays valid; hidden long
 //        enough the darkness ends it · A PHONE THAT DROPS SIGNAL (~6 s): the queued chunks land, the run is judged honest
 //     5. A REFRESH MID-MATCH: the run taken back from the node (its moves replayed) — or, the darkness having ended it, WATCH
 //     2. A LATE JOINER WATCHES (no run of their own), sees the ghosts, is dealt in at the REMATCH
-//     3. A HOST CHANGE MID-MATCH (the owner's phone closes): the next phone carries the match to its `final`, the results still the judge's
+//     3. A HOST CHANGE MID-MATCH (the first host's phone closes): the next phone carries the match to its `final`, the results still the judge's
 //   B (section 6) — AN 8-PLAYER MATCH: the start, 7 ghosts a phone, everyone's end, the podium of 8 + THE NETWORK MEASURE (writes, bytes
 //     up, bytes down — per player + total, a minute + a 3:00 match)
 //   C (section 7, only with `--cap`) — THE 3:00 CAP in real time: two slow players kept alive, the last half minute's clock, TIME'S UP, `cap` rows
@@ -36,6 +36,7 @@ const ONLY = (argv.find(a => a.startsWith('--only=')) || '').slice(7);
 const OUTDIR = (argv[1] && !argv[1].startsWith('--') ? argv[1] : 'C:/Users/benja/Downloads/NEON/freefall-f4b/match-e2e').replace(/\\/g, '/');
 mkdirSync(OUTDIR, { recursive: true });
 guardUrl(process.env.E2E_BASE || 'http://localhost:5173', 'e2e-freefall-match.mjs');
+import { ffTooPerfect, heldId } from '../../js/core/match-report.js';
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
 const dbGet = path => fetch(`${DB}/${path}.json?${NS}`, { headers: AUTH }).then(r => r.json());
 const dbPut = (path, v) => fetch(`${DB}/${path}.json?${NS}`, { method: 'PUT', headers: AUTH, body: JSON.stringify(v) }).then(r => r.json());
@@ -75,7 +76,7 @@ const podiumOf = (p, names) => p.evaluate(list => {
   for (let n = tw.nextNode(); n; n = tw.nextNode()) { if (n.parentElement.closest('.winner, .ff-count, .mk-call, .ff-watch')) continue; const t = n.data.toUpperCase(); for (const nm of list) if (t.includes(nm) && !order.includes(nm)) order.push(nm); }
   const txt = s => ((q(s) || {}).textContent || '').replace(/\s+/g, ' ').trim();
   const hd = q('.ff-final .sheet-kicker [role="heading"]');
-  return { kicker: `${hd ? hd.getAttribute('aria-label') : ''} · ${txt('.ff-final .sheet-kicker')}`, logo: !!q('.ff-final .sheet-kicker img') && q('.ff-final .sheet-kicker img').naturalWidth > 0, place: txt('.ff-fin .ff-fin-place'), callLine: txt('.ff-fin .ff-fin-call'), win: txt('.ff-final .winner-name'), order, rows: root.querySelectorAll('.lb-row').length, notes: [...root.querySelectorAll('.lb-note')].map(e => e.textContent), cause: txt('.ff-fin .ff-ec-cause'), n: q('.ff-fin .ff-ec-n') ? q('.ff-fin .ff-ec-n').getAttribute('aria-label') : '', would: (q('.ff-fin') || { dataset: {} }).dataset.would || '', you: txt('.eb-you'), ebK: txt('.eb-k'), ebRows: root.querySelectorAll('.eb-list li').length, scroll: q('.ff-final .final') ? q('.ff-final .final').scrollHeight - q('.ff-final .final').clientHeight : -1, bar: txt('.ff-final .final-bar-t'), text: root.innerText.replace(/\s+/g, ' ').slice(0, 400) };
+  return { kicker: `${hd ? hd.getAttribute('aria-label') : ''} · ${txt('.ff-final .sheet-kicker')}`, logo: !!q('.ff-final .sheet-kicker img') && q('.ff-final .sheet-kicker img').naturalWidth > 0, place: txt('.ff-fin .ff-fin-place'), callLine: txt('.ff-fin .ff-fin-call'), win: txt('.ff-final .winner-name'), order, rows: root.querySelectorAll('.lb-row').length, notes: [...root.querySelectorAll('.lb-note')].map(e => e.textContent), cause: txt('.ff-fin .ff-ec-cause'), n: q('.ff-fin .ff-ec-n') ? q('.ff-fin .ff-ec-n').getAttribute('aria-label') : '', would: (q('.ff-fin') || { dataset: {} }).dataset.would || '', you: txt('.eb-you'), ebK: txt('.eb-k'), ebRows: root.querySelectorAll('.eb-list li').length, scroll: q('.ff-final .final') ? q('.ff-final .final').scrollHeight - q('.ff-final .final').clientHeight : -1, ebFits: (e => { const b = q('.ff-final .final-bar'); return !!e && !!b && e.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 1; })(q('.ff-final .final-eb')), bar: txt('.ff-final .final-bar-t'), text: root.innerText.replace(/\s+/g, ' ').slice(0, 400) };
 }, names);
 const onPodium = (idx, ms = 60000, what = 'the podium') => all(idx, (p, i) => H.waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.ff-final .final'), `${NAMES[i]}: ${what}`, ms));
 
@@ -108,29 +109,22 @@ function measure(label, idx, a, b, na, nb) {
   return row;
 }
 
-/** a room: its own browser, THE OWNER (the server's yes — testAdmins/{pid}) hosting, n − 1 guests */
+/** a room: its own browser, a PLAIN host (FREEFALL is playable — THE GO-LIVE), n − 1 guests */
 async function openRoom(name, n) {
   NET.length = 0;
   H = await createHarness({ name, slot: `${name}${Date.now() % 10000}x`, hook: '__ffGame', sizes: [[390, 844]], out: OUTDIR, extraArgs: ['--enable-webgl', '--ignore-gpu-blocklist'], beforeLoad: netWatch });
   pages = H.pages; uids = H.uids;
-  await dbPut('testFreefallCounts', null);   // (the code's own OFF — never a flip a failed suite left behind)
+  await dbPut('testFreefallCounts', null);   // (the code's own ON — never a flip a failed suite left behind)
   const host = await H.joinAll(n);
   REPORTS.length = 0;
   pages.forEach((p, i) => p.on('response', r => { if (/\/api\/report/.test(r.url())) r.text().then(t => REPORTS.push(`${NAMES[i]} ${r.status()} ${t.slice(0, 260)}`), () => {}); }));
   const pids = [];
   for (let i = 0; i < n; i++) pids[i] = await pidFor(uids[i]);
   ok(pids.every(Boolean), `a room of ${n}: every phone has its profile`);
-  // THE OWNER (e2e-freefall.mjs's way, in a room as HIGH RISE's match suite did before its go-live): the server's yes on the host's
-  // profile, the tab's remembered NO forgotten, a reload — the room is back on his phone
-  await dbPut(`testAdmins/${pids[0]}`, true);
-  await host.evaluate(() => sessionStorage.clear());
-  await H.refresh(host);
-  // (NEVER an import() into a page that is still booting: before the boot bundle's import map is in, `import('/js/config.js')` loads a
-  //  SECOND copy of config.js by its URL — the radio gate then marks the owner on that copy and the app's own host.js still says COMING SOON)
+  // THE GO-LIVE (Nov 28): no owner, no flag — the host is a plain phone; FREEFALL is in the room's games list on the host's AND a guest's phone
   await until(() => host.evaluate("!document.getElementById('boot') && !!window.__nsBoot && !!window.__nsBoot.mode && !!(window.__arcade && window.__arcade.state.ready && window.__arcade.state.uid && window.__arcade.state.meta)"), 60000);
-  ok(await until(() => host.evaluate("import('/js/config.js').then(c => c.isOwnerTest('freefall'))"), 25000), 'the host is THE OWNER (the server\'s yes — the radio gate): FREEFALL is his to test');
-  await H.waitFor(host, (s, k) => s.meta && s.meta.hostId === s.uid && Object.keys(s.players || {}).length === k, 'the room is back on the owner\'s phone', 30000, n);
-  ok((await all(R(n).slice(1), p => p.evaluate("import('/js/config.js').then(c => !c.isPlayable('freefall') && !c.isOwnerTest('freefall'))"))).every(Boolean), 'the guests: FREEFALL is a game BEING BUILT — not playable, never a TEST');
+  ok((await all(R(n), p => p.evaluate("import('/js/config.js').then(c => c.isPlayable('freefall') && !c.isOwnerTest('freefall'))"))).every(Boolean), 'every phone: FREEFALL is PLAYABLE — no owner, never a TEST');
+  await H.waitFor(host, (s, k) => s.meta && s.meta.hostId === s.uid && Object.keys(s.players || {}).length === k, 'the room is on the host\'s phone', 30000, n);
   return { host, code: H.code, pids };
 }
 async function closeRoom(fatal) {
@@ -195,7 +189,7 @@ async function snap(pids, code, m) {
 }
 /** what differs between two snapshots: '' = nothing */
 const snapDiff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => { let i = 0; while (i < a[k].length && a[k][i] === b[k][i]) i++; return `${k}: …${a[k].slice(Math.max(0, i - 30), i + 50)}… → …${b[k].slice(Math.max(0, i - 30), i + 50)}…`; }).join(' || ');
-/** the owner's start: the count watched from the tap; a start that fails says why (the toast, the cartridge's own import) and ends the part */
+/** the host's start: the count watched from the tap; a start that fails says why (the toast, the cartridge's own import) and ends the part */
 async function ownerStart(host, idx, shotName, what) {
   const said = [], hear = m => { if (/warn|error/.test(m.type())) said.push(m.text().slice(0, 300)); };
   host.on('console', hear);
@@ -224,13 +218,11 @@ async function partA() {
   section = '1 the match';
   const { host, code, pids } = await openRoom('fm', 3);
   const I = R(3), ids = () => I.map(i => uids[i]);
-  const before = await snap(pids, code, null);
-  // ---- 1. the owner starts; 3 · 2 · 1; GO
-  ok(!(await H.startGame(pages[1], 'freefall', {}).catch(() => false)) && !(await H.evalIn(host, s => s.game)), 'a guest can NOT start it (a game being built: nobody but THE OWNER)');
+  // ---- 1. the host starts; 3 · 2 · 1; GO
   // THE LOOK LOCK (FIX A — the review's M1): the HOST's look on every phone, whatever each phone's own Game look (the host NIGHT, the guests DAY)
   const setLk = (p, l) => p.evaluate(v => import('/js/games/kit/look.js').then(L => L.saveLook(v)), l);
   await setLk(host, 'night'); await all(I.slice(1), p => setLk(p, 'day'));
-  const seen = await ownerStart(host, I, 'match-count', 'THE OWNER (the host) starts FREEFALL for the room');
+  const seen = await ownerStart(host, I, 'match-count', 'a PLAIN host starts FREEFALL for the room (THE GO-LIVE)');
   const { m, SV } = await goChecks(I, code, seen, '');
   const lk0 = await H.evalIn(host, s => s.game && s.game.look);
   const lks = await all(I, p => p.evaluate(() => { const e = document.querySelector('.ff-stage'), S = window.__ffStage; return e ? `${e.dataset.look}/${S && S.state ? S.state().look : '?'}` : ''; }));
@@ -303,7 +295,7 @@ async function partA() {
   ok(made && made.k === 'THE BOTTOM' && made.w === 'YOU HIT THE BOTTOM' && made.n === '200 FLOORS' && made.made, `her card: ${made && !made.none ? `${made.k} · ${made.w} · ${made.n}` : 'never seen'}`);
   await H.shot(pages[0], 'match-made');
   await onPodium(I, 60000);
-  // ---- the podium = the judge's replay; the server agrees; the call's points; WOULD COUNT; nothing written
+  // ---- the podium = the judge's replay; the server agrees; the call's points; COUNTED for all
   const J = await judged(code, m, ids());
   ok(ids().every(u => J.nodes[u] && J.nodes[u].e && typeof J.nodes[u].e.f === 'number'), '… each node carries its end (e = { f, t, w } — a signal, never a score)');
   ok(J.same, `the podium's rows = THE JUDGE's replay of each node — THE SERVER's own freefallMatch agrees to the floor + the tick (${J.line})`);
@@ -313,7 +305,7 @@ async function partA() {
   ok(pod.every(x => x && /^Freefall, match · MATCH$/.test(x.kicker) && x.logo && /ALICE FELL THE DEEPEST/.test(x.win)), `the podium on every phone: THE LOGO (its heading: "${pod[0] && pod[0].kicker}"${pod.every(x => x && x.logo) ? ', the picture loaded' : ', THE PICTURE DID NOT LOAD'}) — "${pod[0] && pod[0].win}"`);
   const myPlace = i => J.st.find(r => r.uid === uids[i]).rank, ORD = ['', '1ST', '2ND', '3RD'];
   // (F5B — THE FINAL SHAPE: each body = the cause + THE NUMBER + FLOORS + YOUR BEST; the place shows in THIS MATCH's top 3 — the YOU line only from 4th down)
-  ok(pod.every((x, i) => x.n === String(J.fin.results[uids[i]].f) && !x.place && !x.you && x.ebK === 'THIS MATCH' && x.ebRows === 3 && x.scroll <= 1) && pod[0].cause === END_WORDS.made && pod[1].cause === END_WORDS.red && pod[2].cause === END_WORDS.dark, `each player's own body: ${pod.map((x, i) => `"${x.cause} · ${x.n} FLOORS" (${ORD[myPlace(i)]}; ${x.ebK} ${x.ebRows} rows, ${x.scroll} px over)`).join(' | ')}`);
+  ok(pod.every((x, i) => x.n === String(J.fin.results[uids[i]].f) && !x.place && !x.you && x.ebK === 'THIS MATCH' && x.ebRows === 3 && (x.scroll <= 1 || x.ebFits)) && pod[0].cause === END_WORDS.made && pod[1].cause === END_WORDS.red && pod[2].cause === END_WORDS.dark, `each player's own body: ${pod.map((x, i) => `"${x.cause} · ${x.n} FLOORS" (${ORD[myPlace(i)]}; ${x.ebK} ${x.ebRows} rows, ${x.scroll} px over)`).join(' | ')}`);
   ok(pod[1].callLine === `YOUR CALL WAS RIGHT · +${callBonus(2)} POINTS` && !pod[0].callLine && !pod[2].callLine, `BOB's call on his own screen: "${pod[1].callLine}"`);
   const want = J.st.map(r => NAMES[uids.indexOf(r.uid)]).join(' ');
   ok(pod.every(x => x && x.order.join(' ') === want), `the podium LISTS every player, in the ranking's order (${want}) — the phones list: ${pod.map(x => (x ? x.order.join(' ') || 'nobody' : '—')).join(' | ')}`);
@@ -323,13 +315,26 @@ async function partA() {
   const night = await until(async () => { const nr = await dbGet(`rooms/${code}/night/${m}`); return nr && nr.p ? nr : null; }, 8000);
   ok(night && night.g === 'freefall' && night.b && night.b[uids[1]] === callBonus(2) && night.p[uids[0]] > night.p[uids[1]], `the night record: FREEFALL, ALICE first, the call's bonus on it (${JSON.stringify(night && night.p)})`);
   await H.shot(pages[0], 'match-podium-winner'); await H.shot(pages[1], 'match-podium');
-  const would = await until(async () => { const w = await all(I, p => p.evaluate("(document.querySelector('.ff-fin') || { dataset: {} }).dataset.would || ''")); return w.every(t => t !== '') ? w : null; }, 30000);   // (F5B: the answer kept on the body — no line on the screen)
-  ok(!!would && would.every((t, i) => t === String(J.fin.results[uids[i]].f)), `THE SWITCH is OFF — the server judged the match from every node: ${would ? would.map(t => `"${t}"`).join(' | ') : (await all(I, p => p.evaluate("(document.querySelector('.ff-fin-would') || {}).textContent || ''"))).map(t => `"${t}"`).join(' | ')}`);
-  if (!would) note('what /api/report answered:', REPORTS.join(' || ').slice(0, 1200) || '(no report was sent)');
-  await sleep(1200);
-  const diff = snapDiff(before, await snap(pids, code, m));
-  ok(!diff, `… and NOTHING was written outside rooms/: pstats, the profiles, ppriv, the board freefall-solo, results/ are as before${diff ? ` — CHANGED: ${diff.slice(0, 600)}` : ''}`);
-  await sleep(400); await H.shot(pages[2], 'match-podium-would');
+  // THE SWITCH ON (the code's own): the match is COUNTED — every player's best = the judge's floor; ALICE's 200 = ROCK BOTTOM (+ SPLASHDOWN)
+  const done = await until(async () => { const d = await dbGet(`results/${code}_${m}`); return d && d.st === 'done' ? d : null; }, 45000);
+  if (!done) note('what /api/report answered:', REPORTS.join(' || ').slice(0, 1200) || '(no report was sent)');
+  ok(!!done && done.g === 'freefall' && done.n === 3, `THE SWITCH ON — the match is COUNTED (results/ done, ${done && done.n} verified players)`);
+  const ps = await all(I, (p, k) => dbGet(`pstats/${pids[k]}`));
+  // (FIX C's HOLD — THE DIVER reads the tower: a dive to 200 with almost no bounce is TOO PERFECT for a human → HELD: XP paid, no win, no
+  //  best / average / card — its row waits on /admin's HELD list for the owner's RELEASE; the judge's own numbers decide, never a guess)
+  const aliceHeld = ffTooPerfect(J.fin.results[uids[0]]);
+  note(`ALICE's dive: ${J.fin.results[uids[0]].f} floors · ${J.fin.results[uids[0]].b} bounces · best no-bounce run ${J.fin.results[uids[0]].br} → ${aliceHeld ? 'HELD (too perfect)' : 'counted'}`);
+  ok(ps.every((x, k) => (k === 0 && aliceHeld) ? !(x && x.b && x.b['freefall-solo']) : x && x.b && x.b['freefall-solo'] && x.b['freefall-solo'].a === J.fin.results[uids[k]].f), `… each player's best on freefall-solo = the judge's floor${aliceHeld ? ' — ALICE\'s HELD: no best' : ''} (${ps.map((x, k) => `${NAMES[k]} ${x && x.b && x.b['freefall-solo'] ? x.b['freefall-solo'].a : '—'}`).join(' · ')})`);
+  ok(ps.every((x, k) => x && done.o && done.o[pids[k]] && done.o[pids[k]].xp && done.o[pids[k]].xp.gain > 0), '… XP for all three (a held run is paid its XP)');
+  ok(aliceHeld ? !done.o[pids[0]].win && !done.o[pids[1]].win && !done.o[pids[2]].win : !!done.o[pids[0]].win && !done.o[pids[1]].win && !done.o[pids[2]].win, aliceHeld ? '… the win: nobody (the deepest run is HELD — never handed to the next one)' : '… the win: ALICE alone (the deepest)');
+  if (aliceHeld) {
+    const hn = await until(() => dbGet(`ffheld/${heldId(`${code}_${m}`, pids[0])}`), 15000);
+    ok(!!hn && hn.pid === pids[0] && hn.f === 200 && hn.so === 0 && /bottom/.test(hn.ff) && /harbor/.test(hn.ff) && /THE LINE/.test(hn.why), `… ALICE's run waits on /admin's HELD list: ${hn ? `${hn.f} floors · MATCH · "${hn.why}" · cards waiting: ${hn.ff}` : 'NOT RECORDED'}`);
+    ok(!(ps[0].it && ps[0].it['card-rockbottom']), '… ROCK BOTTOM waits for the owner\'s RELEASE (server.test proves the RELEASE awards it)');
+  } else ok(ps[0].it && ps[0].it['card-rockbottom'] && ps[0].it['card-splashdown'] && ps[0].pa && ps[0].pa.gf && ps[0].pa.gf['freefall-bottom'] === 1, `ROCK BOTTOM awarded to ALICE (floor 200, a match) — the card + SPLASHDOWN on the way (items ${Object.keys(ps[0].it || {}).filter(k => /splash|rock|terminal/.test(k)).join(' ')})`);
+  ok(!(ps[1].it && ps[1].it['card-rockbottom']) && !(ps[2].it && ps[2].it['card-rockbottom']), '… nobody else: the cards come from each player\'s OWN replay');
+  ok(await all(I, p => p.evaluate("!document.querySelector('.ff-fin[data-would]')")).then(x => x.every(Boolean)), '… no WOULD COUNT on any phone');
+  await sleep(400); await H.shot(pages[0], 'golive-counted-match-podium');
   // ---- REMATCH in place: a new match, a new count, a new seed
   ok(await rematchTap(host), 'the host taps REMATCH');
   const seen2 = await watchCount(I, m, null);
@@ -376,7 +381,7 @@ async function partA() {
   const bNow = await floorOf(pages[1]);
   const gb2 = await until(async () => { const g = (await state(pages[0])).hud.ghosts.find(x => x.uid === uids[1]); return g && !g.bad && !g.lost && Math.abs(g.floor - (await floorOf(pages[1]))) <= 3 ? g : null; }, 15000);
   ok(!!back && !!gb2, `… back on the line: the queued chunks land together (${k4} → ${back ? back.k : await chunksOf(uids[1])} chunks) and ALICE's screen catches his ghost up (floor ${gb2 ? gb2.floor : '?'}; his: ${bNow})`);
-  ok(await H.evalIn(host, s => s.meta.hostId === s.uid), '… the owner is still the host');
+  ok(await H.evalIn(host, s => s.meta.hostId === s.uid), '… the first host is still the host');
 
   // ---- 2. A LATE JOINER: DANA walks in mid-match — she WATCHES
   section = '2 late joiner';
@@ -468,15 +473,11 @@ async function partA() {
   ok(J3.fin.matchId === m3 && J3.fin.phase === 'final' && J3.same && J3.sorted, `the new host's podium = the judge's replay of every node — the dead phone's too (${J3.line}); the server agrees (${((Date.now() - t0) / 1000).toFixed(0)} s after her phone died)`);
   ok(J3.fin.results[uids[0]].f >= aFloor - 1 && !J3.fin.results[uids[0]].bad, `… ALICE's row = what her phone had sent: floor ${J3.fin.results[uids[0]].f}, ${J3.fin.results[uids[0]].w || '—'}`);
   await H.shot(pages[hi], 'match-podium-new-host');
-  // REMATCH on a plain host's phone: the hidden game is the owner's alone
+  // REMATCH on a PLAIN host's phone (the old host gone): FREEFALL is playable — a new match (THE GO-LIVE; it was "Coming soon" while hidden)
   const bar3 = (await podiumOf(pages[hi], NAMES.slice(0, 4))).bar;
-  await rematchTap(pages[hi]);
-  await sleep(900);
-  const said = await pages[hi].evaluate("((document.querySelector('.sh-msgs') || {}).innerText || '').split('×')[0].trim()");
-  await sleep(6000);
-  const after = await all(L3, p => p.evaluate(() => { const s = window.__arcade.state, g = s.game; return { id: g ? g.id : '', m: g ? g.matchId : '', phase: g ? g.phase : '', status: s.meta && s.meta.status, podium: !!document.querySelector('.ff-final .final'), bar: ((document.querySelector('.ff-final .final-bar-t') || {}).textContent || ''), toast: [...document.querySelectorAll('.toast')].map(e => e.textContent).join(' / ') }; }));
-  ok(after.every(a => a.m === m3 || !a.id), `a plain host can NOT start the hidden game: REMATCH on ${NAMES[hi]}'s phone (the bar said "${bar3}") starts no new match`);
-  note(`REMATCH with the owner gone: the new host's phone says "${said || '(nothing)'}" and stays on the podium → ${JSON.stringify(after[L3.indexOf(hi)])}`);
+  ok(await rematchTap(pages[hi]), `the new host taps ${bar3}`);
+  const m4 = await until(async () => { const g = await H.evalIn(pages[hi], s => s.game && s.game.matchId); return g && g !== m3 ? g : null; }, 20000);
+  ok(!!m4, `REMATCH on ${NAMES[hi]}'s phone (a plain host) starts a NEW match (${m3} → ${m4})`);
 }
 
 // =====================================================================================================================================
@@ -486,7 +487,7 @@ async function partB() {
   let N = 8, room = null;
   try { room = await openRoom('fe', N); } catch (e) { note(`8 phones did not come up on this machine: ${e.message}`); throw e; }
   const { host, code } = room, I = R(N), ids = I.map(i => uids[i]);
-  const seen = await ownerStart(host, I, 'eight-count', `THE OWNER starts FREEFALL for a room of ${N}`);
+  const seen = await ownerStart(host, I, 'eight-count', `the host starts FREEFALL for a room of ${N}`);
   const { m } = await goChecks(I, code, seen, `${N} players — `);
   const n0 = netSnap(), t0 = await treeStat(code, m, ids);
   await all(I, (p, i) => (i % 2 ? hand(p, 'play') : (async () => { await hand(p, 'safe'); await sleep(600 + 250 * i); await hand(p, 'play'); })()));
@@ -531,7 +532,7 @@ async function partB() {
 async function partC() {
   section = '7 the cap';
   const { host, code } = await openRoom('fc', 2), I = R(2), ids = I.map(i => uids[i]);
-  const seen = await ownerStart(host, I, null, 'THE OWNER starts FREEFALL for two');
+  const seen = await ownerStart(host, I, null, 'the host starts FREEFALL for two');
   const { m, SV } = await goChecks(I, code, seen, '2 players — ');
   const n0 = netSnap(), t0 = await treeStat(code, m, ids);
   await pacer(pages[0]); await sleep(2500); await pacer(pages[1]);
@@ -568,7 +569,7 @@ async function partD() {
   // (S9: CHARLIE's shared end-board block is taken away the moment it appears — as ui/final.js does when its import fails)
   await pages[2].evaluateOnNewDocument(() => { new MutationObserver(() => { for (const e of document.querySelectorAll('.final-eb')) e.remove(); }).observe(document, { childList: true, subtree: true }); });
   await pages[2].evaluate(() => { new MutationObserver(() => { for (const e of document.querySelectorAll('.final-eb')) e.remove(); }).observe(document, { childList: true, subtree: true }); });
-  const seen = await ownerStart(host, I, null, 'THE OWNER starts FREEFALL for three');
+  const seen = await ownerStart(host, I, null, 'the host starts FREEFALL for three');
   const { m } = await goChecks(I, code, seen, '3 players — ');
   await all(I, p => hand(p, 'play'));
   await until(async () => (await all(I, floorOf)).every(f => f >= 3), 30000);
@@ -634,7 +635,7 @@ async function partE() {
   const url = pages[1].url();
   await pages[1].close();   // (BOB's phone is away at the start: the room's game is the owner's SOLO run)
   await until(async () => { const pr = await dbGet(`rooms/${code}/presence/${uids[1]}`); return !pr || !pr.c; }, 20000);
-  ok(await H.startGame(host, 'freefall', {}), 'THE OWNER starts FREEFALL with BOB away');
+  ok(await H.startGame(host, 'freefall', {}), 'the host starts FREEFALL with BOB away');
   const g = await until(async () => { const x = await dbGet(`rooms/${code}/game`); return x && x.id === 'freefall' ? x : null; }, 20000);
   ok(!!g && g.mode === 'solo' && !g.participants[uids[1]], `the room's game is the owner's SOLO run (${g && g.mode}, ${g && Object.keys(g.participants).length} participant)`);
   await hand(host, 'play');

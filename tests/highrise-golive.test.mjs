@@ -30,10 +30,10 @@ test('HOW TO PLAY: RULES.highrise in ui/help.js — one line + two short section
 });
 
 test('THE SIGN HOLD — LIFTED (CITY PART 1, Nov 20): HIGH RISE is on the city\'s signs through THE ONE roster (the roof signs, the speakeasy blade, the ghost ad) + its own tri-vision face; the hold stays as the switch for the next game', () => {
-  assert.deepEqual(SIGN_HOLD, []);
+  assert.ok(!SIGN_HOLD.includes('highrise'));   // (FREEFALL's GO-LIVE, Nov 28: the hold names FREEFALL alone — the switch did its job again)
   assert.ok(GAMES.find(g => g.id === 'highrise').playable);
   assert.ok(signRoster(GAMES).some(g => g.id === 'highrise'), 'in the roster');
-  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);
+  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);   // (FREEFALL playable but HELD — not yet on a sign)
   // the neon takes the roster (never its own `playable` filter) — the scene hands it the same; the ghost ad + the blades read signGames
   assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)\.map/);
   const scene = read('js/screens/harbor/scene.js');
@@ -54,7 +54,7 @@ test('THE GAMES LIST: HIGH RISE on TOP with NEW from its go-live day (the newest
 });
 
 test('THE BOARD: its own tab (the seventh) on TALLEST TOWER; the weekly goal\'s pool takes it (a playable game)', () => {
-  assert.match(read('js/board/view.js'), /export const TABS = Object\.freeze\(\['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise'\]\);/);
+  assert.match(read('js/board/view.js'), /export const TABS = Object\.freeze\(\['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise'(, 'freefall')?\]\);/);   // (FREEFALL's GO-LIVE: the eighth after it)
   assert.match(read('js/board/view.js'), /highrise: \['#ff4fd8', '#35e3ff'\]/);
   assert.match(read('js/core/boards.js'), /highrise: \{ records: \[rec\('highrise-solo', 'TALLEST TOWER', 'floor'/);
 });

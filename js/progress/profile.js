@@ -16,7 +16,7 @@ import { trophiesSection } from './trophies.js';
 import { openDress } from '../vault/dress.js';
 import { vaultSheet } from '../vault/sheet.js';
 import { goalPaid, weeklyGoal, goalProgress, GOAL_XP } from '../core/ranks.js';
-import { GOAL_GAMES } from '../core/boards.js';
+import { goalGames } from '../core/boards.js';
 import { weekKey, weekEndsAt } from '../core/week.js';
 import { GAMES } from '../config.js';
 
@@ -84,7 +84,7 @@ export function progressSections(data, o = {}) {
  *  LEFT" small on top; the goal in BIG type; a THICK cyan neon-tube bar + "3 / 8"; THE REWARD as a real chip; done = lit + CLAIMED ✓ */
 export function goalTile(data, now = Date.now()) {
   const s = data.stats || {};
-  const wk = s.wk || weekKey(now), goal = weeklyGoal(wk, GOAL_GAMES), gp = goalProgress(goal, s.gw, s.gs);
+  const wk = s.wk || weekKey(now), goal = weeklyGoal(wk, goalGames(wk)), gp = goalProgress(goal, s.gw, s.gs);
   const paid = s.gd === wk, days = Math.max(1, Math.ceil((weekEndsAt(now) - now) / 86_400_000));
   const gname = goal.game ? (GAMES.find(g => g.id === goal.game) || {}).name : null;
   const frac = Math.max(0, Math.min(1, gp.have / Math.max(1, gp.n)));

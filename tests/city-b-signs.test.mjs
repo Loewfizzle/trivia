@@ -32,7 +32,9 @@ const PHONE = ['n-blade', 'n-roofA', 'n-roofB'];
 test('the roster: the PLAYABLE games (JAYWALK by its own row since its go-live) minus THE SIGN HOLD — never a frozen game or a daily; a row turning playable joins with no code change', () => {
   assert.deepEqual(IDS.slice().sort(), GAMES.filter(g => g.playable && !g.daily && !SIGN_HOLD.includes(g.id)).map(g => g.id).sort());
   // (CITY PART 1, Nov 20 — THE SIGN HOLD LIFTED in the same pass as HIGH RISE's signs: it hangs like every playable game)
-  assert.ok(GAMES.find(g => g.id === 'highrise').playable && SIGN_HOLD.length === 0 && IDS.includes('highrise'), 'HIGH RISE: playable + on the signs (the hold is empty)');
+  assert.ok(GAMES.find(g => g.id === 'highrise').playable && !SIGN_HOLD.includes('highrise') && IDS.includes('highrise'), 'HIGH RISE: playable + on the signs');
+  // (FREEFALL's GO-LIVE, Nov 28 — HIGH RISE's pattern: playable, HELD off every sign until THE CITY PASS installs its sign + lifts the hold)
+  assert.ok(GAMES.find(g => g.id === 'freefall').playable && SIGN_HOLD.includes('freefall') && !IDS.includes('freefall'), 'FREEFALL: playable + HELD off the signs (SIGN_HOLD)');
   assert.ok(signRoster(GAMES.map(g => g)).every(g => !SIGN_HOLD.includes(g.id)), 'nothing held ever reaches a sign');
   assert.ok(IDS.includes('jaywalk'), 'JAYWALK — its own GAMES row, playable (THE GO-LIVE PASS)');
   assert.ok(ROSTER.every(g => !FROZEN.has(g.id) && !g.daily));

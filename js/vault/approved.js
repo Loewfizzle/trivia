@@ -19,7 +19,7 @@ export function labMarks() {
   return marksP;
 }
 /** HIGH RISE's GO-LIVE (the owner, Nov 20): its two cards ship as they are — out of THE LAB, approved by that call (no mark ever needed) */
-export const SHIPPED = Object.freeze(['card-abovetheclouds', 'card-topoftheworld', 'full-card-abovetheclouds', 'full-card-topoftheworld']);
+export const SHIPPED = Object.freeze(['card-abovetheclouds', 'card-topoftheworld', 'full-card-abovetheclouds', 'full-card-topoftheworld', 'card-splashdown', 'card-terminalvelocity', 'card-rockbottom', 'full-card-splashdown', 'full-card-terminalvelocity', 'full-card-rockbottom']);
 /** is this item's new art approved? */
 export async function isApproved(id) { if (SHIPPED.includes(id)) return true; const m = await labMarks(); return !!(m[id] && m[id].m === 'approve'); }
 /** the approved ids (a set) — + THE TWO DEV CARDS (THE VAULT 2B: only the owner can ever hold them, and he IS the lab — his own card shows

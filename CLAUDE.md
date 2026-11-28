@@ -1,8 +1,8 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each). Sixteen games, **FIVE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK, HIGH RISE
+Mobile-first multiplayer party games (2–8 players, one phone each). Sixteen games, **SIX PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK, HIGH RISE, FREEFALL
 (`js/config.js` GAMES[].playable is the one switch — ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md; FREEFALL is BEING BUILT — HIDDEN, a `preview` row, never flip `playable`: docs/freefall.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md; FREEFALL since Nov 28, held OFF the city's signs (`SIGN_HOLD`) until THE CITY PASS installs its sign: docs/freefall.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -29,10 +29,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/launch.md` | **THE LAUNCH** (NO RESET — THE RESET MORNING cancelled Nov 21, FOUNDING MEMBER) + **THE PRIVATE FLIP** — the owner's steps; the edge cache |
 | `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
-| `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the five playable games (read before a pass on one) |
+| `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | three of the six playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
 | `docs/highrise.md` | **HIGH RISE** (LIVE since THE GO-LIVE, Nov 20 — the rules, the two looks, the cartridge + THE MATCH, THE SWITCH ON, THE SIGN HOLD (lifted, CITY PART 1), THE POSTER share card; every pass indexed there) |
-| `docs/freefall.md` | **FREEFALL** (BEING BUILT — F5C, Nov 27: THE HIDDEN CARTRIDGE (owner-only), THE PROOF (`ff`), the judge + THE TIE-BREAK, THE SWITCH OFF, the board + AVG, the cards, SHARE, the end screens, HOW TO PLAY; the test page /freefall-play; the review ✅ → FIX A ✅ (the look) → FIX B ✅ (speed A/B + the match) → FIX C ✅ → FIX D ✅ → go-live) |
+| `docs/freefall.md` | **FREEFALL** (LIVE since THE GO-LIVE, Nov 28 — THE PROOF (`ff`), the judge + THE TIE-BREAK, THE SWITCH ON (the kill switch kept), THE HOLD + /admin's HELD LIST (`ffheld/`), the board + AVG, the cards, SHARE, the end screens, HOW TO PLAY; the test page /freefall-play; every pass indexed there) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | three of the five dailies (+ docs/jaywalk.md · docs/highrise.md "THE DAILY") (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -157,6 +157,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - HOLD'EM: the engine PURE + DETERMINISTIC, THE SERVER IS THE DEALER, PLAY CHIPS ONLY, the portrait untouched → docs/holdem.md.
 - JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY; the course rules v1 + v2 FROZEN (a change = a v3); a season / a time of day = a VIEW, never the start bundle; SMOOTHNESS = DROPPED + WORST FRAMES on the real iPhone · THE STILL-SCREEN RULE · THE BLEND RULE · LAST MILE → docs/jaywalk.md (moved Nov 25).
 - HIGH RISE: the rules PURE + INTEGERS ONLY, a result = THE REPLAY; THE LAG RULES (ZERO GARBAGE IN PLAY); THE CONTROLLER = ONE wiring (`stage.js`); THE HOLD (`engine.js#holdAwake`) only RECORDS itself → docs/highrise.md (moved Nov 25).
+- FREEFALL: a result = THE REPLAY (`ff`); THE HOLD — a too-perfect run is paid XP, its board / average / cards wait on /admin's HELD LIST (`ffheld/`, RELEASE once) → docs/freefall.md.
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).

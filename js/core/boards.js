@@ -63,6 +63,10 @@ export const OVERALL_BOARDS = Object.freeze({
 export const OVERALL_IDS = Object.keys(OVERALL_BOARDS);
 /** the games a weekly goal may name: the board games a player can START today (config.js GAMES[].playable — the one switch) */
 export const GOAL_GAMES = BOARD_GAMES.filter(id => (GAMES.find(g => g.id === id) || {}).playable !== false);
+/** FREEFALL's GO-LIVE (Sat Nov 28): a game that goes live MID-WEEK would re-roll that week's featured game (ranks.js — index % length) →
+ *  it joins the goal's games from its first whole week (the Monday 4 am line: the week key, core/week.js) */
+export const GOAL_FROM = Object.freeze({ freefall: 'w20261130' });
+export const goalGames = wk => GOAL_GAMES.filter(id => !GOAL_FROM[id] || String(wk) >= GOAL_FROM[id]);
 export const PULSE_DIFFS = ['easy', 'normal', 'hard'];
 
 /** Every game also has WINS and WIN RATE (first), then its own highlights. */

@@ -52,19 +52,19 @@ export const GAME_LIGHT = {
   holdem: ['#f2c14e', '#39d98a'],   // (HOLD'EM IN THE CITY: its casino gold + the felt)
   jaywalk: ['#ff4fc4', '#35e3ff'],   // (THE GO-LIVE PASS: its signs' pink + THE SIGNAL's cyan)
   highrise: ['#ff4fd8', '#35e3ff'],   // (HIGH RISE — THE GO-LIVE, Nov 20: the sign's HIGH pink + RISE cyan)
-  freefall: ['#27e0e6', '#ff4fa8'],   // (FREEFALL F4A: title-05's teal + pink — its tab is HIDDEN until go-live)
+  freefall: ['#27e0e6', '#ff4fa8'],   // (FREEFALL F4A: title-05's teal + pink — its tab since THE GO-LIVE, Nov 28)
 };
 const gameName = id => (GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || { name: String(id).toUpperCase() }).name;
 /** THE TABS (the owner, Nov 9): the overall XP board, the dailies' points, the playable games (HOLD'EM IN THE CITY, Nov 11: + HOLD'EM —
  *  FIVE tabs at 390 without a sideways scroll: PRISM DROP's tab reads PRISM; THE GO-LIVE PASS, Nov 17: + JAYWALK — SIX; HIGH RISE's GO-LIVE,
- *  Nov 20 (the owner: its own tab): + HIGH RISE — SEVEN) */
-export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise']);
+ *  Nov 20 (the owner: its own tab): + HIGH RISE — SEVEN; FREEFALL's GO-LIVE, Nov 28: + FREEFALL — EIGHT, the row scrolls) */
+export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise', 'freefall']);
 const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES' });   // (THE CITY POLISH PASS: every game by its full name — PRISM DROP, HIGH RISE — on one line; the row scrolls)
 const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
 /** FREEFALL F4A — a game BEING BUILT has its tab WIRED + HIDDEN: on the owner's phone only (config.js#isOwnerTest — THE OWNER'S LIVE TEST), never on
  *  /board; its go-live pass moves it into TABS */
-export const HIDDEN_TABS = Object.freeze(['freefall']);
+export const HIDDEN_TABS = Object.freeze([]);   // (FREEFALL's GO-LIVE, Nov 28: its tab moved into TABS)
 const tabsNow = () => [...TABS, ...HIDDEN_TABS.filter(id => isOwnerTest(id))];
 export const tabOf = g => (tabsNow().includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;

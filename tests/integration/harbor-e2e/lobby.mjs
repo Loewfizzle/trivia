@@ -264,7 +264,7 @@ G('room', async () => {
   await waitFor(q, "!!document.querySelector('.sh.options')", 'the options', 8000).catch(() => {});
   await ev(q, "document.querySelector('.sh.options .btn-primary').click()");
   const started = await waitFor(q, "window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing'", 'the game starts', 15000).then(() => true, () => false);
-  ok(gs.n === 5 && gs.t === 'PICK A GAME' && started,   // (THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE — five playable)
+  ok(gs.n === 6 && gs.t === 'PICK A GAME' && started,   // (THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE · FREEFALL's GO-LIVE: + FREEFALL — six playable)
   `PLAY (the host): PICK A GAME (${gs.n} playable) → its options → INITIATE — today's start path (${started ? 'playing' : 'not started'})`);
   await A.ctx.close(); await B.ctx.close();
   log('room', 'done');
@@ -497,7 +497,7 @@ G('tapfit', async () => {
       const bad = [];
       if (hit(g.title, g.row)) bad.push('the title over the tabs');
       for (const [k, c] of g.corners) { if (k === 'menu') bad.push('a ☰ on THE BOARD'); if (hit(c, g.title)) bad.push(`${k} over the title`); if (hit(c, g.row)) bad.push(`${k} over the tabs`); }
-      if (g.tops.length !== 1 || g.n !== 7) bad.push(`the tabs on ${g.tops.length} rows (${g.n})`);
+      if (g.tops.length !== 1 || g.n !== 8) bad.push(`the tabs on ${g.tops.length} rows (${g.n})`);   // (FREEFALL's GO-LIVE: EIGHT — one row that scrolls, the right edge faded)
       if (g.clipped.length) bad.push(`a tab's words clipped (${g.clipped.join(', ')})`);   // (HIGH RISE's GO-LIVE: seven tabs — every label whole)
       if (SHOTS && mode === 'app') await p.screenshot({ path: `${OUT}board-top-${w}x${h}.png`, clip: { x: 0, y: 0, width: w, height: Math.min(h, 360) } });
       const back = g.corners.find(c => c[0] === 'back');

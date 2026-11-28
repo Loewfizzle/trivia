@@ -79,7 +79,7 @@ export const GAMES = [ // lobby order
   { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true, live: '2026-11-08' },   // (CITY H2: `live` = the go-live day — NEW on the games list its first 14 days: core/game-order.js)
   { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: true, live: '2026-11-17' },   // (PLAYABLE since THE GO-LIVE PASS, Nov 17 — docs/jaywalk.md)
   { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', tag: 'STACK THE TOWER', blurb: 'One tap drops each slab. Tallest tower wins.', playable: true, live: '2026-11-20' },   // (PLAYABLE since THE GO-LIVE, Nov 20; off the signs: harbor-neon.js#SIGN_HOLD)
-  { id: 'freefall', name: 'FREEFALL', theme: 'freefall', tag: 'FALL AS DEEP AS YOU CAN', blurb: 'Drag to spin the tower. Drop through the gaps. Deepest fall wins.', playable: false, preview: true },   // (hidden: docs/freefall.md)
+  { id: 'freefall', name: 'FREEFALL', theme: 'freefall', tag: 'FALL AS DEEP AS YOU CAN', blurb: 'Drag to spin the tower. Drop through the gaps. Deepest fall wins.', playable: true, live: '2026-11-28' },   // (PLAYABLE since THE GO-LIVE, Nov 28 — docs/freefall.md; off the signs: harbor-neon.js#SIGN_HOLD)
 ];
 /** THE FROZEN games (not playable, not being built) — ONE list; its notes: docs/harbor/boot-headers.md "js/config.js" */
 export const FROZEN_IDS = Object.freeze(GAMES.filter(g => !g.playable && !g.preview && !g.daily).map(g => g.id));

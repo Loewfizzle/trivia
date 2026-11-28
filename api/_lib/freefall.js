@@ -48,10 +48,10 @@ export const serverRow = v => (v && v.ok
  * THE SWITCH (the owner, Nov 26 — COUNTING STAYS OFF UNTIL GO-LIVE; HIGH RISE's S4A switch is the pattern): ONE server-side flag. OFF →
  * /api/report still JUDGES every cartridge run (the proof node replayed, the speed check, the holds' clock, the judge) and answers what it
  * WOULD award (floor, XP, the streak, a best, the cards' flags) — and WRITES NOTHING: no pstats, no profile, no board row, no card, no
- * streak day, no results/ record. THE GO-LIVE PASS sets this to true (ONE line) — then a run is counted by JAYWALK's normal path. (On the
+ * streak day, no results/ record. THE GO-LIVE (Nov 28) set it true — a run is counted by JAYWALK's normal path; the emulators' flip is two-way. (On the
  * LOCAL EMULATORS a test may flip it through the database switch `testFreefallCounts` — api/report.js#freefallCounts; never honoured in production.)
  */
-export const FREEFALL_COUNTS = false;
+export const FREEFALL_COUNTS = true;   // (THE GO-LIVE, Nov 28: ON — the would-count path stays: false here is the one-line kill switch)
 
 /** ONE player's PROOF NODE → the judge's answer for a SOLO run (the seed = seedOf(code, matchId, go): picked after GO; tick 0 = that GO + its lead). No GO = no run. The SERVER is strict: never the host's mirror reading. */
 export const verifyRun = ({ code, matchId, node } = {}) => judgeSolo({ code, matchId, node });

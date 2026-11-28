@@ -79,8 +79,8 @@ export const ITEM_ROWS = [
   C('card-abovetheclouds', 'ABOVE THE CLOUDS', 'rare', '#05060d', '#bfe6ff', '#ff4fd8', 'Sixty floors. The city is weather now.'),
   C('card-topoftheworld', 'TOP OF THE WORLD', 'legendary', '#020203', '#ffe9c0', '#ffd27a', 'Two hundred floors. They sent a ship.'),
   // FREEFALL F4A — ITS THREE CARDS (Grok's art assets/vault/ff/ — js/fx/ff-specs.js: the crops + the hero boxes; no layer of their own yet):
-  // unlocked by FREEFALL's achievements below — the feat flags from the SERVER's replay of a run. HIDDEN UNTIL GO-LIVE: nothing is ever
-  // awarded while counting is OFF (api/_lib/freefall.js#FREEFALL_COUNTS), and a collection shows only what its player owns
+  // unlocked by FREEFALL's achievements below — the feat flags from the SERVER's replay of a run. LIVE since THE GO-LIVE (Nov 28) — nothing is ever
+  // awarded while counting is OFF (the kill switch: api/_lib/freefall.js#FREEFALL_COUNTS), and a collection shows only what its player owns
   C('card-splashdown', 'SPLASHDOWN', 'rare', '#01000e', '#e2dcff', '#c24bff', 'A hundred and twenty floors down. The harbor took you in.'),
   C('card-terminalvelocity', 'TERMINAL VELOCITY', 'epic', '#000000', '#ffe2c2', '#ff8a2a', 'Fifteen floors, not one bounce. Nothing slows you now.'),
   C('card-rockbottom', 'ROCK BOTTOM', 'legendary', '#000001', '#ffe9c0', '#ffd27a', 'Two hundred floors. There is nowhere left to fall.'),

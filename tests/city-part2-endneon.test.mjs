@@ -19,7 +19,7 @@ test('THE END NEON: every playable game has ONE NEON row — the name\'s words +
     const N = META[id] && META[id].NEON;
     assert.ok(N, `${id}: a NEON row in js/games/metas.js`);
     assert.ok(Array.isArray(N.name) && N.name.length >= 1 && N.name.every(w => typeof w[0] === 'string' && /^#[0-9a-f]{6}$/i.test(w[1])), `${id}: the name's words + colours`);
-    assert.equal(N.name.map(w => w[0]).join(' '), META[id].BANNER_NAME, `${id}: the header says the game's own name`);
+    assert.equal(N.name.map((w, i) => (i && !w[3] ? ' ' : '') + w[0]).join(''), META[id].BANNER_NAME, `${id}: the header says the game's own name (a word's 4th field joins it to the one before — FREEFALL's FREE + FALL, fin-neon.js)`);
     assert.ok(/^#[0-9a-f]{6}$/i.test(N.mode[0]) && /^#[0-9a-f]{6}$/i.test(N.line[0]), `${id}: the mode + the line`);
   }
 });
@@ -35,7 +35,7 @@ test('THE END NEON: every colour reads ≥ 4.5 : 1 — by night on the veil, by 
 });
 
 test('THE END NEON: ONE builder — every game\'s end frame passes its mode; HIGH RISE\'s card is the builder\'s; no game keeps its own header neon', () => {
-  const calls = { overclock: 'js/games/overclock/view.js', prism: 'js/games/prism/victory.js', holdem: 'js/games/holdem/view.js', jaywalk: 'js/games/jaywalk/view.js', highrise: 'js/games/highrise/view.js' };
+  const calls = { overclock: 'js/games/overclock/view.js', prism: 'js/games/prism/victory.js', holdem: 'js/games/holdem/view.js', jaywalk: 'js/games/jaywalk/view.js', highrise: 'js/games/highrise/view.js', freefall: 'js/games/freefall/view.js' };   // (FREEFALL's GO-LIVE, Nov 28: + FREEFALL)
   for (const id of PLAYABLE) assert.ok(calls[id] && /createFinal\(\{[\s\S]{0,600}mode: /.test(read(calls[id])), `${id}: createFinal gets its mode (SOLO / MATCH)`);
   const f = read('js/ui/final.js');
   assert.ok(f.includes("const neonKick = mode != null && g && neonOf(g.id) ? finHeader(g.id, mode) : null;") && f.includes('if (g) finFrame(el, g.id);'), 'the frame builds the header + paints its WINNER line');

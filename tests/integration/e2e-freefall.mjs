@@ -1,14 +1,15 @@
-// FREEFALL F4A — THE HIDDEN CARTRIDGE, end to end on the LOCAL EMULATORS (NEVER THE LIVE SITE): docs/freefall.md "THE CARTRIDGE" · "THE PROOF" · "THE SWITCH"
-//   1. A STRANGER never sees it: no row on the PLAY shelf, PLAY NOW refuses it
-//   2. THE OWNER'S LIVE TEST (the server's yes — on the emulators testAdmins/{pid}): PLAY → FREEFALL · TEST → its card → PLAY NOW → the game
+// FREEFALL — THE CARTRIDGE (F4A; PLAYABLE since THE GO-LIVE, Nov 28), end to end on the LOCAL EMULATORS (NEVER THE LIVE SITE): docs/freefall.md
+//   "THE CARTRIDGE" · "THE PROOF" · "THE SWITCH"
+//   1–2. A STRANGER (no owner, no flag): PLAY → FREEFALL on top with NEW (never · TEST) → its card → PLAY NOW → the game
 //   3. THE FIRST DRAG → GO (the SERVER's time, read back) → the seed = hash(code + matchId + GO), tick 0 = GO + 600 ms; the run plays; the
 //      proof node fills with server-stamped chunks of the packed input log; the end → `e` → the console's podium
-//   4. THE SWITCH IS OFF: /api/report JUDGES the run — WOULD COUNT matches the phone's own result — and writes NOTHING (pstats, the
-//      profile, the boards, results/ untouched)
+//   4. THE SWITCH IS ON (the code's own — THE GO-LIVE): the run is COUNTED — results/ done, XP, the best on freefall-solo = the server's
+//      replay, THE AVERAGE's day row, the streak day
 //   5. PLAY AGAIN = the console's INSTANT AGAIN (a match of its own, back on THE OPENING, the scene kept warm)
 //   6. THE HOLD in the cartridge: the page hidden mid-run → the hold goes up with the log; back → the way back is STAMPED by the server
 //      (h/0), the run goes on 2.4 s after it; the judge accepts the held run whole
-//   7. COUNTING ON (a test-only flip: testFreefallCounts): the floor, XP, the best on the board freefall-solo
+//   7. THE KILL SWITCH (the emulators' two-way flip testFreefallCounts = false — FREEFALL_COUNTS false in production): /api/report still
+//      JUDGES the run — WOULD COUNT matches the phone's own result — and writes NOTHING (pstats, the profile, the board, results/ untouched)
 //   8. an UNPROVEN run (the proof node refused — no GO): it plays on its own seed, says NOT COUNTED, ends on the stage's own card
 //   node tests/integration/e2e-freefall.mjs "<chromium>" [outDir]
 import puppeteer from './kit/puppeteer.mjs';
@@ -20,6 +21,8 @@ import { logFromChunks, chunkTimes, stampsOf, START_LEAD_MS, RESUME_LEAD_MS } fr
 import { seedOf } from '../../js/games/freefall/logic.js';
 import { createRun } from '../../js/games/freefall/engine.js';
 import { floorInto } from '../../js/games/freefall/tower-gen.js';
+import { isNew, dayKeyOf } from '../../js/core/game-order.js';
+import { streakDay } from '../../js/core/streak.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -94,30 +97,24 @@ async function playTo(P, floor) {
 
 try {
   await dbPut('testFreefallCounts', null);
-  // ---- 1. nobody but the owner ever sees it
+  // ---- 1–2. A STRANGER: FREEFALL is PLAYABLE — on the shelf (NEW, on top — its first 14 days), its card, PLAY NOW (THE GO-LIVE, Nov 28)
   const P = await phone(`ff${Date.now() % 100000}`);
   const { uid, pid } = await pidOf(P);
   ok(!!pid, 'the phone has its profile');
-  ok(await P.ev("import('/js/config.js').then(c => !c.isPlayable('freefall') && !c.isOwnerTest('freefall') && c.GAMES.some(g => g.id === 'freefall' && g.preview && !g.playable))"), 'a stranger: FREEFALL is a game BEING BUILT — not playable, never a TEST');
+  ok(await P.ev("import('/js/config.js').then(c => c.isPlayable('freefall') && !c.isOwnerTest('freefall') && c.GAMES.some(g => g.id === 'freefall' && g.playable && !g.preview && g.live === '2026-11-28'))"), 'a stranger: FREEFALL is PLAYABLE — no owner, no TEST (THE GO-LIVE)');
   await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row')", 6000), 'a stranger: the dock\'s PLAY opens THE GAMES SHELF');
-  ok(await P.ev("import('/js/config.js').then(c => !document.querySelector('.nd-shelf-row[data-game=\"freefall\"]') && document.querySelectorAll('.nd-shelf-row').length === c.GAMES.filter(g => g.playable).length && !/FREEFALL/i.test(document.querySelector('.nd-shelf-sheet').textContent))"), '… the playable games — NO FREEFALL anywhere on it');
-  ok(await P.ev("import('/js/host.js').then(m => m.playSolo('freefall'))") === false && !(await P.ev(`${S}.code`)), '… and PLAY NOW refuses it: nobody else can start it');
-  ok(await P.ev("!/FREEFALL|freefall/i.test(document.body.innerText)"), '… nothing on the city\'s screen names it');
-
-  // ---- 2. THE OWNER'S LIVE TEST: the server's own yes → FREEFALL · TEST on the shelf → its card → PLAY NOW
-  await dbPut(`testAdmins/${pid}`, true);
-  await P.ev('sessionStorage.clear()');   // (the gate remembers a NO for the tab: this tab was a stranger a moment ago)
-  await P.open();
-  ok(await P.waitFor("import('/js/config.js').then(c => c.isOwnerTest('freefall'))", 20000), 'THE OWNER\'s phone: the server\'s yes arrives (the radio gate) → FREEFALL is his to test');
-  await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"freefall\"]')", 6000), 'PLAY → the shelf lists FREEFALL');
-  ok(/FREEFALL · TEST/.test(await P.ev("document.querySelector('.nd-shelf-row[data-game=\"freefall\"]').textContent")), '… marked · TEST');
-  await P.shot('f4a-owner-shelf.png');
+  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"freefall\"]')", 6000), 'a stranger: the dock\'s PLAY → THE GAMES SHELF lists FREEFALL');
+  const row1 = await P.ev("(() => { const r = [...document.querySelectorAll('.nd-shelf-row')]; const f = document.querySelector('.nd-shelf-row[data-game=\"freefall\"]'); return { first: r[0] === f, text: f.textContent, n: r.length, isNew: !!f.querySelector('.gm-new') }; })()");
+  ok(row1.n === 6 && !/TEST/.test(row1.text), `… six playable games — FREEFALL never · TEST ("${row1.text.replace(/\s+/g, ' ').trim()}")`);
+  // (NEW from its go-live STREAK DAY — the 4 am line of Nov 28 — for 14 days: HIGH RISE's rule; before 4 am the day is still Nov 27)
+  const freshNow = isNew('2026-11-28', dayKeyOf(streakDay(Date.now())));
+  if (freshNow) ok(row1.first && row1.isNew, `… on TOP with NEW (its first 14 days from its go-live, Nov 28)${row1.isNew ? ' · NEW' : ''}`);
+  else ok(!row1.isNew, `… not NEW yet / any more: the streak day is ${dayKeyOf(streakDay(Date.now()))} (NEW from the 4 am line of Nov 28 for 14 days)`);
+  await P.shot('golive-stranger-shelf.png');
   await sleep(450);   // (the shelf sheet's first moment drops a tap)
   await P.tap('.nd-shelf-row[data-game="freefall"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"freefall\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
-  await P.shot('f4a-owner-card.png');
+  await P.shot('golive-stranger-card.png');
   const tPlay = Date.now();
   await sleep(450);   // (the card sheet's first moment drops a tap)
   await P.tap('.nd-card-solo');
@@ -132,7 +129,6 @@ try {
   await P.shot('f4a-cartridge-opening.png');
 
   // ---- 3. THE FIRST DRAG → GO → the seed + tick 0; a run; the proof
-  const before = await snap(pid);
   const standIn = await P.ev(`${ST}.state().seed`);
   await P.drag();
   ok(await P.waitFor(`${G}.state().proven && ${G}.state().go > 0 && ${ST}.state().started`, 15000), 'the first drag → GO: the run is PROVEN');
@@ -159,11 +155,16 @@ try {
   const hd = await P.ev("(() => { const k = document.querySelector('.ff-final .sheet-kicker'), im = k && k.querySelector('.ff-ec-logo-img'), r = im && im.getBoundingClientRect(), links = [...document.querySelectorAll('.ff-final .final-links .final-link')].map(x => x.textContent.trim()); return { w: r ? r.width : 0, src: im ? im.currentSrc : '', label: k && k.querySelector('.ff-ec-logo') ? k.querySelector('.ff-ec-logo').getAttribute('aria-label') : '', links }; })()");
   ok(hd.w >= 210 && hd.w <= 250 && /lettering-/.test(hd.src) && hd.label === 'Freefall, solo' && hd.links.join('|') === 'SHARE|HOME', `F4B — THE LOGO header (${hd.w.toFixed(0)} pt wide, "${hd.label}") · the universal footer's links: ${hd.links.join(' | ')}`);
 
-  // ---- 4. THE SWITCH IS OFF: judged, WOULD COUNT, nothing written
-  // (F5B — THE FINAL SHAPE: no WOULD COUNT line on the screen — the server's answer is kept on the body's data-would)
-  ok(await P.waitFor("!!document.querySelector('.ff-fin[data-would]')", 20000), 'the server\'s answer arrives (kept on the body — no line on the screen)');
-  const would = await P.ev("({ floor: document.querySelector('.ff-fin').dataset.would, line: !!document.querySelector('.ff-fin-would') })");
-  ok(would.floor === String(res1.floor) && !would.line, `THE SWITCH is OFF: WOULD COUNT at floor ${would.floor} — the server's own floor = the phone's; no WOULD COUNT line takes room`);
+  // ---- 4. THE SWITCH IS ON (the code's own — THE GO-LIVE): COUNTED
+  const counted = async (code, m, ms = 30000) => { const end = Date.now() + ms; let d = null; while (Date.now() < end && !(d && d.st === 'done')) { d = await dbGet(`results/${code}_${m}`); await sleep(250); } return d; };
+  const done1 = await counted(g.code, g.m);
+  const stats1 = await dbGet(`pstats/${pid}`), o1 = done1 && done1.o && done1.o[pid];
+  ok(done1 && done1.st === 'done' && done1.g === 'freefall', 'THE SWITCH ON: the run is COUNTED (results/ done) — a stranger\'s, with no flip');
+  ok(o1 && o1.xp && o1.xp.gain > 0 && stats1.xp === o1.xp.to, `… XP +${o1 && o1.xp && o1.xp.gain}`);
+  ok(stats1 && stats1.b && stats1.b['freefall-solo'] && stats1.b['freefall-solo'].a === res1.floor, `… the best: floor ${res1.floor} on the board freefall-solo (the server's replay)`);
+  ok(stats1 && stats1.av && stats1.av['freefall-solo'] && stats1.st && stats1.st.n >= 1, '… the day row of THE AVERAGE written (pstats.av/freefall-solo — as on JAYWALK) + the streak day');
+  ok(await P.ev("!document.querySelector('.ff-fin[data-would]') && !document.querySelector('.ff-fin-would')"), '… no WOULD COUNT anywhere (the answer is the counted one)');
+  await pastMoment(P);
   // F5B — THE END-SCREEN BOARD (ui/end-board.js — FREEFALL's END_BOARD): the board's top 3 under ONE header — F5C: the tick FRIENDS ONLY alone; the screen does not scroll
   ok(await P.waitFor("!!document.querySelector('.ff-final .final-eb.eb .eb-head .eb-tick[role=checkbox]')", 15000), 'F5B — the shared board block is up: its heading + the FRIENDS tick');
   const eb = await P.ev("(() => { const f = document.querySelector('.ff-final .final'); return { k: document.querySelector('.eb-head').textContent + (document.querySelector('.eb-k') ? ' + a heading' : ''), rows: document.querySelectorAll('.eb-list li').length, note: document.querySelector('.eb-note').textContent, scroll: f.scrollHeight - f.clientHeight, winner: getComputedStyle(document.querySelector('.ff-final .winner')).display, stats: !!document.querySelector('.ff-fin .ff-ec-line') }; })()");
@@ -172,9 +173,8 @@ try {
   ok(await P.ev("localStorage.getItem('ns:endb:fr')") === '0', 'FIX C — S11: the tick that unticked itself is REMEMBERED off (\'0\') — the next end screen never says NO FRIENDS YET again');
   ok(eb.k === 'FRIENDS ONLY' && eb.rows <= 3 && eb.winner === 'none' && !eb.stats && eb.scroll <= 1, `… "${eb.k}" (${eb.rows} rows${eb.note ? ` — ${eb.note}` : ''}), no winner line, no stats line, NOTHING SCROLLS (${eb.scroll} px over)`);
   await sleep(400);
-  await P.shot('f4a-cartridge-end-would-count.png');
-  await sleep(1200);
-  ok(await snap(pid) === before, '… and NOTHING was written: pstats, the profile, the board freefall-solo, ppriv, results/ are as before');
+  ok(await P.waitFor("/^(NEW BEST · \\d+|YOUR BEST \\d+ · AVG (\\d+|—))$/.test(document.querySelector('.ff-fin .ff-ec-best').textContent)", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")}`);
+  await P.shot('golive-counted-solo-end.png');
 
   // ---- 5. PLAY AGAIN = THE INSTANT AGAIN
   const canvasId = await P.ev("(() => { const c = document.querySelector('canvas.ff-canvas'); c.dataset.e2e = 'kept'; return 1; })()");
@@ -206,8 +206,8 @@ try {
   nh = await nodeOf(g2.code, g2.m, uid);
   const v6 = verifyRun({ code: g2.code, matchId: g2.m, node: nh });
   ok(v6.ok && v6.holds === 1 && !v6.cut && v6.floor === res6.floor && v6.tick === res6.tick && v6.end === res6.end, `THE JUDGE accepts the held run whole: floor ${v6.floor} (the phone's ${res6.floor}), 1 hold, nothing cut${v6.ok ? '' : ` — refused: ${v6.why}`}`);
-  ok(await P.waitFor(`!!document.querySelector('.ff-fin[data-would="${res6.floor}"]')`, 20000), `… and the server says so: WOULD COUNT at floor ${await P.ev("(document.querySelector('.ff-fin') || { dataset: {} }).dataset.would")}`);
-  ok(await snap(pid) === before, '… still nothing written');
+  const done6 = await counted(g2.code, g2.m, 90000);   // (two runs a minute apart: the server's 45 s gap may ask the phone to resend — it does)
+  ok(done6 && done6.st === 'done' && done6.o && done6.o[pid] && !done6.o[pid].skip, `… and it is COUNTED whole (results/ done${done6 && done6.o && done6.o[pid] && done6.o[pid].skip ? `, skipped: ${done6.o[pid].skip}` : ''})`);
 
   // ---- 6b. A PAUSE WITH NO LINE (F4B — THE PAUSE GAP on the phone; the fresh-eyes review's HIGH): the line drops, THEN the page hides — the
   // hold's chunk can not leave. Back on screen with the line still down, the phone must NOT call the pause granted off its own UNSENT write
@@ -237,8 +237,10 @@ try {
   const nodeB = await nodeOf(g2b.code, g2b.m, uid), vB = verifyRun({ code: g2b.code, matchId: g2b.m, node: nodeB });
   ok(vB.ok && vB.cut && (vB.cut.why === 'pause' || vB.cut.why === 'hold') && vB.floor <= heldFloorB + 1, `THE JUDGE: the hold's chunk landed late — the run is CUT at the pause (${vB.ok ? `floor ${vB.floor}, cut: ${vB.cut && vB.cut.why}` : `refused: ${vB.why}`}; held on floor ${heldFloorB})`);
 
-  // ---- 7. COUNTING ON (the test-only flip)
-  await dbPut('testFreefallCounts', true);
+  // ---- 7. THE KILL SWITCH (FREEFALL_COUNTS = false — here the emulators' two-way flip): judged, WOULD COUNT, NOTHING written
+  await counted(g2b.code, g2b.m, 90000);   // (the cut run's own count lands first — never inside the snapshot below)
+  await dbPut('testFreefallCounts', false);
+  const before = await snap(pid);
   await again(P);
   await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g2b.m}' && ${S}.game.phase === 'play' && !${ST}.state().started`, 15000);
   const g3 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
@@ -246,17 +248,13 @@ try {
   await P.drag();
   await P.waitFor(`${G}.state().proven && ${ST}.state().started`, 15000);
   const res7 = await playTo(P, 8);
-  ok(await toFinal(P), 'COUNTING ON: a run → the podium');
-  const end7 = Date.now() + 25000; let done = null;
-  while (Date.now() < end7 && !(done && done.st === 'done')) { done = await dbGet(`results/${g3.code}_${g3.m}`); await sleep(200); }
-  ok(done && done.st === 'done' && done.g === 'freefall', 'COUNTING ON: the run is COUNTED (results/ done)');
-  const stats = await dbGet(`pstats/${pid}`), o7 = done && done.o && done.o[pid];
-  ok(o7 && o7.xp && o7.xp.gain > 0 && stats.xp === o7.xp.to, `… XP +${o7 && o7.xp && o7.xp.gain}`);
-  ok(stats && stats.b && stats.b['freefall-solo'] && stats.b['freefall-solo'].a === res7.floor, `… the best: floor ${res7.floor} on the board freefall-solo (the server's replay)`);
-  ok(stats && stats.av && stats.av['freefall-solo'] && stats.st && stats.st.n >= 1, '… the day row of THE AVERAGE written (pstats.av/freefall-solo — as on JAYWALK) + the streak day');
-  await pastMoment(P);
-  ok(await P.waitFor("/^(NEW BEST · \\d+|YOUR BEST \\d+ · AVG (\\d+|—))$/.test(document.querySelector('.ff-fin .ff-ec-best').textContent) && !document.querySelector('.ff-fin-would')", 15000), `… the end screen says ${await P.ev("document.querySelector('.ff-fin .ff-ec-best').textContent")} — no WOULD COUNT line`);
-  await P.shot('f4a-cartridge-end-counted.png');
+  ok(await toFinal(P), 'THE KILL SWITCH OFF: a run → the podium');
+  ok(await P.waitFor("!!document.querySelector('.ff-fin[data-would]')", 20000), 'the server\'s answer arrives (kept on the body — no line on the screen)');
+  const would = await P.ev("({ floor: document.querySelector('.ff-fin').dataset.would, line: !!document.querySelector('.ff-fin-would') })");
+  ok(would.floor === String(res7.floor) && !would.line, `THE SWITCH OFF: WOULD COUNT at floor ${would.floor} — the server's own floor = the phone's; no WOULD COUNT line takes room`);
+  await sleep(1200);
+  ok(await snap(pid) === before, '… and NOTHING was written: pstats, the profile, the board freefall-solo, ppriv, results/ are as before');
+  await P.shot('golive-killswitch-would-count.png');
   await dbPut('testFreefallCounts', null);
   ok(P.errs.length === 0, `no page errors${P.errs.length ? ` (${P.errs.slice(0, 3).join(' · ')})` : ''}`);
   await P.close();
@@ -265,11 +263,7 @@ try {
   {
     const Q = await phone(`fu${Date.now() % 100000}`, 'NOLINE');
     const q = await pidOf(Q);
-    await dbPut(`testAdmins/${q.pid}`, true);
-    await Q.ev('sessionStorage.clear()');
-    await Q.open();
-    await Q.waitFor("import('/js/config.js').then(c => c.isOwnerTest('freefall'))", 20000);
-    ok(await Q.ev("import('/js/host.js').then(m => m.playSolo('freefall'))") !== false, 'the owner\'s PLAY NOW starts it');
+    ok(await Q.ev("import('/js/host.js').then(m => m.playSolo('freefall'))") !== false, 'a stranger\'s PLAY NOW starts it');
     await Q.waitFor(`${S}.game && ${S}.game.id === 'freefall' && !!${G} && ${ST}.state().info.frames > 3`, 40000);
     // (the rules take a GO only while the room's game is THIS match: the tree already "begun" by a stray child → no stamp, no GO)
     const gq = await Q.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);

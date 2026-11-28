@@ -3333,7 +3333,7 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
 test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE GO-LIVE PASS: + JAYWALK · + HIGH RISE, on the signs since CITY PART 1); the sign games; every start path refuses a hidden game', async () => {
   const { readFileSync } = await import('node:fs');
   const { isPlayable } = await import('../js/config.js');
-  const ON = ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'];   // (HIGH RISE's GO-LIVE, Nov 20: + HIGH RISE — playable; on the signs since CITY PART 1 lifted THE SIGN HOLD)
+  const ON = ['freefall', 'highrise', 'holdem', 'jaywalk', 'overclock', 'prism'];   // (HIGH RISE's GO-LIVE, Nov 20: + HIGH RISE — on the signs since CITY PART 1 · FREEFALL's GO-LIVE, Nov 28: + FREEFALL — held OFF the signs: SIGN_HOLD)
   assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
   // (FIXES R2 — Part C: the `sign` flag is gone — nothing read it; the city's signs = core/harbor-neon.js#signRoster: the playable games + JAYWALK)
   assert.ok(GAMES.every(g => !('sign' in g)), 'no GAMES row carries the old sign flag');
@@ -3353,7 +3353,7 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE
   const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 2) + d * 864e5).toISOString().slice(0, 10), pk = assignSigns(five, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(five, spots, pk, n)); }
   assert.deepEqual([...seen].filter(Boolean).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks (CITY PART 1: HIGH RISE too — THE SIGN HOLD lifted)');
-  assert.deepEqual(SIGN_HOLD, [], 'THE SIGN HOLD: empty since CITY PART 1 (HIGH RISE’s signs in) — the switch stays for the next game');
+  assert.deepEqual(SIGN_HOLD, ['freefall'], 'THE SIGN HOLD: FREEFALL alone (its GO-LIVE, Nov 28) — HIGH RISE’s lifted at CITY PART 1; THE CITY PASS lifts FREEFALL’s with its sign');
   // (HOLD'EM IN THE CITY: the roof billboard is HOLD'EM's ad now — every one of the five hangs on a SKYLINE SIGN over two weeks, not only the
   //  board; HOLD'EM spells HOLD'EM whole — the apostrophe tube, never HOLDEM)
   const onSign = new Set();

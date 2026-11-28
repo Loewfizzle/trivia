@@ -68,11 +68,12 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   assert.match(read('scripts/serve.mjs'), /path === '\/freefall-play'/, 'the local server maps /freefall-play like Vercel\'s cleanUrls');
   assert.match(read('tests/integration/kit/page-loads.mjs'), /\['\/freefall-play', "!!document\.querySelector\('#app \.ff-stage'\)"\]/, 'THE PAGES LOAD: a stranger gets the stage');
   // UNLISTED: no page, no script, no manifest names it
-  for (const f of ['index.html', 'board.html', 'admin.html', 'lab.html', 'daychart.html', 'jaywalk-lab.html', 'highrise-play.html', 'freefall-lab.html', '404.html', 'manifest.webmanifest', 'sw.js', 'vercel.json']) assert.doesNotMatch(read(f), /freefall-play/i, `${f} never names it`);
-  // (F4A — THE HIDDEN CARTRIDGE: FREEFALL is registered as a `preview` row — the owner's live test only, never playable; the console's own
-  //  code + the page's shell still do not know it)
+  for (const f of ['index.html', 'board.html', 'admin.html', 'lab.html', 'daychart.html', 'jaywalk-lab.html', 'highrise-play.html', '404.html', 'manifest.webmanifest', 'sw.js', 'vercel.json']) assert.doesNotMatch(read(f), /freefall-play/i, `${f} never names it`);
+  // (F4A — THE HIDDEN CARTRIDGE, PLAYABLE since THE GO-LIVE, Nov 28: the console's own code + the page's shell still do not know it by name
+  //  — a GAMES row + THE ONE META MODULE are the plug; /freefall-lab DELETED at the go-live, /freefall-play stays and never counts)
   for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/contract.js', 'js/games/preload.js', 'js/core/game-order.js', 'index.html']) assert.doesNotMatch(read(f), /freefall/i, `${f} does not know FREEFALL`);
-  assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: false, preview: true \}/, 'HIDDEN: playable false + preview');
+  assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: true, live: '2026-11-28' \}/, 'PLAYABLE (THE GO-LIVE)');
+  assert.ok(!existsSync(new URL('../freefall-lab.html', import.meta.url)), '/freefall-lab DELETED at THE GO-LIVE (HIGH RISE\'s pattern)');
   // (F4A — THE HIDDEN CARTRIDGE: meta.js · index.js · view.js · director.js are there now — and the PAGE loads none of them: its graph below)
   for (const n of ['meta.js', 'index.js', 'view.js', 'director.js']) assert.ok(existsSync(new URL(`../${FF}${n}`, import.meta.url)), `${n}: the cartridge's own file`);
   assert.doesNotMatch(read(`${FF}play.js`) + read(`${FF}stage.js`), /from '\.\/(view|index|director|final|proof|lines|meta)\.js'|from '[^']*(firebase|profile\/|errlog|store)[^']*'/, 'the page + the stage import nothing of the cartridge\'s writes');
@@ -264,7 +265,6 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /const sGeo = wedgeGeo\(\), aI = inst\(sGeo, 'aI', MAXI, 4\), aC = inst\(sGeo, 'aC', MAXI, 4\), aF = inst\(sGeo, 'aF', MAXI, 4\), aR = inst\(sGeo, 'aR', MAXI, 3\);/, 'the slices: ONE instanced mesh (aR — F3: its area\'s rim colour)');
   assert.match(n, /export const SHAPE = Object\.freeze\(\{ H: 1, RO: 1, RI: 0\.2, RB: 0\.66, R_BALL: 0\.125, THICK: 0\.2, HOP: 0\.42, RISE: 0\.1, RW: 2\.7 \}\);/);
   assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/, 'the play camera = F1\'s graybox camera (the drag\'s 1 : 1 scale is the owner\'s phone check)');
-  assert.match(read(`${FF}graybox.js`), /export const CAM = Object\.freeze\(\{ fov: 46, pitch: 33, fill: 0\.8, ballY: 0\.34, aspectMax: 0\.47 \}\);/);
   assert.match(n, /if \(bloom && tier === 2\) bloom\.render\(scene, cam, TWINS, \(day \? 0\.4 : 1\) \* shotBloom\);/, 'the bloom: tier 2 only — every mesh has its twin material in that pass (F5A: × the share card\'s staged frame\'s share — 1 in play)');
   assert.match(n, /dpr = Math\.min\(devDpr, dprMax, tier === 2 \? 3 : tier === 1 \? 2 : 1\.5\);/, 'the tiers: full 3× · 2× no bloom · 1.5×');
   assert.match(n, /wallRT\.setSize\(Math\.max\(2, bw >> 1\), Math\.max\(2, bh >> 1\)\);/, 'the shaft\'s wall is drawn at HALF resolution, then copied up');

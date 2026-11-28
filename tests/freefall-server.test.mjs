@@ -21,7 +21,7 @@ function botRun(seed, mode, id, maxFloor = 260) {
 }
 const STALL = DARK.grace + DARK.lead * DARK.pace;
 
-test('THE SERVER HALF is PURE (F4A: WIRED into the report, behind THE SWITCH — OFF): no fb.js, the SAME engine modules as the phone; /api still has 8 functions and only the report reads FREEFALL', () => {
+test('THE SERVER HALF is PURE (F4A: WIRED into the report, behind THE SWITCH — ON since THE GO-LIVE): no fb.js, the SAME engine modules as the phone; /api still has 8 functions and only the report reads FREEFALL', () => {
   const src = read('api/_lib/freefall.js');
   const imports = [...src.matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]);
   assert.deepEqual(imports, ['../../js/games/freefall/replay.js', '../../js/games/freefall/logic.js', '../../js/games/freefall/proof.js', '../../js/games/freefall/match.js', '../../js/core/proof.js', '../../js/games/freefall/tuning.js'], 'it imports the phone\'s own modules (F4B: + the match\'s start + the shared proof core — both PURE) — nothing else');
@@ -30,7 +30,7 @@ test('THE SERVER HALF is PURE (F4A: WIRED into the report, behind THE SWITCH —
   assert.equal(fns.length, 8, `the function count stays 8 (${fns.join(' ')})`);
   for (const f of fns.filter(n => n !== 'report.js')) assert.doesNotMatch(read(`api/${f}`), /freefall/i, `api/${f}: no endpoint wiring`);
   assert.match(read('api/report.js'), /freefall: Object\.freeze\(\{ node: PROOF_NODES\.freefall, solo: freefallSolo, match: freefallMatch, live: freefallLive \}\)/, 'the report: the solo run from its proof node · F4B: THE MATCH from every player\'s own node + its live runs');
-  assert.match(src, /export const FREEFALL_COUNTS = false;/, 'THE SWITCH — OFF until go-live');
+  assert.match(src, /export const FREEFALL_COUNTS = true;/, 'THE SWITCH — ON since THE GO-LIVE (false = the kill switch)');
 });
 
 test('THE JUDGE accepts honest bot logs — all four bots, every mode — and returns the run\'s own numbers; the packed log judges the same', () => {

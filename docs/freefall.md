@@ -1,6 +1,12 @@
 # FREEFALL (id `freefall`) — the falling-ball game
 
-**BEING BUILT — HIDDEN (F4B, Nov 26 2026): registered as a `preview` row — the owner's live test only, never playable; NOTHING COUNTS (THE
+**LIVE SINCE THE GO-LIVE (Nov 28 2026 — `docs/games/passes/freefall-golive.md`): PLAYABLE for everyone (`config.js` `live: '2026-11-28'`
+— NEW on top for 14 days from the 4 am line), COUNTING ON (`api/_lib/freefall.js#FREEFALL_COUNTS = true` — false = the one-line kill
+switch), THE BOARD's eighth tab (DEEPEST RUN), the three cards out of THE LAB, /freefall-lab DELETED, THE HELD LIST on /admin; held OFF
+the city's signs (`harbor-neon.js#SIGN_HOLD`) until THE CITY PASS installs its sign + billboard — "THE GO-LIVE", below.** The history
+below is each pass as it was written (HIDDEN / THE SWITCH OFF were true until Nov 28).
+
+**(History) BEING BUILT — HIDDEN (F4B, Nov 26 2026): registered as a `preview` row — the owner's live test only, never playable; NOTHING COUNTS (THE
 SWITCH is OFF).** **F4B: THE MATCH (2 … 8 — the ghosts, THE DEPTH RAIL, Call the Winner, WATCH THE LEADER, THE FINISH) + THE END SCREEN
 (THE LOGO header, the universal footer) + THE SHARE CARD + two fixes (THE PAUSE GAP · THE SKYLIGHT's FRAME BAR)** — "THE MATCH" … "THE
 TWO FIXES", below; no rules-file change. F4A: the F3B fixes + THE HIDDEN CARTRIDGE (solo) + THE PROOF (`rooms/{CODE}/ff`) + THE JUDGE on the server + THE SWITCH
@@ -37,7 +43,47 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
 | THE REVIEW (report only) | Nov 27 2026 | `docs/games/passes/freefall-review.md` | MUST 3 · SHOULD 16 · NICE 15 — the fix list for THE FIX PASS |
 | THE FIX PASS A — THE LOOK + THE FEEL | Nov 27 2026 | `docs/games/passes/freefall-fixa.md` | MAKE ROOM (MODULE NOTES) · THE LOOK LOCK · THE DAY HUD · THE WATER (Grok's ripple map) · the callouts up · THE RAIL's NAMES (no edge markers) · THE MARK = D · `?fps=1`'s END-OF-RUN SUMMARY · THE SPIKE RULE · the title's dark hold · THE TAPPER · the deep lifted by night |
 | THE FIX PASS C — SPEED ROUND 2 + SCORING + THE TEST PAGE + THE LAST ITEMS | Nov 27 2026 | `docs/games/passes/freefall-fixc.md` | THE VEIL (the darkness + the shade in the canvas) · `?hud=0` · `?empty=1` · THE HOLD · THE COPYCAT · the end-burst · a hold's longest · floor 201 blind · THE RULE-SET LEAF (`rs`) · THE BOT MATCH + `?spectate=1` · ☰ HOW TO PLAY on the page · the finish card's bursts · S10 + S11 (the shared end board) · N1 N2 N4 N10 N12 N15 |
+| THE GO-LIVE | Nov 28 2026 | `docs/games/passes/freefall-golive.md` | Ben's three iPhone fixes (the top line clears the corners · the rail's names never touch · THE SPIKE RULE rests the tier for the page) · THE TWO FLIPS · the checklist · THE HELD LIST + RELEASE on /admin · the counting-ON cases on the emulators |
 | THE FIX PASS B — SPEED BY EXPERIMENT + THE MATCH + STABILITY | Nov 27 2026 | `docs/games/passes/freefall-fixb.md` | THE SPIKE RULE steps down only if it HELPS · `?fps=2` THE BREAKDOWN · THE A/B SWITCHES (`?bloom=0 · ?fx=0 · ?wall=0 · ?ghosts=0 · ?smooth=0`) · SMOOTH MOTION (the tower at the real time) · a lost context keeps the rivals · a yielded tab never writes proof · S1 the re-score · S6 leavers · S7 lost phones · S8 not in the run · S9 the podium's fallback · S15 the clock after a lock · the finish card zoomed in · LAST ONE STANDING's two lines |
+
+## THE GO-LIVE (Nov 28 — `docs/games/passes/freefall-golive.md`; the review's checklist, item by item)
+- **THE TWO FLIPS:** `config.js` FREEFALL `playable: true, live: '2026-11-28'` (no `preview`) · `api/_lib/freefall.js#FREEFALL_COUNTS = true`.
+  THE KILL SWITCH: the would-count path is KEPT — `false` there = judged, WOULD COUNT, nothing written; the emulators' `testFreefallCounts`
+  is TWO-WAY (true / false over the code) so `server.test.mjs` + `e2e-freefall.mjs` keep the OFF path tested.
+- **What followed `playable` by itself (checked, nothing built):** the server's owner gate (`api/report.js#reportableGame` — a playable
+  game is reportable by anyone) · a plain host's REMATCH (`e2e-freefall-match.mjs` section 3) · HOW TO PLAY's tab (`ui/help.js`) · the
+  Credits group goes public (`ui/credits.js` — `isPlayable`) · the games-list order (`api/_lib/activity.js` — today's cached order lacks
+  it until the next streak day; NEW on top covers it) · the PLAY shelf + the room's list.
+- **THE BOARD:** `board/view.js#TABS` + `'freefall'` (EIGHT — the row scrolls), `HIDDEN_TABS = []`.
+- **THE CITY:** `SIGN_HOLD = ['freefall']` (HIGH RISE's go-live pattern) — no sign, no blade, no billboard pick, no ghost ad until THE
+  CITY PASS installs the sign (the mark: `core/marks.js` — the ring-floor mark D), its day face, the billboard
+  `assets/city/freefall/billboard.webp` (848 × 448, OPEN NOW) and lifts the hold (the inbox entry: Nov 28 — TO THE CITY CHAT).
+- **THE ACCENTS:** `freefall: '#27e0e6'` in `ui/tube-logo.js#LOGO_ACC`, `screens/title.js` `ACC`, `screens/harbor/signs.js#SIGN_ACC`.
+- **THE WEEKLY GOAL:** FREEFALL joins `GOAL_GAMES` by its row; a mid-week flip would re-roll the week's featured game (`ranks.js` — index
+  % length) → `boards.js#GOAL_FROM = { freefall: 'w20261130' }` + `goalGames(wk)` (the server's step + the phone's card): in from the Monday
+  4 am line. This week's goal was "Win 3 matches" either way.
+- **THE CARDS out of THE LAB:** the owner APPROVED all six (Nov 26) → `vault/approved.js#SHIPPED` + `vault/catalog.js#SHIPPED_TIERS`
+  (rare · epic · legendary); their six lab rows + lab text gone.
+- **/freefall-lab DELETED** (the page, `lab.js`, `graybox.js`, `css/freefall-lab.css`, its two tests; `serve.mjs` + THE PAGES LOAD).
+  /freefall-play STAYS and never counts.
+- **THE SMOKE START:** `['freefall', {}]` in `e2e-smoke.mjs`; `registration.test.mjs#FREEFALL_WAITS` empty.
+
+## THE HELD LIST (the go-live — `api/_lib/held.js` · `js/core/progress.js#releaseStep` · `js/core/match-report.js#heldNode` · /admin "Held runs")
+FIX C's HOLD (`match-report.js#ffTooPerfect` — a no-bounce run ≥ 40, or < 0.3 bounces a floor over 100+ floors) pays the run's XP and
+keeps its board row, THE AVERAGE and the cards off. Since the go-live each held row is KEPT for the owner:
+- **Recorded** by `api/report.js#credit` once the match is counted → `ffheld/{code_matchId_pid}` = { pid, n (the name then), t, g, key,
+  at (THE MATCH TIME), f, b, br, ff (the feats its replay earned: harbor · terminal · bottom), so (solo 1 / match 0), why (the line it
+  crossed, in words), rec }. Once each (a resend finds its row). A DURABLE node (`backup-pure.js`); no client rule (the root is closed).
+- **/admin → Held runs** (owner-only, `api/admin.js` `heldList` · `heldRelease` · `heldReject`, every tap audited): each row = the player
+  (opens their card), the floors, the date, SOLO / MATCH, the bounces + the best no-bounce run, the cards waiting, the room, WHY.
+- **RELEASE** = the row reaches THE BOARD (its best + this week's), THE AVERAGE + a counted play (a solo run) and the cards / achievements
+  its replay earned AS IF it had counted — never XP again, never the streak, never a win. Exactly once: the row is CLAIMED first (one tap =
+  one release), the pure `releaseStep` runs in ONE `pstats` transaction and marks `pstats.rl/{id}`; the board rows are written from the
+  stats (`lb.js#syncBoards`); then the row leaves the list. A second RELEASE answers 409 `gone`.
+- **REJECT** = off the list; nothing else moves (its XP stays).
+- Tests: `tests/freefall-golive.test.mjs` (the pure halves) · `server.test.mjs` (a script's run held → listed → RELEASE once: the board,
+  the average, SPLASHDOWN; a second held run REJECTED: nothing moves) · `e2e-freefall-match.mjs` (THE DIVER's dive to 200 is held: XP
+  paid, no win, no best, the row waits with ROCK BOTTOM).
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same INPUT LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers
@@ -989,7 +1035,7 @@ context's state; the MP3's lead-in skipped. Muted / locked / a missing file = no
 - REUSED, no copy: JAYWALK's `audio/jaywalk/area-arrive.mp3` · `new-best.mp3`. (JAYWALK's skyline is no longer used: the rooftop has its own panoramas.)
   (HIGH RISE's reflection map is not used: FREEFALL's slices are lit neon, not glass.)
 
-## THE LAB — https://neonspeakeasy.com/freefall-lab (`freefall-lab.html` · `js/games/freefall/lab.js` + `graybox.js` · `css/freefall-lab.css`, prefix `ff-`)
+## THE LAB — DELETED AT THE GO-LIVE, Nov 28 (was https://neonspeakeasy.com/freefall-lab — `freefall-lab.html` · `js/games/freefall/lab.js` + `graybox.js` · `css/freefall-lab.css`, prefix `ff-`)
 Unlisted (noindex, linked from nowhere), OPEN (no gate) — **it NEVER counts**: the run is the pure engine in the tab; no request but the
 page's own static files + three.js 0.160 from its CDN (HIGH RISE's import map), nothing stored. (On a phone the site's service worker
 already controls, `sw.js` itself asks `/api/time` at a navigation — ONE DEPLOY AT A TIME; not the page's code, nothing of the run in it.)

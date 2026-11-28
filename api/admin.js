@@ -512,6 +512,13 @@ export async function adminAction(uid, body, now = Date.now()) {
     }
     case 'dailyState': return { dailies: await dailiesState(now) };
     // CITY E — THE TAPPABLE SHARE CARD: the live share cards (their words only) + the owner deletes ONE (audited) — api/_lib/share-card.js
+    // THE HELD LIST (the go-live, Nov 28 — api/_lib/held.js): RELEASE = the board + the average + the cards, exactly once; REJECT = off the list
+    case 'heldList': { const { heldList } = await import('./_lib/held.js'); return { held: await heldList() }; }
+    case 'heldRelease': case 'heldReject': {
+      const H = await import('./_lib/held.js'), r = body.action === 'heldRelease' ? await H.heldRelease(String(body.id || ''), now) : await H.heldReject(String(body.id || ''));
+      await audit(me, body.action, r.pid, { b: String(r.id).slice(0, 120) });
+      return { ...r, held: await H.heldList() };
+    }
     case 'shareCards': { const { listShares } = await import('./_lib/share-card.js'); return { cards: await listShares({ limit: 20 }) }; }
     case 'shareDelete': {
       const { deleteShare, listShares } = await import('./_lib/share-card.js');

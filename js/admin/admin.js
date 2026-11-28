@@ -96,11 +96,16 @@ function shell() {
         confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
       h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
+    // FREEFALL GO-LIVE — HELD RUNS (api/_lib/held.js): too perfect for a human — XP paid, the board / average / cards wait for the owner
+    card('ad-held', 'Held runs', { cls: 'ad-errors ad-held', open: false },
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: heldRuns }, 'Refresh')),
+      h('p.ad-dim', 'FREEFALL runs THE HOLD kept off THE BOARD — too perfect for a human (a long run with no bounce, or almost no bounces over 100+ floors). Their XP was paid. RELEASE puts the run on the board, its average and its cards as if it had counted (once). REJECT takes it off this list — nothing else changes.'),
+      h('ol.ad-errs', { id: 'ad-held-l' }, h('li.ad-dim', 'Loading…'))),
     // CITY I — SECOND ACCOUNTS + DON'T COUNT (owner-only): accounts that share a hashed address — it only FLAGS; DON'T COUNT is the owner's tap
     card('ad-second', 'Second accounts', { cls: 'ad-errors ad-second', open: false },
       h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: secondAccounts }, 'Refresh')),
       h('p.ad-dim', 'Accounts seen on the SAME connection in the last 14 days (the server keeps only a hashed address — never the address itself). Nothing happens on its own. DON’T COUNT takes an account out of THE BOARD, SCORES, the dailies’ “2ND OF 5” line + THE PENTHOUSE for everyone else — its own stats, streak, XP, items + achievements stay, and it sees no change of its own. UNDO puts it back everywhere at once.'),
-      h('div.ad-second-list', { id: 'ad-second' }, h('p.ad-dim', 'Loading…'))),
+      h('div.ad-second-list', { id: 'ad-second-l' }, h('p.ad-dim', 'Loading…'))),
     card('ad-errors', 'Errors from phones', { cls: 'ad-errors', open: false },
       logTools('ad-errors', v => { logs.errQ = v; paintErrors(); }, errors, confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'Code errors on players’ screens — one row per kind (the message), with its count + first / last seen; tap a row for each place it happened. MARK SEEN resets the “new” count. Quiet for 30 days → removed.'),
@@ -194,6 +199,7 @@ function shell() {
   errors();
   reports();
   flags();
+  heldRuns();
   secondAccounts();
   testPlayers();
   backups();
@@ -721,13 +727,38 @@ function paintReports() {
   })) : [h('li.ad-dim', logs.rep.length ? 'Nothing matches the filter.' : 'No reports yet.')]));
 }
 
+// FREEFALL GO-LIVE — HELD RUNS (api/admin.js heldList / heldRelease / heldReject — audited)
+async function heldRuns() {
+  if (!document.getElementById('ad-held-l')) return;
+  renderHeld((await call('heldList')).held);
+}
+function renderHeld(list) {
+  const box = document.getElementById('ad-held-l');
+  if (!box) return;
+  { const c = cardOf('ad-held'); if (c) c.count(String((list || []).length)); }
+  const day = at => (at ? new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).toUpperCase() : '—');
+  const act = (x, a, word) => async () => { const r = await call(a, { id: x.id }); renderHeld(r.held); toast(a === 'heldRelease' ? `${x.n}: ${x.f} FLOORS RELEASED${r.pbs && r.pbs.length ? ' · A NEW BEST' : ''}` : `${x.n}: ${word}`); audit(); };
+  box.replaceChildren(...((list || []).length ? list.map(x => h('li.ad-err.ad-held-row', { dataset: { id: x.id } },
+    h('div.ad-err-top',
+      h('b.ad-err-n', `${x.f} FL`),
+      h('button.ad-err-m', { type: 'button', title: 'Open the player', onclick: () => open(x.pid) }, x.n, ownerTag(x.t)),
+      confirmBtn('RELEASE', act(x, 'heldRelease'), ''),
+      confirmBtn('REJECT', act(x, 'heldReject', 'REJECTED'), 'is-danger')),
+    h('div.ad-err-meta',
+      h('span', day(x.at)),
+      h('span', `${x.so ? 'SOLO' : 'MATCH'} · ${x.b} bounces · best no-bounce run ${x.br}`),
+      x.ff ? h('span', `cards waiting: ${x.ff.toUpperCase()}`) : null,
+      h('span', `room ${String(x.key || '').replace('_', ' · ')}`)),
+    h('p.ad-dim.ad-held-why', `HELD: ${x.why}`))) : [h('li.ad-dim', 'No held runs.')]));
+}
+
 // CITY I — SECOND ACCOUNTS (api/admin.js#secondAccounts) + DON'T COUNT / UNDO (api/admin.js 'noCount' — audited)
 async function secondAccounts() {
-  if (!document.getElementById('ad-second')) return;
+  if (!document.getElementById('ad-second-l')) return;
   renderSecond(await call('secondAccounts'));
 }
 function renderSecond(r) {
-  const box = document.getElementById('ad-second');
+  const box = document.getElementById('ad-second-l');
   if (!box || !r) return;
   { const c = cardOf('ad-second'); if (c) c.count(String((r.groups || []).length)); }
   const day = at => (at ? new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : '—');

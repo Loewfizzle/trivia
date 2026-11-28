@@ -38,7 +38,7 @@ const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
   stakes: stakesStandings, rum: rumStandings,
-  freefall: freefallStandings,   // (FREEFALL F4A — BEING BUILT + its counting OFF: api/report.js#reportableGame + THE SWITCH api/_lib/freefall.js#FREEFALL_COUNTS)
+  freefall: freefallStandings,   // (FREEFALL F4A; live + counted since THE GO-LIVE — THE SWITCH api/_lib/freefall.js#FREEFALL_COUNTS)
   highrise: highriseStandings,   // (HIGH RISE — playable + counting since THE GO-LIVE, Nov 20: THE SWITCH api/_lib/highrise.js#HIGHRISE_COUNTS)
   jaywalk: jaywalkStandings,   // (JAYWALK H1 — BEING BUILT: the server's report still refuses it until its row is playable — api/report.js#reportableGame)
 };
@@ -455,12 +455,20 @@ export const FF_FEATS = Object.freeze({ reachedHarbor: 'harbor', terminal: 'term
  *  proven), the board row, the AVERAGE and the cards are NOT written — named in `rejected` as 'held' for /admin. */
 export const FF_HOLD = Object.freeze({ bestRun: 40, from: 100, rate: 0.3 });
 export const ffTooPerfect = r => !!r && (num(r.br) >= FF_HOLD.bestRun || (num(r.f) >= FF_HOLD.from && num(r.b) / num(r.f) < FF_HOLD.rate));
+/** GO-LIVE — THE HELD LIST's words: which line a held run crossed (the /admin row says it) */
+export const ffHoldWhy = r => (num(r.br) >= FF_HOLD.bestRun ? `NO BOUNCE FOR ${Math.floor(num(r.br))} FLOORS (THE LINE: ${FF_HOLD.bestRun})`
+  : `${(num(r.b) / Math.max(1, num(r.f))).toFixed(2)} BOUNCES A FLOOR OVER ${Math.floor(num(r.f))} FLOORS (THE LINE: UNDER ${FF_HOLD.rate} FROM ${FF_HOLD.from})`);
+/** GO-LIVE — a held run's /admin row (ffheld/{id} — api/_lib/held.js): who, the run's numbers, why, the feats its replay earned (PURE) */
+export const heldId = (key, pid) => `${key}_${pid}`.replace(/[.#$[\]/]/g, '-').slice(0, 120);
+export const heldNode = ({ key, pid, name, tag = null, r, gid, at, now }) => ({ pid, n: String(name || '?').slice(0, 24), t: tag == null ? null : tag, g: gid, key, at: Math.min(Number(at) || now, now),
+  f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)), ff: String(r.ff || ''), so: r.so ? 1 : 0, why: ffHoldWhy(r), rec: now });
 function freefallExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};
   if (r.bad) { out.rejected.push({ uid, board: 'freefall-solo', v: r.bad }); return; }
   if (game.sv !== 1) return;
-  if (ffTooPerfect(r)) { out.held = 1; out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)) }); return; }
   const solo = Object.keys(game.participants || {}).length === 1;
+  // (GO-LIVE: the held row keeps what a RELEASE needs — the feats its replay earned + solo / match — ffheld/ via api/_lib/held.js)
+  if (ffTooPerfect(r)) { out.held = 1; out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)), ff: String(r.ft || '').split(' ').map(k => FF_FEATS[k]).filter(Boolean).join(' '), so: solo ? 1 : 0 }); return; }
   if (num(r.f) > 0) out.rec[solo ? 'freefall' : 'freefall-solo'] = Math.floor(num(r.f));
   for (const k of String(r.ft || '').split(' ')) if (Object.prototype.hasOwnProperty.call(FF_FEATS, k)) (out.f ||= {})[FF_FEATS[k]] = 1;
   if (solo) out.av = { 'freefall-solo': Math.max(0, Math.floor(num(r.f))) };

@@ -1218,7 +1218,7 @@ test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run
 // (rooms/{CODE}/ff/{m}/{uid} — the packed input log's server-stamped chunks, the holds' stamps); a game BEING BUILT — only THE OWNER's
 // report is even judged; COUNTING OFF (the switch — the code's value): the answer is WOULD COUNT and NOTHING is written; COUNTING ON
 // (the emulators' test flip): the floor, XP, the streak, the best on freefall-solo, THE AVERAGE, the cards from the replay's feats.
-test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the code\'s value) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node, a held run, an empty run; THE SWITCH ON (the test flip) = floor, XP, streak, best, THE AVERAGE, SPLASHDOWN from the replay', async (t) => {
+test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a stranger\'s run judged; THE KILL SWITCH OFF (forced on the emulators) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node, a held run, an empty run; THE SWITCH ON (the test flip) = floor, XP, streak, best, THE AVERAGE, SPLASHDOWN from the replay', async (t) => {
   t.after(async () => { await ref('testFreefallCounts').set(null); });
   const { seedOf } = await import('../../js/games/freefall/logic.js');
   const { createRun, stepTo, turn, hold, isOver, resultOf, logOf } = await import('../../js/games/freefall/engine.js');
@@ -1226,13 +1226,25 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   const { packRun } = await import('../../js/games/freefall/replay.js');
   const { makeBot, playBot } = await import('../../js/games/freefall/bot.js');
   const { SOLO_XP } = await import('../../js/core/ranks.js');
+  // (GO-LIVE — THE PERFECT SCRIPT: spins toward the nearest gap at MAX SPIN every tick — a run THE HOLD must keep off the board)
+  const { floorNow } = await import('../../js/games/freefall/engine.js');
+  const { MAX_SPIN, SLICES } = await import('../../js/games/freefall/tuning.js');
+  const { sliceStart, wrap, angDiff } = await import('../../js/games/freefall/tower-gen.js');
+  const scriptInto = (run, maxFloor) => {
+    for (let T = 0; !isOver(run) && T < 200000 && run.floor < maxFloor; T++) {
+      const fl = floorNow(run);
+      let best = null;
+      for (let k = 0; k < SLICES; k++) { if (!((fl.gap >> k) & 1)) continue; const a = wrap(-Math.floor((sliceStart(k) + sliceStart(k + 1)) / 2) - fl.twist), d = angDiff(a, run.a); if (best === null || Math.abs(d) < Math.abs(best)) best = d; }
+      if (best) turn(run, T, Math.max(-MAX_SPIN, Math.min(MAX_SPIN, best)));
+      stepTo(run, T);
+    }
+  };
   const { FREEFALL_COUNTS } = await import('../../api/_lib/freefall.js');
-  assert.equal(FREEFALL_COUNTS, false, 'THE SWITCH ships OFF');
-  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(null);
+  assert.equal(FREEFALL_COUNTS, true, 'THE SWITCH is ON since THE GO-LIVE');
+  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(false);   // (THE KILL SWITCH forced OFF — the two-way emulator flip keeps the OFF path tested)
   const uid = 'u-ff', other = 'u-ffx';
   await ensure(uid, 'FALLER'); await ensure(other, 'OTHER');
   const pid = await val(`uids/${uid}`), opid = await val(`uids/${other}`);
-  await ref(`testAdmins/${pid}`).set(true);   // (THE OWNER'S LIVE TEST: on the emulators the owner = testAdmins/{pid})
   const code = nextCode(), MS = 1000 / 60;
   let mN = 0;
   /** an honest run by a bot on the seed its GO picked, to `maxFloor` → its proof node: the FINAL events sent every 15 ticks, each stamped
@@ -1240,7 +1252,7 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   const runOf = (matchId, bot, maxFloor = 400, { lag = 150, forge = false, holdAt = 0, away = 0, stamp = true } = {}) => {
     const go = clock - 600_000, seed = seedOf(code, matchId, go);
     const plan = createRun({ seed, mode: 'solo' });
-    playBot(plan, makeBot(bot, matchId), { maxFloor });
+    if (bot === 'script') scriptInto(plan, maxFloor); else playBot(plan, makeBot(bot, matchId), { maxFloor });
     if (!isOver(plan)) stepTo(plan, 200000);
     const log = logOf(plan), run = createRun({ seed, mode: 'solo' }), c = {}, h = {};
     if (holdAt === 'mid') holdAt = Math.max(30, Math.floor(log[log.length - 1].t * 0.4));   // (a hold in the middle of THIS run's MOVES — a hold never moves a tick: EXACT RESUME; the bot stops moving at `maxFloor`)
@@ -1264,8 +1276,8 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
     return { node, live, go, heldAt, after: log.filter(e => e.t > heldAt).length };
   };
   /** the solo room as the phone leaves it at a run's end: the game (final — its results the HOST's own claim), the night record, the proof */
-  const seedRun = async (who, wpid, R, { claim = 9999, moved = false } = {}) => {
-    const matchId = `s${(mN++).toString(36)}ff${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+  const seedRun = async (who, wpid, R, { claim = 9999, moved = false, id = null } = {}) => {
+    const matchId = id || `s${(mN++).toString(36)}ff${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
     const r = R(matchId);
     const game = { id: 'freefall', matchId, phase: 'final', mode: 'solo', seed: 'host', settings: {}, participants: { [who]: true }, playAt: r.go - 50, phaseStartAt: clock, results: { [who]: { f: claim, t: 5, w: 'made', ft: 'reachedHarbor terminal reachedBottom' } } };
     await ref(`rooms/${code}`).update({
@@ -1280,13 +1292,13 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
   const best = async () => { const st = await stats(uid); return st && st.b && st.b['freefall-solo'] ? st.b['freefall-solo'].a : null; };
 
-  // ---- HIDDEN: a STRANGER's report of a game being built is not even judged
-  const A = await seedRun(other, opid, m => runOf(m, 'good', 40));
-  await rejects(report(other, A), 409, 'not_reportable');
-
-  // ---- COUNTING OFF (the code's value): the OWNER's run is judged → WOULD COUNT — and NOTHING is written
-  tick(9000);
+  // ---- PLAYABLE: a STRANGER's run (no owner, no flag) is judged like anyone's — THE KILL SWITCH OFF: WOULD COUNT
   const before = await snap();
+  const A = await seedRun(other, opid, m => runOf(m, 'good', 40));
+  assert.equal((await report(other, A)).status, 'would_count', 'a stranger\'s report of a PLAYABLE game: judged (it was 409 not_reportable while hidden)');
+
+  // ---- THE KILL SWITCH OFF: a run is judged → WOULD COUNT — and NOTHING is written
+  tick(9000);
   const B = await seedRun(uid, pid, m => runOf(m, 'great', 135));
   assert.ok(B.live.floor >= 60, `the fixture run: floor ${B.live.floor}`);
   const rb = await report(uid, B);
@@ -1349,8 +1361,8 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   assert.equal(await snap(), before, 'after every OFF report: still nothing written');
   assert.equal(await best(), null);
 
-  // ---- THE SWITCH ON (the emulators' test flip — the go-live's one line): JAYWALK's normal counted path
-  await ref('testFreefallCounts').set(true);
+  // ---- THE SWITCH ON (the code's own value since THE GO-LIVE — the flip cleared): JAYWALK's normal counted path
+  await ref('testFreefallCounts').set(null);
   tick(9000);
   const D = await seedRun(uid, pid, m => runOf(m, 'great', 135));
   const rd = await report(uid, D);
@@ -1367,6 +1379,89 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
   }
   assert.ok(!st.pa || !st.pa.gf || !st.pa.gf['freefall-bottom'] || D.live.floor >= 200, 'ROCK BOTTOM never from the room\'s claim');
   assert.equal((await val(`results/${code}_${D.matchId}`)).st, 'done');
+
+  // ==== THE GO-LIVE — GROUP 3: the cases not yet seen with counting ON (the code's own switch) ====
+  const { ffTooPerfect } = await import('../../js/core/match-report.js');
+  const { boardQuery } = await import('../../api/board.js');
+  const { countedPlays } = await import('../../js/core/progress.js');
+  // ---- THE AVERAGE from the 5th run (D was the 1st): runs 2–4 answer a dash (null), the 5th a number
+  const avs = [];
+  for (let i = 0; i < 4; i++) { tick(9000); const R = await seedRun(uid, pid, m => runOf(m, 'sloppy', 25)); const r = await report(uid, R); assert.equal(r.status, 'counted'); avs.push(r.outcome.av ? r.outcome.av['freefall-solo'] : 'none'); }
+  assert.deepEqual(avs.slice(0, 3), [null, null, null], 'runs 2–4: AVG — (a dash under 5 runs)');
+  assert.ok(typeof avs[3] === 'number' && avs[3] > 0, `the 5th counted run: THE AVERAGE shows (${avs[3]})`);
+  const st5 = await stats(uid);
+  assert.ok(countedPlays(st5) >= 5, `countedPlays: every verified FREEFALL solo run is a counted play (${countedPlays(st5)})`);
+  // ---- THE BOARD's FREEFALL tab on PUBLIC /board: listed from the 3rd counted play — the player's own best (DEEPEST RUN), by their username
+  const pub = await boardQuery({ b: 'freefall-solo', p: 'all' }, clock);
+  const mine = (pub.rows || []).find(r => r.id && st5.b['freefall-solo'] && r.v === st5.b['freefall-solo'].a && /FALLER/.test(r.n || ''));
+  assert.ok(mine, `PUBLIC /board, freefall-solo: FALLER's row (${(pub.rows || []).map(r => `${r.n} ${r.v}`).join(' · ')})`);
+  assert.ok(!JSON.stringify(pub).includes(pid), '… never a pid on the public board');
+  // ---- TERMINAL VELOCITY + ROCK BOTTOM actually awarded: a 'great' run to 200 whose replay earns both (a seed tried until it does) — never too perfect
+  const G = 'u-ffg';
+  await ensure(G, 'GREAT'); const gpid = await val(`uids/${G}`);
+  tick(9000);
+  let pick = null;
+  for (let i = 0; i < 80 && !pick; i++) { const id = `gl${i.toString(36)}ff${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12), L = runOf(id, 'great', 400).live; if (L.floor >= 200 && L.feats.terminal && L.feats.reachedBottom && !ffTooPerfect({ f: L.floor, b: L.bounces, br: L.bestRun })) pick = id; }
+  assert.ok(pick, 'the fixture: a great run to 200 with 15 floors in a row without a bounce');
+  const GR = await seedRun(G, gpid, m => runOf(m, 'great', 400), { id: pick });
+  const rg = await report(G, GR);
+  const sg = await stats(G), achG = (rg.outcome.ach || []).map(a => (a && a.id ? a.id : a));
+  assert.equal(rg.status, 'counted');
+  assert.ok(sg.it['card-rockbottom'] && sg.it['card-terminalvelocity'] && sg.it['card-splashdown'], `the three cards (items: ${Object.keys(sg.it).filter(k => /rock|terminal|splash/.test(k)).join(' ')})`);
+  assert.ok(['rock-bottom', 'terminal-velocity', 'splashdown'].every(a => achG.includes(a)), `… and their achievements (${achG.join(' ')})`);
+  assert.deepEqual([sg.pa.gf['freefall-bottom'], sg.pa.gf['freefall-terminal'], sg.pa.gf['freefall-harbor']], [1, 1, 1], 'the feat flags from the server\'s replay');
+
+  // ==== THE GO-LIVE — GROUP 2: THE HELD LIST end to end (a run too perfect for a human → ffheld → /admin RELEASE once · REJECT nothing) ====
+  const S = 'u-ffs';
+  await ensure(S, 'SCRIPT'); const spid = await val(`uids/${S}`);
+  tick(9000);
+  const HR = await seedRun(S, spid, m => runOf(m, 'script', 160));
+  assert.ok(ffTooPerfect({ f: HR.live.floor, b: HR.live.bounces, br: HR.live.bestRun }), `the fixture: the script's run is too perfect (${HR.live.floor} floors · ${HR.live.bounces} bounces · best run ${HR.live.bestRun})`);
+  const rh0 = await report(S, HR);
+  const ss0 = await stats(S);
+  assert.equal(rh0.status, 'counted', 'a held run is COUNTED for its XP');
+  assert.ok(rh0.outcome.xp.gain > 0 && (rh0.rejected || []).includes('freefall-solo'), '… XP paid, the board named in `rejected`');
+  assert.ok(!(ss0.b && ss0.b['freefall-solo']) && !(ss0.av && ss0.av['freefall-solo']) && !(ss0.it && ss0.it['card-splashdown']), '… NO board row, NO average, NO card');
+  assert.equal(countedPlays(ss0), 0, '… and no counted play toward THE BOARD\'s listing');
+  const hid = `${code}_${HR.matchId}_${spid}`;
+  const hn = await val(`ffheld/${hid}`);
+  assert.ok(hn && hn.pid === spid && hn.n === 'SCRIPT' && hn.f === HR.live.floor && hn.so === 1 && /THE LINE/.test(hn.why) && /harbor/.test(hn.ff), `the HELD row (ffheld/${hid}): ${JSON.stringify(hn)}`);
+  assert.equal((await report(S, HR)).status, 'done', 'asked again: done — the held row once');
+  assert.equal(Object.keys((await val('ffheld')) || {}).filter(k => k.endsWith(spid)).length, 1);
+  // /admin: owner-only; the list; RELEASE (the board + the average + the cards, once); REJECT (nothing moves)
+  await ensure('u-ffboss', 'BOSS'); const bossPid = await val('uids/u-ffboss');
+  await rejects(adminAction('u-ffboss', { action: 'heldList' }), 403, 'not_admin');
+  const keepAdmins = process.env.ADMIN_PIDS;
+  process.env.ADMIN_PIDS = `${bossPid}`;
+  try {
+    const L0 = (await adminAction('u-ffboss', { action: 'heldList' })).held;
+    assert.ok(L0.some(x => x.id === hid && x.why === hn.why), '/admin HELD: the row, why it was held');
+    const lbBefore = await val(`lb/freefall-solo/all/${spid}`);
+    const rr = await adminAction('u-ffboss', { action: 'heldRelease', id: hid });
+    const ss1 = await stats(S);
+    assert.ok(!rr.held.some(x => x.id === hid), 'RELEASE: off the list');
+    assert.equal(ss1.b['freefall-solo'].a, HR.live.floor, '… the board: its best = the run');
+    assert.ok(ss1.av && ss1.av['freefall-solo'], '… THE AVERAGE\'s day row');
+    assert.ok(ss1.it['card-splashdown'] && ss1.pa.gf['freefall-harbor'] === 1, '… the card its replay earned (SPLASHDOWN)');
+    assert.equal(ss1.xp, ss0.xp, '… never XP again'); assert.deepEqual(ss1.st, ss0.st, '… never the streak');
+    assert.ok(ss1.rl && ss1.rl[hid], '… marked released (exactly once)');
+    assert.equal(lbBefore, null);
+    await rejects(adminAction('u-ffboss', { action: 'heldRelease', id: hid }), 409, 'gone');   // (a second tap: nothing)
+    assert.deepEqual(await stats(S), ss1, 'RELEASE twice = once');
+    const aud = Object.values((await val('audit')) || {}).filter(a => a.act === 'heldRelease' && a.b === hid);
+    assert.equal(aud.length, 1, 'audited');
+    // REJECT: a second held run — off the list, NOTHING else moves
+    tick(9000);
+    const HR2 = await seedRun(S, spid, m => runOf(m, 'script', 170));
+    await report(S, HR2);
+    const hid2 = `${code}_${HR2.matchId}_${spid}`;
+    assert.ok(await val(`ffheld/${hid2}`), 'the second held run is listed');
+    const before2 = JSON.stringify([await stats(S), await val('lb/freefall-solo'), await val(`profiles/${spid}`)]);
+    const rj = await adminAction('u-ffboss', { action: 'heldReject', id: hid2 });
+    assert.ok(!rj.held.some(x => x.id === hid2) && !(await val(`ffheld/${hid2}`)), 'REJECT: off the list');
+    assert.equal(JSON.stringify([await stats(S), await val('lb/freefall-solo'), await val(`profiles/${spid}`)]), before2, '… the board, the stats, the profile untouched (its XP stays)');
+    await rejects(adminAction('u-ffboss', { action: 'heldRelease', id: 'bad/id' }), 400, 'bad_id');
+  } finally { if (keepAdmins == null) delete process.env.ADMIN_PIDS; else process.env.ADMIN_PIDS = keepAdmins; }
 });
 
 // JAYWALK H4 — THE MATCH: counted ONLY from the server's replay of EVERY player's proof node (the course + tick 0 from THE FIRST GO) —
@@ -1376,18 +1471,17 @@ test('FREEFALL F4A — hidden (the owner\'s report only); THE SWITCH OFF (the co
 // HIGH RISE S4B — THE MATCH: every named player's run is REPLAYED from their own `hr` node on THE FIRST GO's seed + clock (nothing the host
 // wrote is read); a game BEING BUILT — a match THE OWNER played in is judged for everyone in it; COUNTING OFF (the switch — the default):
 // WOULD COUNT for each reporter, NOTHING written; COUNTING ON (the emulators' test flip): JAYWALK's normal counted path for all of them.
-test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run from the SERVER\'s replay on THE FIRST GO\'s seed + clock; THE SWITCH OFF = WOULD COUNT for the owner AND his guests, nothing written; a stranger\'s room is not reportable; the host DROPS the leader = the tree says who played; a LIVE run holds the report; a HOLD in a match counts no floor; THE SWITCH ON = counted for all', async (t) => {
+test('FREEFALL F4B → THE GO-LIVE — THE MATCH (a plain room): every run from the SERVER\'s replay on THE FIRST GO\'s seed + clock; THE KILL SWITCH OFF = WOULD COUNT for everyone, nothing written; a room of strangers is judged; the host DROPS the leader = the tree says who played; a LIVE run holds the report; a HOLD in a match counts no floor; THE SWITCH ON = counted for all', async (t) => {
   t.after(async () => { await ref('testFreefallCounts').set(null); });
   const { gameStandings } = await import('../../js/games/freefall/logic.js');
   const { matchStart } = await import('../../js/games/freefall/match.js');
   const { botRun } = await import('../../js/games/freefall/matchsim.js');
   const { freefallMatch, FREEFALL_COUNTS } = await import('../../api/_lib/freefall.js');
-  assert.equal(FREEFALL_COUNTS, false, 'THE SWITCH ships OFF');
-  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(null);
+  assert.equal(FREEFALL_COUNTS, true, 'THE SWITCH is ON since THE GO-LIVE');
+  await ref('testReportAll').set(null); await ref('testFreefallCounts').set(false);   // (THE KILL SWITCH forced OFF first)
   const U = ['u-ff', 'u-ffm2', 'u-ffm3'], NAME = ['FALLER', 'GUESTA', 'GUESTB'];
   for (let i = 0; i < 3; i++) await ensure(U[i], NAME[i]);
   const P = await Promise.all(U.map(u => val(`uids/${u}`)));
-  await ref(`testAdmins/${P[0]}`).set(true);   // (THE OWNER'S LIVE TEST: his guests' reports count because HE played in the match — his own proof node)
   const code = nextCode(), MS = 1000 / 60;
   let mN = 0;
   /** a finished match as the room holds it: each player's proof node (a bot's run on THE FIRST GO's seed — the packed log's FINAL events in
@@ -1431,7 +1525,7 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   };
   const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
 
-  // ---- THE SWITCH OFF: a GUEST of the owner's room reports → JUDGED from the server's own replay — WOULD COUNT, nothing written
+  // ---- THE KILL SWITCH OFF: a GUEST reports → JUDGED from the server's own replay — WOULD COUNT, nothing written
   const before = await snap();
   const A = await seedMatch();
   assert.ok(A.live[U[0]].floor > A.live[U[1]].floor && A.live[U[1]].floor > A.live[U[2]].floor && A.live[U[2]].floor >= 1, `the fixture: three runs (${U.map(u => A.live[u].floor).join(' · ')} floors)`);
@@ -1452,10 +1546,10 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   tick(60_000);
   const B = await seedMatch({ moved: true });
   assert.deepEqual((r => [r.status, r.outcome.would.floor])(await report(U[2], B)), ['would_count', B.live[U[2]].floor], 'the room is already on the next match: judged from the proof nodes');
-  // ---- HIDDEN: a room THE OWNER is not in — nobody's report of it is judged
+  // ---- PLAYABLE: a room of two strangers (no owner anywhere) — judged like any room (it was 409 not_reportable while hidden)
   tick(60_000);
   const C = await seedMatch({ players: [U[1], U[2]], bots: ['good', 'sloppy'] });
-  await rejects(report(U[1], C), 409, 'not_reportable');
+  assert.deepEqual((r => [r.status, r.outcome.would.floor])(await report(U[1], C)), ['would_count', C.live[U[1]].floor], 'a room of strangers: judged');
   // ---- THE HOST DROPS THE LEADER (a modified host names himself + the last one only): the TREE says who played — the dropped player's
   // own on-time node is read, they may report, and the host's row is still his own run (never a win he wrote)
   tick(60_000);
@@ -1477,8 +1571,8 @@ test('FREEFALL F4B — THE MATCH (hidden: a room THE OWNER plays in): every run 
   assert.equal((await report(U[1], F)).outcome.would.floor, F.live[U[1]].floor, '… the honest players of that match are judged as ever');
   assert.equal(await snap(), before, 'after every OFF report: still nothing written');
 
-  // ---- THE SWITCH ON (the test flip): JAYWALK's normal counted path, for everyone in the match — and a counted MATCH run raises the same best
-  await ref('testFreefallCounts').set(true);
+  // ---- THE SWITCH ON (the code's own since THE GO-LIVE): JAYWALK's normal counted path, for everyone in the match — and a counted MATCH run raises the same best
+  await ref('testFreefallCounts').set(null);
   tick(60_000);
   const G2 = await seedMatch();
   const rg = await report(U[1], G2);
@@ -2427,7 +2521,7 @@ test('CONN: GET /api/admin?live=1 — city2/live for any visitor, edge-cached, o
   { const r = await call('/api/admin?live=1');
     assert.equal(r.code, 200); assert.equal(r.body.live, null); assert.ok(Math.abs(r.body.at - Date.now()) < 5000, 'the server time it was read');
     // (CITY H2 — THE GAMES LIST ORDER: the playable games' ORDER only — every playable id once, no counts; worked once a streak day)
-    assert.deepEqual([...r.body.order].sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], `the order (THE GO-LIVE: + HIGH RISE) (${JSON.stringify(r.body.order)})`);
+    assert.deepEqual([...r.body.order].sort(), ['freefall', 'highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], `the order (THE GO-LIVE: + HIGH RISE · + FREEFALL) (${JSON.stringify(r.body.order)})`);
     const stored = await val('progress/gameOrder'); assert.deepEqual(stored.order, r.body.order); assert.match(stored.day, /^d\d{8}$/);
     assert.equal(r.h['cache-control'], LIVE_CACHE); assert.match(LIVE_CACHE, /s-maxage=\d+/); assert.match(LIVE_CACHE, /public/); }
   const now = Date.now();

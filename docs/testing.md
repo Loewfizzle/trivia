@@ -1329,9 +1329,10 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   floors + 250 seeds to floor 520, each rule from the outside; the four proofs share ONE sweep, their failure messages are built only
   when a rule breaks) · `freefall-server.test.mjs` (7 — `api/_lib/freefall.js`: pure + not wired, honest bot logs accepted, the judge ==
   the live engine for 500 bot runs, every refusal by name, 3,000 changed logs) · `freefall-sim.test.mjs` (6 — the FAST 200-seed bands of
-  the owner's targets: a tuning slip goes red) · `freefall-lab.test.mjs` (5 — the page, the lab's WHOLE module graph: it never counts).
+  the owner's targets: a tuning slip goes red) · `freefall-lab.test.mjs` (5 — the page, the lab's WHOLE module graph: it never counts —
+  DELETED with /freefall-lab at THE GO-LIVE, Nov 28; `freefall-golive.test.mjs` took the page's gone-ness).
 - The full sim table: `node scripts/freefall-sim.mjs 2000` (≈ 20 s; `--json`).
-- The browser: `node tests/integration/freefall-lab.mjs "<chromium>" [outDir]` (57 — outside the sandbox; `scripts/serve.mjs` is enough —
+- (DELETED at THE GO-LIVE, Nov 28 — /freefall-lab is gone) The browser: `node tests/integration/freefall-lab.mjs "<chromium>" [outDir]` (57 — outside the sandbox; `scripts/serve.mjs` is enough —
   the lab makes no server call): the frame at 390 × 844 (the ball ≥ 34 pt, its floor ≈ 30 % down, 4–5 floors below, the HUD above the
   ball's highest point), a run through REAL drags (CDP touches: 1 : 1, a flick over MAX SPIN, floor after floor, hands off → the lights
   go out), REPLAY = LIVE ✓ + the judge, RESTART, the network log, `?mode=` `?seed=` `?fps=1`, + 375 × 667 · 430 × 932 · 1440 × 900 (the
@@ -1400,3 +1401,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - `tests/integration/sw-audio-cap.mjs "<chromium>"` — THE SONG CAP in a real worker (a small cap through `ns:test-audio-cap`, localhost only).
 - `tests/audio-fixes.test.mjs` — the real audio engine + music.js + both games' sounds on fakes (≈ 15 s: it waits out real timers).
 - `audio-cut.mjs` is flaky on the Beelink (one check of 33, about every second or third run, on old and new code): several runs, never one.
+
+## FREEFALL — THE GO-LIVE (Nov 28 2026 — docs/games/passes/freefall-golive.md)
+- Unit: `tests/freefall-golive.test.mjs` (Group 0's three fixes, the flips, the weekly goal's pin, the cards out of THE LAB, THE HELD LIST's
+  pure halves — the held row + `releaseStep` — THE DAILY CEILING + countedPlays for FREEFALL rows, the tie-break's win flags).
+- `freefall-play.mjs --golive` (the test page): THE TOP LINE clears ☰ + SOUNDS + the console's corner room at 375 / 390 / 430, solo +
+  match + spectate, both looks · THE RAIL's names ≥ a box apart, settled AND eased · THE SPIKE RULE never steps again after a NO HELP
+  (a control first: the page's clock at 2× moves the timing rule). `GL_SKIP_TOP=1` / `GL_SKIP_RAIL=1` run a part alone.
+- `e2e-freefall.mjs` = a STRANGER (no owner): the shelf, the card, PLAY NOW, COUNTED (the code's own switch), the kill switch forced OFF =
+  WOULD COUNT + nothing written. `e2e-freefall-match.mjs` = a PLAIN host, COUNTED for all, a held winner (THE DIVER) waits on the HELD LIST,
+  a plain host's REMATCH. `server.test.mjs`'s FREEFALL blocks: the kill switch OFF first, then ON — the cards, THE AVERAGE from the 5th
+  run, the public tab, THE HELD LIST end to end (RELEASE once, REJECT nothing).

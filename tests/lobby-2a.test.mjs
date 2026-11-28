@@ -124,7 +124,7 @@ test('EVERY WEEKLY GOAL IS POSSIBLE: the playable games only (the server + the p
     assert.ok(!(g.kind === 'variety' && GOAL_GAMES.length < 5), 'no impossible variety week');
   }
   assert.equal(weeklyGoal('w20261102', GOAL_GAMES).text, 'Play 8 matches', 'this week unchanged');
-  assert.match(read('js/core/progress.js'), /weeklyGoal\(wk, GOAL_GAMES\)/, 'the server counts the same goal');
+  assert.match(read('js/core/progress.js'), /weeklyGoal\(wk, goalGames\(wk\)\)/, 'the server counts the same goal (FREEFALL GO-LIVE: the week’s own games)');
 });
 
 test('REAL USERNAMES on THE BOARD (BNAME\'s nicknames retired — kept only to stand in for a rude name); the report push; the sign-up line', () => {

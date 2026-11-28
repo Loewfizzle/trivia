@@ -172,8 +172,8 @@ test('F5B — SHARE = THE PICTURE ONLY (the owner): the card DRAWN + ENCODED whi
   assert.deepEqual([...sndCode.matchAll(/navigator\.share\(([^;]*?)\);/g)].map(m => m[1]), ['payloadOf(r.file)'], 'ONE share call: payloadOf(file)');
   assert.ok(snd.includes('export const payloadOf = file => ({ files: [file] });'));
   assert.doesNotMatch(snd.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /\btext\s*:|\burl\s*:|clipboard|fetch\(|\bapi\b/, 'send.js: no text, no url, no clipboard, no request (the payload: payloadOf alone — files only)');
-  assert.match(read('api/_lib/freefall.js'), /export const FREEFALL_COUNTS = false;/, 'THE SWITCH is OFF');
-  assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: false, preview: true \}/, 'the game stays HIDDEN');
+  assert.match(read('api/_lib/freefall.js'), /export const FREEFALL_COUNTS = true;/, 'THE SWITCH is ON (THE GO-LIVE, Nov 28)');
+  assert.match(read('js/config.js'), /\{ id: 'freefall', name: 'FREEFALL', theme: 'freefall', [^\n]*playable: true, live: '2026-11-28' \}/, 'the game is PLAYABLE (THE GO-LIVE)');
 });
 
 test('F5B — THE SHARE PAYLOAD (the real send.js, a stub share sheet): exactly ONE image/png file, no text / title / url; navigator.share is called IN THE TAP\'s OWN TURN once the picture is ready; no file sharing → the picture is shown, never a text', async () => {

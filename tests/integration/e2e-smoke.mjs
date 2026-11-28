@@ -29,6 +29,7 @@ const ALL_GAMES = [
   ['holdem', { mode: 'tournament', speed: 'turbo' }],   // (HE10: ON for everyone — started here by a REGULAR host, no owner gate)
   ['jaywalk', {}],   // (THE GO-LIVE PASS: ON for everyone — started here by a REGULAR host, like the three)
   ['highrise', {}],  // (HIGH RISE's GO-LIVE, Nov 20: ON for everyone — started here by a REGULAR host, like the four)
+  ['freefall', {}],  // (FREEFALL's GO-LIVE, Nov 28: ON for everyone — started here by a REGULAR host, like the five)
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 // (FR7 FIXES B — FR7-A F: `GAMES=cipher` — the docs' old example — started NOTHING and passed. A filter that names no playable game is a
@@ -191,13 +192,13 @@ try {
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
     // (HE10: HOLD'EM is playable now — the ten frozen games stay hidden; THE GO-LIVE PASS: JAYWALK playable too)
-    // (FREEFALL F4A: + FREEFALL — BEING BUILT, hidden: a plain page (no owner, no preview flag) can never start it — 11)
-    ok(ids.length === 11 && ids.includes('freefall') && !ids.includes('highrise') && !ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null,   // (HIGH RISE's GO-LIVE: playable — the ten frozen games stay hidden)
+    // (FREEFALL F4A: + FREEFALL — BEING BUILT, hidden — 11; FREEFALL's GO-LIVE, Nov 28: playable — the ten frozen games stay hidden)
+    ok(ids.length === 10 && !ids.includes('freefall') && !ids.includes('highrise') && !ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null,   // (HIGH RISE's GO-LIVE: playable — the ten frozen games stay hidden)
       `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
     if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); await sleep(600); await host.evaluate(() => document.querySelectorAll('.sh-msgs, [class*="toast"]').forEach(e => e.remove())); await host.screenshot({ path: `${OUT}smoke-games${SFX}.png` }); /* (HE10 add-on: the three tiles — the hidden games' COMING SOON message cleared first) */ cards =await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
-    ok(cards.length === 5 && ['prism', 'overclock', 'holdem', 'jaywalk', 'highrise'].every(x => cards.includes(x)), `THE LOBBY: only the five playable games (${cards.join(', ')}) — HOLD'EM + JAYWALK + HIGH RISE with no TEST tag`);
+    ok(cards.length === 6 && ['prism', 'overclock', 'holdem', 'jaywalk', 'highrise', 'freefall'].every(x => cards.includes(x)), `THE LOBBY: only the six playable games (${cards.join(', ')}) — HOLD'EM + JAYWALK + HIGH RISE + FREEFALL with no TEST tag`);
     ok(!(await host.evaluate(() => [...document.querySelectorAll('.rc-game')].some(e => /\bTEST\b/.test(e.textContent)))), 'no TEST tag anywhere'); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby

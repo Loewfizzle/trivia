@@ -56,7 +56,7 @@ test('the speakeasy blade\'s NEON kind by day = pale UNLIT glass (≥ 75 % towar
 });
 
 test('HIGH RISE\'s ROOF TUBE SIGN: stacked HIGH / RISE (never one line), HIGH #ff4fd8 + RISE #35e3ff at night; never on the hotel blade (8 letters — PRISM / HOLDEM only)', () => {
-  assert.deepEqual(SIGN_HOLD, [], 'THE SIGN HOLD lifted in the same pass as the signs');
+  assert.ok(!SIGN_HOLD.includes('highrise'), 'THE SIGN HOLD lifted for HIGH RISE in the same pass as its signs (FREEFALL\'s GO-LIVE, Nov 28: FREEFALL held — its city pass lifts it)');
   assert.deepEqual(SIGN_SPLIT.highrise, ['HIGH', 'RISE']);
   assert.equal(SIGN_ACC.highrise, '#ff4fd8'); assert.equal(SIGN_ACC2.highrise, '#35e3ff');
   const g = { id: 'highrise', name: 'HIGH RISE', short: 'HIGH RISE' };

@@ -12,7 +12,7 @@ import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
-export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', jaywalk: '#ff4fc4', holdem: '#ff5a64', highrise: '#ff4fd8' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
+export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', jaywalk: '#ff4fc4', holdem: '#ff5a64', highrise: '#ff4fd8', freefall: '#27e0e6' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
 /** CITY PART 1 — A TWO-TONE NAME (the owner, Nov 20: HIGH hot pink #ff4fd8 / RISE cyan #35e3ff — its game screen's own two colours): a stacked
  *  name's SECOND word in its own tube colour, where a game has one (NIGHT tube colours only — the day face is paint: DAY_PAINT's ink2) */
 export const SIGN_ACC2 = Object.freeze({ highrise: '#35e3ff' });

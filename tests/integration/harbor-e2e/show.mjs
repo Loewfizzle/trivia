@@ -90,6 +90,8 @@ G('neon', async () => {
     // CITY PART 1 — THE SIGN HOLD LIFTED: HIGH RISE may hang on a roof sign (stacked HIGH / RISE) or the speakeasy blade — never the hotel blade
     { const hr = h.neon.signs.filter(s => s.game === 'highrise');
       ok(hr.every(s => s.id !== 'n-blade'), `THE SIGN HOLD lifted: HIGH RISE on the skyline where it fits (tonight: ${hr.map(s => s.id).join(', ') || 'resting'} — never the hotel blade)`); }
+    // FREEFALL's GO-LIVE (Nov 28) — THE SIGN HOLD: playable, but no FREEFALL sign, blade or billboard until THE CITY PASS installs its sign + lifts it
+    ok(!h.neon.signs.some(s => s.game === 'freefall') && bb !== 'freefall', `THE SIGN HOLD: no FREEFALL on any sign tonight (the billboard: ${bb})`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
