@@ -990,3 +990,15 @@
   0–1: a device-only cause. Method: switches Ben A/Bs on the phone (PART B), then the real fix in PART C. JAYWALK / HIGH RISE "feel alright,
   not buttery" on the same phone: FREEFALL's constant fast camera fall shows every dropped frame as a jump.
 - **THE WATER:** Ben "good enough for now" — re-judged at the end, no change in B.
+
+## FREEFALL — THE FIX PASS, PART C (Nov 27)
+- **FIX C = the LAST fix pass before go-live** (`docs/games/passes/freefall-fixc.md`): speed round 2 + the scoring (anti-cheat) + the rule-set
+  leaf + the shared end board + the test page (bot match, spectate) + the finish share card + the last small items.
+- **SPEED, Ben's iPhone A/B (Nov 27, `?fps=2`, hitches / floors):** baseline 31 / 94 · dpr 2: 66 / 125 · bloom 0: 17 / 71 · fx 0: 35 / 98 ·
+  wall 0: 35 / 93 · tier 1: 18 / 67 · EVERYTHING OFF: 39 / 86 — NO switch helps; our work ≈ 0.6–1.1 ms a frame, long tasks 0, every hitch
+  "gpu" (~30 ms wait). Not our 3D picture, not our JS. Suspects: Safari compositing the HTML layers over the canvas, or iPhone Safari's own
+  frame pacing. FIX B's real-time tower "might feel smoother, nothing groundbreaking" (Ben). PART C adds `?hud=0` (every HTML layer above
+  the canvas hidden) + `?empty=1` (a control: a plain spinning mesh, the same loop + meter) and takes the compositing fix regardless.
+- **ANTI-CHEAT SHIPS WITH FREEFALL (Ben, Nov 27):** the too-perfect HOLD (S3) + the COPYCAT check (S2); JAYWALK + HIGH RISE get them later in
+  their own passes.
+- **THE FINISH SHARE CARD:** the reviewer's bigger coloured bursts + a dark vignette by day (Ben: yes).
