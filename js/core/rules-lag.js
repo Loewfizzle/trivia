@@ -9,6 +9,9 @@ export function pathShape(path) {
   return String(path || '').replace(/^\/+|\/+$/g, '').split('/').map((seg, i, all) => (
     i > 0 && (/^[A-Z]{4}$/.test(seg) || /\d/.test(seg) || seg.length >= 12 || /^-/.test(seg) || (i === 1 && /^(rooms|chats|fleets|glsonar|spy|hsbet|rrp|seal|night|presence|players|uids|profiles)$/.test(all[0]))) ? '*' : seg)).join('/');
 }
+/** THE FREEFALL CITY PASS — THE LATE PROOF CHUNK (the owner's /admin, Nov 25 4:22 pm): a PROOF TREE's write (rooms/CODE/jw|hr|ff/MATCH/UID/c|e|h)
+ *  → { code, mid } — null for any other path. Refused while this phone has left that room or that match is not live on it = the quiet 'late-proof' */
+export const proofOfPath = path => { const m = /^\/?rooms\/([^/]+)\/(?:jw|hr|ff)\/([^/]+)\/[^/]+\/[ceh](?:\/|$)/.exec(String(path || '')); return m ? { code: m[1], mid: m[2] } : null; };
 /** the room code a room / chat path is under (rooms/ABCD/… · chats/ABCD/…) — null for any other path */
 export const roomOfPath = path => { const m = /^\/?(?:rooms|chats)\/([^/]+)/.exec(String(path || '')); return m ? m[1] : null; };
 // THE CHAT FALSE ALARM (the owner's /admin errors, Nov 13): a room / chat write the rules refuse because this phone is NO LONGER IN THE ROOM (it

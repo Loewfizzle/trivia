@@ -130,7 +130,7 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /if \(!\(mod && mod\.OWN_VICTORY_SOUND\)\) pgSfx\('victory'\);/);
   assert.match(f, /setState\(\{ podium: g\.matchId \}\)/);
   assert.match(read('js/app.js'), /const podium = st\.game\.phase === 'final' && st\.podium === st\.game\.matchId;/);
-  assert.match(f, /el\.style\.setProperty\('--fin', mod\.ACCENT\)/);
+  assert.match(f, /el\.style\.setProperty\('--fin', acc\)/); assert.match(f, /\[mod\.END_ACCENT, mod\.ACCENT\]/, 'END_ACCENT first (JAYWALK GOES RED)');
   // (CITY PART 1 — THE ONE META MODULE: OVERCLOCK's meta = its ROW in js/games/metas.js)
   const oc = read('js/games/metas.js');
   assert.match(oc, /BANNER_NAME: 'OVERCLOCK', LOOKS: \['night'\], ACCENT: '#ff6a1a', OWN_VICTORY_SOUND: true,/);
@@ -149,7 +149,7 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(read('css/components.css'), /\.winner \{ flex: none; overflow-x: clip; overflow-y: visible; \}/, 'the winner line never cut');
 });
 
-test('ADD-ON: THE RESULTS ROWS = the players\' SLIM CARDS (every results list) on ONE shared surface, calm; THE XP BOX\'s pieces on their own row', () => {
+test('ADD-ON: THE RESULTS ROWS = the players\' SLIM CARDS (every results list) on ONE shared surface, calm; THE XP LINE in the foot', () => {
   assert.match(read('js/ui/components.js'), /lazyImport\(import\('\.\/strip-board\.js'\), '[^']*'\)\.then\(m => m\.upgradeBoard\(list, rows, players\)\)/);   // (LOAD FIX 4: through the skew wrapper)
   const sb = read('js/ui/strip-board.js');
   assert.match(sb, /const surface = K\.liveList\(list, \{ label: 'results' \}\);/, 'THE LIVE LANE for the list (CITY D: stills, ≤ 3 live on screen)');   // (DFIX2: the kit's — stripKit() loads the pieces once; SCORES shares them)
@@ -158,6 +158,7 @@ test('ADD-ON: THE RESULTS ROWS = the players\' SLIM CARDS (every results list) o
   assert.match(sb, /const rowEls = \[\.\.\.list\.children\];/, 'the rows read before the canvas joins the list');
   assert.match(read('css/components.css'), /\.lb-row\.lb-strip \{[^}]*animation: none; \}/, 'no stacking context on a strip row');
   const co = read('js/profile/callouts.js');
-  assert.match(co, /h\('span\.rc-xp-lv', h\('span\.rc-xp-step'/);
-  assert.match(read('css/board.css'), /\.rc-xp-next \{ grid-column: 1 \/ -1;/);
+  // (THE FREEFALL CITY PASS — THE XP LINE AS THE FOOTER: the box is ONE line now — gain · band · level · ›, in the frame's foot)
+  assert.match(co, /h\('span\.rc-xp-top', gain, h\('span', ' XP'\)\), h\('span\.rc-xp-step', `\$\{to\.band\.name\} · LEVEL \$\{to\.lvl\}`\)/);
+  assert.match(read('js/ui/final.js'), /const foot = h\('div\.final-foot', bar, links, xpFoot\);/, 'pinned under SHARE · HOME');
 });

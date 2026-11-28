@@ -23,7 +23,9 @@ test('THE BLACK HELICOPTER: drawHeli names no variable of drawModel\'s (black ·
 
 test('STALE-HOST WRITES: a room / chat write refused while this phone has JUST lost the host = "no longer the host" (quiet), never the alarm; the host writes check again first', () => {
   const fb = read('js/firebase.js'), host = read('js/host.js'), lm = read('js/audio/lobby-music.js');
-  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(rp\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(rp, \{ hostGone: safeGone, roomGone, woke \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks (CITY PART 1: + woke — a stalled phone just woke = the quiet not-host)');
+  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(rp\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(rp, \{ hostGone: safeGone, roomGone, woke \}\), pf = proofOfPath\(rp\);/, 'a room write waits HOST_SETTLE_MS, then asks (CITY PART 1: + woke — a stalled phone just woke = the quiet not-host)');
+  assert.match(fb, /if \(pf && \(quiet \|\| !proofLive\(pf\.code, pf\.mid\)\)\) \{ quietFor\(\{ kind: 'late-proof' \}\);/, 'THE LATE PROOF CHUNK (the Nov 28 city pass): a proof write refused after the room / the match = the quiet late-proof, never a row');
+  assert.match(fb, /\n    if \(quiet\) \{/);
   assert.match(fb, /console\.info\(`\[rules\] \$\{quiet\} — a write refused after/);
   assert.match(host, /setHostGone\(lostHostRecently\);/);
   assert.match(host, /if \(isHost\(\)\) \{\n    if \(!hostWriteOk\(\)\) return;[^\n]*\n    wasHostAt = Date\.now\(\); wasHostCode = state\.code;/, 'CITY PART 1: THE WAKE HOLD first');
@@ -114,7 +116,7 @@ test('THE CHAT FALSE ALARM: no chat write out of the room; a refusal after leavi
   const fb = read('js/firebase.js'), room = read('js/room.js'), chat = read('js/chat/chat.js');
   assert.match(fb, /export function setRoomGone\(fn\)/);
   assert.match(room, /export const leftRoom = code => !!code && \(state\.code !== code \|\| leavingCode === code \|\| !!\(state\.kicked && state\.uid && state\.kicked\[state\.uid\]\)\);/);
-  assert.match(room, /setRoomGone\(leftRoom\);\nglobalThis\.__nsRoomGone = leftRoom;/);
+  assert.match(room, /setRoomGone\(leftRoom\);\nsetProofLive\([^\n]*\nglobalThis\.__nsRoomGone = leftRoom;/);
   assert.doesNotMatch(chat, /from '\.\.\/room\.js'/, 'the lazy chat reads the hub, never a new export of the boot graph');
   assert.match(chat, /export const mayWrite = \(code, host = false\) => canChat\(state, code, \{ gone: roomGone\(code\), host \}\);/);
   for (const [fn, re] of [['send', /if \(!chat\.code \|\| !state\.uid \|\| !mayWrite\(chat\.code\)\) return 'off';/], ['typingPing', /if \(!chat\.code \|\| !state\.uid \|\| !mayWrite\(chat\.code\)\) return;/],

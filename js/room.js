@@ -1,7 +1,7 @@
 // Room lifecycle: create / join / resume / leave / kick, live mirroring and presence.
 import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
-  runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
+  runTransaction, want, release, expectRefusal, setRoomGone, setProofLive } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode, loadQueue } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode, ROOM_SIDE_NODES, mirrorTree } from './core/room-logic.js';
@@ -500,7 +500,9 @@ export const exitHow = () => lastExit;
 // leaving, the host removed it, the room closed) is the leave's race — firebase.js logs it quietly, "no longer in the room", never the alarm
 export const leftRoom = code => !!code && (state.code !== code || leavingCode === code || !!(state.kicked && state.uid && state.kicked[state.uid]));
 setRoomGone(leftRoom);
-globalThis.__nsRoomGone = leftRoom;   // (the hub the lazy chat reads before every write — js/chat/chat.js#mayWrite)
+setProofLive((code, mid) => state.code === code && !!state.game && state.game.matchId === mid && (state.game.phase === 'play' || state.game.phase === 'count'));   // (THE LATE PROOF CHUNK)
+globalThis.__nsRoomGone = leftRoom;
+globalThis.__nsRoomLeft = code => !!code && (state.code !== code || leavingCode === code);   // (THE LATE PROOF CHUNK: left or leaving — never a kick; kit/proof-writer.js#roomLeftOf)   // (the hub the lazy chat reads before every write — js/chat/chat.js#mayWrite)
 // THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): the host REMOVES a player (a kick — or
 // his seat deleted, read as a lost seat) mid-match: that phone used to leave its LIVE run at once — the run was cut where the kick fell, the
 // host won. Now, while the game screen holds a live proven run (app.js's RUN HOLD — the hub), the exit WAITS: the run is played to its own

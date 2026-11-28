@@ -513,7 +513,7 @@ async function boot() {
     if (!y) { if (bar) { bar.remove(); bar = null; } return; }
     if (bar) return;
     bar = h('div.dup-tab', { role: 'status' },
-      h('span', slot === '1' ? 'ALREADY OPEN IN ANOTHER TAB — USE THAT ONE' : `SLOT ${slot} IS ALREADY OPEN IN ANOTHER TAB`),
+      h('span', 'ALREADY OPEN IN ANOTHER TAB — USE THAT ONE'),   // (the Nov 28 city pass: the same words for every slot — never a slot id)
       h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: () => tabs.take() }, h('span', 'USE THIS TAB')));
     document.body.prepend(bar);   // (before the toasts' box: they step down under it — components.css)
   }); }

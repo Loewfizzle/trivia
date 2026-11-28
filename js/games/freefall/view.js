@@ -12,7 +12,7 @@ import { finalPatch } from './director.js';
 import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { follow, nextFollow } from './ghosts.js';
 import { isHost, setState } from '../../store.js';
-import { createProofWriter } from '../kit/proof-writer.js';
+import { createProofWriter, roomLeftOf } from '../kit/proof-writer.js';
 import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
 import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
@@ -135,7 +135,7 @@ export function createView() {
   // THE PROOF (kit/proof-writer.js — JAYWALK's + HIGH RISE's): … view.js#18
   const W = createProofWriter({
     count: () => { if (!S || !proven) return 0; const n = finalCount(S.run()); return capN >= 0 && n > capN ? capN : n; }, pack: (a, b) => packRange(S.run(), a, b), entriesOf: eventsOf,
-    chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => CLOCK.flushMs, left: matchLeft,
+    chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => CLOCK.flushMs, left: matchLeft, gone: roomLeftOf(() => code),
     onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
     onDead: why => report(`FREEFALL: the proof log could not be completed (${why}) — the run can not count`, 'rules'),
     io: proofIo(nodePath),

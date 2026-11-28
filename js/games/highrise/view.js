@@ -22,7 +22,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { showCall } from '../kit/call.js';
-import { createProofWriter } from '../kit/proof-writer.js';
+import { createProofWriter, roomLeftOf } from '../kit/proof-writer.js';
 import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { createRun, stepTo, isOver } from './engine.js';
@@ -153,7 +153,7 @@ export function createView() {
   // then `e` behind the last chunk's acknowledgement
   const W = createProofWriter({
     count: () => (S ? S.taps().length : 0), pack: (a, b) => packFrom(S.taps(), a, b), entriesOf: c => { const t = tapsFromChunks(c); return t ? t.length : -1; },
-    chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs), left: matchLeft,
+    chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs), left: matchLeft, gone: roomLeftOf(() => code),
     onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
     onDead: why => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error(`HIGH RISE: the proof log could not be completed (${why}) — the run can not count`), 'rules')).catch(() => {}),
     io: proofIo(nodePath),

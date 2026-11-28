@@ -2,8 +2,8 @@
 
 **LIVE SINCE THE GO-LIVE (Nov 28 2026 — `docs/games/passes/freefall-golive.md`): PLAYABLE for everyone (`config.js` `live: '2026-11-28'`
 — NEW on top for 14 days from the 4 am line), COUNTING ON (`api/_lib/freefall.js#FREEFALL_COUNTS = true` — false = the one-line kill
-switch), THE BOARD's eighth tab (DEEPEST RUN), the three cards out of THE LAB, /freefall-lab DELETED, THE HELD LIST on /admin; held OFF
-the city's signs (`harbor-neon.js#SIGN_HOLD`) until THE CITY PASS installs its sign + billboard — "THE GO-LIVE", below.** The history
+switch), THE BOARD's eighth tab (DEEPEST RUN), the three cards out of THE LAB, /freefall-lab DELETED, THE HELD LIST on /admin; on
+the city's signs since THE FREEFALL CITY PASS (Nov 28 — FREE / FALL, its day enamel, the OPEN NOW billboard: docs/harbor/passes/freefall-city.md) — "THE GO-LIVE", below.** The history
 below is each pass as it was written (HIDDEN / THE SWITCH OFF were true until Nov 28).
 
 **(History) BEING BUILT — HIDDEN (F4B, Nov 26 2026): registered as a `preview` row — the owner's live test only, never playable; NOTHING COUNTS (THE
@@ -55,7 +55,7 @@ daily-ready only; its seed will come from the daily module's server-sealed day s
   Credits group goes public (`ui/credits.js` — `isPlayable`) · the games-list order (`api/_lib/activity.js` — today's cached order lacks
   it until the next streak day; NEW on top covers it) · the PLAY shelf + the room's list.
 - **THE BOARD:** `board/view.js#TABS` + `'freefall'` (EIGHT — the row scrolls), `HIDDEN_TABS = []`.
-- **THE CITY:** `SIGN_HOLD = ['freefall']` (HIGH RISE's go-live pattern) — no sign, no blade, no billboard pick, no ghost ad until THE
+- **THE CITY (LIFTED by THE FREEFALL CITY PASS, Nov 28 — `SIGN_HOLD = []`; docs/harbor.md "THE FREEFALL CITY PASS"):** `SIGN_HOLD = ['freefall']` (HIGH RISE's go-live pattern) — no sign, no blade, no billboard pick, no ghost ad until THE
   CITY PASS installs the sign (the mark: `core/marks.js` — the ring-floor mark D), its day face, the billboard
   `assets/city/freefall/billboard.webp` (848 × 448, OPEN NOW) and lifts the hold (the inbox entry: Nov 28 — TO THE CITY CHAT).
 - **THE ACCENTS:** `freefall: '#27e0e6'` in `ui/tube-logo.js#LOGO_ACC`, `screens/title.js` `ACC`, `screens/harbor/signs.js#SIGN_ACC`.

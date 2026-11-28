@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>End-screen board preview</title>
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -15,11 +16,11 @@
 <script>
   // THE END-BOARD SWITCH-ON (Nov 27) — every opted-in game's END SCREEN, the REAL podium frame (ui/final.js) + the game's REAL body (its
   // finalScene) + THE END-SCREEN BOARD (ui/end-board.js) — the board's read + YOUR TABLE answered here from a fixture; NEVER the live site:
-  //   ?game=jaywalk|highrise|prism|overclock · &mode=solo|match · &case=top|out|empty (solo: you in the top 3 · 12th · no rows) · &fr=1 (the
+  //   ?game=jaywalk|highrise|prism|overclock|freefall (THE FREEFALL CITY PASS) · &mode=solo|match · &case=top|out|empty (solo: you in the top 3 · 12th · no rows) · &fr=1 (the
   //   FRIENDS tick on) · &n=5 (a match's players; you are the n-th — &case=top: you win) · &look=night|day · &best=1 (a NEW BEST) · &nobest=1
   //   (no best known) · &long=1 (12-letter names everywhere)
   const Q = new URLSearchParams(location.search), CASE = Q.get('case') || 'out';
-  window.__ebFix = { world: [], table: [] };
+  window.__ebFix = { world: [], table: [] }; window.__fakeToken = 'preview';   // (THE FREEFALL CITY PASS: YOUR TABLE's read waits on a sign-in — the fake one; FRIENDS never rendered here before)
   try { sessionStorage.setItem('na:slot', 'ebp'); localStorage.setItem('na:ebp:me', JSON.stringify({ pid: 'pmeeeeeeeeee', profile: { bid: 'bme', n: 'BENNY', a: 'crown', c: 'magenta', x: 2400 } })); localStorage.setItem('ns:endb:fr', Q.get('fr') ? '1' : '0'); } catch { /* fine */ }
   const realFetch = window.fetch.bind(window), json = d => new Response(JSON.stringify(d), { status: 200, headers: { 'content-type': 'application/json' } });
   window.fetch = (u, o) => { const url = String((u && u.url) || u); if (url.includes('/api/board')) return Promise.resolve(json({ b: 'x', p: 'all', rows: window.__ebFix.world })); if (url.includes('/api/profile')) return Promise.resolve(json({ rows: window.__ebFix.table })); return realFetch(u, o); };
@@ -34,16 +35,16 @@
   import { installEmblems } from '/js/ui/emblems.js';
   import { h } from '/js/ui/dom.js';
   const Q = new URLSearchParams(location.search), CASE = Q.get('case') || 'out', G = Q.get('game') || 'jaywalk', match = Q.get('mode') === 'match', look = Q.get('look') === 'day' ? 'day' : 'night', LONG = !!Q.get('long');
-  const SHEET = { jaywalk: ['jaywalk'], highrise: ['highrise-play'], prism: ['prism'], overclock: ['overclock'] }[G] || [];
+  const SHEET = { jaywalk: ['jaywalk'], highrise: ['highrise-play'], prism: ['prism'], overclock: ['overclock'], freefall: ['freefall-play'] }[G] || [];
   await Promise.all(SHEET.map(s => new Promise(r => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `/css/${s}.css`; l.onload = l.onerror = r; document.head.append(l); })));
   const stage = document.getElementById('stage'); document.body.dataset.look = look;
   installEmblems();
   await loadGame(G);
   // ---- each game: its board, its score in board units, its fixture match
   const tower = (f, p = 0, t = 0) => f * 1e11 + p * 1e7 + (1e7 - 1 - t);
-  const B = { jaywalk: 'jaywalk-solo', highrise: 'highrise-solo', prism: 'prism-rush', overclock: 'overclock-quick' }[G];
-  const AVG = G === 'jaywalk' || G === 'highrise';
-  const SC = { jaywalk: [212, 188, 171, 160, 88], highrise: [119, 96, 84, 70, 41], prism: [98450, 71200, 64010, 52300, 18240], overclock: [4120, 3650, 3310, 2900, 1480] }[G];
+  const B = { jaywalk: 'jaywalk-solo', highrise: 'highrise-solo', prism: 'prism-rush', overclock: 'overclock-quick', freefall: 'freefall-solo' }[G];
+  const AVG = G === 'jaywalk' || G === 'highrise' || G === 'freefall';
+  const SC = { freefall: [318, 260, 214, 180, 96], jaywalk: [212, 188, 171, 160, 88], highrise: [119, 96, 84, 70, 41], prism: [98450, 71200, 64010, 52300, 18240], overclock: [4120, 3650, 3310, 2900, 1480] }[G];
   const bv = v => (G === 'highrise' ? tower(v, 9, 4000) : v);   // (the board's own value — HIGH RISE: the packed tower)
   const nm = (n, i) => (LONG ? ['MAXIMILIANOS', 'BARTHOLOMEWS', 'CONSTANTINES', 'GWENDOLYNNES'][i % 4] : n);
   const face = (id, n, c, a, v, av, rank) => ({ id, n, a, c, l: 12 + rank, rank, v: bv(v), ...(AVG ? { av } : {}) });
@@ -52,6 +53,8 @@
     ...Array.from({ length: 8 }, (_, i) => face(`bx${i}`, `PLAYER ${i + 4}`, 'violet', 'star', Math.round(SC[3] * (1 - i * 0.04)), 80, 4 + i)),
     ...(CASE === 'top' ? [] : [face('bme', 'BENNY', 'magenta', 'crown', SC[4], Math.round(SC[4] * 0.7), 12)])];
   window.__ebFix.table = [{ n: nm('DEX', 1), a: 'bolt', c: 'cyan', v: bv(SC[1]), ...(AVG ? { av: 120 } : {}) }, { n: 'BENNY', a: 'crown', c: 'magenta', v: bv(SC[4]), me: true, ...(AVG ? { av: 61 } : {}) }, { n: nm('OPAL', 3), a: 'heart', c: 'red', v: bv(Math.round(SC[4] * 0.6)), ...(AVG ? { av: null } : {}) }];
+  // (&many=1 — a table of 8 friends: THE FRIENDS WINDOW scrolls, you 6th — your row scrolled into view)
+  if (Q.get('many')) window.__ebFix.table = [SC[0], SC[1], SC[2], SC[3], Math.round(SC[3] * 0.8), SC[4], Math.round(SC[4] * 0.7), Math.round(SC[4] * 0.5)].map((v, i) => ({ n: i === 5 ? 'BENNY' : nm(['DEX', 'LUNA', 'OPAL', 'ZED', 'KIT', '', 'MOSS', 'RAY'][i], i), a: ['bolt', 'moon', 'heart', 'star', 'ghost', 'crown', 'bolt', 'moon'][i], c: ['cyan', 'yellow', 'red', 'orange', 'violet', 'magenta', 'green', 'blue'][i], v: bv(v), ...(i === 5 ? { me: true } : {}), ...(AVG ? { av: Math.round(v * 0.6) } : {}) }));
   const N = match ? Math.max(2, Math.min(8, Number(Q.get('n')) || 5)) : 1;
   const NAMES = [['me', 'BENNY', 'magenta', 'crown'], ['u2', 'DEX', 'cyan', 'bolt'], ['u3', 'LUNA', 'yellow', 'moon'], ['u4', 'MAXIMILIANOS', 'green', 'ghost'], ['u5', 'ZED', 'orange', 'star'], ['u6', 'KIT', 'violet', 'heart'], ['u7', 'OPAL', 'red', 'diamond'], ['u8', 'WREN', 'cyan', 'bolt']];
   const players = Object.fromEntries(NAMES.slice(0, N).map(([u, name, color, avatar], i) => [u, { name: u === 'me' ? name : nm(name, i), color, avatar, pid: `p${u.padEnd(11, 'x')}` }]));
@@ -75,15 +78,20 @@
     game = { id: 'prism', matchId: 'mprev', phase: 'final', participants, results, settings: { mode: 'rush' } };
     const V = await import('/js/games/prism/victory.js'); rows = V.finalRows(game); kicker = 'SCORE RUSH · FINAL';
     const { endMode } = await import('/js/ui/fin-neon.js'); modeW = endMode('prism', 'rush', !match); extra = { scoreLabel: 'PTS', winnerLine: nm => `${nm} TOPS THE SONG` };
+  } else if (G === 'freefall') {
+    const results = Object.fromEntries(order.map((u, i) => [u, { f: S(i), t: 4000 + i * 300, bl: 3 - (i % 3), w: ['splat', 'left', 'made'][i % 3] }]));
+    game = { id: 'freefall', matchId: 'mprev', mode: match ? 'match' : 'solo', phase: 'final', participants, results };
+    const L = await import('/js/games/freefall/logic.js'); rows = L.gameStandings(game).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor }));
+    kicker = match ? 'FREEFALL · MATCH' : 'FREEFALL · SOLO'; extra = { scoreLabel: 'FLOORS', winnerLine: nm => `${nm} FELL THE FARTHEST` };
   } else if (G === 'overclock') {
     const res = Object.fromEntries(order.map((u, i) => [u, { pts: S(i), ok: 5 }]));
     game = { id: 'overclock', matchId: 'mprev', phase: 'final', participants, results: { 5: res }, settings: { mode: 'quick' }, total: 6, ci: 5, order: ['trivia', 'truefalse', 'trivia', 'truefalse', 'trivia', 'trivia'], phaseStartAt: 1 };
     const L = await import('/js/games/overclock/logic.js'); rows = L.standings(game); kicker = 'OVERCLOCK · 6 CHALLENGES'; extra = { scoreLabel: 'PTS', winnerLine: nm => `${nm} RAN THE HOTTEST` };
   }
   // (the server's answer for this match, as profile/queue.js keeps it: YOUR BEST n · AVG n — &best=1 a NEW BEST · &nobest=1 none)
-  const mineV = (game.results.me || game.results[5].me || {}), myScore = G === 'jaywalk' ? mineV.l : G === 'highrise' ? mineV.f : G === 'prism' ? mineV.sc : mineV.pts;
+  const mineV = (game.results.me || game.results[5].me || {}), myScore = G === 'jaywalk' ? mineV.l : G === 'highrise' || G === 'freefall' ? mineV.f : G === 'prism' ? mineV.sc : mineV.pts;
   // (solo: the XP line in — "TODAY'S SOLO XP DONE", the same one line as "+15 XP · SOLO RUN" without THE MOMENT's sheet)
-  try { const k = 'rc:ABCD_mprev', av = AVG ? { [B]: 61 } : undefined, sol = match || Q.get('noxp') ? {} : { so: { n: 5, max: 4 }, xp: { gain: 0 } }; sessionStorage.removeItem(k); if (!Q.get('nobest')) sessionStorage.setItem(k, JSON.stringify(Q.get('best') ? { pbs: [{ b: B, v: bv(myScore), prev: bv(Math.round(myScore * 0.8)) }], ...(av ? { av } : {}), ...sol } : { bests: { [B]: bv(Math.max(myScore, SC[2])) }, ...(av ? { av } : {}), ...sol })); } catch { /* fine */ }
+  try { const k = 'rc:ABCD_mprev', av = AVG ? { [B]: 61 } : undefined, sol = Q.get('noxp') ? {} : match ? { xp: { gain: 42, from: 2400, to: 2442, parts: [{ label: 'MATCH' }] } } : { so: { n: 5, max: 4 }, xp: { gain: 0 } };   /* (THE FREEFALL CITY PASS: a match's XP too — the footer line) */ sessionStorage.removeItem(k); if (!Q.get('nobest')) sessionStorage.setItem(k, JSON.stringify(Q.get('best') ? { pbs: [{ b: B, v: bv(myScore), prev: bv(Math.round(myScore * 0.8)) }], ...(av ? { av } : {}), ...sol } : { bests: { [B]: bv(Math.max(myScore, SC[2])) }, ...(av ? { av } : {}), ...sol })); } catch { /* fine */ }
   setState({ code: 'ABCD', uid: 'me', players, rv: {}, meta: { hostId: 'me', status: 'playing' }, game, pub: {}, ...(G === 'prism' ? { live: { boards: { [order[0]]: { b: '' } } } } : {}) });   // (PRISM: the winner's published board — its well drawn in a match too)
   globalThis.__nsPlayNow = { isSolo: () => !match, again: () => false, leave: () => false };
   const final = createFinal({ game, rows, players, me: 'me', presence: {}, kicker, mode: modeW != null ? modeW : (match ? 'MATCH' : 'SOLO'), ...extra });
@@ -91,10 +99,11 @@
   if (G === 'jaywalk') { stage.classList.add('jw-stage'); stage.dataset.look = look; stage.append(h('div.jw-final', final.el)); }
   else if (G === 'highrise') { stage.classList.add('hi-stage', 'is-final'); stage.dataset.look = look; stage.append(h('div.hi-final', final.el)); }
   else if (G === 'prism') { stage.classList.add('pd'); stage.dataset.look = look === 'day' ? 'crayon' : 'neon'; stage.dataset.mode = 'rush'; stage.append(h('div.pd-final', final.el)); }
+  else if (G === 'freefall') { stage.classList.add('ff-stage', 'is-final'); stage.dataset.look = look; const E = await import('/js/games/freefall/endscreen.js'); const k = final.el.querySelector('.sheet-kicker'); if (k) { k.classList.add('ff-kick'); k.replaceChildren(E.endLogo(match ? 'match' : 'solo')); } stage.append(h('div.ff-final', final.el)); }
   else if (G === 'overclock') { stage.classList.add('oc', 'oc-od'); const ov = h('div.oc-overlay', final.el); stage.append(ov); }
   const painted = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   setTimeout(() => painted().then(() => { document.body.dataset.ready = '1'; }), 3600);   // (shots.mjs --page: the strips, the fonts, the crown are in)
-  window.__ebEnd = () => { const f = stage.querySelector('.final'), sc = f.closest('.pd-final') || f; return { scroll: Math.max(f.scrollHeight - f.clientHeight, sc.scrollHeight - sc.clientHeight), rows: stage.querySelectorAll('.eb-list li').length, you: (stage.querySelector('.eb-you') || {}).textContent || '', head: (stage.querySelector('.eb-head') || {}).textContent || '', plaques: stage.querySelectorAll('.rc-plaque').length, xp: (stage.querySelector('.rc-solo') || {}).textContent || '', list: stage.querySelectorAll('.final > .leaderboard li, .final > .leaderboard .lb-row').length, best: [...stage.querySelectorAll('.jw-fin-best, .hi-ec-best, .pd-fs-best, .oc-vic-best')].map(x => x.textContent).join(' | '), bar: (() => { const b = stage.querySelector('.final-bar'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), ebBottom: (() => { const b = stage.querySelector('.eb'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), footTop: (() => { const b = stage.querySelector('.final-actions'); return b ? Math.round(b.getBoundingClientRect().top) : 0; })(), vh: innerHeight }; };
+  window.__ebEnd = () => { const f = stage.querySelector('.final'), sc = f.closest('.pd-final') || f; return { scroll: Math.max(f.scrollHeight - f.clientHeight, sc.scrollHeight - sc.clientHeight), rows: stage.querySelectorAll('.eb-list li').length, you: (stage.querySelector('.eb-you') || {}).textContent || '', head: (stage.querySelector('.eb-head') || {}).textContent || '', plaques: stage.querySelectorAll('.rc-plaque').length, xp: (stage.querySelector('.rc-solo') || {}).textContent || '', fxp: (stage.querySelector('.final-xp') || {}).textContent || '', rh: (stage.querySelector('.eb-card .vl-strip') || {}).offsetHeight || 0, free: (() => { const a = stage.querySelector('.final-actions'), e = stage.querySelector('.final-eb'); return a && e ? Math.round(a.getBoundingClientRect().top - e.getBoundingClientRect().bottom) : null; })(), list: stage.querySelectorAll('.final > .leaderboard li, .final > .leaderboard .lb-row').length, best: [...stage.querySelectorAll('.jw-fin-best, .hi-ec-best, .pd-fs-best, .oc-vic-best')].map(x => x.textContent).join(' | '), bar: (() => { const b = stage.querySelector('.final-bar'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), ebBottom: (() => { const b = stage.querySelector('.eb'); return b ? Math.round(b.getBoundingClientRect().bottom) : 0; })(), footTop: (() => { const b = stage.querySelector('.final-actions'); return b ? Math.round(b.getBoundingClientRect().top) : 0; })(), vh: innerHeight }; };
 </script>
 </body>
 </html>

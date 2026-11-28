@@ -103,6 +103,6 @@ export const nightBonus = bonus;
 export { finalScene } from './victory.js';
 /** THE END-SCREEN BOARD (THE END-BOARD SWITCH-ON, Nov 27 — ui/end-board.js): SCORE RUSH (its board prism-rush — BEST SCORE, in POINTS) — solo =
  *  the board's TOP 3 (☐ FRIENDS ONLY), a match = its own TOP 3 · no AVG. BATTLE + SURVIVAL have no board: their end screens as they were */
-export const END_BOARD = Object.freeze({ b: 'prism-rush', word: 'POINTS', on: g => !!(g && g.settings && g.settings.mode === 'rush') });
+export const END_BOARD = Object.freeze({ b: 'prism-rush', word: 'POINTS', soloCounts: false, on: g => !!(g && g.settings && g.settings.mode === 'rush') });
 
 // (THE CARTRIDGE PLUG's chat lock + BANNER_NAME + OPTIONS: meta.js)

@@ -1,19 +1,23 @@
-// THE END-SCREEN BOARD (F5B — the owner's FINAL SHAPE, Nov 27: docs/cartridge.md "THE END-SCREEN BOARD"): ONE shared leaderboard block for
-// the podium (ui/final.js mounts it under the game's body), PER-GAME OPT-IN — a cartridge's `END_BOARD = { b, word, avg }` (games/contract.js).
-// ON (THE END-BOARD SWITCH-ON, Nov 27): FREEFALL · JAYWALK · HIGH RISE (+ AVG) · PRISM DROP (SCORE RUSH) · OVERCLOCK (QUICK, solo) — a
-// cartridge without END_BOARD never loads this module (its end screen is exactly as it was: NEON PAR, SLIPSTREAM, HOLD'EM).
-//   SOLO: the board's TOP 3 — everyone by default — under ONE header: the tick "☐ FRIENDS ONLY" (F5C — the owner, Nov 27: no "THE WORLD"
-//     heading; a drawn box + the words: no pill; unticked = everyone) that switches the rows to YOUR TABLE (you + your friends' bests — the server's /api/profile `table`). ONE remembered setting for every game
-//     (localStorage `ns:endb:fr`, wrapped). No friends yet → "NO FRIENDS YET", the world stays. Each row: the rank, the player's SLIM CARD
-//     (ui/strip-board.js — stills + THE LIVE LANE; THE YOU ROW's glow on yours), BEST + AVG (the row's STORED average — core/board-avg.js:
-//     a dash under 5 runs). Not in the top 3 → ONE small line under them: "YOU · 12TH · 88 FLOORS".
+// THE END-SCREEN BOARD (F5B — the owner's FINAL SHAPE, Nov 27; rebuilt by THE FREEFALL CITY PASS, Nov 28 — docs/cartridge.md "THE END-SCREEN
+// BOARD"): ONE shared leaderboard block for the podium (ui/final.js mounts it under the game's body), PER-GAME OPT-IN — a cartridge's
+// `END_BOARD = { b, word, avg, soloCounts }` (games/contract.js). ON: FREEFALL · JAYWALK · HIGH RISE (+ AVG) · PRISM DROP (SCORE RUSH) · OVERCLOCK
+// (QUICK, solo) — a cartridge without END_BOARD never loads this module (NEON PAR, SLIPSTREAM, HOLD'EM: as they were).
+//   SOLO: ONE header row — "GLOBAL TOP 3" left, the tick "☐ FRIENDS ONLY" right (a drawn box + the words: no pill); ticked → "FRIENDS TOP 3"
+//     and the list = ALL of YOUR TABLE (you + your friends' bests — /api/profile `table`), scrolling INSIDE a window exactly three rows tall
+//     (the page stays fixed; soft fades where more rows sit; your row scrolled into view; a re-read waits while a finger is on it — THE TAP
+//     WATCH). ONE remembered tick for every game (localStorage `ns:endb:fr`). Each row: the place — 1 / 2 / 3 THE DECO MEDALS (ui/medal.js),
+//     a plain number from 4 — the player's SLIM CARD (ui/strip-board.js — stills + THE LIVE LANE; THE YOU ROW's glow on yours), BEST + AVG
+//     (the row's STORED average — core/board-avg.js). Not in the global top 3 → "YOU · 12TH · 88 FLOORS" under it; `soloCounts: false` (a board
+//     that counts ROOM matches only: OVERCLOCK QUICK, PRISM DROP's SCORE RUSH) → "THIS BOARD COUNTS ROOM MATCHES" in its place.
 //     READS: ONE board fetch (the all-time top 100) a session — YOUR TABLE only once FRIENDS is ticked — both kept for the session.
-//   MATCH: the match's own TOP 3 (the frame's own rows: rank, slim card, the score + AVG off each room-mate's profile — `av`, already in
-//     the room's mirror: no read) + "YOU · 5TH · 49 FLOORS" only from 4th down.
+//   MATCH: "THIS MATCH" — the match's own TOP 3 (the frame's own rows + AVG off the room's mirror: no read) + "YOU · 5TH · …" from 4th down.
+//   SIZE: the block grows into the frame's free room (css: .final > .final-eb, container queries) — taller cards + bigger numbers where a phone
+//     has the height, clamped; never a dead band, never a scroll.
 // Prefix `eb-` (css/components.css). DOM + the lazy kits only; nothing here counts or writes anything.
 import { h } from './dom.js';
 import { lazyImport } from './lazy-import.js';
 import { boardDef, fmtValue } from '../core/boards.js';
+import { rankMedal } from './medal.js';
 
 /** the remembered FRIENDS tick — ONE setting for every game */
 export const FRIENDS_KEY = 'ns:endb:fr';
@@ -80,12 +84,14 @@ let heard = false;
 const hear = () => { if (heard) return; heard = true; lazyImport(import('../profile/queue.js'), '../profile/queue.js').then(Q => Q.onOutcome((k, o) => newBests(o))).catch(() => { heard = false; }); };
 const kits = () => Promise.all([lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))), lazyImport(import('../core/board-avg.js'), '../core/board-avg.js')]);
 
+/** the place: 1 / 2 / 3 = THE DECO MEDALS (a shared place, the same medal), a plain number from 4 */
+const place = r => rankMedal(r.rank, { size: 30, cls: 'eb-medal' }) || String(r.rank);
 /** the rows into `list` as slim cards (ui/strip-board.js — THE LIVE LANE) → a destroy() */
 function paintRows(list, rows, cfg, SB, AV, face) {
   const strips = [];
   list.replaceChildren(...rows.map(r => {
     const st = SB.m.stripFor(SB.K, face(r), { friend: false }); strips.push(st);
-    return h('li', { class: r.me ? 'is-me' : null }, h('span.eb-n', String(r.rank)), h('div.eb-card', SB.m.markMine(st.el, !!r.me)),
+    return h('li', { class: r.me ? 'is-me' : null }, h('span.eb-n', place(r)), h('div.eb-card', SB.m.markMine(st.el, !!r.me)),
       h('b.eb-v', valText(r.v, cfg.b), cfg.avg ? h('small.eb-av', AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)) : null));
   }));
   const d = Math.max(2, ...rows.map(r => valText(r.v, cfg.b).length));
@@ -101,18 +107,30 @@ function paintRows(list, rows, cfg, SB, AV, face) {
  * a match = the frame's own rows (rows: [{ uid, rank, score }], best first). → { destroy() }
  */
 export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo = true, pubOf = () => null } = {}) {
-  const word = String(cfg.word || 'POINTS').toUpperCase(), b = cfg.b;
+  const word = String(cfg.word || 'POINTS').toUpperCase(), b = cfg.b, roomOnly = solo && cfg.soloCounts === false;
   const list = h('ol.eb-list'), you = h('div.eb-you'), note = h('div.eb-note');
-  let off = null, gone = false;
+  let off = null, gone = false, held = 0, waiting = null;
   el.classList.add('eb', solo ? 'is-solo' : 'is-match');
   el.dataset.box = '';   // (THE FADE NEVER SLICES A BOX — ui/final.js#unslice)
+  // THE FRIENDS WINDOW (the owner, Nov 27 12:06 pm): YOUR TABLE scrolls inside three rows — its fades say where more rows sit (a class from the
+  // scroll position; no re-render); a finger on the list holds any re-read until it lifts (THE TAP WATCH: never re-render under a finger)
+  const fades = () => { const t = list.scrollTop, m = list.scrollHeight - list.clientHeight; list.classList.toggle('is-up', t > 2); list.classList.toggle('is-down', t < m - 2); };
+  list.addEventListener('scroll', fades, { passive: true });
+  list.addEventListener('pointerdown', () => { held++; }, { passive: true });
+  const lift = () => { held = 0; if (waiting) { const w = waiting; waiting = null; w(); } };
+  for (const k of ['pointerup', 'pointercancel']) list.addEventListener(k, lift, { passive: true });
   const done = () => { if (off) off(); off = null; };
-  const show = (top, mine, face, still = () => true) => kits().then(([SB, AV]) => {
+  const show = (top, mine, face, still = () => true, scroll = false) => kits().then(([SB, AV]) => {
     if (gone || !still()) return;   // (a newer choice — the tick turned again — paints instead)
     done();
     off = paintRows(list, top, cfg, SB, AV, face);
-    you.textContent = mine ? youLine(mine.rank, mine.v, word, b) : '';
+    list.classList.toggle('is-scroll', scroll);
+    // (soloCounts: false — a board for ROOM matches only: its one line in place of the YOU line, the scoring rules untouched)
+    you.textContent = roomOnly ? 'THIS BOARD COUNTS ROOM MATCHES' : mine ? youLine(mine.rank, mine.v, word, b) : '';
     el.classList.toggle('has-rows', top.length > 0);
+    list.scrollTop = 0;
+    if (scroll) requestAnimationFrame(() => { const m = list.querySelector('li.is-me'); if (m && !gone) list.scrollTop = Math.max(0, m.offsetTop - (list.clientHeight - m.offsetHeight) / 2); fades(); });   // (your row in view on open — one read, never in a loop)
+    else fades();
   });
   if (!solo) {
     // A MATCH: the frame's own rows — the top 3 + YOU from 4th down (the faces + AVG off the room's mirror: no read)
@@ -122,14 +140,15 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
     show(top, mine, r => pubOf(players[r.uid]) || { n: (players[r.uid] || {}).name, a: (players[r.uid] || {}).avatar, c: (players[r.uid] || {}).color }).catch(() => {});
     return { destroy() { gone = true; done(); } };
   }
-  // SOLO: everyone · or YOUR TABLE (F5C: the header = the tick "☐ FRIENDS ONLY" alone — remembered; no heading word)
-  const box = h('i.eb-box', { 'aria-hidden': 'true' });
+  // SOLO: GLOBAL TOP 3 · or YOUR TABLE (the owner, Nov 27 12:01 pm: ONE header row — the board's name left, the tick right — remembered)
+  const box = h('i.eb-box', { 'aria-hidden': 'true' }), label = h('span.eb-k', 'GLOBAL TOP 3');
   const tick = h('button.eb-tick', { type: 'button', role: 'checkbox', 'aria-checked': 'false', 'data-press': true, onclick: () => setFriends(!friends, true) }, box, h('span', 'FRIENDS ONLY'));
-  el.append(h('div.eb-head', tick), list, you, note);
+  el.append(h('div.eb-head', label, tick), list, you, note);
   let friends = false, ask = 0;
   function setFriends(on, byTap, msg = '') {
     friends = !!on; const n = ++ask;
     tick.setAttribute('aria-checked', String(friends)); tick.classList.toggle('is-on', friends);
+    label.textContent = friends ? 'FRIENDS TOP 3' : 'GLOBAL TOP 3';
     if (byTap) writeFr(friends);
     note.textContent = msg;
     (friends ? tableRows(b) : worldRows(b)).then(R => {
@@ -137,14 +156,15 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
       // (FIX C — S11: the tick unticks itself. NO FRIENDS AT ALL → '0' is REMEMBERED (every game shares the tick). Friends, none on THIS
       //  board yet → off for this screen only, the setting kept. The line says why only on the TAP that asked — never on a later end screen.)
       if (friends && !R.some(r => !r.me)) { const none = R.friends === 0; if (none) writeFr(false); setFriends(false, false, byTap ? (none ? 'NO FRIENDS YET' : 'NO FRIENDS ON THIS BOARD YET') : ''); return; }
-      const { top, you: mine } = pickRows(R);
+      // (FRIENDS: ALL of your table, in the three-row window — your row is in it, so no YOU line; GLOBAL: exactly three)
+      const { top, you: mine } = friends ? { top: R.filter(r => r && Number.isFinite(Number(r.v))), you: null } : pickRows(R);
       if (!top.length && !msg) note.textContent = 'NO RUNS ON THE BOARD YET';
-      return show(top, mine, r => r, () => n === ask);
+      return show(top, mine, r => r, () => n === ask, friends && top.length > TOP);
     }).catch(() => { if (!gone && n === ask) { note.textContent = 'THE BOARD IS RESTING'; done(); list.replaceChildren(); } });
   }
   setFriends(readFr(), false);
   hear();
-  const again = () => { if (!gone) setFriends(friends, false); };
+  const again = () => { if (gone) return; if (held) { waiting = again; return; } setFriends(friends, false); };   // (S10's re-read — after the finger lifts)
   if (!shown.has(b)) shown.set(b, new Set());
   shown.get(b).add(again);
   return { destroy() { gone = true; done(); const S = shown.get(b); if (S) S.delete(again); } };

@@ -44,6 +44,7 @@ export const OPTIONAL = Object.freeze({
   LOOKS: 'array',               // OC1 — its looks (default both); ONE = always that look, the setting shows LOCKED (lookLockOf; docs/cartridge.md)
   OWN_VICTORY_SOUND: 'boolean', // FRIENDS B (B2) — true = its body plays its OWN winner sound: the console's podium sting is skipped (OVERCLOCK's fanfare)
   ACCENT: 'string',             // FRIENDS B — the END SCREEN's colour (the console frame's main tube): a #hex; missing = THE NEON TUBE's pink
+  END_ACCENT: 'string',         // (the Nov 28 city pass) the END SCREEN's own colour when it is NOT the game's ACCENT (JAYWALK's sneaker red: the bar, the block, the headline) — its share card + HUD keep ACCENT
   // (FIXES R2 — THE REVIEW B2 T2: what the console ALREADY reads, written down — nothing new is read)
   NO_INTERCOM: 'boolean',       // true = the room's intercom stays quiet during its match (META_KEYS)
   cleanSettings: 'function',    // cleanSettings(settings, onlineCount) → the settings the options sheet + a start may use (ui/settings-panel.js)
@@ -57,7 +58,7 @@ export const OPTIONAL = Object.freeze({
   soloAgain: 'function',        // soloAgain(game, { matchId, now }) → the NEXT solo run's game (PURE; `play` at once) — the solo podium's first button starts it with no walk inside
   AGAIN_LABEL: 'string',        // that button's word (default PLAY AGAIN) — JAYWALK: HOP AGAIN (META_KEYS; 4–14 letters)
   // (F5B — THE END-SCREEN BOARD: ui/end-board.js — the podium's ONE leaderboard block, OPT-IN)
-  END_BOARD: 'object',          // { b: its board id, word: the score's word ('FLOORS'), avg: true = AVG beside BEST } — the podium shows the board's TOP 3 (THE WORLD · a FRIENDS tick) solo, the match's TOP 3 in a match
+  END_BOARD: 'object',          // { b: its board id, word: the score's word ('FLOORS'), avg: true = AVG beside BEST, soloCounts: false = a board for ROOM matches only — its solo podium says THIS BOARD COUNTS ROOM MATCHES in place of the YOU line } — the podium shows the board's TOP 3 (THE WORLD · a FRIENDS tick) solo, the match's TOP 3 in a match
   //   (THE END-BOARD SWITCH-ON: + on(game) → false = not this match (PRISM DROP: SCORE RUSH only · OVERCLOCK: QUICK only) · match: false = solo only — a body whose own podium IS the match's top 3)
 });
 /** what host.js passes to start() (tested) */
@@ -75,7 +76,7 @@ export const DAILY = Object.freeze({ on: 'boolean', create: 'function', resumeKe
 //   BEFORE a match (the registry imports only the metas at boot); index.js re-exports them (`export * from './meta.js'`) and everything
 //   else (start, prepare, step, livePaths, finalRanks, finalScene, sealed, rematchSettings, daily.create, feats, createView) loads with the
 //   cartridge (games/registry.js#loadGame — the host's start, every phone's walk inside, a refresh mid-match).
-export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'SOLO_RUNS', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM', 'LOOKS', 'OWN_VICTORY_SOUND', 'ACCENT', 'AGAIN_LABEL']);
+export const META_KEYS = Object.freeze(['DEFAULT_SETTINGS', 'OPTIONS', 'estimateMinutes', 'MUSIC', 'FINAL_MUSIC', 'MIN_PLAYERS', 'SOLO', 'SOLO_RUNS', 'BANNER_NAME', 'CHAT_CHIPS', 'chatLocked', 'NO_INTERCOM', 'LOOKS', 'OWN_VICTORY_SOUND', 'ACCENT', 'END_ACCENT', 'AGAIN_LABEL']);
 // THE PRELOAD BUDGET: a game's preload() runs on EVERY phone during the start's ~5 s (the lit sign + the walk inside) — at most ~1.5 MB
 //   (its sounds, its fonts, its FIRST content pool); the rest lazy. The start never waits past its 5 s for it: the game shows when its own
 //   pieces are ready (its view says LOADING itself, never the console).
@@ -103,6 +104,7 @@ export function checkCartridge(id, mod, o = {}) {
   }
   if (Array.isArray(mod.OPTIONS)) for (const op of mod.OPTIONS) if (!op || !op.key || !(op.key in (mod.DEFAULT_SETTINGS || {}))) out.push(`${id}: OPTIONS row "${op && op.key}" has no DEFAULT_SETTINGS value`);
   if (mod.ACCENT != null && !/^#[0-9a-f]{6}$/i.test(String(mod.ACCENT))) out.push(`${id}: ACCENT — a #rrggbb colour (the end screen's frame)`);
+  if (mod.END_ACCENT != null && !/^#[0-9a-f]{6}$/i.test(String(mod.END_ACCENT))) out.push(`${id}: END_ACCENT — a #rrggbb colour (the end screen's own)`);
   if (mod.END_BOARD != null && !(mod.END_BOARD && typeof mod.END_BOARD.b === 'string' && /^[a-z0-9-]+$/.test(mod.END_BOARD.b) && /^[A-Z][A-Z ]{1,13}$/.test(String(mod.END_BOARD.word || '')) && (mod.END_BOARD.on == null || typeof mod.END_BOARD.on === 'function') && (mod.END_BOARD.match == null || typeof mod.END_BOARD.match === 'boolean'))) out.push(`${id}: END_BOARD — { b: a board id (dashes), word: 2–14 capital letters, avg?, on?(game), match? }`);
   if (mod.AGAIN_LABEL != null && !/^[A-Z][A-Z ]{3,13}$/.test(String(mod.AGAIN_LABEL))) out.push(`${id}: AGAIN_LABEL — 4–14 capital letters (the solo podium's first button)`);
   const sr = mod.SOLO_RUNS;   // (PD-6: a SOLO game's card tubes, 1–3; each mode one ONE player can play)

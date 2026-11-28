@@ -114,8 +114,14 @@ G('trionce', async () => {
     await sleep(10000);
     const r = await ev(p, '({ rec: window.__triRec.slice(), t: window.__district.tri() })'), js = await ev(p, "import('/js/core/harbor-trivision.js').then(m => JSON.stringify({ s: m.jaywalkState(), d: m.dropState(), ls: localStorage.getItem('nd:jaywalk') }))");
     const shown = r.rec.filter(x => x.sh), until = shown.findIndex(x => x.turn && !/^o/.test(x.turn)), seen = (until < 0 ? shown : shown.slice(0, until));
+    // (THE FREEFALL CITY PASS — the housekeeping pass's carried cloud red "holdem-open → jaywalk-open" at 402 × 4× CPU: by design a phone whose
+    //  pick's picture has not decoded by the reveal waits on the BASE face (HOLD'EM) ≤ 4 s and then CUTS to the pick (scene.js triFrame) — that
+    //  prefix is allowed; what this guards (the owner's H2 flicker) is any OTHER face once the pick is up: pick → base → pick, or an opening turn)
+    const want = f => (back ? f === 'jaywalk-open' : /^jaywalk/.test(f || '')), first = seen.findIndex(x => want(x.board));
+    const pre = first < 0 ? seen : seen.slice(0, first), post = first < 0 ? [] : seen.slice(first);
     const faces = [...new Set(seen.map(x => x.board))], opening = seen.some(x => x.turn && /^o/.test(x.turn));
-    ok(faces.length === 1 && (back ? faces[0] === 'jaywalk-open' : /^jaywalk/.test(faces[0] || '')) && !opening, `THE ROOF BOARD at ${w}${cpu > 1 ? ` (${cpu}× CPU)` : ''}${back ? ', a returning phone' : ', a first visit'}: ONE face from the reveal for 10 s — ${faces.join(' → ') || 'nothing'}${opening ? ' (an OPENING TURN after the reveal)' : ''} (the pick ${r.t.opened}; ${js}; ${r.rec.map(x => `${x.at} ${x.k}`).join(' · ')})`);
+    const baseOnly = pre.every(x => /^holdem/.test(x.board || '') || !x.board), afterOne = new Set(post.map(x => x.board)).size === 1;
+    ok(first >= 0 && baseOnly && afterOne && !opening, `THE ROOF BOARD at ${w}${cpu > 1 ? ` (${cpu}× CPU)` : ''}${back ? ', a returning phone' : ', a first visit'}: ONE face from the reveal for 10 s — ${faces.join(' → ') || 'nothing'}${opening ? ' (an OPENING TURN after the reveal)' : ''} (the pick ${r.t.opened}; ${js}; ${r.rec.map(x => `${x.at} ${x.k}`).join(' · ')})`);
     await Q.ctx.close();
   }
   log('trionce', 'done');

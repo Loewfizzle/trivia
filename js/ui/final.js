@@ -50,12 +50,12 @@ const FIN_PINK = '#ff2bd6';   // (the console's pink — THE NEON TUBE's — whe
 export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null, game = null, mode = null }) {
   const cancelers = [], refreshers = [];
   // the global boards: personal bests, world ranks, XP, rank-ups (js/profile/callouts.js) — loaded on demand, never in the way
-  const rcSlot = h('div.rc-slot');
+  const rcSlot = h('div.rc-slot'), xpFoot = h('div.final-xp');   // (THE XP LINE AS THE FOOTER — the frame's last line, under SHARE · HOME)
   let rc = null, gone = false;
   // (THE CONSOLE FIX: `game` = the match as the game scored it on this phone — a podium that waited for a live run reads the nodes, never an …
   const g = game || state.game;
   if (state.code && g && g.matchId && g.participants && g.participants[me]) {
-    lazyImport(import('../profile/callouts.js'), '../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
+    lazyImport(import('../profile/callouts.js'), '../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); if (rc.foot) xpFoot.append(rc.foot); }).catch(() => {});
   }
   // THE BODY: the game's own scene (finalScene) — or the console's podium
   const mod = g && metaOf(g.id);   // (the cartridge — loaded: its match just ended here)
@@ -185,7 +185,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const out = soloRoom || oneRoom ? leave : back;
   const linkList = soloRoom || oneRoom ? [share, out] : [out, share];
   const links = h('div.final-links', ...linkList.filter(Boolean).flatMap((x, i) => (i ? [h('i.final-div', { 'aria-hidden': 'true' }), x] : [x])));
-  const foot = h('div.final-foot', bar, links);
+  const foot = h('div.final-foot', bar, links, xpFoot);
   // (B3: the cue above the sticky foot — a drawn chevron + MORE BELOW, shown only while the frame scrolls on and you haven't scrolled yet)
   const more = h('div.final-more', { 'aria-hidden': 'true' }, h('i.final-chev'), h('span', 'MORE BELOW'));
   const actions = h('div.final-actions', more, foot);
@@ -235,11 +235,13 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   if (ro) { ro.observe(el); for (const c of el.children) ro.observe(c); }
   const mt = setTimeout(measure, 900);
   // (FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: the cartridge's ACCENT tints the frame's main tube; missing = the pink)
-  if (mod && typeof mod.ACCENT === 'string' && /^#[0-9a-f]{6}$/i.test(mod.ACCENT)) { el.classList.add('has-accent'); el.style.setProperty('--fin', mod.ACCENT); }
+  // (THE FREEFALL CITY PASS: END_ACCENT — the end screen's own colour where it is not the game's: JAYWALK's sneaker red)
+  const acc = mod && [mod.END_ACCENT, mod.ACCENT].find(c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c));
+  if (acc) { el.classList.add('has-accent'); el.style.setProperty('--fin', acc); }
   if (g) finFrame(el, g.id);   // (THE END NEON: WINNER + DEADLOCK (a shared win) in gold, SOLO RUN + ALL TIED in the game's accent — the game's NEON row)
   if (neonKick) cancelers.push(fitHeader(neonKick.parentElement));   // (THE END NEON: the WINNER title in gold, SOLO RUN / DEADLOCK in the game's accent — the game's NEON row)
   // (CITY F: the bar's text — dark on the accent where it reads ≥ 4.5 : 1, white where the accent is too dark; the console's pink without one)
-  el.style.setProperty('--fin-ink', finInk(mod && /^#[0-9a-f]{6}$/i.test(String(mod.ACCENT || '')) ? mod.ACCENT : FIN_PINK));
+  el.style.setProperty('--fin-ink', finInk(acc || FIN_PINK));
   // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during …
   if (g && g.matchId && state.podium !== g.matchId) queueMicrotask(() => { if (!gone && state.podium !== g.matchId) setState({ podium: g.matchId }); });
   const t = setTimeout(() => {

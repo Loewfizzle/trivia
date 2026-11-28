@@ -1375,6 +1375,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | THE FIX PASS | Nov 22 | [passes/fix-pass.md](harbor/passes/fix-pass.md) | THE FABLE REVIEW's fixes: THE ROOM LIST closed (rules), the bundle for every non-Safari visit, THE CHUNK CEILING, THE WAKE HOLD's write, THE ERROR BOUNDARY, the dailies' holes, before FREEFALL |
 | THE CITY POLISH PASS | Nov 24 | [passes/city-polish.md](harbor/passes/city-polish.md) | THE PLAY BOUNCE (the stall clock is the room's), THE BOOT HANG (the carry by the lists), the school Chromebooks, THE BOARD's sideways tabs, THE CONTROLLER MARK, S8's pid (rules), the quiet kinds |
 | THE HOUSEKEEPING + AUDIO PASS | Nov 25 | [passes/housekeeping.md](harbor/passes/housekeeping.md) | A START THAT DIES SAYS SO again (`host.js#clearDeadStart` — LAST MILE's lock had switched it off), THE BOOT BUNDLE BUILT AT DEPLOY (never committed — `scripts/deploy-build.mjs`, the local server from memory, `deploy-sim.mjs`), SCREENSHOTS OUT OF GIT (LEGACY / REFERENCE), THE CLAUDE.md TRIM (35.7 KB), THE AUDIO FIXES (onUnlock one-shot, THE LEAVE CUT ORDER, the lead-in helper, the rebuild, THE SONG CAP) |
+| THE FREEFALL CITY PASS | Nov 28 | [passes/freefall-city.md](harbor/passes/freefall-city.md) | FREEFALL on the signs (FREE / FALL, its day enamel, the speakeasy blade's column, the OPEN NOW row face — the board opens on it), THE SIGN HOLD lifted, six names on four signs; THE END SCREENS (the XP line as the footer, JAYWALK red, GLOBAL TOP 3 + medals, the friends window, fill the space, room-matches line); THE LATE PROOF CHUNK; the shelf's colours; the duplicate-tab banner |
 | THE GARDEN PARTY PASS | Nov 21 | [passes/garden-party.md](harbor/passes/garden-party.md) | MUSIC OFF = HEAR THE HARBOR (THE SOUND TABLE), GARDEN PARTY (LV 34), THE LAST FOUR SLIM CARDS, THE CODE BOX's first tap, THE PERSONAL-BEST SHARE CARD, NO RESET |
 | CITY I — HOUSEKEEPING | Nov 18 | [passes/city-i.md](harbor/passes/city-i.md) | H2's cloud reds (the plate, REMATCH in the ring, the dock labels) + the two pre-existing (THE FROZEN-GAME HANG behind e2e-profiles' CIPHER podium + THE LOST SEAT LINK; strip-match's 13 named), HOW TO PLAY out of the boot (ui/help-open.js), THE CLAUDE.md TRIM (→ 31.5 KB), SECOND ACCOUNTS + DON'T COUNT, the idempotent close; the inbox: MUSIC OFF = PODCAST MODE, THE LATE PROOF CHUNK, THE BOARD's controls row, THE WEEK as rows |
 | CITY D — FIXES | Nov 15 | [passes/city-d.md](harbor/passes/city-d.md) | the presence red = a test flake (DUMB LUCK dealt first) · THE LIVE LANE (every slim-card list = stills, ≤ 3 live on screen, no GPU canvas) + CUSTOMIZE stills · a killed-page marker · the leaving squeal with effects on (master 0 at once, beds stopped) · THE DROP's end card → a bar · no room messages for a solo player · the owner's slim card LV · four different games on the four named signs, the hotel blade PRISM / HOLDEM · SCORES at once (kept scores + the server's trips cut) · add-ons: gesture taps at the lift, STATS fixed + WHO, THE DROP in the roof rotation |
@@ -1816,3 +1817,38 @@ texture masters, `.psd` / `.kra`, audio masters `.wav` / `.flac`); **only the BA
 - **THE GUARD** (`tests/repo-growth.test.mjs`): a file in git with a raw-source extension — anywhere — or any non-audio file over 2 MB
   must be on the frozen list of what was there on Nov 26 (`tests/fixtures/repo-raw-before.txt`: 81 files — it only shrinks) or a named
   row of `RAW_ALLOWED` with its reason (a BAKED output the site loads, e.g. a game's own shipped `.glb` under `assets/`).
+
+## THE FREEFALL CITY PASS (Nov 28) — FREEFALL ON THE SIGNS · THE ROW FACES · SIX NAMES ON FOUR SIGNS · THE END SCREENS
+- **FREEFALL ON THE SIGNS** (THE SIGN HOLD lifted — `SIGN_HOLD = []`, the switch kept for the next game): a ROOF sign spells **FREE / FALL**
+  stacked (`SIGN_SPLIT.freefall`) — FREE hot pink `#ff4fa8` (`SIGN_ACC`), FALL electric teal `#27e0e6` (`SIGN_ACC2`); the SPEAKEASY blade =
+  **FREE over FALL in ONE column** with a gap (`speakeasy-blade.js#BLADE_COLUMN` + `BLADE_AS` — HIGH RISE's call, never two columns read
+  across); never the hotel blade (8 letters > its cap + 1 — PRISM / HOLDEM only). Its DAY FACE = enamel paint: FREE faded rose + FALL sea-cream
+  on a deep petrol-teal board, gold leaf (`DAY_PAINT.freefall` + `ink2`; THE DAY PAINT GUARD passes, both words ≥ 4.5 : 1).
+- **EVERY CITY MARK PAINTER READS A TUBE'S OWN WIDTH:** `signs.js#markTubes` hands each tube its `k = t.w / (m.w || 7)` — the icon signs, the
+  vbox / roof marks, the day paint (`lh × k`) and the poster painter all draw FREEFALL's thin core thin (HIGH RISE's `w 4.5` marks too). A
+  tube's `o` (marks.js — the DAY OUTLINE colour under a tube in `ui/mark-svg.js`, FREEFALL's ball; not an opacity) is the svg mark's: the city's
+  day paint keylines every stroke already.
+- **THE ROW FACES** (`core/harbor-trivision.js#ROW_FACES = ['freefall', 'highrise']`): an OPEN NOW poster lit by the game's OWN GAMES row
+  (`playable` + its `live` day — `rowLive` / `rowShow`; HIGH RISE's `highriseShow` / `highriseLive` kept as its names), judged on the streak
+  day; the rotation **FREEFALL → HIGH RISE → JAYWALK → HOLD'EM**; THE BOARD OPENS ON THE NEWEST GAME → **FREEFALL** (its go-live the newest
+  switch date — `faceDates()` gives every row face its `live`). Each face's painter is LAZY (`screens/harbor/<id>-art.js` — `warm` / `paint`,
+  never the boot graph); scene.js warms + paints every row face through ONE loop (`ROW_ART`, `tri.row[id]`); signs.js draws any row face's
+  poster through ONE table (`ROW_POSTER` + `setRowPainter`). FREEFALL's face = `assets/city/freefall/billboard.webp` (848 × 448, A · THE LOGO,
+  OPEN NOW baked in — the games chat's build) drawn WHOLE, COVER. By day it is the same picture (HIGH RISE's B1 the same — CITY PART 1's open
+  call: a day variant).
+- **SIX NAMES ON FOUR SIGNS:** roof A · roof B · the hotel blade · the speakeasy blade = four different games a night, every one of the six up
+  each week (`tests/city-b-signs.test.mjs`). THE WEEK'S ROTATION stepped `d × 3 mod 6` = 0 · 3 · 0 · 3 — OVERCLOCK sat out a whole week; it now
+  steps one more at each wrap (`assignSigns`: `st + floor(st / pool)`).
+- **THE BOOT BUDGET:** NOT raised — the trims before this pass had left 5.3 KB; FREEFALL's city side costs ~1.3 KB (4.0 KB left, 6500 KB).
+- **ONE GAME ACCENT TABLE** (`core/marks.js#GAME_ACC`): the PLAY shelf's + PICK A GAME's icon glow and the title's game cards — JAYWALK's +
+  HIGH RISE's marks glowed ICE (`#d6f0ff`): title.js's `ACC` had no key for them (PICK A GAME read `tube-logo.js#LOGO_ACC` instead — another
+  colour for the same game). `LOGO_ACC` (the tube logos) + `SIGN_ACC` (the signs) stay their own.
+- **THE END SCREENS** (the shared frame + the shared block — docs/cartridge.md "THE END-SCREEN BOARD" → THE REBUILD): THE XP LINE AS THE
+  FOOTER · JAYWALK GOES RED (`END_ACCENT`) · GLOBAL TOP 3 + the tick · THE DECO MEDALS · THE FRIENDS WINDOW · FILL THE SPACE · THIS BOARD
+  COUNTS ROOM MATCHES.
+- **THE LATE PROOF CHUNK** (the owner's /admin, Nov 25): a refused write to a PROOF TREE (`rooms/*/jw|hr|ff/*/*/c|e|h` — `core/rules-lag.js
+  #proofOfPath`) once this phone LEFT that room or that match is not the one live on it (`firebase.js#setProofLive` ← room.js) = the quiet
+  `late-proof` count, never a RULES REFUSED row; THE PROOF WRITER sends nothing more once the phone has left its room (`gone` —
+  `kit/proof-writer.js#roomLeftOf` ← room.js's `__nsRoomLeft`: left or leaving, NEVER a kick — THE RUN HOLD keeps a kicked phone's run
+  writing). So a reported proof refusal is one the phone's state can not explain = real lag (the re-publish hint holds there).
+- The pass log: [passes/freefall-city.md](harbor/passes/freefall-city.md).

@@ -33,6 +33,7 @@ nothing for it. Proof: `tests/integration/e2e-rematch.mjs` (every game on the sh
 | `FINAL_MUSIC` | optional | its podium music (default the victory playlist) — it starts when the podium FRAME is on screen (`ui/final.js` sets `state.podium` → `app.js#musicFor`), never during a last round's answer screen inside `final` (FRIENDS B — B2) |
 | `OWN_VICTORY_SOUND` | optional (meta) | FRIENDS B (B2) — `true` = its body plays its OWN winner sound, so the console's podium sting (`pgSfx('victory')`) is skipped — never two winner sounds. OVERCLOCK sets it (its fanfare) |
 | `ACCENT` | optional (meta) | FRIENDS B — the END SCREEN's colour: a `#rrggbb` that re-lights the console frame's main tube (BACK TO THE ROOM — `.final.has-accent`, `--fin`); missing = THE NEON TUBE's pink. OVERCLOCK `#ff6a1a` (OVERDRIVE orange). `checkCartridge` refuses a bad colour |
+| `END_ACCENT` | optional (meta) | THE FREEFALL CITY PASS — the END SCREEN's own colour when it is NOT the game's ACCENT (JAYWALK's sneaker red `#ff3344`): the frame's `--fin` reads it first; the share card + HUD keep ACCENT |
 | `MIN_PLAYERS` / `SOLO` | optional | more players than the app's minimum (DOUBLE AGENT 4) / `SOLO: true` lets ONE player start it (OVERCLOCK's solo) |
 | `nightBonus(game)` | optional | game-night points that aren't a placing |
 | `sealed(game)` | optional | THE SEAL — the round's secrets (`kit/seal.js`, docs/data-model.md) |
@@ -331,6 +332,33 @@ word, avg: true }` (THE CONTRACT's optional table — `games/contract.js`). `ui/
   STORED average — `core/board-avg.js`: a dash under 5 runs). Not in the top 3 → ONE line under them: "YOU · 12TH · 88 FLOORS".
 - **MATCH:** the frame's own rows (rank + score) — the TOP 3 as slim cards with each room-mate's stored AVG off their profile (`av` — the
   room's mirror: no read), "YOU · 5TH · 49 FLOORS" from 4th down; the body sets `data-podium="all"` so the console's own list stays away.
+- **THE REBUILD (THE FREEFALL CITY PASS, Nov 28 — docs/harbor/passes/freefall-city.md; the owner's Nov 27 12:01 / 12:04 / 12:06 pm + 11:49 am
+  entries; every game with the block gets it, FREEFALL F5C's S10 + S11 kept):**
+  - **THE HEADER:** ONE row — **GLOBAL TOP 3** left, **☐ FRIENDS ONLY** right (ticked → **FRIENDS TOP 3**); a match: **THIS MATCH** left.
+  - **THE PLACES:** 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js#rankMedal` — a shared place the same medal), a plain number from 4; the medal
+    column only as wide as the medal (`--eb-mw`); your own row keeps THE YOU ROW's glow (the pink rank number is gone).
+  - **THE FRIENDS WINDOW:** ticked → ALL of YOUR TABLE (you + every friend's best), scrolling INSIDE a window exactly three rows tall
+    (`.eb-list.is-scroll` — `overscroll-behavior: contain`, the page never scrolls); soft fades top / bottom where more rows sit (`is-up` /
+    `is-down` from the scroll position — a static mask); your row scrolled into view on open (one layout read); a re-read (S10's new best)
+    WAITS while a finger is on the list (THE TAP WATCH); THE LIVE LANE holds (a row scrolled out = a still — its IntersectionObserver).
+    GLOBAL TOP 3 stays exactly three, the YOU line under it.
+  - **FILL THE SPACE:** `.final > .final-eb` GROWS into the frame's free room (`flex: 1 1 auto` + `container-type: size`); the rows are sized
+    from it — `--eb-rh = clamp(46px, (100cqh − the header − the line − the gaps) / 3, 72px)` — the slim card, the medal, the BEST numeral all
+    follow it; its floor = three 46-pt rows (375 × 667 never scrolls), its ceiling = three 72-pt rows; room past the ceiling is shared evenly
+    over the game's body, the block and the foot (`.final.has-eb > :is(.final-body, .podium, .final-eb, .final-actions) { margin-top: auto }`).
+  - **`soloCounts: false`** (the owner, Nov 27 11:49 am — ONE optional END_BOARD field, never a per-game case in end-board.js): a board that
+    counts ROOM matches only (OVERCLOCK `overclock-quick`, PRISM DROP `prism-rush`) → its SOLO podium keeps the block with **"THIS BOARD COUNTS
+    ROOM MATCHES"** in the YOU line's place. The scoring rules unchanged.
+  - **THE XP LINE AS THE FOOTER** (the frame, `ui/final.js` + `profile/callouts.js`): the XP is ONE small line pinned under SHARE · HOME
+    (`.final-xp` — its 16 pt always kept: the foot's old bottom margin, so a late XP moves nothing) — the solo line ("+15 XP · SOLO RUN · 3 OF 4
+    TODAY") or a match's "+42 XP · INSIDER · LEVEL 22 ›" (still the way to your card; the parts, the bar, the streak are THE END-OF-ROUND
+    MOMENT's). Its 44-pt tap area never reaches past the frame's foot (a screen without a home indicator would scroll for it).
+  - **`END_ACCENT`** (THE CONTRACT, optional — JAYWALK GOES RED): the END SCREEN's own colour when it is not the game's ACCENT — the frame's
+    `--fin` (the bar, the block) reads `END_ACCENT` first; its NEON row (the end header + the result line) in the same red. JAYWALK =
+    `#ff3344` (its sneaker mark's red; the text red `#ff4252` — ≥ 4.5 : 1 on the veil); its ACCENT `#ff4fc4` (the share card, the HUD) and HIGH
+    RISE's pink unchanged.
+  - **The look preview** now takes `?game=freefall` too (its stage + endLogo header) and a match's XP (`&noxp=1` = none); `__ebEnd()` adds `fxp`
+    (the footer line), `rh` (the row height) and `free` (the room between the block and the foot).
 
 ## THE PODIUM FRAME's rules for a body (FRIENDS B, Nov 8)
 - **The list from 4th (B4):** the frame's results list starts at 4th — the body (a `finalScene` or the console's own podium) already shows 1st–3rd. A

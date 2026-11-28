@@ -672,27 +672,26 @@ G('shell', async () => {
   ok(sb.strips && sb.n === sb.rows && sb.rows === 2 && /MAXIMILIANOS/.test(sb.first) && sb.rank === '04' && sb.score && sb.canvases <= 1, `THE RESULTS ROWS = SLIM CARDS: ${sb.n}/${sb.rows} strips — B4: the podium shows 1st–3rd, the list starts at 4th ("${sb.first}" ${sb.rank}), the score in the line under the card, ${sb.canvases} shared canvas`);
   if (SHOTS) await q.screenshot({ path: `${OUT}shell-podium-390.png` });
   await ctx.close();
-  // ---- THE XP BOX FITS (the owner: "LEVEL 1451 XP"): its pieces never collide; FRIENDS B: the WHOLE box is the button to your card (no YOUR
-  //      CARD tube), the reason line WRAPS (never cut) — a 2-digit level, a 2-digit + 3-digit
-  //      pair (LEGEND · LEVEL 99 → 662 XP TO 100) and the longest band name (NEWCOMER) at 390 / 402 / 430
+  // ---- THE XP LINE FITS (THE FREEFALL CITY PASS — the XP is ONE line in the frame's FOOT, under SHARE · HOME; was THE XP BOX): one row, its
+  //      pieces never collide (the owner's old "LEVEL 1451 XP"), inside the screen, a button (your card), UNDER the links — a 2-digit level,
+  //      LEGEND · LEVEL 99 and the longest band name (NEWCOMER) at 390 / 402 / 430
   const fits = [];
   for (const [w, hh] of [[390, 844], [402, 874], [430, 932]]) for (const xpq of ['', '&xp=44300,44338', '&xp=0,20']) {
     const c2 = await (await launch()).createBrowserContext(), r2 = await c2.newPage();
     await r2.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     await r2.goto(`${BASE}/tests/integration/results-preview.html?case=pb${xpq}`);
-    await waitFor(r2, "!!document.querySelector('.final .rc-xp .rc-xp-chev')", 'the XP box', 15000).catch(() => {});
+    await waitFor(r2, "!!document.querySelector('.final .final-xp .rc-xp .rc-xp-chev')", 'the XP line', 15000).catch(() => {});
     await sleep(500);
-    fits.push(await ev(r2, `(() => { const box = document.querySelector('.final .rc-xp'); if (!box) return { ok: false, why: 'no box' };
-      const parts = [...box.querySelectorAll('.rc-xp-step, .rc-xp-need, .rc-xp-chev, .rc-xp-top')].map(e => ({ t: e.textContent, r: e.getBoundingClientRect() }));
+    fits.push(await ev(r2, `(() => { const box = document.querySelector('.final .final-xp .rc-xp'); if (!box) return { ok: false, why: 'no line' };
+      const parts = [...box.querySelectorAll('.rc-xp-top, .rc-xp-step, .rc-xp-chev')].map(e => ({ t: e.textContent, r: e.getBoundingClientRect() }));
       const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
       const clash = []; for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (parts[i].t && parts[j].t && hit(parts[i].r, parts[j].r)) clash.push(parts[i].t + ' × ' + parts[j].t);
-      const pr = box.querySelector('.rc-xp-parts'), lines = pr && pr.scrollWidth <= pr.clientWidth + 1 && getComputedStyle(pr).textOverflow !== 'ellipsis' ? 1 : 0;
-      const btn = box.tagName === 'BUTTON' && !box.querySelector('.rc-xp-card');
-      const inBox = parts.every(p => p.r.right <= box.getBoundingClientRect().right + 0.5);
-      return { ok: !clash.length && lines === 1 && inBox && btn, w: innerWidth, lv: (box.querySelector('.rc-xp-step') || {}).textContent, clash, lines, inBox }; })()`));
+      const R = box.getBoundingClientRect(), links = document.querySelector('.final .final-links').getBoundingClientRect();
+      const lines = R.height <= 20 ? 1 : 2, btn = box.tagName === 'BUTTON', inBox = R.left >= -0.5 && R.right <= innerWidth + 0.5 && R.bottom <= innerHeight + 0.5, under = R.top >= links.bottom - 1;
+      return { ok: !clash.length && lines === 1 && inBox && btn && under, w: innerWidth, lv: (box.querySelector('.rc-xp-step') || {}).textContent, clash, lines, inBox, under }; })()`));
     await c2.close();
   }
-  ok(fits.every(f => f.ok), `THE XP BOX FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${f.clash.join(' · ')} lines ${f.lines} in ${f.inBox}`}`).join(' | ')}) — nothing collides, the whole box a button (no YOUR CARD tube), the reasons whole`);
+  ok(fits.every(f => f.ok), `THE XP LINE FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${(f.clash || []).join(' · ')} lines ${f.lines} in ${f.inBox} under ${f.under}${f.why ? ` ${f.why}` : ''}`}`).join(' | ')}) — ONE line in the foot under SHARE · HOME, nothing collides, a button (your card)`);
 });
 
 // CITY I — HOW TO PLAY OUT OF THE BOOT (ui/help-open.js): help.js is a lazy chunk, warmed after the reveal. A COLD tap right after the reveal

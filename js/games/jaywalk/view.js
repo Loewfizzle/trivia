@@ -3,7 +3,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
-import { createProofWriter, goBehind } from '../kit/proof-writer.js';
+import { createProofWriter, goBehind, roomLeftOf } from '../kit/proof-writer.js';
 import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { colorHex } from '../../config.js';
@@ -533,7 +533,7 @@ export function createView() {
     if (W) W.close();
     W = createProofWriter({
       count: () => log.length, pack: (a, b) => packLog(log.slice(0, b), a), entriesOf: c => { const l = logFromChunks(c); return l ? l.length : -1; },
-      chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs), left: matchLeft,
+      chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs), left: matchLeft, gone: roomLeftOf(() => (D ? '' : code)),
       onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
       onDead: why => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error(`JAYWALK: the proof log could not be completed (${why}) — the run can not count`), 'rules')).catch(() => {}),
       io: proofIo(nodePath), pipe: !!D,

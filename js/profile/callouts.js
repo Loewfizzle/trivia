@@ -6,7 +6,7 @@
 import { h, reducedMotion, vibrate } from '../ui/dom.js';
 import { loadMe } from '../identity.js';
 import { countUp } from '../ui/components.js';
-import { emblem, RANK_COLORS } from '../ui/emblems.js';
+import { RANK_COLORS } from '../ui/emblems.js';
 import { boardDef, fmtValue } from '../core/boards.js';
 import { levelInfo } from '../core/levels.js';
 import { state } from '../store.js';
@@ -83,6 +83,9 @@ export function plaquesFor(o) {
 export function attachCallouts(code, game) {
   const key = matchKey(code, game.matchId);
   const el = h('div.rc', { 'aria-live': 'polite' });
+  // (THE FREEFALL CITY PASS — THE XP LINE AS THE FOOTER (the owner, Nov 27 12:04 pm): the XP is ONE small line the frame pins at the very
+  //  bottom, under SHARE · HOME (ui/final.js `.final-xp`) — never a box in the podium's body: no end screen scrolls for it)
+  const foot = h('div.rc-foot', { 'aria-live': 'polite' });
   const t0 = performance.now();
   const timers = [];
   let shown = false, destroyed = false, moment = null;
@@ -104,7 +107,7 @@ export function attachCallouts(code, game) {
     // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: a solo run's outcome carries the server's count `so` → ONE plain line under the score,
     //  first, in place of the XP box (the podium fits in Safari with its toolbars); an outcome without it (an older server) shows no line)
     const sl = soloLine(o);
-    if (sl) { el.append(sl); turnOn(sl, 'is-in'); }
+    if (sl) { foot.append(sl); turnOn(sl, 'is-in'); }
     list.forEach((p, i) => later(() => plaque(p), i * step));
     if (o.xp && o.xp.gain && !sl) later(() => xpLine(o), list.length * step + 150);
     // PROGRESSION A — THE END-OF-ROUND MOMENT right after the podium (the crown + the board's plaques): the XP, the level (its level-up +
@@ -146,32 +149,15 @@ export function attachCallouts(code, game) {
     boardSfx(p.sound);
   }
 
+  // THE XP LINE (the footer): "+42 XP · STREET · LEVEL 7 ›" — still the way to your card (FRIENDS B: a real <button>, so iOS sends the tap);
+  // the parts, the bar, the streak are THE END-OF-ROUND MOMENT's (progress/moment.js) — the line says what you earned + where you stand
   function xpLine(o) {
-    const from = levelInfo(o.xp.from), to = levelInfo(o.xp.to);
-    const fill = h('span.rc-xp-fill', { style: { '--f0': String(from.lvl === to.lvl ? from.frac : 0), '--f': String(to.frac) } });
-    const gain = h('b', '+0');
-    // (FRIENDS B — the owner's podium test: the WHOLE XP BOX is the way to your card (its YOUR CARD button gone — one clear button on the podium,
-    //  BACK TO THE ROOM); a real <button>, so iOS sends the tap; the reason line WRAPS, never "NEW GAME TONI…")
+    const to = levelInfo(o.xp.to), gain = h('b', '+0');
     const line = h('button.rc-xp', { type: 'button', style: { '--rk': RANK_COLORS[to.band.r] }, 'aria-label': 'Your card', onclick: () => lazyImport(import('../screens/profile.js'), '../screens/profile.js').then(m => m.openCard()) },
-      emblem(to.band.r, 22),
-      h('span.rc-xp-main',
-        h('span.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),
-        h('span.rc-xp-bar', fill)),
-      h('span.rc-xp-chev', { 'aria-hidden': 'true' }, '›'),
-      h('span.rc-xp-next', ...xpNext(o)));
-    el.append(line);
+      h('span.rc-xp-top', gain, h('span', ' XP')), h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`), h('span.rc-xp-chev', { 'aria-hidden': 'true' }, '›'));
+    foot.append(line);
     turnOn(line, 'is-in');
     countUp(gain, 0, o.xp.gain, reduced() ? 1 : 900, v => `+${num(v)}`);
-  }
-
-  // under the bar: the band + the level, what the next level needs, the streak (the whole box opens the card — FRIENDS B)
-  function xpNext(o) {
-    const to = levelInfo(o.xp.to);
-    return [
-      // (SHELL 2.0 A — ADD-ON: the band · level OVER what the next needs — two lines, so YOUR CARD fits beside them at 390 and nothing collides)
-      h('span.rc-xp-lv', h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`), to.max ? null : h('span.rc-xp-need', `${num(to.need)} XP TO ${to.lvl + 1}`)),
-      o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
-    ];
   }
 
   const off = onOutcome((k, o) => { if (k === key) show(o); });
@@ -179,6 +165,7 @@ export function attachCallouts(code, game) {
 
   return {
     el,
+    foot,
     destroy() {
       destroyed = true;
       off();

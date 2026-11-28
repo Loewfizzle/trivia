@@ -12,12 +12,14 @@ export const RETRY_MS = Object.freeze([400, 800, 1600, 3000]);
  *   chunkMax, chunks the rules' bounds: a chunk's length, the number of chunks
  *   flushMs()        new moves go up this often (a match: at once; a solo run: once a second)
  *   left()           this phone's mirror says the match moved on (the host's word — never a reason to drop a move by itself)
+ *   gone()           THE FREEFALL CITY PASS — this phone has LEFT the room (its own leave; never a kick — THE RUN HOLD): nothing more is sent
+ *                    (a queued chunk after the room would only be refused — THE LATE PROOF CHUNK); the moves are given up ('dropped')
  *   onLate(why)      'seen' = about to write although left() (the view makes the refusal EXPECTED) · 'dropped' = the moves were given up
  *   onDead(why)      the log can not be completed any more ('hole' — a chunk is missing behind a later one; 'refused' — GIVE_UP_MS of refusals)
  *   io               { now(), timer(fn, ms), chunk(i, s) → Promise, end(payload) → Promise, read() → Promise<the node's `c`> }
  * → { reset({ sent, next, verify }), flush(force), end(payload), close(), state() }
  */
-export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, flushMs, left = () => false, onLate = () => {}, onDead = () => {}, io, pipe = false }) {
+export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, flushMs, left = () => false, gone = () => false, onLate = () => {}, onDead = () => {}, io, pipe = false }) {
   let sent = 0, acked = 0, next = 0, lastSend = -1e9, flights = [], rewind = null, verify = false, reading = false, retryAt = 0, tries = 0, lateTries = 0, failSince = 0;
   let dead = '', closed = false, endPayload = null, endState = 0, endTries = 0, armed = false, urgent = false, gen = 0;   // (endState: 0 none · 1 waiting · 2 in flight · 3 there · 4 given up)
 
@@ -92,6 +94,7 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
    *  them is found by settle()'s rewind as ever */
   function flush(force) {
     if (closed) return;
+    if (!dead && gone()) { giveUpLate(); return; }
     const now = io.now(), atOnce = force === 'now';
     if (force) urgent = true;
     if (reading) return;
@@ -128,7 +131,7 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
     /** the view is going away: what is logged leaves now (in order, behind anything still unanswered) — nothing is tried again */
     close() {
       if (closed) return;
-      if (!dead && !rewind && !verify && !reading) {
+      if (!dead && !rewind && !verify && !reading && !gone()) {
         const now = io.now(), n = count();
         if (sent < n && left()) onLate('seen');
         while (sent < n && next < chunks) {
@@ -148,6 +151,10 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
     owes: () => !closed && !dead && (endState === 1 || endState === 2),
   };
 }
+
+/** THE FREEFALL CITY PASS: `gone` for a room run — codeOf() = the run's room; true once this phone LEFT it or is leaving (room.js's hub
+ *  `__nsRoomLeft` — never a kick: THE RUN HOLD keeps a kicked phone's run writing). Read from the hub (THE STALE-MODULE RULE) */
+export const roomLeftOf = codeOf => () => { const c = codeOf(), f = globalThis.__nsRoomLeft; return !!c && typeof f === 'function' && !!f(c); };
 
 /**
  * JAYWALK LAST MILE — THE GO GUARD (a SOLO run's GO: view.js#askGo): the GO goes up behind THE STAMP and the start hold — and ONLY while the

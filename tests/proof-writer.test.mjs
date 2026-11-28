@@ -216,7 +216,8 @@ test('`pipe` (JAYWALK\'s DAILY — its own node + rules): the old way, exactly �
 test('BOTH GAMES USE THE ONE WRITER — and the screens never write a chunk themselves; the kit\'s GO stamps the tree first', () => {
   const jw = read('js/games/jaywalk/view.js'), hr = read('js/games/highrise/view.js'), io = read('js/games/kit/proof-io.js'), wr = read('js/games/kit/proof-writer.js');
   for (const [name, v] of [['jaywalk', jw], ['highrise', hr]]) {
-    assert.ok(v.includes(name === 'jaywalk' ? "import { createProofWriter, goBehind } from '../kit/proof-writer.js';" : "import { createProofWriter } from '../kit/proof-writer.js';") && v.includes("import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';"), `${name}: the kit's writer`);
+    assert.ok(v.includes(name === 'jaywalk' ? "import { createProofWriter, goBehind, roomLeftOf } from '../kit/proof-writer.js';" : "import { createProofWriter, roomLeftOf } from '../kit/proof-writer.js';") && v.includes("import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';"), `${name}: the kit's writer`);
+    assert.match(v, /left: matchLeft, gone: roomLeftOf\(\(\) => /, `${name}: THE LATE PROOF CHUNK — nothing goes up once this phone left its room`);
     assert.doesNotMatch(v, /\/c\/\$\{/, `${name}: no chunk path of its own`);
     assert.doesNotMatch(v, /dbUpdate|runTransaction/, `${name}: the end + the GO transaction are the kit's`);
     // (JAYWALK FINAL — THE FIRST-TAP HOLD: JAYWALK's solo GO waits for the stamp AND the scene's warm-up gate — the stamp still first, at the tap)

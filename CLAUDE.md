@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Sixteen games, **SIX PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK, HIGH RISE, FREEFALL
 (`js/config.js` GAMES[].playable is the one switch — ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md; FREEFALL since Nov 28, held OFF the city's signs (`SIGN_HOLD`) until THE CITY PASS installs its sign: docs/freefall.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md; HIGH RISE since Nov 20, on the city's signs since CITY PART 1: docs/highrise.md; FREEFALL since Nov 28, on the city's signs since THE FREEFALL CITY PASS: docs/freefall.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,

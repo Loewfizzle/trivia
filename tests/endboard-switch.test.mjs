@@ -19,8 +19,8 @@ test('THE OPT-INS (the owner, Nov 27): JAYWALK + HIGH RISE with AVG · PRISM DRO
   const row = id => { const m = read(`js/games/${id}/index.js`).match(/export const END_BOARD = Object\.freeze\((\{[^\n]*\})\);/); return m ? m[1] : null; };
   assert.equal(row('jaywalk'), "{ b: 'jaywalk-solo', word: 'LANES', avg: true }");
   assert.equal(row('highrise'), "{ b: 'highrise-solo', word: 'FLOORS', avg: true }");
-  assert.equal(row('prism'), "{ b: 'prism-rush', word: 'POINTS', on: g => !!(g && g.settings && g.settings.mode === 'rush') }");
-  assert.equal(row('overclock'), "{ b: 'overclock-quick', word: 'POINTS', match: false, on: g => !!(g && g.settings && g.settings.mode === 'quick') }");
+  assert.equal(row('prism'), "{ b: 'prism-rush', word: 'POINTS', soloCounts: false, on: g => !!(g && g.settings && g.settings.mode === 'rush') }");   // (THE FREEFALL CITY PASS: soloCounts — its solo podium says THIS BOARD COUNTS ROOM MATCHES)
+  assert.equal(row('overclock'), "{ b: 'overclock-quick', word: 'POINTS', match: false, soloCounts: false, on: g => !!(g && g.settings && g.settings.mode === 'quick') }");
   assert.equal(row('freefall'), "{ b: BOARD, word: 'FLOORS', avg: true }", 'FREEFALL\'s line exactly as F5C left it (BOARD = lines.js — freefall-solo)');
   for (const id of ['golf', 'slip', 'holdem']) assert.doesNotMatch(read(`js/games/${id}/index.js`), /END_BOARD/, `${id}: untouched — not even a line`);
   // every board named is a real RECORD board; AVG only where the board keeps one
