@@ -91,8 +91,8 @@ export function createMatchHud({ busy = () => false, hud: H } = {}) {
       if (busy()) { const g0 = gen; setTimeout(() => { if (g0 === gen) this.last(words); }, 250); return; }   // (FIX A: in the bands' zone — it waits for a band to leave)
       // (FIX B: TWO lines, the dot ENDS the first — "CHARLIE HIT … matchhud.js#6
       const W = String(words), k = W.indexOf(' · ');
-      H.last(k < 0 ? [W] : [`${W.slice(0, k)} ·`, W.slice(k + 3)], LAST_CARD_MS);
-      lastText = `LAST ONE STANDING${W.replace(' · ', ' ·')}`; lastTotal++; sr.textContent = `LAST ONE STANDING — ${W}`;
+      H.last(k < 0 ? [W] : [`${W.slice(0, k)}\u00a0·`, W.slice(k + 3)], LAST_CARD_MS);   // (FIX B: a no-break space — the dot ends line 1)
+      lastText = `LAST ONE STANDING${W.replace(' · ', '\u00a0·')}`; lastTotal++; sr.textContent = `LAST ONE STANDING — ${W}`;
       clearTimeout(lastT); const g0 = gen; lastT = setTimeout(() => { if (g0 === gen) lastText = ''; }, LAST_CARD_MS);
     },
     /** the last half minute: "0:27" ('' = hidden) */

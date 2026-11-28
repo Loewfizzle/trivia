@@ -2043,6 +2043,12 @@ The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the ca
 - **STAYS IN THE PAGE (not on screen while the ball falls):** the opening, PAUSED + its count, HOW TO PLAY, 3 · 2 · 1 + the names, the OUT
   card + Call the Winner's sheet, the end card / the podium, the share sheet, ☰ / SOUNDS (hidden in play on the test page; the console's
   corner buttons are static).
+- **THE GROUP FADE:** an element's opacity fades its layers TOGETHER — the big number at 0.82 while WATCHING (+ `.ff-hud`'s fades) is drawn
+  once into a small render target, then faded as one (a layer-by-layer fade let the glow show through a translucent letter: the reviewer's
+  catch). The other fades (a band, a call, a callout, the card) are short and stay layer by layer.
+- **THE RAIL's STACKING:** the rivals' dots in reverse row order (the first rival on top — the page's old prepend order), mine over them all.
+- **THE OPENING's DARK HOLD:** the canvas fades in from black over 0.5 s at a page's first frames — the top line (in the picture now) fades
+  with it; before, it popped in at the end of the hold.
 - **A LOWER TIER:** the HUD is drawn at the canvas's own pixel ratio — the device's at tier 2 (an iPhone's 3×); tier 1 = 2×, tier 0 = 1.5×.
 - **`?hud=0`** still means no HUD while a run is on (now: the GL pass draws nothing) — the A/B stays.
 
@@ -2586,3 +2592,36 @@ a moved trailing comment left `// <file>#<n>`. The note below has the same `<fil
 - **hudgl.js#27** — the clock (the last half minute) · the watch line (pre-line: its line breaks kept, a long line wrapped to the box)
 - **hudgl.js#28** — the look to draw (its pieces baked at its first need — the stage asks at the opening, never in a fall: the look is locked through a run)
 - **hudgl.js#29** — THE MATCH: the rail's records [{ uid, me, hex, rn, out, cls, y, ny }] — the roster baked again only when `key` (the names + colours) changes
+
+#### hudgl.js (FIX D, the short ones)
+- **hudgl.js#30** — (outside the border box only — as the browser clips a box-shadow)
+- **hudgl.js#31** — the alphabetic baseline's drop below a MIDDLE baseline in the context's font
+- **hudgl.js#32** — (a glow's far tail never lands in the next cell)
+- **hudgl.js#33** — a text style (an element's computed text: font, colour, spacing, shadows) → its glyph set
+- **hudgl.js#34** — the letters of `str` not in the set yet → packed again (true = the atlas changed)
+- **hudgl.js#35** — the warning plate's blink (steps(2, jump-none) 0.7 s: 1 → 0.62)
+- **hudgl.js#36** — a canvas → a texture, UPLOADED NOW (never at a first draw in a fall), the canvas let go
+- **hudgl.js#37** — a baked element → a sprite: its layers, ONE quad each on its own texture (canvas px)
+- **hudgl.js#38** — a run's words changed? (four cached fields — never a string built a frame: ZERO GARBAGE in a fall)
+- **hudgl.js#39** — the page → canvas px (the canvas fills the stage's play area)
+- **hudgl.js#40** — a style's anchor: its content box + the baseline of a sample line in it
+- **hudgl.js#41** — the big number's spacing (the old baked number's: a digit's own advance + 0.07 em)
+- **hudgl.js#42** — the alphabetic baseline's drop below a MIDDLE baseline (canvas's) in a set's font
+- **hudgl.js#43** — ---- A LOOK's pieces (each look ONCE: the textures stay up — a look change only swaps which show)
+- **hudgl.js#44** — THE BANDS: the ground (normal + THE BOTTOM's gold) · every area's name · FLOOR n from the atlas
+- **hudgl.js#45** — (a long name on a narrow phone: fitted to the band — "UNDER THE HARBOR" at 375 wide)
+- **hudgl.js#46** — (a font not in yet: baked again the moment it lands)
+- **hudgl.js#47** — ---- THE STATE (the stage's: the number, gold, the words, the moments) — set any time, drawn by frame()
+- **hudgl.js#48** — THE GROUP FADE: an element's opacity fades its layers TOGETHER (the glow never shows through a translucent letter)
+- **hudgl.js#49** — .ff-hud's fade: 0.4 s in (ease) · gone AT ONCE at the end · back over 0.3 s while WATCHING after it
+- **hudgl.js#50** — THE NUMBER (the gold set on NEW BEST — never on a watched player)
+- **hudgl.js#51** — THE CALL (its pop: ease-out over its whole time, held at its last frame — the old Web Animation)
+- **hudgl.js#52** — THE NOTE (an unproven run's line · the test page's) — in the picture only while a run is on
+- **hudgl.js#53** — (sideways: ONE line — the name, then FLOOR n)
+- **hudgl.js#54** — (the same words in another ink: the roster's own)
+- **hudgl.js#55** — LAST ONE STANDING (the card's keyframes; its ground + title ONE sprite, its line from the atlas)
+- **hudgl.js#56** — built on a view's renderer — a lost context's new view too: everything baked again from the page
+- **hudgl.js#57** — the page's size changed / a font landed: everything baked again
+- **hudgl.js#58** — the other look made ready while nothing runs (a look change costs no bake)
+- **hudgl.js#59** — (the checks' own: the picture without its HUD pass — a contrast check's background)
+- **hudgl.js#60** — (the number's layers into its own target at full strength — then faded ONCE, in the pass)

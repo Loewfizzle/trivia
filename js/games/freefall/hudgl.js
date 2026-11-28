@@ -48,7 +48,7 @@ function collect(root, keep) {
     L.push({ cs, r: [r.left, r.top, r.width, r.height], xf: null });
     pseudo(el, '::before', cs, r, L);
     for (const n of el.childNodes) {
-      if (n.nodeType === 3) { const t = n.data.replace(/\s+/g, ' ').trim(); if (!t) continue; const rg = document.createRange(); rg.selectNodeContents(n); const q = rg.getClientRects(); if (q.length) L.push({ cs, t, x: q[0].left, y: q[0].top }); }
+      if (n.nodeType === 3) { const t = n.data.replace(/\s+/g, ' ').trim(); if (!t) continue; const rg = document.createRange(); rg.selectNodeContents(n); const q = rg.getClientRects(); if (q.length) L.push({ cs, t, x: q[0].left, y: q[0].top, mid: r.top + r.height / 2 }); }
       else if (n.nodeType === 1 && (!keep || keep(n))) walk(n);
     }
     pseudo(el, '::after', cs, r, L);
@@ -100,7 +100,7 @@ function paintBox(c, { cs, r: [x, y, w, h], xf }) {
   if (xf) { const [m, ox, oy] = xf; c.translate(x + ox, y + oy); c.transform(m[0], m[1], m[2], m[3], m[4], m[5]); c.translate(-x - ox, -y - oy); }
   const rd = cs.borderTopLeftRadius, rad = Math.max(0, Math.min(rd.includes('%') ? nm(rd) / 100 * Math.min(w, h) : nm(rd), w / 2, h / 2));
   const sh = parseShadows(cs.boxShadow).filter(s => !s.inset);
-  if (sh.length) {   // (outside the border box only — as the browser clips a box-shadow)
+  if (sh.length) {   // hudgl.js#30
     c.save(); c.beginPath(); c.rect(x - 999, y - 999, w + 1998, h + 1998); path(c, x, y, w, h, rad); c.clip('evenodd');
     for (let i = sh.length - 1; i >= 0; i--) { const s = sh[i], p = s.spread; shadowed(c, s, (dx, dy) => { c.beginPath(); path(c, x + dx - p, y + dy - p, w + 2 * p, h + 2 * p, rad > 0 ? Math.max(0, rad + p) : 0); c.fill(); }); }
     c.restore();
@@ -118,10 +118,12 @@ function paintBox(c, { cs, r: [x, y, w, h], xf }) {
 }
 // the pen x of each letter: the … hudgl.js#7
 function pens(c, ch, ls) { const out = new Float64Array(ch.length); let s = ''; for (let i = 0; i < ch.length; i++) { out[i] = (i ? c.measureText(s).width : 0) + i * ls; s += ch[i]; } return out; }
+// the alphabetic baseline's drop below a MIDDLE … hudgl.js#31
+const midDrop = c => { const a = c.measureText('F').actualBoundingBoxAscent; c.textBaseline = 'middle'; const b = c.measureText('F').actualBoundingBoxAscent; c.textBaseline = 'alphabetic'; return a - b; };
 const ascOf = (c, cs) => c.measureText('0').fontBoundingBoxAscent || nm(cs.fontSize) * 0.95;
-function paintText(c, { cs, t, x, y }, glow, sharp) {
+function paintText(c, { cs, t, x, y, mid: m }, glow, sharp, mid) {
   c.font = fontOf(cs); c.textBaseline = 'alphabetic'; c.textAlign = 'left';
-  const ch = Array.from(t), xs = pens(c, ch, nm(cs.letterSpacing)), base = y + ascOf(c, cs);
+  const ch = Array.from(t), xs = pens(c, ch, nm(cs.letterSpacing)), base = mid ? m + midDrop(c) : y + ascOf(c, cs);
   const D = parseShadows(cs.textShadow).reverse(), K = lastBig(D);
   const put = (dx, dy) => { for (let i = 0; i < ch.length; i++) c.fillText(ch[i], x + xs[i] + dx, base + dy); };
   for (let i = 0; i < D.length; i++) if (i <= K ? glow : sharp) shadowed(c, D[i], put);
@@ -154,14 +156,14 @@ function paint(ops, part, s) {
   cv.width = Math.max(1, Math.ceil((x1 - x0) * s)); cv.height = Math.max(1, Math.ceil((y1 - y0) * s));
   const c = cv.getContext('2d');
   SC = s; c.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
-  for (const op of use) if (op.t == null) paintBox(c, op); else paintText(c, op, part.glow, part.sharp);
+  for (const op of use) if (op.t == null) paintBox(c, op); else paintText(c, op, part.glow, part.sharp, part.mid);
   return { cv, x: x0, y: y0, w: cv.width / s, h: cv.height / s };
 }
 // an element → its layers [{ cv, … hudgl.js#9
-export function bakeEl(root, keep) {
+export function bakeEl(root, keep, mid) {
   const ops = collect(root, keep), S = devS();
   const big = ops.some(op => op.t != null && lastBig(parseShadows(op.cs.textShadow).reverse()) >= 0);
-  return (big ? [[{ box: 1 }, S], [{ glow: 1 }, 1], [{ sharp: 1 }, S]] : [[{ box: 1, glow: 1, sharp: 1 }, S]]).map(([p, s]) => paint(ops, p, s)).filter(Boolean);
+  return (big ? [[{ box: 1 }, S], [{ glow: 1 }, 1], [{ sharp: 1 }, S]] : [[{ box: 1, glow: 1, sharp: 1 }, S]]).map(([p, s]) => paint(ops, { ...p, mid }, s)).filter(Boolean);
 }
 
 // ---- THE GLYPH ATLAS: a style's letters, … hudgl.js#10
@@ -181,7 +183,7 @@ function pack(set) {
   const c = cv.getContext('2d');
   for (const q of cells) {
     c.save(); c.setTransform(q.L.s, 0, 0, q.L.s, q.px, q.py); SC = q.L.s;
-    c.beginPath(); c.rect(0, 0, q.w, q.h); c.clip();   // (a glow's far tail never lands in the next cell)
+    c.beginPath(); c.rect(0, 0, q.w, q.h); c.clip();   // hudgl.js#32
     c.font = set.font; c.textBaseline = 'alphabetic';
     const px = q.bx, py = q.by, put = (dx, dy) => c.fillText(q.ch, px + dx, py + dy);
     if (q.L.sh) for (const s of q.L.sh) shadowed(c, s, put); else { c.fillStyle = q.L.fill; put(0, 0); }
@@ -190,7 +192,7 @@ function pack(set) {
   }
   set.cv = cv; set.ver++;
 }
-/** a text style (an element's computed text: font, colour, spacing, shadows) → its glyph set */
+// a text style (an element's computed text: … hudgl.js#33
 export function glyphSet(el, chars = CHARS) {
   const cs = getComputedStyle(el), font = fontOf(cs), D = parseShadows(cs.textShadow).reverse(), K = lastBig(D), S = devS(), layers = [];
   if (K >= 0) layers.push({ sh: D.slice(0, K + 1), s: 1 });
@@ -200,7 +202,7 @@ export function glyphSet(el, chars = CHARS) {
   m.font = font;
   const z = m.measureText('0'), fs = nm(cs.fontSize);
   const set = { font, fs, ls: nm(cs.letterSpacing), indent: nm(cs.textIndent), lh: nm(cs.lineHeight) || fs * 1.2, fa: z.fontBoundingBoxAscent || fs * 0.95, fd: z.fontBoundingBoxDescent || fs * 0.25, layers, m, chars: '', map: new Map(), cv: null, ver: 0, ready: fontReady(font),
-    /** the letters of `str` not in the set yet → packed again (true = the atlas changed) */
+    // the letters of `str` not in the … hudgl.js#34
     add(str) { let n = ''; for (const ch of str) if (!set.chars.includes(ch) && !n.includes(ch)) n += ch; if (!n) return false; set.chars += n; pack(set); return true; },
     width(t) { return t ? m.measureText(t).width + set.ls * Array.from(t).length : 0; } };
   set.add(chars);
@@ -256,10 +258,11 @@ export function framesOf(K) {
 // css @keyframes ff-out (1.5 s ease-out) · … hudgl.js#14
 export const OUT_FRAMES = framesOf([{ opacity: 0, transform: 'translateY(8px) scale(0.92)' }, { opacity: 1, offset: 0.14 }, { opacity: 1, offset: 0.78 }, { opacity: 0, transform: 'translateY(-4px)' }]);
 export const LAST_FRAMES = framesOf([{ opacity: 0, transform: 'scale(0.7)' }, { opacity: 1, offset: 0.12 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }]);
-/** the warning plate's blink (steps(2, jump-none) 0.7 s: 1 → 0.62) */
+// the warning plate's blink (steps(2, jump-none) 0.7 … hudgl.js#35
 export const BLINK_MS = 700, BLINK_LOW = 0.62;
 
 // the stacking (the page's old order): the … hudgl.js#15
+const CC = new THREE.Color();
 const SL = { top: 0, num: 1, call: 2, bandG: 3, bandN: 4, bandS: 5, rail: 6, dots: 7, clock: 8, outs: 9, watch: 10, last: 11, lastL: 12, note: 13 }, NSL = 14;
 const DOTS = ['', 'is-lost', 'is-made', 'is-out'], ME_DOTS = ['', 'is-made', 'is-out'];
 
@@ -286,25 +289,25 @@ export function createHud(P, o = {}) {
     return Q;
   }
   function restack() { scene.clear(); for (const L of order) for (const m of L) scene.add(m); }
-  /** a canvas → a texture, UPLOADED NOW (never at a first draw in a fall), the canvas let go */
+  // a canvas → a texture, UPLOADED NOW … hudgl.js#36
   function tex(cv) {
     const t = new THREE.Texture(cv);
     t.flipY = false; t.premultiplyAlpha = true; t.generateMipmaps = false; t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true;
     try { R.initTexture(t); cv.width = cv.height = 0; } catch { /* uploaded at its first draw */ }
     return t;
   }
-  /** a baked element → a sprite: its layers, ONE quad each on its own texture (canvas px) */
+  // a baked element → a sprite: its … hudgl.js#37
   const sprite = (layers, slot) => ({ q: layers.map(b => { const Q = quads(1, slot); Q.own = tex(b.cv); Q.U.tT.value = Q.own; Q.put(0, b.x - ox, b.y - oy, b.w, b.h, 0, 0, 1, 1); Q.done(1); return Q; }) });
   const runQ = (slot, n) => ({ q: [quads(n, slot)], a: NaN, b: NaN, c: NaN, d: NaN });
-  /** a run's words changed? (four cached fields — never a string built a frame: ZERO GARBAGE in a fall) */
+  // a run's words changed? (four cached fields … hudgl.js#38
   const changed = (Rn, a, b, c, d) => { if (Rn.a === a && Rn.b === b && Rn.c === c && Rn.d === d) return false; Rn.a = a; Rn.b = b; Rn.c = c; Rn.d = d; return true; };
   function show(S, on, a = 1, sc = 1, tx = 0, ty = 0, cx = 0, cy = 0) { for (const Q of S.q) { Q.m.visible = on && a > 0.001 && Q.k > 0; Q.U.uA.value = a; Q.U.uXf.value.set(sc, tx, ty); Q.U.uO.value.set(cx, cy); } }
   const hide = S => { if (S) for (const Q of S.q) Q.m.visible = false; };
 
-  // the page → canvas px (the canvas fills the stage's play area)
+  // the page → canvas px (the canvas … hudgl.js#39
   const rel = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); const b = { l: r.left - ox + nm(cs.borderLeftWidth) + nm(cs.paddingLeft), r: r.right - ox - nm(cs.borderRightWidth) - nm(cs.paddingRight), t: r.top - oy + nm(cs.borderTopWidth) + nm(cs.paddingTop), b: r.bottom - oy - nm(cs.borderBottomWidth) - nm(cs.paddingBottom), w: r.width, h: r.height }; b.cx = (b.l + b.r) / 2; return b; };
   const textTop = el => { for (const n of el.childNodes) if (n.nodeType === 3 && n.data.trim()) { const rg = document.createRange(); rg.selectNodeContents(n); const q = rg.getClientRects(); if (q.length) return q[0].top - oy; } return null; };
-  /** a style's anchor: its content box + the baseline of a sample line in it */
+  // a style's anchor: its content box + … hudgl.js#40
   function anchor(el, set, sample) {
     const keep = el.textContent;
     if (sample != null) el.textContent = sample;
@@ -329,15 +332,15 @@ export function createHud(P, o = {}) {
       }
     }
     Q.done(k);
+    { const r = Q.m.geometry.attributes.aR.array; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (let i = 0; i < k; i++) { const j = i * 4; x0 = Math.min(x0, r[j]); y0 = Math.min(y0, r[j + 1]); x1 = Math.max(x1, r[j] + r[j + 2]); y1 = Math.max(y1, r[j + 1] + r[j + 3]); } Rn.box = k ? [Math.floor(x0 * dpr) / dpr, Math.floor(y0 * dpr) / dpr, x1, y1] : null; }
     Rn.ext = lines.map(ln => ({ t: ln.t, l: ln.x, r: ln.x + (gap != null ? digitSpan(set, ln.t, gap) : set.width(ln.t) - set.ls), y: ln.y }));
   }
-  /** the big number's spacing (the old baked number's: a digit's own advance + 0.07 em) */
+  // the big number's spacing (the old baked … hudgl.js#41
   function digitPens(set, t, gap) { const out = new Float64Array(t.length); let x = 0; for (let i = 0; i < t.length; i++) { out[i] = x; x += set.m.measureText(t[i]).width + gap; } return out; }
   const digitSpan = (set, t, gap) => { let w = 0; for (let i = 0; i < t.length; i++) w += set.m.measureText(t[i]).width + (i ? gap : 0); return w; };
   // a centred line's first pen (the page's … hudgl.js#18
   const centred = (set, t, cx) => cx - (set.indent + set.width(t)) / 2 + set.indent;
-  /** the alphabetic baseline's drop below a MIDDLE baseline (canvas's) in a set's font */
-  const midDrop = set => { const c = set.m, a = c.measureText('F').actualBoundingBoxAscent; c.textBaseline = 'middle'; const b = c.measureText('F').actualBoundingBoxAscent; c.textBaseline = 'alphabetic'; return a - b; };
+  // the alphabetic baseline's drop below a MIDDLE … hudgl.js#42
   // a look's change on the stage, for … hudgl.js#19
   function under(lk, gold, fn) {
     const stage = P.stage, was = stage.dataset.look, g0 = stage.classList.contains('is-gold');
@@ -345,7 +348,7 @@ export function createHud(P, o = {}) {
     try { return fn(); } finally { stage.dataset.look = was; stage.classList.toggle('is-gold', g0); }
   }
 
-  // ---- A LOOK's pieces (each look ONCE: the textures stay up — a look change only swaps which show)
+  // ---- A LOOK's pieces (each look ONCE: … hudgl.js#43
   const K = { night: null, day: null };
   const fonts = new Set();
   function bakeLook(lk) {
@@ -358,19 +361,19 @@ export function createHud(P, o = {}) {
       for (const [t, cls] of o.kinds || []) { P.call.textContent = t; P.call.className = `ff-call ${cls}`; const b = rel(P.call); k.calls.set(t, { S: sprite(bakeEl(P.call), SL.call), cx: b.cx, cy: (b.t + b.b) / 2 }); }
       P.call.textContent = c0; P.call.className = cl0;
       k.warn = sprite(bakeEl(P.warn), SL.call);
-      // THE BANDS: the ground (normal + THE BOTTOM's gold) · every area's name · FLOOR n from the atlas
+      // THE BANDS: the ground (normal + THE … hudgl.js#44
       const B = P.band;
       B.s.textContent = 'FLOOR 0'; B.n.textContent = 'THE ROOFTOP';
-      const ground = gold => { B.node.classList.toggle('is-gold', gold); const tcs = getComputedStyle(B.t), sub = set(B.s); const sa = anchor(B.s, sub); sa.base = (sa.t + sa.b) / 2 + midDrop(sub); return { S: sprite(bakeEl(B.node, () => false), SL.bandG), r: rel(B.node), sub, sa, row: /column/.test(tcs.gridAutoFlow), gap: nm(tcs.columnGap) }; };
+      const ground = gold => { B.node.classList.toggle('is-gold', gold); const tcs = getComputedStyle(B.t), sub = set(B.s); const sa = anchor(B.s, sub); sa.base = (sa.t + sa.b) / 2 + midDrop(sub.m); return { S: sprite(bakeEl(B.node, () => false), SL.bandG), r: rel(B.node), sub, sa, row: /column/.test(tcs.gridAutoFlow), gap: nm(tcs.columnGap) }; };
       k.band = ground(false); k.bandG = ground(true);
       k.names = new Map();
       for (const [name, gold] of o.areas || []) {
         B.node.classList.toggle('is-gold', !!gold); B.n.textContent = name; B.n.style.fontSize = '';
-        // (a long name on a narrow phone: fitted to the band — "UNDER THE HARBOR" at 375 wide)
+        // (a long name on a narrow phone: … hudgl.js#45
         const fit = B.node.getBoundingClientRect().width * 0.92 / Math.max(1, B.n.scrollWidth || B.n.getBoundingClientRect().width);
         if (fit < 1) B.n.style.fontSize = `${(parseFloat(getComputedStyle(B.n).fontSize) * fit).toFixed(2)}px`;
         const r = rel(B.n);
-        k.names.set(`${name}|${gold ? 1 : 0}`, { S: sprite(bakeEl(B.n), SL.bandN), l: r.l, w: r.r - r.l });
+        k.names.set(`${name}|${gold ? 1 : 0}`, { S: sprite(bakeEl(B.n, null, true), SL.bandN), l: r.l, w: r.r - r.l });
         B.n.style.fontSize = '';
       }
       B.node.classList.remove('is-gold');
@@ -387,9 +390,10 @@ export function createHud(P, o = {}) {
     const s = k.num;
     k.numBase = k.numA.t + (s.lh - (s.fa + s.fd)) / 2 + s.fa;   // hudgl.js#21
     k.callL = [...k.calls.values()]; k.nameL = [...k.names.values()];
+    if (!grp) groupMake(Math.ceil(cw * dpr), Math.ceil(k.num.fs * 2.4 * dpr));   // (the number's group target: made with the look — never in a run)
     k.runs = { num: runQ(SL.num, 12), top: runQ(SL.top, 240), sub: runQ(SL.bandS, 120), clock: runQ(SL.clock, 30), watch: runQ(SL.watch, 480), last: [runQ(SL.lastL, 160), runQ(SL.lastL, 160)] };
     K[lk] = k; bakes++;
-    if (fonts.size) { const F = [...fonts]; fonts.clear(); Promise.all(F.map(f => document.fonts.load(f))).then(() => { if (R && api) api.dirty(); }, () => {}); }   // (a font not in yet: baked again the moment it lands)
+    if (fonts.size) { const F = [...fonts]; fonts.clear(); Promise.all(F.map(f => document.fonts.load(f))).then(() => { if (R && api) api.dirty(); }, () => {}); }   // hudgl.js#46
     return k;
   }
   function hideLook(k) { if (!k) return; for (const c of k.calls.values()) hide(c.S); for (const S of [k.warn, k.band.S, k.bandG.S, k.last.S]) hide(S); for (const n of k.names.values()) hide(n.S); for (const r of Object.values(k.runs).flat()) hide(r); }
@@ -401,7 +405,7 @@ export function createHud(P, o = {}) {
     scene = new THREE.Scene(); scene.matrixAutoUpdate = false; scene.matrixWorldAutoUpdate = false;
     cam = cam || new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     K.night = K.day = null; cur = ''; gen++;
-    railS = null; st.roster = null; st.rosterKey = ''; st.noteS = null; st.noteKey = '';
+    railS = null; grp = null; st.roster = null; st.rosterKey = ''; st.noteS = null; st.noteKey = '';
   }
   function useLook(lk) {
     if (!R || !lk) return;
@@ -452,9 +456,21 @@ export function createHud(P, o = {}) {
   }
   function drop(Q) { Q.dispose(); Qs.splice(Qs.indexOf(Q), 1); for (const L of order) { const i = L.indexOf(Q.m); if (i >= 0) L.splice(i, 1); } restack(); }
 
-  // ---- THE STATE (the stage's: the number, gold, the words, the moments) — set any time, drawn by frame()
+  // ---- THE STATE (the stage's: the number, … hudgl.js#47
   const st = { num: -1, gold: false, top: '', note: '', noteS: null, noteKey: '', near: false, nearAt: 0, call: null, band: null, rows: null, rosterKey: '', roster: null, outs: [], last: null, clock: '', watch: '', hudTo: 0, hudFrom: 0, hudAt: 0, hudMs: 0 };
   const F0 = { o: 1, s: 1, x: 0, y: 0 }, STILL = { o: 1, s: 1, x: 0, y: 0 };
+  // THE GROUP FADE: an element's opacity fades … hudgl.js#48
+  let grp = null;
+  function groupMake(w, h) { const rt = new THREE.WebGLRenderTarget(w, h, { depthBuffer: false, stencilBuffer: false }); const Q = quads(1, SL.num); Q.U.tT.value = rt.texture; Q.own = rt; grp = { rt, Q, S: { q: [Q] }, on: false }; }
+  function groupOn(Rn, a) {
+    const b = Rn.box, w = Math.max(1, Math.ceil((b[2] - b[0]) * dpr)), h = Math.max(1, Math.ceil((b[3] - b[1]) * dpr));
+    if (!grp) groupMake(w, h);
+    if (w > grp.rt.width || h > grp.rt.height) grp.rt.setSize(Math.max(w, grp.rt.width), Math.max(h, grp.rt.height));   // (only ever grows — made with the look, wide enough)
+    const W = grp.rt.width, H = grp.rt.height;
+    grp.Q.put(0, b[0], b[1], w / dpr, h / dpr, 0, 1, w / W, 1 - h / H); grp.Q.done(1);
+    grp.Rn = Rn; grp.on = true; grp.w = W; grp.h = H;
+    show(grp.S, true, a);
+  }
   const hudNow = now => { const u = st.hudMs > 0 ? Math.min(1, (now - st.hudAt) / st.hudMs) : 1; return st.hudFrom + (st.hudTo - st.hudFrom) * EASE(u); };
   // a value eased linearly to its target … hudgl.js#23
   const tw = (e, target, now, ms) => { if (e.v == null || reduce) { e.v = e.to = e.from = target; e.at = now; return target; } if (target !== e.to) { e.from = e.v; e.to = target; e.at = now; } const u = Math.min(1, (now - e.at) / ms); e.v = e.from + (e.to - e.from) * u; return e.v; };
@@ -467,19 +483,20 @@ export function createHud(P, o = {}) {
     if (!k) return;
     view2.set(2 / cw, 2 / chh);
     const live = S.live || S.starting, off = S.final || (S.nohud && live), R2 = k.runs;
-    // .ff-hud's fade: 0.4 s in (ease) · gone AT ONCE at the end · back over 0.3 s while WATCHING after it
+    // .ff-hud's fade: 0.4 s in (ease) · … hudgl.js#49
     const to = off ? 0 : live || (S.over && S.watch) ? 1 : 0;
     if (to !== st.hudTo) { st.hudFrom = hudNow(now); st.hudTo = to; st.hudAt = now; st.hudMs = to === 0 && (S.over || off) ? 0 : S.over && S.watch ? 300 : 400; }
     const hudA = hudNow(now);
-    // THE NUMBER (the gold set on NEW BEST — never on a watched player)
+    // THE NUMBER (the gold set on NEW … hudgl.js#50
     const gold = st.gold && !S.watch, ns = gold ? k.numG : k.num;
     if (st.num >= 0 && changed(R2.num, st.num, gold, ns.ver, dpr)) { const t = String(st.num), gap = ns.fs * 0.07; lay(R2.num, ns, [{ t, x: k.numA.cx - digitSpan(ns, t, gap) / 2, y: k.numBase }], gap); }
-    show(R2.num, st.num >= 0, hudA * (S.watch ? 0.82 : 1));
+    const na = hudA * (S.watch ? 0.82 : 1);
+    if (st.num >= 0 && na > 0.001 && na < 0.999 && R2.num.box) { show(R2.num, false); groupOn(R2.num, na); } else { show(R2.num, st.num >= 0, na); if (grp) grp.on = false, hide(grp.S); }
     // THE TOP LINE (YOUR BEST n · n PLAYING)
     const ts = st.gold ? k.topG : k.top;
     if (changed(R2.top, st.top, st.gold, ts.ver, dpr)) { if (ts.add(st.top)) R2.top.c = ts.ver; lay(R2.top, ts, [{ t: st.top, x: centred(ts, st.top, k.topA.cx), y: k.topA.base }]); }
     show(R2.top, !!st.top && !S.dim && !S.final && !(S.nohud && live) && (!S.over || S.match));
-    // THE CALL (its pop: ease-out over its whole time, held at its last frame — the old Web Animation)
+    // THE CALL (its pop: ease-out over its … hudgl.js#51
     for (let i = 0; i < k.callL.length; i++) hide(k.callL[i].S);
     if (st.call && !off) {
       const c = k.calls.get(st.call.t), p = Math.min(1, (now - st.call.at) / st.call.ms);
@@ -489,7 +506,7 @@ export function createHud(P, o = {}) {
     show(k.warn, st.near && !off, hudA * (reduce ? 1 : (now - st.nearAt) % BLINK_MS < BLINK_MS / 2 ? 1 : BLINK_LOW));
     bandFrame(now, S, off, k);
     matchFrame(now, S, off, k);
-    // THE NOTE (an unproven run's line · the test page's) — in the picture only while a run is on
+    // THE NOTE (an unproven run's line · … hudgl.js#52
     const noteOn = !!st.note && live && !S.watch && !off && !S.noteHidden;
     if (noteOn && st.noteKey !== `${st.note}|${cur}`) { st.noteKey = `${st.note}|${cur}`; if (st.noteS) for (const Q of st.noteS.q) drop(Q); st.noteS = sprite(bakeEl(P.note), SL.note); }
     if (st.noteS) show(st.noteS, noteOn);
@@ -505,7 +522,7 @@ export function createHud(P, o = {}) {
       if (ss.add(b.sub)) k.runs.sub.b = ss.ver;
       let sx = centred(ss, b.sub, G.sa.cx);
       b.dx = 0;
-      if (G.row && N) { const total = N.w + G.gap + ss.width(b.sub), left = G.sa.cx - total / 2; b.dx = left - N.l; sx = left + N.w + G.gap; }   // (sideways: ONE line — the name, then FLOOR n)
+      if (G.row && N) { const total = N.w + G.gap + ss.width(b.sub), left = G.sa.cx - total / 2; b.dx = left - N.l; sx = left + N.w + G.gap; }   // hudgl.js#53
       lay(k.runs.sub, ss, [{ t: b.sub, x: sx, y: G.sa.base }]);
     }
     st.bandA = f.o; st.bandBox = N ? { l: N.l + tx + b.dx, r: N.l + N.w + tx + b.dx, t: G.r.t, b: G.r.b } : null;
@@ -519,7 +536,9 @@ export function createHud(P, o = {}) {
     if (railS) show(railS, on);
     if (Ro) {
       let a = 0, b = 0;
-      if (on) for (const d of M) {
+      const n = M ? M.length : 0, meLast = n && M[n - 1].me;
+      if (on) for (let j = 0; j < n; j++) {
+        const d = M[meLast ? (j < n - 1 ? n - 2 - j : n - 1) : n - 1 - j];
         const y = tw(d.ty ||= {}, d.y, now, 200), ny = d.ny == null ? 0 : tw(d.tny ||= {}, d.ny, now, 200);
         for (const it of d.its || NIL) {
           if (it.kind === 'dot' && it.cls === d.cls) Ro.dots.put(a++, it.b.x - ox, it.b.y - oy + y, it.b.w, it.b.h, it.u[0], it.u[1], it.u[2], it.u[3], d.cls === 'is-lost' ? 0.6 : 1);
@@ -537,7 +556,7 @@ export function createHud(P, o = {}) {
         const p = (now - c.at) / c.ms;
         if (p >= 1) { st.outs.splice(i, 1); i--; continue; }
         let its = Ro.byKey.get(c.key);
-        if (!its) for (const [kk, v] of Ro.byKey) if (kk.split('|')[0] === c.key.split('|')[0]) its = v;   // (the same words in another ink: the roster's own)
+        if (!its) for (const [kk, v] of Ro.byKey) if (kk.split('|')[0] === c.key.split('|')[0]) its = v;   // hudgl.js#54
         if (!its) continue;
         const box = its[0].box, dy = Ro.outs.t + row * (box.h + Ro.gap) - box.t, f = reduce ? STILL : kf(OUT_FRAMES, p, EASE_OUT, F0);
         for (let j = 0; j < its.length; j++) { const it = its[j]; Q.put(j, it.b.x - ox, it.b.y - oy + dy, it.b.w, it.b.h, it.u[0], it.u[1], it.u[2], it.u[3]); }
@@ -556,7 +575,7 @@ export function createHud(P, o = {}) {
       lay(R2.watch, ws, lines.map((t, i) => ({ t, x: centred(ws, t, A.cx), y: top + i * lh + half + ws.fa })));
     }
     show(R2.watch, !!st.watch && !S.final && !(S.nohud && (S.live || S.starting)));
-    // LAST ONE STANDING (the card's keyframes; its ground + title ONE sprite, its line from the atlas)
+    // LAST ONE STANDING (the card's keyframes; its … hudgl.js#55
     const L = st.last;
     if (L && (now - L.at >= L.ms || off)) st.last = null;
     hide(k.last.S); hide(R2.last[0]); hide(R2.last[1]);
@@ -581,13 +600,13 @@ export function createHud(P, o = {}) {
   }
 
   api = {
-    /** built on a view's renderer — a lost context's new view too: everything baked again from the page */
+    // built on a view's renderer — a … hudgl.js#56
     attach(view) { R = view && view.renderer ? view.renderer : null; if (!R) return; const z = view.cssSize(); cw = z[0] || 1; chh = z[1] || 1; dpr = z[2] || 1; build(); },
     // the look to draw (its pieces baked … hudgl.js#28
     look(lk) { want = lk; },
-    /** the page's size changed / a font landed: everything baked again */
+    // the page's size changed / a font … hudgl.js#57
     dirty() { if (R) { const lk = cur || want; build(); if (lk) useLook(lk); } },
-    /** the other look made ready while nothing runs (a look change costs no bake) */
+    // the other look made ready while nothing … hudgl.js#58
     warmOther() { if (R && cur) { const lk = cur === 'day' ? 'night' : 'day'; if (!K[lk]) { const r = P.play.getBoundingClientRect(); ox = r.left; oy = r.top; bakeLook(lk); hideLook(K[lk]); } } },
     size(w, h, d) { cw = w || 1; chh = h || 1; dpr = d || 1; },
     num(n) { st.num = n; },
@@ -609,9 +628,16 @@ export function createHud(P, o = {}) {
     reset() { st.call = null; st.band = null; st.outs.length = 0; st.last = null; st.clock = ''; st.watch = ''; st.rows = null; st.near = false; },
     frame,
     /** the frame's LAST pass (after the veil) */
-    /** (the checks' own: the picture without its HUD pass — a contrast check's background) */
+    // (the checks' own: the picture without its … hudgl.js#59
     mute(on) { muted = !!on; },
-    draw() { if (!R || !scene || muted) return; let any = false; for (const m of scene.children) if (m.visible) { any = true; break; } if (!any) return; const a = R.autoClear; R.autoClear = false; R.render(scene, cam); R.autoClear = a; },
+    draw() {
+      if (!R || !scene || muted) return;
+      if (grp && grp.on) {   // hudgl.js#60
+        const Q = grp.Rn.q[0], b = grp.Rn.box, vx = view2.x, vy = view2.y, c0 = R.getClearAlpha();
+        R.getClearColor(CC); view2.set(2 * dpr / grp.w, 2 * dpr / grp.h); Q.U.uXf.value.set(1, -b[0], -b[1]); Q.U.uA.value = 1; Q.m.visible = true;
+        R.setRenderTarget(grp.rt); R.setClearColor(0x000000, 0); R.clear(true, false, false); R.render(Q.m, cam);
+        R.setRenderTarget(null); R.setClearColor(CC, c0); view2.set(vx, vy); Q.U.uXf.value.set(1, 0, 0); Q.m.visible = false;
+      } let any = false; for (const m of scene.children) if (m.visible) { any = true; break; } if (!any) return; const a = R.autoClear; R.autoClear = false; R.render(scene, cam); R.autoClear = a; },
     info: () => ({ on: !!R, look: cur, bakes, gen, meshes: Qs.length, shown: Qs.filter(Q => Q.m.visible).length, num: st.num, gold: st.gold, top: st.top, call: st.call ? st.call.t : '', band: st.band ? `${st.band.name} · ${st.band.sub}` : '', near: st.near, outs: st.outs.map(c => c.key.split('|')[0]), last: st.last ? st.last.lines.join(' ') : '', clock: st.clock, watch: st.watch, note: st.note, roster: st.roster ? st.roster.items.length : 0, bandA: st.bandA || 0, bands: K[cur] ? [...K[cur].names.keys()] : [], bandBox: st.bandA ? st.bandBox : null, lines: K[cur] ? Object.fromEntries(Object.entries(K[cur].runs).map(([n, r]) => [n, Array.isArray(r) ? r.map(x => x.ext || null) : r.ext || null])) : null }),
     destroy() { for (const Q of Qs) Q.dispose(); for (const k of [K.night, K.day]) if (k) for (const s of k.sets) if (s.tex) s.tex.dispose(); if (st.roster) st.roster.tex.dispose(); Qs = []; R = null; },
   };

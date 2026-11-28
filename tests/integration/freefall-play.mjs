@@ -477,6 +477,7 @@ async function checks1() {
   ok(pics.a[0] && pics.a[2] === 'lettering-1170.webp' && pics.a[3] === 'Freefall' && Math.abs(ttl.w / 390 - 0.85) < 0.01 && Math.abs(ttl.x + ttl.w / 2 - 195) < 1 && ttl.y >= 60 && ttl.b <= 844 * 0.35 && !pics.old, `THE OPENING's title = title-05's lettering (${pics.a[2]}, ${pics.a[1]} px at 3×): ${ttl.w.toFixed(0)} pt wide = 85 % of the width, centred, in the top 35 % (${ttl.y.toFixed(0)} … ${ttl.b.toFixed(0)} of 844); F2's tube sign + its dropping ball are gone`);
   ok(pics.b[0] && pics.b[3] === 'Fall as deep as you can' && tagl.y >= ttl.b - 2 && tagl.y - ttl.b < 24 && tagl.w >= 220 && Math.abs(tagl.x + tagl.w / 2 - 195) < 1, `its tagline (${pics.b[2]}) just under it (${tagl.y.toFixed(0)} … ${tagl.b.toFixed(0)}, ${tagl.w.toFixed(0)} pt wide)`);
   ok(pics.ready && pics.mask && pics.anim === 'ff-glint' && pics.dur === '7s' && pics.star === 'ff-star', `THE GLINT: a band swept over the lettering every ${pics.dur} while the opening waits, MASKED to the lettering's own alpha (the mask = the file the picture picked: ${pics.mask}), its star (${pics.star})`);
+  bestL.text = (await st(t.p)).top;   // (FIX D: the top line's words = the GL HUD's; its box + size = its source's)
   ok(bestL.text === 'YOUR BEST 88' && bestL.fs >= 13 && bestL.b <= ttl.y + 8, `"${bestL.text}" at the top`);
   ok(ft.text === 'DRAG TO SPIN' && ft.fs >= 22 && hint.y < ft.y && ft.b < 844 - 20 && hint.y > ttl.b + 200, `at the foot: the thumb-sweep hint · ${ft.text} (${ft.fs.toFixed(0)} px)`);
   ok(sndB && sndB.w >= 44 && sndB.h >= 44 && note.text === 'TEST PAGE — NOTHING COUNTS YET', `SOUNDS ≥ 44 pt (${sndB.w.toFixed(0)} × ${sndB.h.toFixed(0)}) · the note "${note.text}"`);
@@ -523,7 +524,7 @@ async function checks1() {
   ok(call.text === 'BLAZE!' && call.fs >= 26, `the announcer: "${call.text}" (${call.fs.toFixed(0)} px)`);
   await auto(t.p, 'smash');
   ok(await waitFor(t.p, 'window.__ffPlay.state().shatters >= 1'), 'THE BLAZE goes through a solid slice (a shatter)');
-  ok((await box(t.p, '.ff-call')).text === 'SMASH!', 'the announcer: "SMASH!"');
+  ok((await st(t.p)).gl.call === 'SMASH!', 'the announcer: "SMASH!"');
   await shot(t.p, 'chk-02-shatter.png');
 
   // ---- THE HOLD (SOLO): hidden = held; back = 3 · 2 · 1, then on
@@ -844,7 +845,7 @@ async function checks3() {
   t = await open(390, 844, 2, '?seed=bnr2&floor=198');
   await start(t); await auto(t.p, 'play');
   await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 1', 30000);
-  const first = (await st(t.p)).banner, goldInk = await t.p.evaluate(q => getComputedStyle(document.querySelector(q)).borderTopColor, bandSel({ banner: first }));
+  const first = (await st(t.p)).banner, goldInk = await t.p.evaluate(q => { const n = document.querySelector(q); n.classList.add('is-gold'); const v = getComputedStyle(n).borderTopColor; n.classList.remove('is-gold'); return v; }, bandSel());   // (FIX D: the gold rules the GL band is painted from)
   await waitFor(t.p, 'window.__ffPlay.state().banner.shows === 2', 12000);
   s = await st(t.p);
   ok(first.key === 'YOU HIT THE BOTTOM|FLOOR 200' && first.gold && goldInk === 'rgb(255, 200, 60)' && s.banner.key === 'THE TRENCH|FLOOR 201' && !s.banner.gold && s.floor >= 201, `floor 200: the GOLD band "${first.key.replace('|', '" / "')}" (its rules ${goldInk}), then — after it — "${s.banner.key.replace('|', '" / "')}" (the ball on floor ${s.floor})`);
@@ -1500,7 +1501,7 @@ async function fixb() {
       if (words.startsWith('ABC')) await shot(t.p, `fixb-last-${w}.png`);
     }
     const good = rows.every(L => L.length === 2 && / ·$/.test(L[0].t) && !/^·/.test(L[1].t) && L[1].y > L[0].y && L.every(x => x.l >= 8 && x.r <= w - 8));
-    ok(good, `G3.2 — LAST ONE STANDING at ${w}: "${rows.map(L => L.map(x => x.t.replace(/ /g, ' ')).join(' / ')).join('" · "')}" — the dot ends line 1, both lines inside the screen`);
+    ok(good, `G3.2 — LAST ONE STANDING at ${w}: "${rows.map(L => L.map(x => x.t.replace(/ /g, ' ')).join(' / ')).join('" · "')}" — the dot ends line 1, both lines inside the screen${good ? '' : ` ${JSON.stringify(rows)}`}`);
     await t.close();
   }
   // (6) G1 — A LOST CONTEXT in a match: the new scene gets the 7 rivals + their names again; while WATCHING, the next frame adopts the watched run
@@ -1722,7 +1723,7 @@ async function fixd() {
     if (OUT) await shot(t.p, `fixd-${lk}-solo.png`);
     await t.close();
     // THE BOT MATCH — 20 s of my fall with 3 rivals (the rail moving, the rivals going OUT: their callouts, LAST ONE STANDING)
-    t = await open(390, 844, 3, `?look=${lk}&seed=fixd-zm&mode=match&rivals=3`);
+    t = await open(390, 844, 3, `?look=${lk}&seed=fixd-zm&mode=match&rivals=3&tier=2`);   // (the tier pinned: the clock runs 3× below, and the spike rule would resize the CANVAS — the picture, not a page layer)
     await waitFor(t.p, `!!window.__ffBot && ${S}.started`, 15000); await auto(t.p, 'play');
     await waitFor(t.p, `${S}.floor >= 2 && window.__ffPlay.matchState().hud.count === ''`, 15000); await sleep(600);
     await watchDom(t.p);
