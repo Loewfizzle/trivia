@@ -1009,3 +1009,10 @@
   over the canvas (re-rasterised with their glows on every change, composited over WebGL). FIX D draws the in-play HUD inside the WebGL picture.
 - **GO-LIVE gets (Ben, Nov 27):** a small /admin HELD list + RELEASE button for runs the anti-cheat holds.
 - **HOW TO PLAY:** "Multiplayer never pauses" (not "a match never pauses").
+
+## FREEFALL — THE GO-LIVE (Nov 28)
+- **SPEED SOLVED (Ben's iPhone after FIX D, Nov 28):** solo night 9 hitches / 78 floors, day 6 / 73, an 8-player bot match 1 in 30 s (was
+  31 / 94 before FIX C).
+- **GO-LIVE (Nov 28):** FREEFALL playable + counting ON; the city sign on SIGN_HOLD (HIGH RISE's pattern) until the CITY chat's pass installs
+  the sign + billboard and lifts it; this week's featured weekly-goal pick pinned until the Monday 4 am line; the /admin HELD list + RELEASE
+  button.
