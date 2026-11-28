@@ -8,6 +8,8 @@
   Creative Commons Zero (CC0 1.0 — http://creativecommons.org/publicdomain/zero/1.0/); four of its sprites, greyscale, in one atlas.
 - `sky/rooftop-night.webp` · `sky/rooftop-day.webp` — THE ROOFTOP's 360° panoramas: made with Grok for this game (approved —
   no third-party credit needed; `Downloads/grok/freefall/rooftop/`).
+- `roof/grain.webp` — the roof's fine grain (256², greyscale, tiles both ways): MADE IN CODE from nothing (band-limited noise, no source file)
+  (`scripts/build-freefall-assets.py`) — no third-party material, no credit needed (FIX C — N4).
 - `roof/below-night.webp` · `roof/below-day.webp` · `roof/city-night.webp` · `roof/city-day.webp` — THE ROOF BELOW (the building's own
   roof seen from above) + the city round it (the same paintings' borders): made with Grok for this game — no third-party credit
   needed (`Downloads/grok/freefall/rooftop/notes-roof-below.txt`).

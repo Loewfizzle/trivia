@@ -185,7 +185,9 @@ test('THE SOUNDS\' TABLE (sounds.js — PURE): twelve sounds (F3B: + the breakth
   assert.deepEqual(readdirSync(new URL('../audio/freefall/', import.meta.url)).sort(), ['CREDITS.md', 'blaze.mp3', 'bottom.mp3', 'bounce.mp3', 'crash.mp3', 'fireworks.mp3', 'lights-out.mp3', 'shatter.mp3', 'skylight.mp3', 'splashdown.mp3', 'whoosh.mp3'], 'the seven picks (take A) + the breakthroughs\' three + their credits: no B take, no -backup ships');
   const credits = read('audio/freefall/CREDITS.md');
   for (const id of ['bounce', 'whoosh', 'blaze', 'shatter', 'crash', 'lights-out', 'bottom', 'skylight', 'splashdown', 'fireworks']) assert.match(credits, new RegExp(`\\| \`${id}\\.mp3\` \\| ".+CC0 1\\.0`), `${id}: its source is credited (CC0)`);
-  assert.equal((credits.match(/CC BY/g) || []).length, 1, 'no CC BY source (the one mention says so)');
+  // (FIX C — N4: FREEFALL's OWN files are all CC0; the CC BY lines name the ONE shared sound it also plays — JAYWALK's NEW BEST, its author)
+  assert.ok(!/\| `[a-z-]+\.mp3` \|[^\n]*CC BY/.test(credits), 'no CC BY source among its own files');
+  assert.match(credits, /audio\/jaywalk\/new-best\.mp3[\s\S]*TommasoMotteran[\s\S]*CC BY 4\.0/, 'the shared NEW BEST: CC BY 4.0, its author named');
   for (const s of SOUNDS) assert.ok(s.gain > 0 && s.gain <= (s.id === 'skylight' || s.id === 'splashdown' ? 2.2 : 1.5) && s.pri >= 1 && s.pri <= 4 && Object.isFrozen(s));
   // F3B — the two that come in ≈ 7 dB quiet (−23.4 / −23.7 LUFS against ≈ −16) are LOUDNESS-MATCHED BY THEIR GAIN (no MP3 encoder on the build machine)
   const gainOf = id => SOUNDS.find(s => s.id === id).gain, dB = x => 20 * Math.log10(x);

@@ -50,6 +50,8 @@ export { finalScene } from './final.js';
 /** SHARE (F4B): THE SHARE CARD (share.js — the run's real end frame, the floors, the cause, the area + the blazes) on the site's share kit; the
  *  console's universal footer shows SHARE for a cartridge with it (ui/final.js) — solo + match */
 export { shareNow as shareRun } from './final.js'; // index#8
+/** FIX C — N2: NO SHARE when the card would mislead — an unproven match, my row refused (a late / no GO = "missed the start", a copy, a bad log) */
+export const shareOk = (game, me) => !(game && game.unproven) && !((((game && game.results) || {})[me] || {}).bad);
 // F5B — THE END-SCREEN BOARD (ui/end-board.js — the podium's … index.js#9
 export const END_BOARD = Object.freeze({ b: BOARD, word: 'FLOORS', avg: true });
 

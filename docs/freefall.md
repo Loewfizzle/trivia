@@ -1786,7 +1786,7 @@ The long comments of FREEFALL's cartridge modules, moved here VERBATIM so the ca
 **§1** (above `/** a sound: 'file' in audio/<dir>/, played at 'rate', 'gain' into the`)
 
 ```js
-// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — all CC0; two are JAYWALK's).
+// FREEFALL — THE SOUNDS' TABLE (F2 — docs/freefall.md "THE SOUNDS"; the files: audio/freefall/ + CREDITS.md — its own all CC0; two are JAYWALK's — NEW BEST is CC BY 4.0, TommasoMotteran: FIX C N4).
 // PURE, no imports (the unit tests read it; sfx.js plays it): every sound, its words in the SOUNDS list, its file + folder, its gain into
 // the limiter, its PRIORITY. THE PICKS ARE THE OWNER's (take A of each).
 // THE TRIGGERS (cuesOf — the engine's events → the sounds):

@@ -52,6 +52,7 @@ export const OPTIONAL = Object.freeze({
   soloPause: 'function',        // soloPause(game, now) → patch — a SOLO match paused while its one player is away (host.js)
   soloResume: 'function',       // soloResume(game, now) → patch — and resumed
   shareRun: 'function',         // shareRun(game, state) — the podium's SHARE for a solo run (ui/final.js)
+  shareOk: 'function',          // shareOk(game, me) → false = NO SHARE on this podium (an unproven match, a refused row, a missed start — no misleading card)
   // (JAYWALK H3 — THE INSTANT AGAIN: games/kit/again.js)
   soloAgain: 'function',        // soloAgain(game, { matchId, now }) → the NEXT solo run's game (PURE; `play` at once) — the solo podium's first button starts it with no walk inside
   AGAIN_LABEL: 'string',        // that button's word (default PLAY AGAIN) — JAYWALK: HOP AGAIN (META_KEYS; 4–14 letters)

@@ -7,7 +7,7 @@ import { showCall } from '../kit/call.js';
 import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { createRun, stepTo, isOver } from './engine.js';
 import { TICK_HZ, RULES_DEFAULT } from './tuning.js';
-import { startOf, liveOf } from './match.js';
+import { startOf, liveOf, CALL_WINDOW_MS } from './match.js';
 import { finalPatch } from './director.js';
 import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { follow, nextFollow } from './ghosts.js';
@@ -49,6 +49,8 @@ export const NOT_HERE = 'PLAYING — WAIT FOR THE REMATCH', PLAIN_AFTER_MS = 300
 /** THE ORDER: the cause's words → Call the Winner → WATCH (the match's end-to-end run: the watch began 0.9 s after an out, under the OUT
  *  card, and the call's sheet then opened over both). The call opens once the OUT card has left; the watch waits for the card AND the call. */
 export const CALL_AFTER_MS = OUT_SHOW_MS + 400, WATCH_AFTER_MS = OUT_SHOW_MS + 500;
+/** FIX C — N1: the sheet opens only while this much of the judge's call window is still left (a pick takes a few seconds) */
+export const CALL_MARGIN_MS = 4000;
 
 // (the pass's own checks — tests/integration/e2e-freefall.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
@@ -283,7 +285,9 @@ export function createView() {
     const g = st.game, node = runs && mine(g) ? runs[uid] : null, old = node && node.c ? logFromChunks(node.c) : null, moves = old ? old.log : [];
     W.reset({ sent: moves.length, next: node && node.c ? Object.keys(node.c).length : 0, verify: !!(node && node.c) });
     if (node && node.go > 0) haveGo = true;
-    if (node && node.e) { wroteE = true; callDone = true; }   // (a rejoin after their own end: straight to watching)
+    if (node && node.e) { wroteE = true; callDone = true; outShown = true; }   // (a rejoin after their own end: straight to watching — FIX C N10: the OUT card is never shown twice)
+    // (FIX C — N10: a refresh rebuilds the call line from the MIRRORED call — kit/call.js's own words)
+    if (node && node.k && typeof node.k.w === 'string') callLine = `YOUR CALL · ${nameOf(node.k.w)}`;
     followUid = ''; adopted = true; started = true; partsSeen = null;
     // "YOUR OWN PHONE MISSED THE GO" (HIGH RISE's): it reaches … view.js#32
     missed = mine(g) && !moves.length && !(node && node.e) && ballGone(St);
@@ -322,9 +326,13 @@ export function createView() {
       const made = r.cause === 'made';
       S.outCard({ kicker: made ? 'THE BOTTOM' : r.cause === 'cap' ? 'THE BELL' : 'OUT', words: g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : made ? END_WORDS.made : END_WORDS[r.cause] || 'THE END', floors: r.floor, made, ms: made ? MADE_SHOW_MS : OUT_SHOW_MS });
     }
-    if (!callDone && r && mine(g) && (r.cause === 'red' || r.cause === 'dark') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE) {
+    // (FIX C — N1: the picks = the players still falling with an ON-TIME GO and news (never a no-show, never a lost phone — a pick the
+    //  rules or the judge would refuse); no sheet once the judge's window is nearly over — after a long lock the call could never count)
+    const g0 = firstGo(runs), cands = live.filter(x => !x.lost && onTime(runs && runs[x.uid], g0)).map(x => x.uid);
+    const inWindow = r && r.end >= 0 && serverNow() < mPlayAt + r.end * 1000 / TICK_HZ + CALL_WINDOW_MS - CALL_MARGIN_MS;
+    if (!callDone && r && mine(g) && (r.cause === 'red' || r.cause === 'dark') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE && cands.length && inWindow) {
       callDone = true;
-      const cands = live.map(x => x.uid), made = runs && runs[uid] && runs[uid].k;
+      const made = runs && runs[uid] && runs[uid].k;
       // (JAYWALK's THE LATE k WRITE: never a pick for a player … view.js#35
       callEl = showCall({ canPick: u => !(liveRuns && liveRuns[u] && liveRuns[u].e != null), expect: 'freefall call: the match moved on before the pick landed', overlay: S.over, game: g, st: { live: { calls: made ? { [uid]: made } : {} } }, me: uid, player: u => st.players[u] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' }, candidates: cands, path: `${nodePath()}/k`,
         line: u => { const x = others.find(o => o.uid === u), n = x ? x.floor : 0; return `FLOOR ${n}`; }, intro: n => `${n} still falling — who goes the deepest? A right call earns game-night points.`,
@@ -390,6 +398,7 @@ ${sub}`;
     if (g.phase === 'final' && !final && !runLive() && !(RH && RH.on)) {
       if (!finalSeen) finalSeen = performance.now();
       const waiting = !g.unproven && adopted && liveWait.wait({ code, matchId, runs, presence: st.presence, now, skip: uid }).length > 0;
+      if (waiting) lwKeep(true);   // (FIX C — N10: a refresh keeps it)
       if (!waiting && (!adopted || !mine(g) || performance.now() - finalSeen > FINAL_HOLD_MS || (S.state().shown && (!outRes || performance.now() - outAt > (outRes.cause === 'made' ? 1400 : 500))))) { S.count('', null); S.watchLine(''); showFinal(podiumGame(g)); }
     }
     // FIX B — S1: THE HOST RE-SCORED (a silent phone's end landed … view.js#47
@@ -399,7 +408,11 @@ ${sub}`;
   /** FIX B — S1: the podium a phone shows — scored from the nodes as they stand NOW when the room waited on a live run, or when MY OWN run
    *  ended after the host's podium was written (a silent phone: the host's early row of mine is stale) — never the host's stale row */
   const lateMine = g => !!outSrv && mine(g) && g.endAt > 0 && outSrv > g.endAt;
-  const podiumGame = g => (liveWait.waited() || lateMine(g) ? scoredNow(g) : g);
+  // (FIX C — N10: "the podium waited on a live run" outlives a refresh — this tab's session keeps it a match)
+  const lwKey = () => `ff:lw:${code}:${matchId}`;
+  const lwKeep = v => { try { if (v) sessionStorage.setItem(lwKey(), '1'); } catch { /* a private window forgets: fine */ } };
+  const lwWas = () => { try { return sessionStorage.getItem(lwKey()) === '1'; } catch { return false; } };
+  const podiumGame = g => (liveWait.waited() || lwWas() || lateMine(g) ? scoredNow(g) : g);
   const resKey = g => String(g.rescored || 0);   // (a podium is built again only when the HOST re-scored)
   // the stage's end moment in a match: OUT (or the finish / the … view.js#48
   function endMatch(r) { if (!outRes) { outRes = r; outAt = performance.now(); outSrv = serverNow(); } sync(); return { own: false, watch: true }; }

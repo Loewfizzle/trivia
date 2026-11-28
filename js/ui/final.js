@@ -167,7 +167,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     refreshers.push(paint);
     cancelers.push(subscribe(paint));   // (the votes + the host move live — every phone's mirrored rv)
   }
-  const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]);
+  const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]) && (() => { try { return typeof mod.shareOk !== 'function' || mod.shareOk(g, me) !== false; } catch { return true; } })();   // (FREEFALL FIX C — N2: a game may say no card fits this podium)
   // (JAYWALK BEFORE THE FLIP — a game whose card uploads at the tap: a slow first tap reads PREPARING…; 'ready' = the link is made but the …
   const shareT = h('span', 'SHARE');
   const share = canShare ? h('button.final-link.final-share', { type: 'button', 'data-gesture': true, onclick: () => {

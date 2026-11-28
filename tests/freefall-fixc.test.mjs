@@ -143,3 +143,15 @@ test('GROUP 4 — THE FINISH CARD: bigger coloured bursts (gold + cyan by night,
     assert.match(src, /if \(gold\) celebrate\(c, box, shot\);/); assert.doesNotMatch(src.slice(src.indexOf('function celebrate'), src.indexOf('/** the middle')), /Math\.random/);
   });
 });
+
+test('GROUP 5 — N1 the call\'s picks (on-time GO, not lost; no sheet past the window) · N2 no SHARE on a misleading podium · N10 a refresh keeps the call line, the OUT card shown once, "waited"', async () => {
+  const v = readFileSync('js/games/freefall/view.js', 'utf8');
+  assert.ok(v.includes('cands = live.filter(x => !x.lost && onTime(runs && runs[x.uid], g0)).map(x => x.uid)') && v.includes('cands.length && inWindow'), 'N1');
+  const { shareOk } = await import('../js/games/freefall/index.js').catch(() => ({ shareOk: null }));
+  if (shareOk) {
+    assert.equal(shareOk({ results: { a: { f: 9 } } }, 'a'), true);
+    assert.equal(shareOk({ unproven: 1, results: { a: { f: 9 } } }, 'a'), false); assert.equal(shareOk({ results: { a: { f: 0, bad: 'late go' } } }, 'a'), false);
+  }
+  assert.match(readFileSync('js/ui/final.js', 'utf8'), /typeof mod\.shareOk !== 'function' \|\| mod\.shareOk\(g, me\) !== false/, 'N2: the shared podium asks');
+  assert.ok(v.includes("outShown = true; }   // (a rejoin after their own end") && v.includes('callLine = `YOUR CALL · ${nameOf(node.k.w)}`') && v.includes('if (waiting) lwKeep(true);'), 'N10');
+});

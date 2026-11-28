@@ -1,8 +1,13 @@
-# FREEFALL — the sounds (all CC0 1.0)
+# FREEFALL — the sounds (its own files: all CC0 1.0 · it also plays JAYWALK's NEW BEST — CC BY 4.0, below)
 
 The owner's picks (take A of each), copied byte for byte from the delivery (`Downloads\grok\freefall\sfx\` — its `notes.txt` has
 each source's page, the processing and the measured loudness): `python -P -E scripts/build-freefall-assets.py`.
-MPEG-1 Layer III, 192 kbps CBR, 44.1 kHz. Every source was verified CC0 1.0 on its own page; no CC BY material is used.
+MPEG-1 Layer III, 192 kbps CBR, 44.1 kHz. Every source of THESE files was verified CC0 1.0 on its own page.
+
+**ALSO PLAYED (FIX C — N4): JAYWALK's `audio/jaywalk/new-best.mp3` (NEW BEST) — CC BY 4.0, the attribution REQUIRED:** "Fantasy Achievement
+Unlock Magical Stinger" by TommasoMotteran (https://freesound.org/people/TommasoMotteran/sounds/859080/) — Licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). FREEFALL's own row in the site's Credits sheet names it (js/ui/credits.js). The area's
+arrival, a rival out + last one standing are JAYWALK's / the city's other shared sounds (their credits: audio/jaywalk/CREDITS.md).
 
 | file | source |
 | --- | --- |

@@ -59,7 +59,7 @@ test('S1 A SILENT PHONE: the podium written while a phone was silent is RE-SCORE
 test('S1 — the phones: the late phone\'s own podium is scored from the nodes as they stand (scoredNow), a re-score rebuilds every podium (view.js)', () => {
   const v = read('js/games/freefall/view.js');
   assert.match(v, /const lateMine = g => !!outSrv && mine\(g\) && g\.endAt > 0 && outSrv > g\.endAt;/);
-  assert.match(v, /const podiumGame = g => \(liveWait\.waited\(\) \|\| lateMine\(g\) \? scoredNow\(g\) : g\);/);
+  assert.match(v, /const podiumGame = g => \(liveWait\.waited\(\) \|\| lwWas\(\) \|\| lateMine\(g\) \? scoredNow\(g\) : g\);/);   // (FIX C — N10: + a refresh keeps "waited")
   assert.match(v, /showFinal\(podiumGame\(g\)\); \}\n    \}\n    \/\/ FIX B — S1: THE HOST RE-SCORED/);
   assert.match(v, /else if \(final && g\.phase === 'final' && resKey\(g\) !== finalRes\) \{ final\.destroy\(\);/);
 });
