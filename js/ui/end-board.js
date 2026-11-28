@@ -53,6 +53,18 @@ function tableRows(b) {
 }
 /** E2E only — the session's reads forgotten (a fixture re-seeded the board / YOUR TABLE: the next mount asks again) */
 export const forgetReads = () => { boards.clear(); tables.clear(); };
+// FIX C — S10 (FREEFALL's review; the shared block, every game with it on): the server's answer for a counted run carries a NEW BEST (`pbs`)
+// → that board's kept reads are dropped and every block showing it reads again (the top 3 + the YOU line show the new row, no reload)
+const shown = new Map();   // board → the mounted blocks' re-reads
+export function newBests(outcome) {
+  for (const p of (outcome && Array.isArray(outcome.pbs) ? outcome.pbs : [])) {
+    if (!p || typeof p.b !== 'string') continue;
+    boards.delete(p.b); tables.delete(p.b);
+    for (const fn of shown.get(p.b) || []) { try { fn(); } catch { /* that block's own business */ } }
+  }
+}
+let heard = false;
+const hear = () => { if (heard) return; heard = true; lazyImport(import('../profile/queue.js'), '../profile/queue.js').then(Q => Q.onOutcome((k, o) => newBests(o))).catch(() => { heard = false; }); };
 const kits = () => Promise.all([lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ m, K }))), lazyImport(import('../core/board-avg.js'), '../core/board-avg.js')]);
 
 /** the rows into `list` as slim cards (ui/strip-board.js — THE LIVE LANE) → a destroy() */
@@ -109,12 +121,17 @@ export function mountEndBoard(el, cfg, { rows = [], players = {}, me = '', solo 
     note.textContent = msg;
     (friends ? tableRows(b) : worldRows(b)).then(R => {
       if (gone || n !== ask) return;
-      if (friends && !R.some(r => !r.me)) { setFriends(false, false, 'NO FRIENDS YET'); return; }   // (the world stays — the tick unticks itself, the line says why)
+      // (FIX C — S11: the tick unticks itself → '0' is REMEMBERED; the line says why only on the TAP that asked — never on a later end screen)
+      if (friends && !R.some(r => !r.me)) { writeFr(false); setFriends(false, false, byTap ? 'NO FRIENDS YET' : ''); return; }
       const { top, you: mine } = pickRows(R);
       if (!top.length && !msg) note.textContent = 'NO RUNS ON THE BOARD YET';
       return show(top, mine, r => r, () => n === ask);
     }).catch(() => { if (!gone && n === ask) { note.textContent = 'THE BOARD IS RESTING'; done(); list.replaceChildren(); } });
   }
   setFriends(readFr(), false);
-  return { destroy() { gone = true; done(); } };
+  hear();
+  const again = () => { if (!gone) setFriends(friends, false); };
+  if (!shown.has(b)) shown.set(b, new Set());
+  shown.get(b).add(again);
+  return { destroy() { gone = true; done(); const S = shown.get(b); if (S) S.delete(again); } };
 }

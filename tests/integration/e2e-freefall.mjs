@@ -169,6 +169,7 @@ try {
   const eb = await P.ev("(() => { const f = document.querySelector('.ff-final .final'); return { k: document.querySelector('.eb-head').textContent + (document.querySelector('.eb-k') ? ' + a heading' : ''), rows: document.querySelectorAll('.eb-list li').length, note: document.querySelector('.eb-note').textContent, scroll: f.scrollHeight - f.clientHeight, winner: getComputedStyle(document.querySelector('.ff-final .winner')).display, stats: !!document.querySelector('.ff-fin .ff-ec-line') }; })()");
   await P.ev("document.querySelector('.eb-tick').click()");
   ok(await P.waitFor("document.querySelector('.eb-note').textContent === 'NO FRIENDS YET' && !document.querySelector('.eb-k') && document.querySelector('.eb-tick').getAttribute('aria-checked') === 'false'", 15000), `F5B — FRIENDS ticked with no friends yet: "${await P.ev("document.querySelector('.eb-note').textContent")}" — everyone stays (the server's YOUR TABLE asked once)`);
+  ok(await P.ev("localStorage.getItem('ns:endb:fr')") === '0', 'FIX C — S11: the tick that unticked itself is REMEMBERED off (\'0\') — the next end screen never says NO FRIENDS YET again');
   ok(eb.k === 'FRIENDS ONLY' && eb.rows <= 3 && eb.winner === 'none' && !eb.stats && eb.scroll <= 1, `… "${eb.k}" (${eb.rows} rows${eb.note ? ` — ${eb.note}` : ''}), no winner line, no stats line, NOTHING SCROLLS (${eb.scroll} px over)`);
   await sleep(400);
   await P.shot('f4a-cartridge-end-would-count.png');

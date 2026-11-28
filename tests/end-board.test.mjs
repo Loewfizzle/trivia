@@ -48,7 +48,9 @@ test('THE READS stay small: ONE board fetch (the all-time top 100) a session + Y
   assert.ok(s.includes('if (!boards.has(b)) boards.set(b,') && s.includes('if (!tables.has(b)) tables.set(b,'), 'each read once a session (a failed one may be asked again)');
   assert.ok(s.includes("export const FRIENDS_KEY = 'ns:endb:fr';") && /try \{ return localStorage\.getItem\(FRIENDS_KEY\) === '1'; \} catch/.test(s) && /try \{ localStorage\.setItem\(FRIENDS_KEY/.test(s));
   assert.ok(s.includes("AV.avgLabel(r.av != null && Number.isFinite(Number(r.av)) ? r.av : null)"), 'the stored average — a dash under 5 runs (core/board-avg.js)');
-  assert.ok(s.includes("setFriends(false, false, 'NO FRIENDS YET')"), 'no friends yet: the line, the world stays');
+  assert.ok(s.includes("if (friends && !R.some(r => !r.me)) { writeFr(false); setFriends(false, false, byTap ? 'NO FRIENDS YET' : ''); return; }"), 'no friends yet: the world stays — FIX C S11: the untick is REMEMBERED (\'0\'), the line only on the tap that asked');
+  // FIX C — S10: a counted run's NEW BEST (the server's `pbs`) drops that board's kept reads + every block showing it reads again
+  assert.ok(s.includes("Q.onOutcome((k, o) => newBests(o))") && s.includes('boards.delete(p.b); tables.delete(p.b);'), 'S10: the outcome\'s pbs → the reads dropped');
   assert.doesNotMatch(s, /\b999px\b|border-radius/, 'no pill');
   const css = read('css/components.css');
   assert.match(css, /\.eb-tick::before \{ content: ''; position: absolute; inset: -7px -8px; \}/, 'the tick\'s tap area: 44 pt tall');
