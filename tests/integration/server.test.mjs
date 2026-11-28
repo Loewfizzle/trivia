@@ -1412,17 +1412,21 @@ test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a strange
   assert.deepEqual([sg.pa.gf['freefall-bottom'], sg.pa.gf['freefall-terminal'], sg.pa.gf['freefall-harbor']], [1, 1, 1], 'the feat flags from the server\'s replay');
 
   // ==== THE GO-LIVE — GROUP 2: THE HELD LIST end to end (a run too perfect for a human → ffheld → /admin RELEASE once · REJECT nothing) ====
+  process.env.BOARD_MIN_MATCHES = '3';   // (the real listing floor for this block — restored below)
   const S = 'u-ffs';
   await ensure(S, 'SCRIPT'); const spid = await val(`uids/${S}`);
+  // (the fresh-eyes review: three honest counted runs first — the RELEASE below must reach the PUBLIC board, not stop under the listing floor)
+  for (let i = 0; i < 2; i++) { tick(9000); assert.equal((await report(S, await seedRun(S, spid, m => runOf(m, 'sloppy', 20)))).status, 'counted'); }
   tick(9000);
   const HR = await seedRun(S, spid, m => runOf(m, 'script', 160));
   assert.ok(ffTooPerfect({ f: HR.live.floor, b: HR.live.bounces, br: HR.live.bestRun }), `the fixture: the script's run is too perfect (${HR.live.floor} floors · ${HR.live.bounces} bounces · best run ${HR.live.bestRun})`);
+  const pre = await stats(S);
   const rh0 = await report(S, HR);
   const ss0 = await stats(S);
   assert.equal(rh0.status, 'counted', 'a held run is COUNTED for its XP');
   assert.ok(rh0.outcome.xp.gain > 0 && (rh0.rejected || []).includes('freefall-solo'), '… XP paid, the board named in `rejected`');
-  assert.ok(!(ss0.b && ss0.b['freefall-solo']) && !(ss0.av && ss0.av['freefall-solo']) && !(ss0.it && ss0.it['card-splashdown']), '… NO board row, NO average, NO card');
-  assert.equal(countedPlays(ss0), 0, '… and no counted play toward THE BOARD\'s listing');
+  assert.ok(JSON.stringify(ss0.b) === JSON.stringify(pre.b) && JSON.stringify(ss0.av) === JSON.stringify(pre.av) && !(ss0.it && ss0.it['card-splashdown']), `… NO board row (the best stays the honest ${pre.b['freefall-solo'].a}), NO average, NO card`);
+  assert.equal(countedPlays(ss0), 2, '… and no counted play toward THE BOARD\'s listing (the two honest runs only)');
   const hid = `${code}_${HR.matchId}_${spid}`;
   const hn = await val(`ffheld/${hid}`);
   assert.ok(hn && hn.pid === spid && hn.n === 'SCRIPT' && hn.f === HR.live.floor && hn.so === 1 && /THE LINE/.test(hn.why) && /harbor/.test(hn.ff), `the HELD row (ffheld/${hid}): ${JSON.stringify(hn)}`);
@@ -1437,6 +1441,7 @@ test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a strange
     const L0 = (await adminAction('u-ffboss', { action: 'heldList' })).held;
     assert.ok(L0.some(x => x.id === hid && x.why === hn.why), '/admin HELD: the row, why it was held');
     const lbBefore = await val(`lb/freefall-solo/all/${spid}`);
+    const audN = async () => Object.values((await val('audit')) || {}).filter(a => a.act === 'heldRelease' && a.b === hid).length, aud0 = await audN();
     const rr = await adminAction('u-ffboss', { action: 'heldRelease', id: hid });
     const ss1 = await stats(S);
     assert.ok(!rr.held.some(x => x.id === hid), 'RELEASE: off the list');
@@ -1445,11 +1450,24 @@ test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a strange
     assert.ok(ss1.it['card-splashdown'] && ss1.pa.gf['freefall-harbor'] === 1, '… the card its replay earned (SPLASHDOWN)');
     assert.equal(ss1.xp, ss0.xp, '… never XP again'); assert.deepEqual(ss1.st, ss0.st, '… never the streak');
     assert.ok(ss1.rl && ss1.rl[hid], '… marked released (exactly once)');
-    assert.equal(lbBefore, null);
+    assert.equal(lbBefore, null, 'before: not listed (2 counted plays)');
+    assert.equal(countedPlays(ss1), 3, '… the released solo run is the 3rd counted play');
+    assert.ok((await val(`lb/freefall-solo/all/${spid}`)) != null, '… which LISTS them: the row is on the board');
+    assert.equal(await val(`profiles/${spid}/m`), 3, '… the profile\'s counted plays with it');
+    const pubS = await boardQuery({ b: 'freefall-solo', p: 'all' }, clock);
+    assert.ok((pubS.rows || []).some(r => /SCRIPT/.test(r.n || '') && r.v === HR.live.floor), `… and on PUBLIC /board: SCRIPT ${HR.live.floor}`);
     await rejects(adminAction('u-ffboss', { action: 'heldRelease', id: hid }), 409, 'gone');   // (a second tap: nothing)
     assert.deepEqual(await stats(S), ss1, 'RELEASE twice = once');
-    const aud = Object.values((await val('audit')) || {}).filter(a => a.act === 'heldRelease' && a.b === hid);
-    assert.equal(aud.length, 1, 'audited');
+    // a crash AFTER the stats were written but BEFORE the row left the list: the row comes back — RELEASE again = nothing new (pstats.rl)
+    await ref(`ffheld/${hid}`).set(hn);
+    const again = await adminAction('u-ffboss', { action: 'heldRelease', id: hid });
+    assert.equal(again.skip, 'released', 'the crash re-release: skipped by its mark');
+    assert.deepEqual(await stats(S), ss1, '… the stats untouched'); assert.ok(!(await val(`ffheld/${hid}`)), '… and the row is off the list');
+    // REJECT refuses a row whose RELEASE is in flight (two admin tabs)
+    await ref('ffheld/BUSY_x_p1').set({ ...hn, st: 'busy', bt: Date.now() });
+    await rejects(adminAction('u-ffboss', { action: 'heldReject', id: 'BUSY_x_p1' }), 409, 'gone');
+    await ref('ffheld/BUSY_x_p1').remove();
+    assert.equal(await audN() - aud0, 2, 'audited: the RELEASE + the crash re-release (the 409 tap writes nothing)');
     // REJECT: a second held run — off the list, NOTHING else moves
     tick(9000);
     const HR2 = await seedRun(S, spid, m => runOf(m, 'script', 170));
@@ -1461,7 +1479,7 @@ test('FREEFALL F4A → THE GO-LIVE (Nov 28) — playable for everyone: a strange
     assert.ok(!rj.held.some(x => x.id === hid2) && !(await val(`ffheld/${hid2}`)), 'REJECT: off the list');
     assert.equal(JSON.stringify([await stats(S), await val('lb/freefall-solo'), await val(`profiles/${spid}`)]), before2, '… the board, the stats, the profile untouched (its XP stays)');
     await rejects(adminAction('u-ffboss', { action: 'heldRelease', id: 'bad/id' }), 400, 'bad_id');
-  } finally { if (keepAdmins == null) delete process.env.ADMIN_PIDS; else process.env.ADMIN_PIDS = keepAdmins; }
+  } finally { if (keepAdmins == null) delete process.env.ADMIN_PIDS; else process.env.ADMIN_PIDS = keepAdmins; process.env.BOARD_MIN_MATCHES = '1'; }
 });
 
 // JAYWALK H4 — THE MATCH: counted ONLY from the server's replay of EVERY player's proof node (the course + tick 0 from THE FIRST GO) —

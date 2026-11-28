@@ -7,7 +7,7 @@ import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { releaseStep } from '../../js/core/progress.js';
 import { heldNode, heldId } from '../../js/core/match-report.js';
-import { syncBoards } from './lb.js';
+import { syncBoards, playCount, minMatches } from './lb.js';
 import { founderOpen } from './founder.js';
 import { bumpOwners } from './owners.js';
 
@@ -35,14 +35,17 @@ export async function heldRelease(id, now = Date.now()) {
   if (!claim.committed || !claim.snapshot.val()) throw new ApiError(409, 'gone', 'Already handled.');
   const h = claim.snapshot.val(), fo = await founderOpen(now).catch(() => false);
   let res = null;
-  await ref(`pstats/${h.pid}`).transaction(cur => { res = releaseStep(cur, { id, b: BOARD, v: h.f, solo: !!h.so, ft: h.ff, gid: h.g || 'freefall', at: h.at }, now, { founderOpen: fo }); return res.skip ? undefined : res.next; });
+  const tx = await ref(`pstats/${h.pid}`).transaction(cur => { res = releaseStep(cur, { id, b: BOARD, v: h.f, solo: !!h.so, ft: h.ff, gid: h.g || 'freefall', at: h.at }, now, { founderOpen: fo }); return res.skip ? undefined : res.next; });
+  let all = false;
   if (res && !res.skip) {
-    const patch = {};
+    const played = playCount(tx.snapshot.val());
+    all = playCount(res.prevStats) < minMatches() && played >= minMatches();   // (this release is the play that LISTS them: every game's boards up at once — stats.js's rule)
+    const patch = { [`profiles/${h.pid}/m`]: played };
     for (const [b, v] of Object.entries(res.av || {})) patch[`profiles/${h.pid}/av/${b}`] = v == null ? null : v;
     if (Object.keys(patch).length) await ref('/').update(patch);
     await bumpOwners(res.items, false, res.ach).catch(e => console.warn('owners', e && e.message));
   }
-  await syncBoards(h.pid, { now, only: h.g || 'freefall' });   // (the board row from the stats — the same rows a counted run writes)
+  await syncBoards(h.pid, { now, only: all ? null : h.g || 'freefall' });   // (the board rows from the stats — the same rows a counted run writes)
   await ref(`ffheld/${id}`).remove();
   return { id, pid: h.pid, skip: (res && res.skip) || null, pbs: (res && res.pbs) || [], ach: (res && res.ach) || [], items: (res && res.items) || [] };
 }
@@ -50,7 +53,7 @@ export async function heldRelease(id, now = Date.now()) {
 export async function heldReject(id) {
   if (!HELD_ID.test(String(id))) throw new ApiError(400, 'bad_id');
   const cur = await val(`ffheld/${id}`);
-  if (!cur) throw new ApiError(409, 'gone', 'Already handled.');
+  if (!cur || (cur.st === 'busy' && Date.now() - (cur.bt || 0) < 60_000)) throw new ApiError(409, 'gone', 'Already handled.');   // (a RELEASE in flight — never REJECTED under it)
   await ref(`ffheld/${id}`).remove();
   return { id, pid: cur.pid };
 }

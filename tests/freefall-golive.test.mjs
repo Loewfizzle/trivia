@@ -29,7 +29,8 @@ test('GROUP 0 — THE TOP LINE clears the corner buttons; THE RAIL\'s names neve
   for (let i = 1; i < L.length; i++) assert.ok(L[i] - L[i - 1] >= NAME_GAP - 1e-9, `names ${i - 1} + ${i}: ${L[i] - L[i - 1]} px apart`);
   assert.match(hud, /function apart\(M, n, now\) \{/, 'the EASED names kept apart too (no crossing mid-ease)');
   // THE SPIKE RULE: one NO HELP → back and the timing rule never ticks again for the page
-  assert.match(stage, /if \(pin == null && !spikeOff && frameN % 10 === 0\) tiers\.tick\(now\);/);
+  assert.match(stage, /if \(!helped\) \{ spikeOff = true; tiers\.set\(trialFrom\); tiers\.rest\(\); \}/, 'NO HELP → back, and the timing rule RESTS');
+  assert.match(read('js/games/kit/tiers.js'), /rest\(\) \{ capped = true; probeOn = false; spOn = false; spOff = true; pend = 0; \},/, '… real work may still step down (the reviewer: never the whole controller off)');
   assert.match(stage, /export const SPIKE = Object\.freeze\(\{ n: 4, span: 20000, trial: 10000, settle: 500, helped: 0\.5, floor: 1 \}\);/, 'the rule itself unchanged');
 });
 
@@ -118,7 +119,8 @@ test('GROUP 2 — RELEASE (PURE): the board row + THE AVERAGE + the cards as if 
 
 test('GROUP 2 — the server + /admin wiring: recorded at the count, owner-only actions audited, a DURABLE node, the rules closed to clients', () => {
   const rep = read('api/report.js'), adm = read('api/admin.js'), held = read('api/_lib/held.js'), ui = read('js/admin/admin.js');
-  assert.ok(rep.indexOf("if (ex.rejected.some(r => r && r.v === 'held')) await import('./_lib/held.js')") > rep.indexOf("await ref(`results/${key}`).set({ st: 'done'"), 'recorded once the match is counted');
+  const hi = rep.indexOf("if (ex.rejected.some(r => r && r.v === 'held')) await import('./_lib/held.js').then(H => H.recordHeld({ key, ex, pids, at, now }));");
+  assert.ok(hi > rep.indexOf('const outcomes = mergeOutcomes(tried.o, await applyMatch(') && hi < rep.indexOf("await ref(`results/${key}`).set({ st: 'done'"), 'recorded once credited, BEFORE the done seal (a failure = the resend records it — never lost behind `done`)');
   assert.match(adm, /case 'heldRelease': case 'heldReject': \{/); assert.match(adm, /await audit\(me, body\.action, r\.pid,/);
   assert.match(held, /ref\(`ffheld\/\$\{id\}`\)\.transaction\(cur => \(cur == null \? null : cur\.st === 'busy'/, 'RELEASE claims the row first (null kept: the server re-runs it on the real row)');
   assert.match(read('api/_lib/backup-pure.js'), /'nocount', 'ffheld'\]\);/);

@@ -111,5 +111,5 @@ test('FIX B — THE SPEED SWITCHES are the TEST PAGE\'s only: the cartridge pass
   assert.match(play, /const AB = Object\.freeze\(\{ bloom: !off\('bloom'\), fx: !off\('fx'\), wall: !off\('wall'\), ghosts: !off\('ghosts'\), smooth: !off\('smooth'\), hud: !off\('hud'\) \}\);/);   // (FIX C: + `?hud=0`)
   assert.match(st, /function spinAhead\(tau\) \{\n    if \(!SMOOTH \|\| t0 == null \|\| held \|\| spect \|\| isOver\(run\) \|\| tau < 1\) return 0;/);
   assert.match(st, /export const SPIKE = Object\.freeze\(\{ n: 4, span: 20000, trial: 10000, settle: 500, helped: 0\.5, floor: 1 \}\);/);
-  assert.match(st, /if \(!helped\) \{ spikeOff = true; tiers\.set\(trialFrom\); \}/, 'a step that did not help goes back up — and the rule rests');
+  assert.match(st, /if \(!helped\) \{ spikeOff = true; tiers\.set\(trialFrom\); tiers\.rest\(\); \}/, 'a step that did not help goes back up — and the rule rests (THE GO-LIVE: the timing rule rests with it)');
 });

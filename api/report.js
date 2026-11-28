@@ -425,9 +425,10 @@ async function credit({ key, uid, myPid, ex, pids, now, room, at, src }) {
     throw new ApiError(425, 'too_soon', 'Counting it in a moment.', { retryAfter: MIN_MATCH_GAP_MS + 2000 });
   }
   if (!tried.o) await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
+  // (FREEFALL GO-LIVE — THE HELD LIST: a row THE HOLD kept off waits on /admin for the owner's RELEASE / REJECT — api/_lib/held.js; written
+  //  BEFORE the seal: a failure fails the report and the resend writes it — once each — never a held run lost behind a sealed `done`)
+  if (ex.rejected.some(r => r && r.v === 'held')) await import('./_lib/held.js').then(H => H.recordHeld({ key, ex, pids, at, now }));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
-  // (FREEFALL GO-LIVE — THE HELD LIST: a row THE HOLD kept off waits on /admin for the owner's RELEASE / REJECT — api/_lib/held.js)
-  if (ex.rejected.some(r => r && r.v === 'held')) await import('./_lib/held.js').then(H => H.recordHeld({ key, ex, pids, at, now })).catch(e => console.warn('held', e && e.message));
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };
 }

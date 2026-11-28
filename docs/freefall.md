@@ -78,8 +78,11 @@ keeps its board row, THE AVERAGE and the cards off. Since the go-live each held 
   (opens their card), the floors, the date, SOLO / MATCH, the bounces + the best no-bounce run, the cards waiting, the room, WHY.
 - **RELEASE** = the row reaches THE BOARD (its best + this week's), THE AVERAGE + a counted play (a solo run) and the cards / achievements
   its replay earned AS IF it had counted — never XP again, never the streak, never a win. Exactly once: the row is CLAIMED first (one tap =
-  one release), the pure `releaseStep` runs in ONE `pstats` transaction and marks `pstats.rl/{id}`; the board rows are written from the
-  stats (`lb.js#syncBoards`); then the row leaves the list. A second RELEASE answers 409 `gone`.
+  one release), the pure `releaseStep` runs in ONE `pstats` transaction and marks `pstats.rl/{id}`; the profile's counted plays
+  (`profiles/{pid}/m`) follow; the board rows are written from the stats (`lb.js#syncBoards` — EVERY game's when this release is the play
+  that lists the player, as a counted run does); then the row leaves the list. A second RELEASE answers 409 `gone`; a crash between the
+  stats and the list (the row back) re-releases as `skip: 'released'` — nothing new. REJECT refuses a row whose RELEASE is in flight.
+- The rows are written BEFORE the report seals `results/{key}` done: a failure fails the report and the resend writes them (once each).
 - **REJECT** = off the list; nothing else moves (its XP stays).
 - Tests: `tests/freefall-golive.test.mjs` (the pure halves) · `server.test.mjs` (a script's run held → listed → RELEASE once: the board,
   the average, SPLASHDOWN; a second held run REJECTED: nothing moves) · `e2e-freefall-match.mjs` (THE DIVER's dive to 200 is held: XP
@@ -410,7 +413,7 @@ rate + HITCH n: the frames over 33 ms in the run — **F3B: + what landed before
   resting on floor 0, Grok's lettering + its tagline over it, YOUR BEST at the top, at the foot the thumb-sweep hint + DRAG TO SPIN.
   **The FIRST DRAG starts the run:** the title + the hint fade (0.45 s), the camera sweeps down to the play camera (0.95 s). PLAY AGAIN
   comes back here (a new seed).
-- **THE PLAY CAMERA** = F1's graybox camera (a 46° lens, 33° down; `night.js#CAM` — pinned equal to `graybox.js#CAM`): the ball's
+- **THE PLAY CAMERA** = F1's graybox camera (a 46° lens, 33° down; `night.js#CAM` — it was pinned equal to the lab's `graybox.js#CAM` until the go-live deleted the lab): the ball's
   floor 34 % down the screen, 4 floors in sight below it — on every size (a wider screen is framed as the phone's column).
 - **THE HUD** (DOM over the canvas; written only when it changes — ZERO GARBAGE in the frame): YOUR BEST at the top · **THE BIG
   NUMBER** (Orbitron 900, 78 px at 390; its glow BAKED — `bakedtext.js`, HIGH RISE's: the ten digits drawn with their glow once a
@@ -1381,21 +1384,21 @@ js/games/freefall/share.js shot.js                  THE SHARE CARD (lazy — the
 js/fx/ff-specs.js  assets/vault/ff/                 THE CARDS' crops + hero boxes · their art      scripts/build-freefall-cards.mjs
 js/games/freefall/sounds.js sfx.js audition.js      the sounds' table + triggers (pure) · the player · the SOUNDS list
 assets/freefall/walls/ sky/ roof/ title/ fx/  audio/freefall/  the eight walls (night + day) · the rooftop's two panoramas · the roof below + its city (F3B) · the title (F3) · the flame atlas + the breakthroughs' textures (F3B) · the ten sounds      scripts/build-freefall-assets.py
-freefall-lab.html  css/freefall-lab.css             THE LAB + its HUD (prefix ff-; self-contained: no tokens, no web font)
+(DELETED at THE GO-LIVE, Nov 28) freefall-lab.html  css/freefall-lab.css             THE LAB + its HUD (prefix ff-; self-contained: no tokens, no web font)
 js/games/freefall/tuning.js                         THE RULE-SET TABLE + the classic row by name (pure, imports nothing)
 js/games/freefall/tower-gen.js                      THE TOWER: buildFloor + the angle maths + the fairness checks it builds by (pure)
 js/games/freefall/engine.js logic.js replay.js      THE RULES (pure — the phone AND the server): the step · the words, the seed, the areas, the ranking · the replay, the judge, the packed log
 js/games/freefall/bot.js                            the sim bots          scripts/freefall-sim.mjs   the 2,000-seed table
-js/games/freefall/lab.js graybox.js                 THE LAB's page · its three.js graybox
+(DELETED at THE GO-LIVE, Nov 28) js/games/freefall/lab.js graybox.js                 THE LAB's page · its three.js graybox
 api/_lib/freefall.js                                THE JUDGE's server half (pure; F4A: wired into /api/report — verifyRun · freefallSolo · THE SWITCH)
-tests/freefall-engine.test.mjs (25) · freefall-tower.test.mjs (11) · freefall-server.test.mjs (8) · freefall-sim.test.mjs (9) · freefall-lab.test.mjs (5 — the static half) · freefall-play.test.mjs (16 — F2 + F3 + F3B, static)
+tests/freefall-engine.test.mjs (25) · freefall-tower.test.mjs (11) · freefall-server.test.mjs (8) · freefall-sim.test.mjs (9) · freefall-lab.test.mjs (DELETED at THE GO-LIVE; was 5 — the static half) · freefall-play.test.mjs (16 — F2 + F3 + F3B, static)
 tests/freefall-proof.test.mjs (6 — F4A: the chunks, the judge of a node, the holds, both clock bounds, hostile nodes) · freefall-cartridge.test.mjs (8 — F4A: the registration, the director, the server's result, THE SWITCH, the cards, the board + AVG)
 tests/integration/e2e-freefall.mjs (53 — F4A, the emulators: the hidden cartridge end to end) · rules.test.mjs "FREEFALL F4A" (the ff node) · server.test.mjs "FREEFALL F4A" (the report, the switch OFF / ON)
 tests/integration/freefall-play.mjs (152 — the browser: the test page, both looks; --f3b · --f4a (Group 0's 18) · --haze (measure only) · --look · --perf · --stutters)
 tests/freefall-match.test.mjs (9 — F4B: the steps, the judge of a match == the live runs on 8-player sims, hostile match logs, Call the Winner, THE GHOSTS, WATCH's exact playback) · freefall-share.test.mjs (7 — F4B: the card)
 tests/integration/e2e-freefall-match.mjs (F4B, the emulators: a real 3- + 8-player match end to end) · freefall-share.mjs (the card from REAL end frames) · rules.test.mjs + server.test.mjs "FREEFALL F4B"
 tests/integration/freefall-play.mjs --f4b (the frame bar · the bot room: ghosts, rail, markers, WATCH) · --perf8 (60 fps with 8 ghosts, every tier, 1× + 4× CPU, both looks) · --look --scenes=match,end,framebar
-tests/integration/freefall-lab.mjs (57 — the browser: real drags at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900; scripts/serve.mjs is enough) · kit/page-loads.mjs (/freefall-lab)
+tests/integration/freefall-lab.mjs (DELETED at THE GO-LIVE; was 57 — the browser: real drags at 390 × 844 + 375 × 667 · 430 × 932 · 1440 × 900; scripts/serve.mjs is enough) · kit/page-loads.mjs (/freefall-lab)
 ```
 
 ## COMING

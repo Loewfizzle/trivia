@@ -828,7 +828,7 @@ export function createStage(app0, o = {}) {
     const work = performance.now() - w0;
     tiers.sample(now, prevWork); prevWork = work;
     if (t0 != null && !over && !held && now - t0 > 1000) trialTick(dt);
-    if (pin == null && !spikeOff && frameN % 10 === 0) tiers.tick(now);   // (GO-LIVE G0.3: after a NO HELP → back NOTHING steps the tier again for the page — the timing rule + its cap probe flapped 2→1→2→1→2)
+    if (pin == null && frameN % 10 === 0) tiers.tick(now);
     frames[frameK++ % 600] = dt;
     if (t0 != null && !over && !held && dt > HITCH_MS && now - t0 > 1000) hitchNow(dt, now);
     else if (t0 != null && !over && !held && dt > worstMs && now - t0 > 1000) worstMs = dt;
@@ -888,7 +888,7 @@ export function createStage(app0, o = {}) {
     if (trialMs < SPIKE.settle + SPIKE.trial) return;
     const rate = trialHits * 1000 / SPIKE.trial, helped = rate <= trialRate * SPIKE.helped;
     spikeSaid = `spike ${trialFrom}→${trialFrom - 1}: ${trialRate.toFixed(2)}/s → ${rate.toFixed(2)}/s ${helped ? 'HELPED' : 'NO HELP → back'}`;
-    if (!helped) { spikeOff = true; tiers.set(trialFrom); }
+    if (!helped) { spikeOff = true; tiers.set(trialFrom); tiers.rest(); }   // (GO-LIVE G0.3: the timing rule + its cap probe rest too — they flapped 2→1→2→1→2; real work may still step down)
     trialFrom = -1; spikeK = 0;
   }
   /** `?fps=1`, the run over: what was left — the worst frame, the hitches, the top three causes with their floors */

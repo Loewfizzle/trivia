@@ -468,7 +468,7 @@ function freefallExtra(game, uid, out) {
   if (game.sv !== 1) return;
   const solo = Object.keys(game.participants || {}).length === 1;
   // (GO-LIVE: the held row keeps what a RELEASE needs — the feats its replay earned + solo / match — ffheld/ via api/_lib/held.js)
-  if (ffTooPerfect(r)) { out.held = 1; out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)), ff: String(r.ft || '').split(' ').map(k => FF_FEATS[k]).filter(Boolean).join(' '), so: solo ? 1 : 0 }); return; }
+  if (ffTooPerfect(r)) { out.held = 1; out.rejected.push({ uid, board: 'freefall-solo', v: 'held', f: Math.floor(num(r.f)), b: Math.floor(num(r.b)), br: Math.floor(num(r.br)), ff: String(r.ft || '').split(' ').filter(k => Object.prototype.hasOwnProperty.call(FF_FEATS, k)).map(k => FF_FEATS[k]).join(' '), so: solo ? 1 : 0 }); return; }
   if (num(r.f) > 0) out.rec[solo ? 'freefall' : 'freefall-solo'] = Math.floor(num(r.f));
   for (const k of String(r.ft || '').split(' ')) if (Object.prototype.hasOwnProperty.call(FF_FEATS, k)) (out.f ||= {})[FF_FEATS[k]] = 1;
   if (solo) out.av = { 'freefall-solo': Math.max(0, Math.floor(num(r.f))) };
